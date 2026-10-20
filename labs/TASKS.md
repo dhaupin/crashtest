@@ -70,6 +70,19 @@
 
 ## Log
 
+- [2026-10-20 ~11Z] **Docs sweep — README rewritten, AGENTS.md + DEPLOY.md
+  born, all crosslinked.** Polished against the real CLI (no-fiction pass):
+  README now leads with the 60-second usage, real module names with their
+  shipped oracles, docs map; AGENTS.md carries the one law, layout, seven
+  paid-for house rules, scenario contract summary, release procedure,
+  vant/rook memory conventions, gistory port backlog; DEPLOY.md is the user
+  path (init → config → run → baseline → CI action) plus maintainer OIDC
+  release flow and a troubleshooting table built from today's real run logs
+  (E404 stage-only default, tag re-push retry, must-end express rule,
+  timestamp churn, shallow-copy proto note). Every documented command
+  verified before landing (init artifacts, exit 2 on missing/bad config,
+  dogfood exit 0). Code touch: config `modules` filter now flows through
+  cmdRun (runner's opts.modules was CLI-dark).
 - [2026-10-20 ~10Z] **v0.1.0 SHIPPED via OIDC — the loop is closed.** First
   attempt failed (E404 = stage-only default on the fresh TP config); after
   dhaupin flipped allow-direct-publish, re-pushed the tag (integration can't

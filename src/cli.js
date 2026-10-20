@@ -124,6 +124,7 @@ async function cmdRun(opts = {}) {
   if (!scenarios.length) throw new Error('no scenario modules found (built-ins missing?)');
 
   const run = await runCampaign(harness, scenarios, {
+    modules: target.modules,
     attackCtx: target.attackCtx,
     moduleCtx: target.moduleCtx,
     seed: target.seed,

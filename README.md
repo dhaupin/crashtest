@@ -2,79 +2,88 @@
 
 > **We break it so they can't.**
 > In-process adversarial QA for agent-built software — no network, no bans, no invoice.
+>
+> [`npmjs.com/package/crashtest`](https://www.npmjs.com/package/crashtest) · MIT · v0.1.0
 
 Crashtest attacks your project's **real handlers** — the way a security engineer
 would, minus the live server. Every attack is an in-process `Request` through
 your own routing, against an in-memory backend, with op counters attached. It
 never opens a socket. That invariant is the whole safety story.
 
-## Campaigns (v0.1)
-
-| Campaign | What it does |
-|---|---|
-| **redteam** | logic attacks: takeover, capability races, replay, identity spoofing, secret handling |
-| **fuzz** | mutated/malformed/hostile bodies against every input surface; asserts "never 500, never uncaught" |
-| **barrage** | volume campaigns with **cost accounting** (backend ops per admitted vs refused request) |
-| **guards** | rate-limit walls, breaker behavior, response hygiene |
-
-Verdicts: **REFUSED** (defense held) · **EXPLOITED** (you got hit) ·
-**BOUNDED** (accepted risk, with owner + bound).
-
-It ends with `labs/hardening.md` (human-first) and `labs/crashledger.json`
-(CI gate: fail **only** on a new EXPLOITED or a regression of something
-previously REFUSED — accepted risks never re-alarm you).
-
-## Status: v0.1 in flight (pipeline works end-to-end)
-
-The campaign pipeline runs against a declared target:
+## 60-second usage
 
 ```bash
-crashtest init               # writes labs/crashledger.json + labs/hardening.md stub
-crashtest run                # attacks the target from crashtest.config.js
-# → prints verdicts live, writes labs/hardening.md + labs/crashledger.json
-# → exit 0 unless a NEW EXPLOITED finding or a REFUSED→EXPLOITED regression
+npx crashtest init                 # labs/crashledger.json + labs/hardening.md stub — commit them
+# write crashtest.config.js: routes (your real handlers) + fake env   (see docs/DEPLOY.md)
+npx crashtest run                  # verdicts print live; report + ledger update
+# exit 0 unless a NEW EXPLOITED finding or a REFUSED→EXPLOITED regression
 ```
 
-This repo dogfoods itself: `crashtest run` attacks `fixtures/demo/` and CI
-gates on the committed `labs/crashledger.json` baseline. Seed campaigns:
-`auth` (identity spoofing, secret watermark, privilege escalation), `input`
-(proto-pollution, mutation fuzz floor, oversized fields), `guards`
-(cache hygiene, burst walls + Retry-After), `state` (cross-tenant reads, id
-collision/alias overwrite), `volume` (stuffing, storage fill, cost
-amplification — every campaign reports backend ops/request). Bring your own
-scenarios by dropping ESM modules into `labs/scenarios/`.
-
-## Framework targets (v0.2)
-
-The target config can dispatch **any framework that can fire in-process** —
-no server, no sockets, ever:
-
 ```js
-// crashtest.config.js
-import { ENV_SPEC, buildRoutes } from './fixtures/demo/app.js';
+// crashtest.config.js — the shape
+import { buildRoutes, ENV_SPEC } from './src/app.js';
+
 export default {
-  env: ENV_SPEC,
-  routes: buildRoutes(),          // plain (ctx) => Response handlers
-  adapters: { hono: honoApp, express: expressApp, fastify: await fastifyApp.ready() },
-  seed: 0xC0FFEE,
+  routes: buildRoutes(),           // (ctx) => Response handlers (Pages-Functions shape)
+  env: ENV_SPEC,                   // fake backend: D1 tables, KV, fake secrets
+  adapters: { /* hono: app, express: app, fastify: await app.ready() */ },
+  seed: 0xC0FFEE,                  // deterministic: same commit → same findings
 };
 ```
 
-Adapters dispatch through the framework's own in-process surface (`hono.request`,
-`app.handle`, `fastify.inject`) and expose the app as a harness route named
-`app` (configurable) — every scenario library runs against it unchanged.
+## Seed campaigns (built in)
 
-## CI as a GitHub Action (v0.2)
+| Library | Attacks shipped |
+|---|---|
+| **auth** | identity-spoof-headers (54-spoof matrix: denied→allowed flip = bypass) · secret-watermark (fake env secrets must never leak) · privilege-escalation (denied writes must not flip on field mutations) |
+| **input** | proto-pollution-body (Object.prototype canary via hostile JSON keys) · never-fail-mutations (seeded hostile bodies; floor = never 500, never an uncaught throw) · oversized-field (1 MiB bodies) |
+| **guards** | hygiene-no-store (surviving 2xx writes need explicit Cache-Control) · burst-wall (walls must carry Retry-After; any break is a finding) |
+| **state** | enumeration-oracle (foreign ids must deny — no cross-tenant reads) · id-collision-alias (second owner same key must conflict or fork — overwrites caught by DB snapshot diff) |
+| **volume** | credential-stuffing · storage-fill · cost-amplification — every attack reports **backend ops/request** (bound via config, default 12) |
+
+Verdicts: **REFUSED** (defense held) · **EXPLOITED** (you got hit) ·
+**BOUNDED** (accepted risk — requires `owner` + `bound` or it's a finding).
+
+Reports: `labs/hardening.md` (human-first) + `labs/crashledger.json`
+(CI gate: fail **only** on a new EXPLOITED or a regression of something
+previously REFUSED — accepted risks never re-alarm you).
+
+## Framing the working shape
+
+Bring your own scenarios (ESM modules in `labs/scenarios/` or listed in
+`scenarioDirs`) — contract:
+`{ name, description, attacks: [{ name, run(harness, ctx) → verdict }] }`.
+
+Framework dispatch targets work in-process — no server, no sockets, ever:
+
+```js
+adapters: {
+  hono: honoApp,                     // app.request()
+  express: expressApp,               // app.handle() (routes must end their response)
+  fastify: await fastifyApp.ready(), // app.inject() (routes exist post-ready)
+}
+```
+
+## CI as a GitHub Action
 
 ```yaml
-- uses: dhaupin/crashtest@v0   # composite: install + run + gate
+- uses: dhaupin/crashtest@v0.1.0   # composite: install + run + gate
   with:
     config: crashtest.config.js
-    run-tests: 'true'          # optional: also run the target's own tests
+    run-tests: 'true'              # optional: also run your own tests
 ```
 
 Fails on a NEW EXPLOITED finding or a REFUSED→EXPLOITED regression — never
-on accepted risks.
+on accepted risks. (A moving `v0` major tag is planned; pin the version for
+now.)
+
+## This repo dogfoods itself
+
+`npx crashtest run` attacks [`fixtures/demo/`](./fixtures/demo/app.js)
+(hardened + the deliberately-broken draft), gated in CI against the committed
+[`labs/crashledger.json`](./labs/crashledger.json). The committed
+[`labs/hardening.md`](./labs/hardening.md) is the live report; provenance on
+every npm release traces package → commit (verify the badge on npm).
 
 ## Landscape
 
@@ -93,4 +102,11 @@ on accepted risks.
 5. **Zero dependencies by default.** The attacker ships light.
 6. **Accepted risks must have owners and bounds.**
 
-License: MIT. PRD and task log: [`labs/`](./labs/) in the repo.
+## Docs map
+
+- **Adopting / releasing** → [`DEPLOY.md`](./DEPLOY.md) (install → adopt → publish runbook → troubleshooting)
+- **Agent/human contributor conventions** → [`AGENTS.md`](./AGENTS.md)
+- **Publish internals** (npm Trusted Publishing, staged route, token policy) → [`docs/publish.md`](./docs/publish.md)
+- **Contract + task log** → [`labs/prd-crashtest.md`](./labs/prd-crashtest.md) + [`labs/TASKS.md`](./labs/TASKS.md)
+
+License: MIT.
