@@ -122,9 +122,25 @@ jobs:
         with:
           config: crashtest.config.js     # default
           run-tests: 'true'               # optional: also run your npm test
+          version: '0.1.1'                # optional: pin the crashtest CLI version (reproducible gates)
 ```
 
-Same exit semantics; the hardening run is uploaded as an artifact.
+Same exit semantics; the hardening run is uploaded as an artifact. Without
+`version`, the gate installs the latest crashtest. Pin it for reproducible
+gates — untracked-flag/regression semantics can drift between versions,
+just like your app's dependencies do.
+
+**Read-only gates (run roots, hosted lanes):** `run --expect-baseline <path>`
+diffs against a ledger you hand it and writes **nothing** — no `labs/`
+touches, no report, no ledger churn. Same §7 exit rules. This is how a PR
+check attacks the target repo from OUTSIDE it:
+
+```bash
+# run root beside the target (nothing installs into the target repo)
+crashtest run --config ../mytarget/crashtest.config.js \
+              --expect-baseline ../mytarget/labs/crashledger.json
+# exit 0 = baseline held · exit 1 = NEW EXPLOITED or REFUSED→EXPLOITED regression
+```
 
 ## III. Publish (maintainers — one-time setup, then automatic)
 

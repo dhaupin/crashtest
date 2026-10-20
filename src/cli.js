@@ -26,6 +26,7 @@ Usage:
   crashtest init            Create labs/ scaffold: crashledger.json + hardening.md stub
   crashtest run [--config path] [--json]   Attack the target declared in crashtest.config.js
                  [--module-plan]  dry-run: which attack ids WOULD fire (NEEDS-ARMING shows un-armed packs)
+                 [--expect-baseline path]  diff against a given ledger WITHOUT touching labs/\n                                    (read-only CI/hosted mode; exit rules unchanged)
   crashtest packs [--config path] [--json]   List discovered scenario packs (public + local); --json = machine inventory
   crashtest packs add <name> [--public]   Scaffold a fresh pack — local (gitignored) by default;
                  --public puts it in packs/public/ as tracked/sharable
@@ -214,15 +215,45 @@ async function cmdRun(opts = {}) {
 
   const ledgerPath = join(root, LEDGER_PATH);
   let prior = null;
-  if (await exists(ledgerPath)) {
+  if (opts.expectBaseline) {
+    // PRD §14: `run --expect-baseline <path>` — diff against a ledger the
+    // caller hands in, WITHOUT touching labs/. The hosted/CI read-only mode:
+    // the service (or a PR run against the target's committed ledger) must
+    // not write into the repo it attacks. Exit rules (§7) are unchanged.
+    const baselinePath = join(root, opts.expectBaseline);
+    if (!(await exists(baselinePath))) {
+      console.error(`crashtest run: --expect-baseline: no ledger at ${opts.expectBaseline}`);
+      process.exitCode = 2;
+      return;
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(await readFile(baselinePath, 'utf8'));
+    } catch (e) {
+      console.error(`crashtest run: --expect-baseline: ${opts.expectBaseline} is not valid JSON (${e.message})`);
+      process.exitCode = 2;
+      return;
+    }
+    if (!parsed || typeof parsed !== 'object' || parsed.schemaVersion !== 1 || !Array.isArray(parsed.baseline)) {
+      console.error(`crashtest run: --expect-baseline: ${opts.expectBaseline} is not a schema-1 ledger (wants { schemaVersion: 1, findings, acceptedRisks, baseline })`);
+      process.exitCode = 2;
+      return;
+    }
+    prior = parsed;
+  } else if (await exists(ledgerPath)) {
     prior = JSON.parse(await readFile(ledgerPath, 'utf8'));
   }
   const ledger = buildLedger(run, prior);
   const diff = diffAgainstBaseline(run, prior);
 
-  await mkdir(join(root, 'labs'), { recursive: true });
-  await writeFile(ledgerPath, JSON.stringify(ledger, null, 2) + '\n');
-  await writeFile(join(root, REPORT_PATH), renderMarkdown(run, ledger, diff, { version: VERSION, seed: target.seed }));
+  if (opts.expectBaseline) {
+    // Read-only: no labs/ writes at all — the caller owns the baseline.
+    console.log(`baseline: read-only diff against ${opts.expectBaseline} · labs/ untouched`);
+  } else {
+    await mkdir(join(root, 'labs'), { recursive: true });
+    await writeFile(ledgerPath, JSON.stringify(ledger, null, 2) + '\n');
+    await writeFile(join(root, REPORT_PATH), renderMarkdown(run, ledger, diff, { version: VERSION, seed: target.seed }));
+  }
 
   // Console summary: verdicts as they land, ledger + exit rule at the end.
   for (const row of run.rows) {
@@ -230,7 +261,11 @@ async function cmdRun(opts = {}) {
     console.log(`${mark} ${row.id}: ${row.detail}`);
   }
   console.log(`\ntally: ${JSON.stringify(run.tally)} · cost: ${run.cost.totals.ops} ops / ${run.cost.totals.requests} requests`);
-  console.log(`ledger: ${LEDGER_PATH} · report: ${REPORT_PATH}`);
+  if (opts.expectBaseline) {
+    console.log(`target: ${opts.expectBaseline} (read-only diff — no ledger/report written)`);
+  } else {
+    console.log(`ledger: ${LEDGER_PATH} · report: ${REPORT_PATH}`);
+  }
   console.log(`baseline: ${diff.newExploited.length} new · ${diff.regressed.length} regressed · ${diff.acceptedHits.length} accepted hits`);
   if (opts.json) console.log(JSON.stringify(run));
   process.exitCode = exitCode(diff);
@@ -382,7 +417,9 @@ export async function main(argv) {
     const config = confIdx > -1 ? argv[confIdx + 1] : undefined;
     const json = argv.includes('--json');
     const modulePlan = argv.includes('--module-plan');
-    return cmdRun({ config, json, modulePlan });
+    const baseIdx = argv.indexOf('--expect-baseline');
+    const expectBaseline = baseIdx > -1 ? argv[baseIdx + 1] : undefined;
+    return cmdRun({ config, json, modulePlan, expectBaseline });
   }
   console.error(`crashtest: unknown command "${verb}" (try --help)`);
   process.exitCode = 1;

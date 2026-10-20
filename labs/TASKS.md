@@ -70,6 +70,50 @@
 
 ## Log
 
+- [2026-10-20 ~14Z] **Docs parity with vant: burger nav + pagefind search.**
+  docs.creadev.org/crashtest was rendering the nav inline with no search —
+  gap: the layout shipped "same shape as vant, minus pagefind/prism extras"
+  and the extras were the UX. Ported vant's shape onto the crashtest
+  theme: fixed header (search trigger w/ Ctrl-K chip + GitHub CTA +
+  hamburger), burger-toggled slide-out sidebar w/ overlay (mobile ≤768px,
+  desktop keeps the fixed rail), pagefind modal search (Cmd/Ctrl+K, Esc,
+  5-result cap) with an HONEST downgrade message when the index isn't
+  deployed. Workflow got vant's hardened pagefind steps verbatim:
+  token-authenticated release scrape (rate-limit lesson), validate the
+  tag before download (404-HTML-as-tarball lesson), index built into
+  _site BEFORE freestruct runs. Layout JS parse-verified; workflow YAML
+  parse-verified. Push → docs.yml path-filter fires the build.
+- [2026-10-20 ~13Z] **Repo hygiene button-up (pre-v0.4 pause sweep).** Full
+  git history scanned for secret-shaped strings (token/PK/AKIA xox"); zero
+  hits — no secret ever landed. .gitignore hardened: `.env`/`.env.*` with
+  `!.env.example` defense (CLI reads no env secrets — maintainer sandboxes
+  only), web build artifacts (dist/, .prestruct/, web/node_modules/) folded
+  into the root ignore. New `.ignore` (ripgrep-shaped): keeps node_modules,
+  dist, cache, tarballs, and lockfiles OUT of code_search/grep so the
+  search tool reads the product, not the vendor tree. Docs stayed
+  truth-checked instead of example-filed: crashtest.config.js (fake env,
+  .local URL), ssr.config.js (public site identity — its .example twin
+  exists and the tracked-with-reason note is in web/.gitignore). wrangler:
+  none in repo — Pages config is public _headers/_redirects. PRD §14
+  sequencing updated (v0.3 shipped, v0.4-early flag set shipped, §15 = the
+  v0.5 lane); §15 verified end-to-end as the next-stage contract. 109/109
+  tests still green after the hygiene pass.
+- [2026-10-20 ~12Z] **§14 flag set complete + the hosted lane gated (PRD
+  §15).** Thread A: `run --expect-baseline <path>` — read-only ledger diff,
+  no `labs/` writes at all, §7 exit rules unchanged, missing/non-schema-1
+  baseline = honest exit 2. Tests: green read-only diff (labs/ provably
+  absent + baseline byte-identical across two runs), regression gate fires
+  (exit 1 on a REFUSED→EXPLOITED flip via an unhydrated leaking route),
+  bad-ledger exit 2. 12/12 cli tests. Docs: DEPLOY.md (read-only gates
+  recipe), docs/reference/exit-rules.md (§RA read-only diffs). Also prepped
+  the GH Marketplace shape without publishing: `action.yml` gained a
+  `version` input pinning the installed crashtest (`crashtest${{ '@' }}ver`,
+  empty = latest), DEPLOY.md documents it — listing itself deferred until
+  v1.0.0 per maintainer call. Thread C: PRD §15 sketch locked as the design
+  gate (webhook surface table, the four-invocation runner command set,
+  ledger-hosting read-only-first, `/crashtest accept` opens a ledger PR
+  instead of hosting service-side state, §13 replay-prove before any hosted
+  accepted-risks). Nothing hosted ships yet — this log + §15 is the contract.
 - [2026-10-20 ~11Z] **Docs sweep — README rewritten, AGENTS.md + DEPLOY.md
   born, all crosslinked.** Polished against the real CLI (no-fiction pass):
   README now leads with the 60-second usage, real module names with their

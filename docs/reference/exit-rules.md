@@ -27,6 +27,26 @@ compares the fresh run against it:
 - **Undeclared routes degrade to skipped-REFUSED** (`skipped: true` — the run
   tells you what to declare for coverage). They never count as findings.
 
+## Read-only diffs: `run --expect-baseline <path>`
+
+By default `crashtest run` rewrites `labs/crashledger.json` +
+`labs/hardening.md` (that's how you *cut* a baseline). In CI/hosted lanes the
+runner must be able to attack a repo it has no write access to:
+
+```bash
+crashtest run --config ../mytarget/crashtest.config.js \
+              --expect-baseline ../mytarget/labs/crashledger.json
+```
+
+- Diffs the fresh run against the ledger you hand it. Same exit table as
+  above, unchanged.
+- Writes **nothing**: no `labs/` touches, no ledger churn, no report. The
+  caller owns the baseline.
+- A missing or non-schema-1 baseline file is honest exit 2 ("the run could
+  not be trusted", same bucket as a missing config).
+- `run --json` still prints the run blob as the last stdout line — the diff
+  verdict lives in the same artifact the dashboard renders.
+
 ## Why config errors exit 2, not 1
 
 `session: config file missing - exit 2` — the distinction matters:

@@ -199,10 +199,12 @@ The pieces this PRD builds toward, aligned to today's ships + thread:
    - shipped 2026-10: `crashtest run --json` — the full run blob on stdout
      (machine artifact for CI + paste-into-dashboard), humans keep the
      verdict stream.
-   - next: `--out-dir` (artifact fan-out), `--expect-baseline <path>`
-     (diff against a given ledger without touching labs/ — the piece that
-     makes a hosted run read-only), `--module-plan` (dry-run: which attack
-     ids WOULD fire against this target).
+   - shipped 2026-10: `--module-plan` (dry-run: which attack ids WOULD fire)
+     and `--expect-baseline <path>` (diff against a given ledger without
+     touching `labs/` — the piece that makes a hosted run read-only; missing
+     or non-schema-1 baseline = honest exit 2, `labs/` provably untouched).
+     Remaining: `--out-dir` (artifact fan-out) — the service spawns the CLI
+     per run with exactly these; nothing else needs a flag.
 2. **Adapters = target surface.** The adapter registry (hono / express /
    fastify / node / **wordpress spike**) is what lets the service attack
    repos with zero changes to them — run roots OUTSIDE the target repo
@@ -230,11 +232,78 @@ The pieces this PRD builds toward, aligned to today's ships + thread:
   target repo — hosted runs diff against the committed ledger and hand
   the user the diff, never a rewritten file.
 
-**Sequencing (rough):** v0.3 = WP spike stabilization + recipes (the
-current thread); v0.4 = service-shaped flags (above) + GitHub Action
-rerunability (re-push-tag workaround retired); v0.5 = hosted run roots +
-service ledger reads; then the org tier.
+**Sequencing (updated 2026-10-20 — v0.3 shipped, v0.4 flags shipped early):**
+- shipped v0.3: WP spike + adapters; shipped v0.4-early: the whole service
+  flag set (`run --json`, `run --module-plan`, `run --expect-baseline`) +
+  `packs --json` inventory + dashboard coverage view.
+- remaining v0.4: `--out-dir` (only if artifact fan-out needs it), WP spike
+  stabilization, GH Action v1.0.0 release + Marketplace listing (deferred
+  until the version bump is justified).
+- v0.5 = the hosted lane per §15 (webhook receiver → runner command set →
+  ledger-hosted copies → accept-PR flow); then the org tier.
 
 **Success metric for the thread** (extends §12): an agent-built repo with
 NO test suite of its own gets its first ledger + CI gate in <5 minutes
 without installing anything beyond the drone.
+
+## 15. The hosted lane, gated (v0.4 sketch — planning only, nothing shipped)
+
+This section is the DESIGN GATE for thread C: what we will build, what we
+explicitly will not, and the invariants every piece must prove before it
+lands. No socket is opened by any of it; the only network parties are the
+service itself (GitHub webhook receiver + artifact host) and GitHub — the
+drone stays offline, exactly as §14 binds.
+
+**15.1 · Webhook surface (what the service receives)**
+
+| Event | Reaction |
+|---|---|
+| `push` (main) | scheduled/queued hosted run at the pushed SHA; report posted to the run history |
+| `pull_request` (opened/synchronize) | read-only diff run (the §14 flag set) at the PR merge SHA; verdict posted as a PR check + comment |
+| `installation` (GitHub App) | repo onboarding: locate/adopt `crashtest.config.js` + committed ledger; no config → offer `init` via comment command |
+| comment commands (`/crashtest plan`, `/crashtest rerun`, `/crashtest accept <id> owner=<o> bound=<b>`) | plan = `--module-plan` output on the PR; rerun = requeue at same SHA (deterministic → same findings); accept = the §13 ownership question, answered in-repo via a PR that edits `labs/crashledger.json` |
+
+Webhook receiver rules: signature-verified (GitHub HMAC), idempotent per
+`(repo, SHA, event)` (redelivery → same result, no duplicate runs), and it
+ENQUEUES work — it never runs attacks in the request path.
+
+**15.2 · Runner command set (what the service executes)**
+
+Every hosted run is ONE of exactly four invocations of the shipped CLI —
+no service-mode flags, no new surface:
+
+```bash
+crashtest run --config <cfg> [--json]                            # baseline-cut run (maintains the repo's own labs/ — only on an approved write job)
+crashtest run --config <cfg> --json --expect-baseline <ledger>   # the PR/hosted read-only gate (this release's flag)
+crashtest run --config <cfg> --module-plan [--json]              # coverage preview for /crashtest plan
+```
+
+The service shells the CLI in an ephemeral job (container/runner) with the
+target repo checked out at the event SHA; it reads the run blob/plan from
+stdout-last-line and the markdown artifact from disk. `--out-dir` remains
+the one future flag IF artifact fan-out needs it (§14 list).
+
+**15.3 · Ledger hosting (the artifact contract, read-only first)**
+
+- The service hosts COPIES: `ledger`, `run blob`, `plan`, `hardening.md`
+  per run — keyed `(repo, SHA, runId)`, rendered by the same dashboard
+  bridge (§14.4). The repo's committed ledger stays the ONLY source of
+  truth for gating; hosted copies are renderings, never authoritative.
+- Accepted-risk sign-off (§13): `/crashtest accept` NEVER edits hosted
+  state. It opens a PR against the target adding `{ id, owner, bound }` to
+  the committed `acceptedRisks` — the same schema-v1 file CI already
+  consumes. Owner must be the commenting user with write access.
+- Ledger-hosted accepted-risks (service-side overrides) are explicitly
+  OUT OF SCOPE until the §13 UX has prove-it replay: a hosted accepted
+  risk must be re-derivable from a committed ledger at any historical SHA.
+
+**15.4 · What stays impossible by design**
+
+- The service never pushes to the target repo except the accept-PR above
+  (and never force-anything).
+- No hosted run ever mutates the target's `labs/` — that's what
+  `--expect-baseline` exists for; write-jobs (baseline cuts) run only on
+  explicit maintainer command and surface the resulting ledger diff for
+  review, never auto-commit.
+- Findings are never DM'd off-repo: the report is the PR check + the
+  dashboard link. Security findings stay where the code is.

@@ -12,6 +12,10 @@ inputs:
     description: Node version to run crashtest with
     required: false
     default: '22'
+  version:
+    description: crashtest package version to install (pin for reproducible gates; empty = latest)
+    required: false
+    default: ''
   config:
     description: Path to your crashtest.config.js (relative to repo root)
     required: false
@@ -32,7 +36,7 @@ runs:
 
     - name: Install crashtest
       shell: bash
-      run: npm install --no-save --no-audit --no-fund crashtest
+      run: npm install --no-save --no-audit --no-fund "crashtest${{ inputs.version && '@' || '' }}${{ inputs.version }}"
 
     - name: Target tests (optional)
       if: ${{ inputs.run-tests == 'true' }}
@@ -44,7 +48,8 @@ runs:
       shell: bash
       run: |
         set -o pipefail
-        npx crashtest run --config "${{ inputs.config }}" | tee labs/hardening-run.md
+        tee_output="$({ npx crashtest run --config "${{ inputs.config }}"; } 2>&1 | tee labs/hardening-run.md)"
+        echo "$tee_output"
         echo "exit=$?" >> "$GITHUB_OUTPUT"
 
     - name: Upload hardening run

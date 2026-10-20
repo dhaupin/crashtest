@@ -5,3 +5,14 @@ coverage/
 .DS_Store
 docs/_site/
 packs/local/
+
+# Environment files never travel with the repo (defense-in-depth: the CLI
+# itself reads no .env secrets — they only exist in maintainer sandboxes).
+.env
+.env.*
+!.env.example
+
+# Web build artifacts (web/.gitignore repeats these for its own tooling)
+web/node_modules/
+web/dist/
+web/.prestruct/

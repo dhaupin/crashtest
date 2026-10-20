@@ -1,0 +1,12 @@
+# Search-tool exclusion (ripgrep respects this; .gitignore already keeps the
+# same dirs out of git). Only generated/vendored content lives here — never
+# tracked source, docs, or reports. Code_search + grep should be about the
+# product, not the vendor tree.
+node_modules/
+web/node_modules/
+web/dist/
+web/.prestruct/
+docs/_site/
+*.tgz
+*.lock
+package-lock.json
