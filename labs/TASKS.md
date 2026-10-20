@@ -70,6 +70,18 @@
 
 ## Log
 
+- [2026-10-20 ~10Z] **v0.1.0 SHIPPED via OIDC — the loop is closed.** First
+  attempt failed (E404 = stage-only default on the fresh TP config); after
+  dhaupin flipped allow-direct-publish, re-pushed the tag (integration can't
+  rerun someone else's failed run — `Resource not accessible by integration`
+  — but a tag re-push retriggers cleanly) and run 39359193986 went green in
+  19s: tests inside the workflow, tarball assembled, `npm publish` completed
+  with provenance — **signed statement published to the transparency log**
+  (search.sigstore.dev logIndex 3329750463). Registry now: versions
+  0.0.0-stage / 0.0.1 / **0.1.0 (latest)**, author dhaupin, MIT. Zero tokens
+  anywhere in CI. Remaining cleanup: dhaupin revokes the Termux granular
+  token (never needed again); milestone deleted-tag note: tag re-push needed
+  because rerun permissions are integration-limited.
 - [2026-10-20 ~09Z] **Name claimed on npm — crashtest@0.0.0-stage is live.**
   dhaupin published from Termux via a granular access token (Route B,
   staged): package title/public name are on the registry as of
