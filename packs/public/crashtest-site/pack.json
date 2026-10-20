@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "name": "crashtest-site",
+  "description": "crashtest attacks the site it actually ships: headers claim audit, CSP canary bypass attempts, HTML secret leakage, sitemap truth audit, manifest icon checks, robots.txt self-sabotage, version-function robustness + cache poisoning + shape-flap burst. Self-contained: bundles its own attacks and registry double.",
+  "version": "0.1.0",
+  "entry": "attacks.js"
+}

@@ -85,61 +85,87 @@ export function validatePackManifest(manifest, origin) {
  */
 export async function loadPacks(packsRoots = [], seen = new Map()) {
   if (typeof packsRoots === 'string') packsRoots = [packsRoots];
-  const dirs = packsRoots.flatMap((root) =>
-    // Two roots passing BOTH their visibility dirs keeps one call signature.
-    [join(root, 'public'), join(root, 'local')]);
   const out = [];
-  for (const dir of dirs) {
-    let entries;
+  for (const root of packsRoots) {
+    // Pointing at ONE pack dir (its pack.json directly inside) loads exactly
+    // that pack — the documented "one pack dir only" shape. Visibility is
+    // inherited from the path when it came from a visibility dir, else "inline".
+    let selfManifest;
     try {
-      entries = await readdir(dir, { withFileTypes: true });
-    } catch {
-      continue; // optional visibility dir
+      selfManifest = JSON.parse(await readFile(join(root, 'pack.json'), 'utf8'));
+    } catch (err) {
+      if (err.code !== 'ENOENT') {
+        throw new Error(`pack manifest at ${root} is unreadable JSON: ${err.message}`);
+      }
     }
-    const visibility = basename(dir);
-    for (const ent of entries.filter((e) => e.isDirectory())) {
-      const packDir = join(dir, ent.name);
-      const origin = `${visibility}/${ent.name}`;
-      // dir without pack.json = not a pack (local dirs may carry loose WIP) — skip quietly
-      let manifest;
+    if (selfManifest) {
+      const inPublic = root.includes('/public/');
+      const inLocal = root.includes('/local/');
+      const visibility = inPublic ? 'public' : inLocal ? 'local' : 'inline';
+      await loadPackDir(root, basename(root), visibility, seen, out);
+      continue;
+    }
+    // Otherwise: a packs ROOT — scan its public/ + local/ visibility dirs.
+    for (const dir of [join(root, 'public'), join(root, 'local')]) {
+      let entries;
       try {
-        manifest = JSON.parse(await readFile(join(packDir, 'pack.json'), 'utf8'));
-      } catch (err) {
-        if (err.code === 'ENOENT') continue;
-        throw new Error(`pack manifest at ${origin} is unreadable JSON: ${err.message}`);
+        entries = await readdir(dir, { withFileTypes: true });
+      } catch {
+        continue; // optional visibility dir
       }
-      const spec = validatePackManifest(manifest, origin);
-      const seenOrigin = seen.get(spec.name);
-      if (seenOrigin && seenOrigin !== origin) {
-        throw new Error(`pack name collision: "${spec.name}" loaded from both ${seenOrigin} and ${origin}`);
+      const visibility = basename(dir);
+      for (const ent of entries.filter((e) => e.isDirectory())) {
+        await loadPackDir(join(dir, ent.name), ent.name, visibility, seen, out);
       }
-      seen.set(spec.name, origin);
-      const modPath = join(packDir, spec.entry);
-      let mod;
-      try {
-        mod = await import(pathToFileURL(modPath).href);
-      } catch (err) {
-        throw new Error(`pack "${spec.name}" (${origin}): entry "${spec.entry}" failed to import: ${err.message}`);
-      }
-      // Bundled plugin imports: resolved against the PACK dir (the manifest
-      // lifelines its own imports), shared `seen` keeps cross-surface name
-      // collisions one loud error with the earlier origin.
-      let bundled = [];
-      if (Array.isArray(spec.plugins) && spec.plugins.length) {
-        const { loadPlugins } = await import('../plugins/loader.js');
-        bundled = await loadPlugins(spec.plugins, packDir, seen);
-      }
-      out.push({
-        origin,
-        manifest: spec,
-        bundled,
-        visibility,
-        module: validateScenario(mod.default, `${origin}/${spec.entry}`),
-      });
     }
   }
   out.sort((a, b) => a.manifest.name.localeCompare(b.manifest.name));
   return out;
+}
+
+/**
+ * Load ONE pack dir (manifest must exist inside; a loose WIP dir without
+ * pack.json skips quietly — that is the local/ contract). Shared `seen`
+ * keeps one name one origin across every load shape.
+ */
+async function loadPackDir(packDir, name, visibility, seen, out) {
+  const origin = `${visibility}/${name}`;
+  // dir without pack.json = not a pack (local dirs may carry loose WIP) — skip quietly
+  let manifest;
+  try {
+    manifest = JSON.parse(await readFile(join(packDir, 'pack.json'), 'utf8'));
+  } catch (err) {
+    if (err.code === 'ENOENT') return;
+    throw new Error(`pack manifest at ${origin} is unreadable JSON: ${err.message}`);
+  }
+  const spec = validatePackManifest(manifest, origin);
+  const seenOrigin = seen.get(spec.name);
+  if (seenOrigin && seenOrigin !== origin) {
+    throw new Error(`pack name collision: "${spec.name}" loaded from both ${seenOrigin} and ${origin}`);
+  }
+  seen.set(spec.name, origin);
+  const modPath = join(packDir, spec.entry);
+  let mod;
+  try {
+    mod = await import(pathToFileURL(modPath).href);
+  } catch (err) {
+    throw new Error(`pack "${spec.name}" (${origin}): entry "${spec.entry}" failed to import: ${err.message}`);
+  }
+  // Bundled plugin imports: resolved against the PACK dir (the manifest
+  // lifelines its own imports), shared `seen` keeps cross-surface name
+  // collisions one loud error with the earlier origin.
+  let bundled = [];
+  if (Array.isArray(spec.plugins) && spec.plugins.length) {
+    const { loadPlugins } = await import('../plugins/loader.js');
+    bundled = await loadPlugins(spec.plugins, packDir, seen);
+  }
+  out.push({
+    origin,
+    manifest: spec,
+    bundled,
+    visibility,
+    module: validateScenario(mod.default, `${origin}/${spec.entry}`),
+  });
 }
 
 /** Human-facing inventory for the `crashtest packs` verb. */

@@ -31,7 +31,7 @@ dev dependency or the composite action below so versions don't surprise you.
 One step gates a whole branch:
 
 ```yaml
-- uses: dhaupin/crashtest@v0.1.1
+- uses: dhaupin/crashtest@v1.0.0
   with:
     config: crashtest.config.js   # default
     run-tests: 'false'            # also run your own npm test first, if you want

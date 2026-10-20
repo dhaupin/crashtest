@@ -6,6 +6,34 @@
  *
  * Zero secrets: this only reads the public registry.
  */
+
+// Proto-pollution guard: JSON.parse can materialize `__proto__`/`constructor`
+// as own keys. Anything carrying them is not a registry document we echo.
+const POLLUTION_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+// The version floor: a String but not every String is a version. Bounded,
+// semver-shaped, no control chars — anything else is an outage, not a badge.
+const VERSION_FLOOR = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+
+function rejectWhy(pkg) {
+  if (pkg === null || typeof pkg !== 'object' || Array.isArray(pkg)) {
+    return 'not a registry document';
+  }
+  for (const key of Object.keys(pkg)) {
+    if (POLLUTION_KEYS.has(key)) return `pollution key in registry document`;
+  }
+  if (typeof pkg.version !== 'string') return 'version is not a string';
+  if (pkg.version.length > 64) {
+    return `version exceeds 64 chars (rejected, length withheld)`;
+  }
+  if (!VERSION_FLOOR.test(pkg.version)) {
+    // Never echo the hostile value back on a public asset route: the 502
+    // names the fault class, not the attacker's bytes.
+    return `version fails the semver floor (rejected, value withheld)`;
+  }
+  return undefined;
+}
+
 export const onRequestGet = async () => {
   try {
     // Plain fetch only: the `cf` cache-hint option is not portable across
@@ -20,12 +48,15 @@ export const onRequestGet = async () => {
     });
     if (!res.ok) throw new Error(`registry ${res.status}`);
     const pkg = await res.json();
-    // Never lie by omission: a registry response without a version string is
-    // an outage in function, not a success — found by crashtest's own
-    // self-dogfood (site/registry-hostile-statuses). The badge contract is
-    // "200 means a version, 502 means say why".
-    if (typeof pkg?.version !== 'string' || !pkg.version) {
-      throw new Error(`registry response carried no version (status ${res.status})`);
+    // Never lie by omission: a registry response without an honest version
+    // string is an outage in function, not a success — found by crashtest's
+    // own self-dogfood (site/registry-hostile-statuses, then the site pack's
+    // version-grammar-hostile-shapes: oversize / control-char / whitespace
+    // versions echoed straight through). The badge contract is "200 means a
+    // floor-respecting version, 502 means say why".
+    const why = rejectWhy(pkg);
+    if (why !== undefined) {
+      throw new Error(`registry document rejected: ${why}`);
     }
     const version = pkg.version;
     const provenance = Boolean(pkg.dist?.attestations);

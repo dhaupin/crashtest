@@ -3,7 +3,7 @@
 > **We break it so they can't.**
 > In-process adversarial QA for agent-built software — no network, no bans, no invoice.
 >
-> [`npmjs.com/package/crashtest`](https://www.npmjs.com/package/crashtest) · MIT · v0.1.0
+> [`npmjs.com/package/crashtest`](https://www.npmjs.com/package/crashtest) · MIT · v1.0.0
 
 Crashtest attacks your project's **real handlers** — the way a security engineer
 would, minus the live server. Every attack is an in-process `Request` through
@@ -62,14 +62,14 @@ adapters: {
   hono: honoApp,                     // app.request()
   express: expressApp,               // app.handle() (routes must end their response)
   fastify: await fastifyApp.ready(), // app.inject() (routes exist post-ready)
-  // wordpress: { wpRoot },           // v0.3 spike — PHP worker, NDJSON stdio, no sockets
+  // wordpress: { wpRoot },           // subprocess spike — PHP worker, NDJSON stdio, no sockets
 }
 ```
 
 ## CI as a GitHub Action
 
 ```yaml
-- uses: dhaupin/crashtest@v0.1.0   # composite: install + run + gate
+- uses: dhaupin/crashtest@v1.0.0   # composite: install + run + gate
   with:
     config: crashtest.config.js
     run-tests: 'true'              # optional: also run your own tests
@@ -86,6 +86,18 @@ now.)
 [`labs/crashledger.json`](./labs/crashledger.json). The committed
 [`labs/hardening.md`](./labs/hardening.md) is the live report; provenance on
 every npm release traces package → commit (verify the badge on npm).
+
+The dogfood goes further: the shipped site pack
+[`packs/public/crashtest-site/`](./packs/public/crashtest-site/pack.json)
+attacks everything the repo actually ships to crashtest.creadev.org - the
+real /api/version Pages Function, the deployed _headers (CSP, HSTS, COOP),
+the prerendered dist HTML, sitemap, manifest and robots.txt. Its first run
+caught a real bug (hostile registry shapes echoed straight through as a
+badge 200); the validation floor now in
+[`web/functions/api/version.js`](./web/functions/api/version.js) is guarded
+forever by [`test/site-pack.test.js`](./test/site-pack.test.js), which pins
+the two-way proof: a porous route EXPLOITED, the hardened one REFUSED.
+A pack runs from any run root - point `packs:` at a directory on disk.
 
 ## Landscape
 
@@ -104,7 +116,7 @@ every npm release traces package → commit (verify the badge on npm).
 5. **Zero dependencies by default.** The attacker ships light.
 6. **Accepted risks must have owners and bounds.**
 
-## v0.3 surface (the ecosystem thread)
+## Surface: packs, plugins and presets (the ecosystem thread)
 
 **Self-contained packs** — a pack in `packs/<visibility>/<name>/` is the one
 extension surface, and its `pack.json` can bundle its own imports
@@ -124,10 +136,11 @@ export default {
 ```
 
 **Builder presets** — `crashtest preset lovable|bolt|replit [--root <dir>]`
-generates a starter config from what detect() actually finds in an exported
+prints a starter config from what detect() actually finds in an exported
 repo (Supabase Edge Function layout, TanStack Start markers, the `.replit`
-run command, package.json shape) — and names plainly what it could NOT
-resolve rather than guessing a handler from the builder's name.
+run command, package.json shape) — prints it to stdout (nothing is written),
+and names plainly what it could NOT resolve rather than guessing a handler
+from the builder's name.
 
 ## Docs map
 

@@ -67,6 +67,14 @@ root - automatically, with no config changes. Visibility is a privacy
 convention, not a semantic difference: code in `local/` runs exactly like
 code in `public/`; only the file location (and the gitignore) changes.
 
+Installing `crashtest` from npm ships the two reusable shape packs
+(`wp-money-shapes`, `wp-stock-smoke`) as installed files, so the
+`packs: ['node_modules/crashtest/packs']` adoption shape is real, offline,
+and version-clean. The `crashtest-site` pack is NOT in the tarball on
+purpose: it is this repo's self-dogfood, bound to the OSS checkout's own
+`web/` tree - vendoring it would blind it. `test/packaging.test.js` pins
+the tarball contents either way.
+
 ## Packs from other repos (the killer feature, spelled out)
 
 A pack does **not** need to live in the repo under attack. `crashtest run`
@@ -114,6 +122,12 @@ reality directly - tracked vs machine-private.
 - **Public packs** (like the shipped [`wp-money-shapes`](https://github.com/dhaupin/crashtest/blob/main/packs/public/wp-money-shapes/pack.json)
   and [`wp-stock-smoke`](https://github.com/dhaupin/crashtest/blob/main/packs/public/wp-stock-smoke/pack.json)
   examples) live in the OSS repo and get versioned, reviewed, and shared.
+  [`crashtest-site`](https://github.com/dhaupin/crashtest/blob/main/packs/public/crashtest-site/pack.json)
+  is the OSS repo's own dogfood pack: it attacks the website crashtest
+  ships (the /api/version Pages Function, deployed headers, prerendered
+  HTML, sitemap, manifest, robots.txt) from any run root, and its first
+  run caught a real bug in the version function. Adapter-prefix rule
+  applies: it speaks the generic HTTP dialect, so no `wp-`-style prefix.
 - **Private packs** (the khf-style case: money paths guarded by a
   maintainer's own plugin, scenarios nobody else should have) live in
   `packs/local/` of a run root OUTSIDE the target repo. Nothing on disk is

@@ -70,6 +70,49 @@
 
 ## Log
 
+- [2026-10-20 ~24Z] **The pre-tag sweep: audit #1 + #2, surface walk.
+  Site pack dist-absent behavior fixed: web/dist is build-only, so
+  site-html + the HTML/sitemap attacks degrade to skipped-REFUSED with the
+  build named as the coverage fix (routes answer an honest 404 marker,
+  never throw; regression-pinned in test/site-pack.test.js). CI now builds
+  the site artifacts before npm test, so the shipped site is fully covered
+  in CI (audit #1). Tarball fix (audit #2): npm package ships the reusable
+  shape packs wp-money-shapes + wp-stock-smoke (files: field), NOT the
+  repo-bound crashtest-site pack, pinned by test/packaging.test.js
+  (npm pack --dry-run probe) + documented in reference/packs.md. Surface
+  walk: init, run (all flags), packs, packs add --public, module-plan,
+  preset (prints, never writes), packs inventory + docs claims verified
+  against the CLI; README preset wording fixed ("generates" -> "prints");
+  era-labeled headings (v0.3 surface) renamed in README/DEPLOY; version
+  pin test switched to the exported VERSION; crashtest-site pack header
+  comments de-staled (entry = attacks.js, own registry double). Suite
+  163/163, check 0, docs gates 4/4, dogfood gate exit 0.
+- [2026-10-20 ~24Z] **v1.0.0 version lock (untagged).** package.json +
+  VERSION in src/cli.js = 1.0.0; README badge, DEPLOY pins, docs action
+  examples + index frontmatter all name v1.0.0; publish flow example tag
+  updated; first CHANGELOG.md with 1.0.0 (unreleased); new
+  test/version.test.js pins package.json === VERSION === CHANGELOG entry
+  so the two release surfaces can never drift again. `crashtest
+  --version` prints v1.0.0; suite 159/159, all 4 docs gates + dogfood
+  gate green. NOT tagged: tag when the release notes are final.
+- [2026-10-20 ~24Z] **The self-pack: crashtest attacks its own shipped
+  WEBSITE (packs/public/crashtest-site).** The repo dogfoods fixtures/; the
+  site pack extends the dogfood to everything the repo ships to
+  crashtest.creadev.org: the real /api/version Pages Function, the real
+  _headers (CSP/HSTS/COOP), the prerendered dist HTML, sitemap/manifest/robots.
+  9 brutal attacks, honest oracles (pack.json entry = the attack module;
+  buildSiteRoutes() is imported by the run root from the pack). First run
+  caught a REAL bug: every hostile registry shape (12k version, control
+  chars, whitespace-only) echoed straight through as a badge 200. Fixed in
+  web/functions/api/version.js with the validation floor: semver-shaped,
+  bounded 64, pollution-key guard (__proto__/constructor/prototype), and the
+  502 names the fault class but never echoes the hostile bytes. WP packs
+  (wp-stock-smoke) degrading off-target: 4 fake EXPLOITEDs (harness.wpState
+  TypeError / route "app" fault) on any non-WP run root — real
+  false-positive generator, fixed with the config-gap skip (skipped
+  REFUSED, declare adapters.wordpress). Two-way teeth pinned in
+  test/site-pack.test.js: porous route EXPLOITED, hardened real one
+  REFUSED; CLI-level run-root ledger has 9/9 site rows REFUSED at exit 0.
 - [2026-10-20 ~24Z] **Docs/web round for the unified packs surface.**
   reference/packs.md: "Packs from other repos" section — packs: accepts any
   directory on disk (another repo's checkout, npm-vendored pack, single pack

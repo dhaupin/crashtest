@@ -13,6 +13,11 @@ const hostileBodies = [
   'a=1&a=2&a=3',                              // param pollution
 ];
 
+/** Config-gap skip, never a finding (PRD §12 zero false positives): a WP-only
+ *  attack on a run root with no WordPress target degrades out of the ledger. */
+const noWpTarget = (harness) =>
+  typeof harness.wpState !== 'function' || !harness.listRoutes().includes('app');
+
 export default {
   name: 'stockwp',
   description: 'Stock-WordPress e2e: harness boots the real install, dispatches real hooks, meters real SQL',
@@ -21,6 +26,7 @@ export default {
       name: 'nopriv-hostile-volley',
       description: '25 nonce-less hostile POSTs at a non-existent admin_post action: zero fatals, envelope stays honest',
       async run(harness) {
+        if (noWpTarget(harness)) return refused('WordPress target (route "app") not declared on this run root — attack skipped (declare adapters.wordpress for coverage)', { skipped: true });
         let fatals = 0; let fellOver = 0;
         for (let i = 0; i < hostileBodies.length * 5; i++) {
           const rec = await harness.run('app', {
@@ -41,6 +47,7 @@ export default {
       name: 'real-sql-cost-meters',
       description: 'Cost economics must ride the REAL database: a boot + one request + one nonce mint must tick wp.query > 0',
       async run(harness) {
+        if (noWpTarget(harness)) return refused('WordPress harness (wpState) not declared on this run root — metering check skipped (declare adapters.wordpress for coverage)', { skipped: true });
         const before = harness.costTotals();
         await harness.wpState({ kind: 'call', fn: 'wp_create_nonce', args: ['ct_probe'] });
         const after = harness.costTotals();
@@ -55,6 +62,7 @@ export default {
       name: 'call-whitelist-holds',
       description: 'The worker CALL_ALLOW whitelist is attack surface: a hostile call to a destructive core fn (wp_delete_post) must be refused by the worker, and the post must survive',
       async run(harness) {
+        if (noWpTarget(harness)) return refused('WordPress harness (wpState) not declared on this run root — whitelist check skipped (declare adapters.wordpress for coverage)', { skipped: true });
         const rec = await harness.wpState({ kind: 'call', fn: 'wp_delete_post', args: [1, true] });
         if (!rec.fatal) {
           // Whitelist breach: the destructive call EXECUTED. Prove damage.
@@ -70,6 +78,7 @@ export default {
       name: 'option-gates',
       description: 'allowOptions gating: non-declared option rows are refused by the worker; declared rows read real data',
       async run(harness) {
+        if (noWpTarget(harness)) return refused('WordPress harness (wpState) not declared on this run root — gate check skipped (declare adapters.wordpress for coverage)', { skipped: true });
         const denied = await harness.wpState({ kind: 'state', op: 'option', name: 'ct_not_allowed', key: 'x' });
         if (!denied?.fatal) return exploited('allowOptions gate broke: a non-declared option row was readable');
         const whole = await harness.wpState({ kind: 'state', op: 'option', name: 'blogname' });

@@ -31,6 +31,13 @@ jobs:
       - name: Docs gates (frontmatter, links, style, fiction)
         run: npm run lint:docs
 
+      # web/dist is gitignored (build-only), but it is real attack surface:
+      # the site pack's HTML/sitemap attacks need the prerendered artifacts.
+      # Build them so the suite exercises full artifact coverage; the pack
+      # itself degrades to honest skips when the build is absent.
+      - name: Build the site artifacts (web/dist for the site pack)
+        run: npm install --prefix web --no-audit --no-fund && npm run build --prefix web
+
       - name: Test suite
         run: npm test
 

@@ -10,7 +10,7 @@
 
 ```bash
 npm install crashtest        # or: npx crashtest …
-crashtest --version          # 0.1.1 at time of writing
+crashtest --version          # 1.0.0 at time of writing
 ```
 
 Every install ships with **signed provenance automatically** (the package is
@@ -122,8 +122,8 @@ the committed `labs/` baseline.
 
 ### 4. CI gate
 
-Use the composite action (currently `dhaupin/crashtest@v0.1.0`; a moving
-`v0` major tag is planned — pin as below until then):
+Use the composite action (currently `dhaupin/crashtest@v1.0.0`; a moving
+major tag is planned — pin as below until then):
 
 ```yaml
 # .github/workflows/ci.yml
@@ -133,11 +133,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: dhaupin/crashtest@v0.1.0
+      - uses: dhaupin/crashtest@v1.0.0
         with:
           config: crashtest.config.js     # default
           run-tests: 'true'               # optional: also run your npm test
-          version: '0.1.1'                # optional: pin the crashtest CLI version (reproducible gates)
+          version: '1.0.0'                # optional: pin the crashtest CLI version (reproducible gates)
 ```
 
 Same exit semantics; the hardening run is uploaded as an artifact. Without
@@ -157,7 +157,7 @@ crashtest run --config ../mytarget/crashtest.config.js \
 # exit 0 = baseline held · exit 1 = NEW EXPLOITED or REFUSED→EXPLOITED regression
 ```
 
-## v0.3: packs, plugins and presets (the ecosystem thread)
+## Packs, plugins and presets (the ecosystem thread)
 
 ### **Packs are the ONE extension surface** — bundled imports included
 

@@ -197,3 +197,22 @@ test('CLI: packs add refuses existing dirs and non-kebab-case names LOUDLY', asy
   assert.match(bad, /kebab-case/);
   process.exitCode = undefined;
 });
+
+test('loadPacks: pointing at ONE pack dir loads exactly it (docs "one pack dir only" shape)', async () => {
+  // This shape shipped in the docs before the loader could honor it - the
+  // fix lets a run root aim packs: straight at a single pack, visibility
+  // inherited from the path (public/ + local/) or "inline" for arbitrary dirs.
+  const root = await mkdtemp(join(tmpdir(), 'packs-one-'));
+  await mkPack(root, 'public', 'probe-pack', GOOD_MANIFEST, ENTRY_OK);
+  await mkPack(root, 'public', 'second-pack', { ...GOOD_MANIFEST, name: 'second-pack' }, ENTRY_OK.replace(/probe-pack/g, 'second-pack'));
+  const one = await loadPacks([join(root, 'public', 'probe-pack')]);
+  assert.deepEqual(one.map((p) => [p.origin, p.visibility]), [['public/probe-pack', 'public']], 'exactly the aimed-at pack loads');
+  // Inline dirs (no public/local in the path) still load, labeled "inline".
+  const inlineRoot = await mkdtemp(join(tmpdir(), 'packs-inline-'));
+  const inlineDir = join(inlineRoot, 'some', 'vendored', 'inline-pack');
+  await mkdir(inlineDir, { recursive: true });
+  await writeFile(join(inlineDir, 'pack.json'), JSON.stringify({ ...GOOD_MANIFEST, name: 'inline-pack', description: 'vendored' }), 'utf8');
+  await writeFile(join(inlineDir, 'index.js'), ENTRY_OK.replace(/probe-pack/g, 'inline-pack'));
+  const inline = await loadPacks([inlineDir]);
+  assert.deepEqual(inline.map((p) => [p.origin, p.visibility]), [['inline/inline-pack', 'inline']], 'arbitrary-dir packs label as inline');
+});

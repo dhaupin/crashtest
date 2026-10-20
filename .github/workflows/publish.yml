@@ -1,6 +1,6 @@
 name: npm-publish
 
-# Publish on version tags: `git tag v0.1.0 && git push origin v0.1.0`
+# Publish on version tags: `git tag v1.0.0 && git push origin v1.0.0`
 # (or create a GitHub release from a tag — set one trigger, not both,
 # to avoid double-publishing.)
 #

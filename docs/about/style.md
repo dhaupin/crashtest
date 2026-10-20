@@ -75,8 +75,8 @@ moment they surface twice. Current set:
    CLI runtime; `web/` legitimately ships vite + react.
 3. Anything describing sockets, live-fire, or a network mode as supported
    or enabled - there is no such mode anywhere on any surface, by design.
-4. Forward-dated release claims - "shipped in 0.2" when package.json says
-   0.1.1. PRD-labeled future work says "planned", never "shipped".
+4. Forward-dated release claims - "shipped in 1.1" when package.json says
+   1.0.0. PRD-labeled future work says "planned", never "shipped".
 
 A line that debunks a signature ("no sockets, ever") is the gate doing its
 job in prose, not a violation.

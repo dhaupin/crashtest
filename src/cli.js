@@ -16,7 +16,7 @@ import { buildLedger, diffAgainstBaseline, exitCode, renderMarkdown } from './re
 import { buildModulePlan } from './plans.js';
 import { listPresets, scaffoldPreset, probeHandler } from './presets.js';
 
-const VERSION = '0.1.1';
+const VERSION = '1.0.0';
 const LEDGER_PATH = 'labs/crashledger.json';
 const REPORT_PATH = 'labs/hardening.md';
 
