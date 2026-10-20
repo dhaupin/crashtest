@@ -2,15 +2,28 @@
 permalink: reference/packs
 layout: default
 title: Scenario Packs
-description: The extension surface - author packs once, keep them public or private by directory, load them without config changes.
+description: The ONE extension surface - files in packs/, bundled imports, config-direct specifiers - all under the same contract and loader rules.
 ---
 
-# Scenario packs (the extension surface)
+# Scenario packs (the ONE extension surface)
 
 A **pack** is a bundle you author once and reuse across run roots: scenario
-modules (same contract as the built-ins), and - going forward - recipes and
-target declarations. Zero new concepts to learn: a pack's scenario modules
-satisfy the exact same contract the seed libraries do.
+modules (same contract as the built-ins), bundled imports, and - going
+forward - recipes and target declarations. Zero new concepts to learn: a
+pack's scenario modules satisfy the exact same contract the seed libraries
+do.
+
+> **One surface, three ways in.** Packs used to sit beside two other words
+> ("plugins" via config import specifiers, "presets" via repo scaffolding).
+> Since the unified-surface merge (v0.3, 2026-10) **packs are the master
+> surface**: a pack can carry files in its own directory AND declare
+> `"plugins"` imports in its manifest; the config's `plugins:` knob is the
+> top-level escape for specifiers that belong to no pack. Presets are not a
+> runtime surface at all - they are a CLI helper that *writes a config* for
+> an agent-builder export (see
+> [Builder Presets](/crashtest/reference/presets)). Language-wise: if it has
+> a pack directory, it is a pack; if it is a bare specifier in the config,
+> it is a plugin; if it scaffolds the config, it is a preset.
 
 ## The schema (pack.json, v1)
 
@@ -20,14 +33,24 @@ satisfy the exact same contract the seed libraries do.
   "name": "my-money-pack",
   "description": "one line - what it attacks and how honest its oracles are",
   "version": "0.1.0",
-  "entry": "index.js"
+  "entry": "index.js",
+  "plugins": ["./bundled-canary.js", "some-npm-shape-pack"]
 }
 ```
 
 `entry` points at an ESM file under the pack directory whose default export
-is a scenario module (`{ name, description, attacks: [{ name, run }] }`). A
-pack.json that exists but is broken fails the run loudly - a config error,
-never a silent gap.
+is a scenario module (`{ name, description, attacks: [{ name, run }] }`).
+
+**`plugins` (optional, bundled imports)** - a pack can carry MORE scenario
+modules than its own files: the manifest lists import specifiers (npm
+packages, or ESM files the pack itself ships, relative to the **pack
+directory**). They load through the same validator as everything else, join
+the same campaign, and the plan labels carry the pack they came in with
+(`pack:public/your-pack -> plugin:./bundled-canary.js`). A self-contained
+pack can therefore ship its whole attack surface - files plus imports -
+with zero config wiring by the adopting repo. A broken listing (missing
+file, wrong shape, name collision) fails the run loudly naming the pack,
+the same rule as every other surface.
 
 ## Where packs live
 

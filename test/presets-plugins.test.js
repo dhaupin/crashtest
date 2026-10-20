@@ -263,3 +263,86 @@ test('probe: scaffoldPreset embeds the probe line for compilable functions', asy
   const out = await scaffoldPreset('lovable', dir);
   assert.ok(out.notes.some((n) => n.match(/probe hi: GET .*__ct-probe -> 200 ok=true/)), JSON.stringify(out.notes));
 });
+
+// ---- unified surface: packs bundle their own plugin imports (pack.json "plugins") ----
+
+test('pack: pack.json plugins bundles load through the ONE contract with the pack label carried', async () => {
+  const repo = await mkdtemp(join(tmpdir(), 'ct-packbundle-'));
+  const packDir = join(repo, 'packs', 'public', 'bundle-pack');
+  await mkdir(join(packDir), { recursive: true });
+  await writeFile(join(packDir, 'pack.json'), JSON.stringify({
+    schemaVersion: 1,
+    name: 'bundle-pack',
+    description: 'one entry module + one bundled import',
+    entry: 'index.js',
+    plugins: ['./bundled-canary.js'],
+  }, null, 2));
+  await writeFile(join(packDir, 'index.js'), [
+    'export default { name: \'bundle-entry\', description: \'d\', attacks: [{ name: \'e\', async run() { return { verdict: \'REFUSED\', detail: \'\' }; } }] };',
+  ].join('\n'));
+  await writeFile(join(packDir, 'bundled-canary.js'), PLUGIN_MODULE); // name: canary-plugin / attack canary
+  const { loadPacks } = await import('../src/packs/loader.js');
+  const packs = await loadPacks([join(repo, 'packs')]);
+  assert.equal(packs.length, 1);
+  assert.equal(packs[0].bundled.length, 1);
+  assert.equal(packs[0].bundled[0].module.name, 'canary-plugin');
+});
+
+test('pack: bundled plugins failing to load fail the run loudly naming the pack', async () => {
+  const repo = await mkdtemp(join(tmpdir(), 'ct-packbadbundle-'));
+  const packDir = join(repo, 'packs', 'public', 'bad-bundle');
+  await mkdir(join(packDir), { recursive: true });
+  await writeFile(join(packDir, 'pack.json'), JSON.stringify({
+    schemaVersion: 1,
+    name: 'bad-bundle',
+    description: 'bundle that points at nothing',
+    entry: 'index.js',
+    plugins: ['./missing.js'],
+  }, null, 2));
+  await writeFile(join(packDir, 'index.js'), [
+    'export default { name: \'bad-entry\', description: \'d\', attacks: [{ name: \'e\', async run() { return { verdict: \'REFUSED\', detail: \'\' }; } }] };',
+  ].join('\n'));
+  const { loadPacks } = await import('../src/packs/loader.js');
+  await assert.rejects(loadPacks([join(repo, 'packs')]), /plugin "\.\/missing\.js" failed to load/);
+});
+
+test('pack: junk "plugins" manifest shape fails loudly at pack validation', async () => {
+  const repo = await mkdtemp(join(tmpdir(), 'ct-packjunk-'));
+  const packDir = join(repo, 'packs', 'public', 'junk-bundle');
+  await mkdir(join(packDir), { recursive: true });
+  await writeFile(join(packDir, 'pack.json'), JSON.stringify({
+    schemaVersion: 1,
+    name: 'junk-bundle',
+    description: 'plugins knob is the wrong type',
+    entry: 'index.js',
+    plugins: 'not-an-array',
+  }, null, 2));
+  const { readFile } = await import('node:fs/promises');
+  const { validatePackManifest } = await import('../src/packs/loader.js');
+  const junk = JSON.parse(await readFile(join(packDir, 'pack.json'), 'utf8'));
+  assert.throws(() => validatePackManifest(junk, 'public/junk-bundle'), /"plugins" must be an array of non-empty/);
+});
+
+test('pack: bundles resolve relative to the PACK dir (self-contained pack ships its own files)', async () => {
+  const repo = await mkdtemp(join(tmpdir(), 'ct-packselfcontained-'));
+  const packDir = join(repo, 'packs', 'local', 'self-contained');
+  await mkdir(join(packDir), { recursive: true });
+  // NOTE: file lives in the pack, NOT at repo/plugins/ — pass proves pack-dir
+  // resolution (not repo-root/cwd resolution).
+  await writeFile(join(packDir, 'pack.json'), JSON.stringify({
+    schemaVersion: 1,
+    name: 'self-contained',
+    description: 'imports only files the pack itself carries',
+    entry: 'index.js',
+    plugins: ['./lib/inner.js'],
+  }, null, 2));
+  await writeFile(join(repo, 'packs', 'local', 'self-contained', 'index.js'), [
+    'export default { name: \'sc-entry\', description: \'d\', attacks: [{ name: \'e\', async run() { return { verdict: \'REFUSED\', detail: \'\' }; } }] };',
+  ].join('\n'));
+  await mkdir(join(packDir, 'lib'), { recursive: true });
+  await writeFile(join(packDir, 'lib', 'inner.js'), PLUGIN_MODULE);
+  const { loadPacks } = await import('../src/packs/loader.js');
+  const packs = await loadPacks([join(repo, 'packs')]);
+  assert.equal(packs.length, 1);
+  assert.equal(packs[0].bundled[0].module.name, 'canary-plugin');
+});

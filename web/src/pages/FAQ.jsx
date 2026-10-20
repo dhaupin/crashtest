@@ -40,7 +40,7 @@ const FAQS = [
   },
   {
     q: 'Can I attack with community attacks, not just the built-ins?',
-    a: <>Three delivery surfaces, one contract. Packs are file-bundles in your repo (<code>packs/public/</code> tracked, <code>packs/local/</code> gitignored). Plugins are importable specifiers straight into the config: <code>plugins: ['&lt;npm-package&gt;', './shims/wallet-profile.js']</code> - same validator, same campaign, same module plan, and a broken/unresolvable plugin fails the run loudly naming the file. Docs: <a href="https://docs.creadev.org/crashtest/reference/plugins">plugins</a> and <a href="https://docs.creadev.org/crashtest/reference/packs">packs</a>.</>,
+    a: <>One extension surface, three ways in - all one contract, one campaign. A <strong>pack</strong> is a bundle in your repo (<code>packs/public/</code> tracked, <code>packs/local/</code> gitignored) with a manifest entry. A pack can also be <strong>self-contained</strong>: its manifest lists bundled <code>plugins</code> imports (npm packages or files the pack itself ships), so adopting it takes zero config wiring. And a <strong>config-direct</strong> <code>plugins: ['&lt;npm-package&gt;', './shims/wallet-profile.js']</code> knob imports scenario modules that belong to no pack. A broken/unresolvable import fails the run loudly naming the file wherever it came from. Docs: <a href="https://docs.creadev.org/crashtest/reference/packs">packs</a> and <a href="https://docs.creadev.org/crashtest/reference/plugins">plugin imports</a>.</>,
   },
   {
     q: 'Does it help me adopt an agent-builder export (Lovable, Bolt, Replit)?',

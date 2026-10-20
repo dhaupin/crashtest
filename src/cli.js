@@ -225,6 +225,14 @@ async function cmdRun(opts = {}) {
     const packRoots = Array.isArray(packsOpt) ? packsOpt : [join(root, 'packs')];
     loadedPacks = await loadPacks(packRoots);
     packScenarios = loadedPacks.map((p) => ({ origin: p.origin, module: p.module }));
+    // Bundled plugin imports (pack.json "plugins"): the unified surface — a
+    // pack ships BOTH its own entry module and imported scenario modules,
+    // with the plan labels naming the packing pack honestly.
+    for (const p of loadedPacks) {
+      for (const b of p.bundled ?? []) {
+        packScenarios.push({ origin: `pack:${p.origin} -> ${b.origin}`, module: b.module });
+      }
+    }
     const names = new Map(scenarios.map((s) => [s.module.name, s.origin]));
     for (const s of packScenarios) {
       if (names.has(s.module.name)) {
@@ -236,7 +244,9 @@ async function cmdRun(opts = {}) {
   // Plugins (PRD v0.3 "the ecosystem"): config `plugins` = an array of
   // importable ESM specifiers (npm package names / local paths relative to
   // the config file). Same contract as packs and libraries — the plan's
-  // source labels distinguish the surfaces honestly.
+  // source labels distinguish the surfaces honestly. This stays as the
+  // top-level escape hatch; the UNIFIED surface is pack.json "plugins"
+  // (packs can bundle their own imports), so a pack is fully self-contained.
   let pluginScenarios = [];
   if (Array.isArray(target.plugins)) {
     const names = new Map(scenarios.map((s) => [s.module.name, s.origin]));

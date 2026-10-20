@@ -16,8 +16,11 @@
 //     "schemaVersion": 1,
 //     "name": "my-pack",              // kebab-case, unique
 //     "description": "one line",
-//     "entry": "index.js"             // optional; ESM file(s) under this pack,
+//     "entry": "index.js",            // optional; ESM file(s) under this pack,
 //                                     // validated with the scenario contract
+//     "plugins": ["npm-pkg"|"./rel.js"] // optional; import specifiers the pack
+//                                     // BUNDLES — resolved like config
+//                                     // `plugins`, relative to the pack dir
 //   }
 //
 // Rule 3 applies: a pack.json that exists but is unreadable/invalid FAILS
@@ -53,6 +56,17 @@ export function validatePackManifest(manifest, origin) {
   if (manifest.package !== undefined && typeof manifest.package !== 'string') {
     throw new Error(`pack manifest at ${origin}: "package" must be a string (npm package name)`);
   }
+  // Optional bundled-plugin imports (PRD v0.3 unified-surfaces): the pack
+  // BUNDLES scenario modules by import specifier — npm packages or ESM files
+  // inside the pack. They load through the same plugin validator, resolved
+  // relative to the PACK dir, and join the same campaign with honest
+  // `pack:<origin>` plan labels. A broken listing fails the run loudly, the
+  // same rule as every other surface.
+  if (manifest.plugins !== undefined) {
+    if (!Array.isArray(manifest.plugins) || manifest.plugins.some((s) => typeof s !== 'string' || !s.trim())) {
+      throw new Error(`pack manifest at ${origin}: "plugins" must be an array of non-empty ESM specifiers (npm names or .js/.mjs paths)`);
+    }
+  }
   if (!/^[a-z0-9][a-z0-9-]*$/.test(manifest.name)) {
     throw new Error(`pack manifest at ${origin}: name "${manifest.name}" is not kebab-case`);
   }
@@ -65,7 +79,7 @@ export function validatePackManifest(manifest, origin) {
  * ONLY if they are the same pack triple-checked by origin (see below);
  * a real name collision throws.
  *
- * @param {string[]} visibilityDirs absolute pack-visibility dirs (…/public, …/local)
+ * @param {string[]} packsRoots roots carrying public/ + local/ visibility dirs
  * @param {Map} [seen] shared with the scenario loader for cross-surface guards
  * @returns {Array<{ origin: string, module: object, visibility: string, manifest: object }>}
  */
@@ -107,9 +121,18 @@ export async function loadPacks(packsRoots = [], seen = new Map()) {
       } catch (err) {
         throw new Error(`pack "${spec.name}" (${origin}): entry "${spec.entry}" failed to import: ${err.message}`);
       }
+      // Bundled plugin imports: resolved against the PACK dir (the manifest
+      // lifelines its own imports), shared `seen` keeps cross-surface name
+      // collisions one loud error with the earlier origin.
+      let bundled = [];
+      if (Array.isArray(spec.plugins) && spec.plugins.length) {
+        const { loadPlugins } = await import('../plugins/loader.js');
+        bundled = await loadPlugins(spec.plugins, packDir, seen);
+      }
       out.push({
         origin,
         manifest: spec,
+        bundled,
         visibility,
         module: validateScenario(mod.default, `${origin}/${spec.entry}`),
       });
