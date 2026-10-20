@@ -157,31 +157,46 @@ crashtest run --config ../mytarget/crashtest.config.js \
 # exit 0 = baseline held · exit 1 = NEW EXPLOITED or REFUSED→EXPLOITED regression
 ```
 
-## v0.3: plugins and builder presets (the ecosystem thread)
+## v0.3: packs, plugins and presets (the ecosystem thread)
 
-### `plugins` — community scenario modules by import specifier
+### **Packs are the ONE extension surface** — bundled imports included
 
-Packs are file-bundles living in your repo tree. **Plugins** are the same
-scenario contract delivered as an *importable specifier* — an npm install or
-a local file, resolved relative to the config file:
+The unified vocabulary (2026-10): a **pack** in `packs/<visibility>/<name>/`
+is the master surface; its `pack.json` can now declare **bundled
+`"plugins"`** — import specifiers (an npm package, or ESM files the pack
+itself ships, relative to the pack dir) — so a pack ships its whole attack
+surface, entry + imports, with **zero config wiring for the adopting repo**.
+Plugins listed in the config's `plugins:` are the escape hatch for
+scenarios that belong to no pack.
 
 ```js
-// crashtest.config.js
+// crashtest.config.js — everything loads through the ONE contract
 export default {
   routes: buildRoutes(),
   env: ENV_SPEC,
-  plugins: [
-    'crashtest-plugin-rails-shapes',   // an npm package (imported as-is)
-    './shims/wallet-profile.js',       // a local file, config-relative
+  packs: ['./packs', '/abs/path/to/another-repo/packs'],  // run root + other repos' packs
+  plugins: [                                           // escape hatch: no pack
+    'crashtest-plugin-rails-shapes',                   // an npm package (imported as-is)
+    './shims/wallet-profile.js',                       // a local file, config-relative
   ],
 };
 ```
 
+A pack **does not have to live in the repo under attack**: `packs:` accepts
+any directory on disk (another repo's checked-out `packs/`, a vendored
+`node_modules/@you/crashtest-pack`, or one specific pack dir) — the labels
+in the module plan still name exactly which pack and repo every row came
+from. Full shapes and the self-contained walkthrough:
+[docs → Scenario Packs](https://docs.creadev.org/crashtest/reference/packs)
+(see "Packs from other repos").
+
 Same rules as every other surface: the module must default-export a valid
 scenario (`name`/`description`/`attacks[]`), a name collision with another
 loaded module throws, and anything unresolvable or contract-broken FAILS THE
-RUN loudly naming the plugin — a broken plugin is a config error, never a
-silent gap. The module-plan's plan blob labels these `plugin:<specifier>`.
+RUN loudly naming the pack or plugin — a broken surface is a config error,
+never a silent gap. The module-plan's plan blob labels the delivery surface
+honestly (`pack:<origin>`, `pack:<origin> -> plugin:<specifier>`,
+`plugin:<specifier>`).
 
 ### `crashtest preset <name>` — one-line starter configs for agent-builder exports
 

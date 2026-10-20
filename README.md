@@ -106,15 +106,20 @@ every npm release traces package → commit (verify the badge on npm).
 
 ## v0.3 surface (the ecosystem thread)
 
-**Plugins** — community scenario modules by import specifier, same contract
-as packs and libraries, same loud-failure rules:
+**Self-contained packs** — a pack in `packs/<visibility>/<name>/` is the one
+extension surface, and its `pack.json` can bundle its own imports
+(`"plugins": [npm-or-relative-specifiers]`), so it ships entry + imports to
+the adopting repo with **zero config wiring**. A pack doesn't need to live
+in the attacked repo — `packs:` accepts any directory on disk (another
+repo's checkout, a vendored npm package):
 
 ```js
-// crashtest.config.js
+// crashtest.config.js — one contract, three ways in
 export default {
   routes: buildRoutes(),
   env: ENV_SPEC,
-  plugins: ['some-shape-pack-npm-name', './shims/wallet-profile.js'],
+  packs: ['./packs', '/abs/path/to/pack-owning-repo/packs'],  // bundles included
+  plugins: ['some-shape-pack-npm-name', './shims/wallet-profile.js'],  // escape hatch: no pack
 };
 ```
 

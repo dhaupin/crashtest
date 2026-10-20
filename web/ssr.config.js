@@ -44,7 +44,7 @@ export default {
       changefreq: 'monthly',
       meta: {
         title: 'FAQ | Crashtest',
-        description: 'Crashtest FAQ: what it does, safety on real code, how it differs from pentest and SAST tools, the ledger and CI exit contract, BOUNDED accepted risks, packs and plugins, builder presets for Lovable/Bolt/Replit exports, framework support.',
+        description: 'Crashtest FAQ: what it does, safety on real code, how it differs from pentest and SAST tools, the ledger and CI exit contract, BOUNDED accepted risks, self-contained packs that travel across repos, builder presets for Lovable/Bolt/Replit exports, framework support.',
       },
     },
     {

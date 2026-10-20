@@ -47,6 +47,7 @@ export default function Home() {
             <div className="pipe-step"><span className="pipe-n">02</span><strong>The harness fires</strong><span>every request is an in-process <code>Request</code>; the fake d1/kv/env mirrors your backend. Nothing leaves the process.</span></div>
             <div className="pipe-step"><span className="pipe-n">03</span><strong>Scenario modules attack</strong><span>identity spoofing, secret watermarking, proto pollution, burst walls, storage fill, cost amplification - each returns REFUSED / EXPLOITED / BOUNDED.</span></div>
             <div className="pipe-step"><span className="pipe-n">04</span><strong>The ledger remembers</strong><span>crashledger.json is your committed baseline. New exploited finding? Exit 1. Regressed refusal? Exit 1. Attach hardening.md to the PR.</span></div>
+            <div className="pipe-step"><span className="pipe-n">05</span><strong>Share the attacks</strong><span>packs travel: <code>packs:</code> accepts any directory on disk - another repo's checkout, a vendored npm module - and a self-contained pack bundles its own imports, so adopting it is one config line.</span></div>
           </div>
         </div>
       </section>
@@ -72,7 +73,7 @@ export default function Home() {
             <div className="card"><h3>Is it safe on real code?</h3><p>Yes - that is the whole design. No socket, no network, no live server: your handlers receive in-process <code>Request</code> objects backed by a fake D1/KV/env. Nothing leaves the process.</p></div>
             <div className="card"><h3>How is it different from SAST or pentest tools?</h3><p>Scanners read code and never run it, so behavioral holes survive. Pentest tools need a live server and traffic. Crashtest runs the real handlers - in-process - before deploy.</p></div>
             <div className="card"><h3>What does CI actually gate on?</h3><p>Exit 1 only on a NEW EXPLOITED finding or a REFUSED-to-EXPLOITED regression. Accepted risks with an owner + bound never re-alarm. Undeclared routes degrade to skipped-REFUSED - never a false positive.</p></div>
-            <div className="card"><h3>Can I write my own attacks?</h3><p>Yes - packs. One ESM file matching a small contract, dropped in <code>packs/public/</code> (shipped) or <code>packs/local/</code> (gitignored). <code>run --module-plan</code> shows exactly what would fire.</p></div>
+            <div className="card"><h3>Can I write my own attacks?</h3><p>Yes - packs, and they travel. One ESM file matching a small contract in <code>packs/public/</code> (tracked) or <code>packs/local/</code> (gitignored); a self-contained pack's manifest can even bundle its own imports so adopting it takes <em>zero</em> config wiring. <code>run --module-plan</code> shows exactly what would fire.</p></div>
           </div>
         </div>
       </section>

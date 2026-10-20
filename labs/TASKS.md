@@ -70,7 +70,19 @@
 
 ## Log
 
-- [2026-10-20 ~23Z] **v0.4 early flag: `run --out-dir <dir>` (§14/§15 close
+- [2026-10-20 ~24Z] **Docs/web round for the unified packs surface.**
+  reference/packs.md: "Packs from other repos" section — packs: accepts any
+  directory on disk (another repo's checkout, npm-vendored pack, single pack
+  dir); end-to-end proof run before writing: a run root in repo A pointed
+  packs: at repo B, a self-contained pack (entry + bundled import) fired 2
+  REFUSED rows into repo A's ledger at exit 0. DEPLOY.md ecosystem section
+  rewritten around packs-as-master-surface (bundled plugins, cross-repo,
+  labeled plan rows); root README v0.3 block updated to the one-contract
+  shape. Web: homepage gains pipeline step 05 (Share the attacks) + packs
+  card now mentions bundled imports/zero wiring; FAQ answers the new
+  "Do packs have to live in the repo under attack?" question; ssr FAQ meta
+  updated. Fresh-cache build verified all of it in dist (6/6, JSON-LD,
+  og:image intact). Suite 154/154, gates green, consistency probes 7/7. **v0.4 early flag: `run --out-dir <dir>` (§14/§15 close
   out).** The one remaining §14 service-thread flag is shipped: artifact
   fan-out COPIES of run-blob.json + crashledger.json + hardening.md land in
   a distinct dir the caller owns — deterministic filenames, no timestamps;

@@ -67,6 +67,42 @@ root - automatically, with no config changes. Visibility is a privacy
 convention, not a semantic difference: code in `local/` runs exactly like
 code in `public/`; only the file location (and the gitignore) changes.
 
+## Packs from other repos (the killer feature, spelled out)
+
+A pack does **not** need to live in the repo under attack. `crashtest run`
+discovers `packs/` at the **run root** - the repo whose
+`crashtest.config.js` declares the target - and the `packs:` knob accepts
+any directory on disk. The natural shapes:
+
+```js
+// crashtest.config.js — in the run root, attacking ANOTHER repo's handlers
+import { buildRoutes, ENV_SPEC } from '../target-repo/src/app.js';
+
+export default {
+  routes: buildRoutes(),
+  env: ENV_SPEC,
+  packs: [
+    './packs',                                          // the run root's own
+    '/abs/path/to/prestruct/packs',                     // another repo's packs/ wholesale
+    '/abs/path/to/prestruct/packs/public/one-pack',     // one pack dir only
+    'node_modules/@you/crashtest-pack',                 // an npm-vendored pack
+  ],
+};
+```
+
+A **self-contained pack** makes this even cleaner: because its manifest can
+bundle its own imports (`"plugins"`), adopting a pack from another repo is
+TWO lines in the consuming config - the `packs:` entry and nothing else.
+No shims, no config wiring, no copy-paste; the loaded rows still label which
+pack and repo they came from. Cross-repo name collisions fail the run
+loudly, the same as everywhere else.
+
+This is how a pack *published in its own repo* (like a committed
+`packs/public/` in the prestruct repo) gets consumed: point the consuming
+run root's `packs:` at that repo's checkout - or, in CI, at the installed
+npm package. The pack lives where the pack work lives; the attacks run
+where the target code is.
+
 The naming decision, so it doesn't come as a surprise: crashtest deliberately
 does **not** use vant's `models/public` + `models/private` layout. "Models"
 carries an AI/ML meaning in this ecosystem's vocabulary; "pack" is already
