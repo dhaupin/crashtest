@@ -18,7 +18,7 @@ reports.
 
 ## 2 · Point it at your handlers
 
-Plain handlers — the Cloudflare Pages Functions shape
+Plain handlers - the Cloudflare Pages Functions shape
 (`ctx => Response`, receiving `{ request, env, params, data }`) is the
 native format:
 
@@ -32,7 +32,7 @@ export default {
   env: {
     d1:  { DB: { tables: { devices: { rows: [], uniques: { key_unique: ['key'] } } } } },
     kv:  { DEVICE_CACHE: {} },
-    // Fake secrets — the watermark probe is armed by these keys. Never
+    // Fake secrets - the watermark probe is armed by these keys. Never
     // commit real ones; the point is watching whether they ever LEAK.
     secrets: { CRASHTEST_SECRET: 'fake-secret-not-real-42' },
   },
@@ -60,17 +60,17 @@ export default {
 $ npx crashtest run
 ```
 
-- Exit `0` — everything REFUSED (or BOUNDED with a real owner+bound). Holds.
-- Exit `1` — a NEW ⚡ EXPLOITED finding, or a REGRESSION of something that
+- Exit `0` - everything REFUSED (or BOUNDED with a real owner+bound). Holds.
+- Exit `1` - a NEW ⚡ EXPLOITED finding, or a REGRESSION of something that
   held before. CI treats this as failure.
-- Exit `2` — config problem (say, missing config file). Fix the config.
+- Exit `2` - config problem (say, missing config file). Fix the config.
 
 ## 4 · Adopt the baseline
 
 The first green run commits `labs/crashledger.json`. From then on, CI compares
 every run against it: new weak spots show up as findings, old strong spots
 can't quietly rot. [`hardening.md`](/crashtest/reference/ledger) attaches to
-the PR — reviewers see exactly what was probed and what the responses said.
+the PR - reviewers see exactly what was probed and what the responses said.
 
 ## What "run" does to your code
 

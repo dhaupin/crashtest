@@ -10,11 +10,16 @@
  * - no trailing whitespace, no tabs in prose — HARD FAIL
  * - pipe-table shape: lines starting with | must end with |; no pipes
  *   in headings; no bullets ending with | (broken-table residue) — HARD FAIL
- * - em/en dashes and emoji in prose — WARN ONLY (vant's voice rule; the
- *   crashtest corpus uses em dashes deliberately and its verdict marks
- *   are content. Adopting vant's hyphen-only style is a later corpus pass,
- *   not a gate. Verdict-mark pages are exempt regardless.)
- * Exit 1 on hard findings; warnings never fail the gate.
+ * - no em/en dashes in prose (hyphen-only voice; corpus converted 2026-10-20,
+ *   150 dashes). CHANGELOG exempt.
+ * - no emoji/dingbat glyphs in prose — HARD FAIL, with two carve-outs that
+ *   are content, not decoration: verdict marks (🛡 ⚡ 🔒 — product
+ *   vocabulary on any page) and the technical arrow → (flow notation,
+ *   same class as >= or infinity). Everything else (dingbats, emoji
+ *   blocks, variation selectors) fails. Glyphs inside inline-code spans
+ *   are literal data.
+ * Exit 1 on any hard finding; the voice corpus pass landed, so warnings
+ * no longer apply — a violation is a regression.
  */
 const fs = require('fs');
 const path = require('path');
@@ -23,6 +28,9 @@ const DOCS = path.resolve(__dirname, '..', 'docs');
 const VOICE_EXEMPT = /CHANGELOG\.md$/;
 // Emoji-exempt: the verdict marks are semantic content on catalog/ledger pages.
 const EMOJI_EXEMPT = /(CHANGELOG\.md$|reference\/(attacks|ledger)\.md$|getting-started\/(index|quick-start)\.md$|reference\/exit-rules\.md$)/;
+// Carve-outs allowed on ANY page: verdict marks (product vocabulary) and
+// the technical arrow (flow notation). Tested below, not per-file.
+const ALLOWED_GLYPHS = /[\u2192\uD83D\uDEE1\u26A1\uD83D\uDD12]/g;
 const files = [];
 (function walk(d) {
   for (const f of fs.readdirSync(d, { withFileTypes: true })) {
@@ -32,7 +40,6 @@ const files = [];
   }
 })(DOCS);
 let issues = 0;
-let warnings = 0;
 for (const f of files) {
   const rel = f.replace(DOCS + '/', '');
   const lines = fs.readFileSync(f, 'utf8').split('\n');
@@ -53,13 +60,13 @@ for (const f of files) {
     if (/[ \t]+$/.test(line)) { console.log(`${rel}:${n} trailing whitespace`); issues++; }
     if (/\t/.test(line)) { console.log(`${rel}:${n} tab character`); issues++; }
     if (!VOICE_EXEMPT.test(rel)) {
-      if (/[\u2013\u2014]/.test(line)) { console.log(`WARN ${rel}:${n} em/en dash (vant voice rule; corpus pass pending)`); warnings++; }
+      if (/[\u2013\u2014]/.test(line)) { console.log(`${rel}:${n} em/en dash (hyphen-only voice; see docs/about/style)`); issues++; }
       // Arrows, dingbats, emoji blocks, variation selectors. Verdict marks
       // are exempt on the pages that define them (EMOJI_EXEMPT). Glyphs
       // inside inline-code spans are literal data, so strip spans first.
       if (!EMOJI_EXEMPT.test(rel)) {
-        const prose = line.replace(/`[^`]*`/g, '');
-        if (/[\u2190-\u21FF\u2300-\u23FF\u25A0-\u25FF\u2600-\u27BF\uFE0F]|\uD83C[\uDF00-\uDFFF]|\uD83E[\uDD00-\uDDFF]/.test(prose)) { console.log(`WARN ${rel}:${n} emoji/glyph in prose`); warnings++; }
+        const prose = line.replace(/`[^`]*`/g, '').replace(ALLOWED_GLYPHS, '');
+        if (/[\u2190-\u21FF\u2300-\u23FF\u25A0-\u25FF\u2600-\u27BF\uFE0F]|\uD83C[\uDF00-\uDFFF]|\uD83E[\uDD00-\uDDFF]/.test(prose)) { console.log(`${rel}:${n} emoji/glyph in prose`); issues++; }
       }
     }
     // Broken pipe-table residue: "| a" not ending in |, headings that
@@ -79,8 +86,8 @@ for (const f of files) {
   }
 }
 if (issues > 0) {
-  console.log(`DOCS STYLE: FAIL (${issues} hard issue${issues === 1 ? '' : 's'}${warnings ? ', ' + warnings + ' warnings' : ''})`);
+  console.log(`DOCS STYLE: FAIL (${issues} issue${issues === 1 ? '' : 's'})`);
 } else {
-  console.log(`DOCS STYLE: PASS (${files.length} files${warnings ? ', ' + warnings + ' voice warnings' : ''})`);
+  console.log(`DOCS STYLE: PASS (${files.length} files)`);
 }
 process.exit(issues === 0 ? 0 : 1);

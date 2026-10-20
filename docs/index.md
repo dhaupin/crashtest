@@ -3,7 +3,7 @@ version: 0.1.1
 permalink: /
 layout: default
 title: Crashtest Documentation
-description: Crashtest drives a seeded, in-process attack suite against your real handlers and produces a hardening ledger your CI fails on regressions — no sockets, no redeploy loop.
+description: Crashtest drives a seeded, in-process attack suite against your real handlers and produces a hardening ledger your CI fails on regressions - no sockets, no redeploy loop.
 ---
 
 # Crashtest Documentation
@@ -12,18 +12,18 @@ description: Crashtest drives a seeded, in-process attack suite against your rea
 
 Crashtest is a command-line test runner with a security harness. Point it at
 your server handlers (plain functions or a framework app), and it fires seeded
-attacks against them **in your own Node process** — no sockets, no staging
+attacks against them **in your own Node process** - no sockets, no staging
 server, no test deployment. Every run produces:
 
-- `labs/hardening.md` — a readable report of what held and what didn't
-- `labs/crashledger.json` — a committed baseline your CI won't let regress
+- `labs/hardening.md` - a readable report of what held and what didn't
+- `labs/crashledger.json` - a committed baseline your CI won't let regress
 
 Each attack returns one of three verdicts:
 
 | Verdict | Meaning |
 |---|---|
-| 🛡 **REFUSED** | Your handler did the right thing — denied, validated, constrained |
-| ⚡ **EXPLOITED** | A real weakness — CI fails on finding this for the first time |
+| 🛡 **REFUSED** | Your handler did the right thing - denied, validated, constrained |
+| ⚡ **EXPLOITED** | A real weakness - CI fails on finding this for the first time |
 | 🔒 **BOUNDED** | A known, accepted risk with a named owner and an explicit bound |
 
 ## Where to go
@@ -41,14 +41,14 @@ Each attack returns one of three verdicts:
   ledger into a branch gate.
 - **Details people:** the [attack catalog](/crashtest/reference/attacks), the
   [ledger format](/crashtest/reference/ledger), and the
-  [exit rules](/crashtest/reference/exit-rules) are documented machine-honest —
+  [exit rules](/crashtest/reference/exit-rules) are documented machine-honest -
   every claim here matches the shipped CLI.
 
 ## The one rule worth quoting
 
 Every request the harness fires is an in-process WHATWG `Request` handed to a
 registered handler. If something needs a real network socket, it's out of
-scope by design. The fake transport **is** the product — which is why runs are
+scope by design. The fake transport **is** the product - which is why runs are
 deterministic, fast, and safe to point anywhere.
 
 Crashtest is [MIT-licensed open source](https://github.com/dhaupin/crashtest)

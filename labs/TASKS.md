@@ -70,6 +70,21 @@
 
 ## Log
 
+- [2026-10-20 ~17Z] **Corpus pass + style gate flipped HARD + docs system
+  built out.** The 138 tracked voice warnings became work: all 150 prose
+  em/en dashes in docs/ converted to hyphens by a fence/inline-code-blind
+  1:1 swap (no spacing surgery), diffs reviewed per-file; em-dash rule and
+  the emoji rule (two content carve-outs: verdict marks as product
+  vocabulary + the technical arrow as flow notation - everything else
+  fails) are now HARD fails in check-docs-style. Docs system: new
+  reference/module-plan page (fills the dead module-plan link with real
+  content: statuses table, arming-machine explanation, plan-blob shape),
+  new about/style voice page (documents all enforced rules + the myth
+  signatures + the wanted-not-yet-enforced list), both in nav.yml;
+  packs.md's crosslink to module-plan reinstated now that the target
+  exists. Fiction gate allow-lists the style page (it documents the
+  signatures by design). Gates: 22 pages, links/style/frontmatter/fiction
+  all PASS at hard settings. 109/109 tests, check exit 0.
 - [2026-10-20 ~16Z] **Vant's docs-audit suite ported (scripts/ + CI).** Four
   gates adopted from vant main, each adapted to this repo's rules:
   check-docs-frontmatter (4 required fields; baseurl-relative permalinks —

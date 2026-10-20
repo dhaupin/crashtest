@@ -7,7 +7,7 @@ description: Dispatch through app.handle() with real ServerResponse semantics.
 
 # Express
 
-The express adapter dispatches in-process through `app.handle(req, res)` —
+The express adapter dispatches in-process through `app.handle(req, res)` -
 no `listen()`. Behind the curtain it builds a real
 `http.ServerResponse` against a real `Readable` request on a no-op socket,
 so express internals (body parser, `finalhandler`, its response prototype
@@ -39,14 +39,14 @@ paths. Query strings pass through; bodies are passed through untouched.
 
 ## Notes from the wire (real quirks we hit and fixed)
 
-- Routes must end their response — a handler that never responds surfaces
+- Routes must end their response - a handler that never responds surfaces
   as a hang finding ("handler hung past timeout"), not a fake 200.
 - `app.listen()` must NOT be called anywhere in the config import path.
 - Error paths are exercised through real semantics: a throw becomes a real
   express 500 from `finalhandler`, which is exactly what the
   `never-fail-mutations` attack wants to observe.
 
-## Prefer one route? Alias per path — never re-register
+## Prefer one route? Alias per path - never re-register
 
 If two adapters (or a route and an alias) claim the same harness name, the
 harness throws at startup. Names are unique on purpose: the alternative is

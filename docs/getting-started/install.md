@@ -7,7 +7,7 @@ description: Zero runtime dependencies; install as a dev tool or drive it with n
 
 # Installation
 
-Crashtest ships as a plain Node package — **zero runtime dependencies**.
+Crashtest ships as a plain Node package - **zero runtime dependencies**.
 
 ## As a dev dependency (recommended)
 
@@ -23,7 +23,7 @@ $ npx crashtest init
 $ npx crashtest run
 ```
 
-`npx` fetches on first use and pins nothing — for CI, prefer the committed
+`npx` fetches on first use and pins nothing - for CI, prefer the committed
 dev dependency or the composite action below so versions don't surprise you.
 
 ## CI (GitHub Action)
@@ -44,7 +44,7 @@ with the gate [exit rules](/crashtest/reference/exit-rules).
 ## Requirements
 
 - Node 22 (the action defaults to 22; knobs per-step)
-- ESM package (`"type": "module"` in your package.json — Node 22 parses ESM
+- ESM package (`"type": "module"` in your package.json - Node 22 parses ESM
   configs without it too, but your config imports your handlers, so match
   your codebase)
 
@@ -55,7 +55,7 @@ $ npm view crashtest dist.attestations
 true
 ```
 
-Every release is published with SLSA provenance from GitHub Actions — the
+Every release is published with SLSA provenance from GitHub Actions - the
 tarball is traceable to an exact commit, signed into the Sigstore
 transparency log. First release: [0.1.0
 provenance](https://search.sigstore.dev/?logIndex=3329750463).

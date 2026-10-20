@@ -42,6 +42,8 @@ function allowListed(rel) {
   if (rel.startsWith('labs/archives/')) return true;
   // The rolling ledger QUOTES fiction when it fixes it - quotes are the job.
   if (rel === 'labs/TASKS.md' || rel === 'labs/prd-crashtest.md') return true;
+  // The voice page documents the signatures themselves (same job as this file).
+  if (rel === 'docs/about/style.md') return true;
   if (rel === 'CHANGELOG.md' || rel === 'package-lock.json') return true;
   if (/(^|\/)node_modules\//.test(rel) || rel.startsWith('.git/')) return true;
   if (rel === 'web/package-lock.json') return true;

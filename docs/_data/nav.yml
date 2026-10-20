@@ -43,11 +43,15 @@
     url: /crashtest/reference/exit-rules
   - title: Scenario Packs
     url: /crashtest/reference/packs
+  - title: Module Plans
+    url: /crashtest/reference/module-plan
 
 - title: About
   items:
   - title: Principles
     url: /crashtest/about/principles
+  - title: Voice & Style
+    url: /crashtest/about/style
   - title: Site Terms
     url: https://crashtest.creadev.org/terms
   - title: Site Privacy

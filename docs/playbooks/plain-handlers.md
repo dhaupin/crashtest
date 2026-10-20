@@ -2,7 +2,7 @@
 permalink: playbooks/plain-handlers
 layout: default
 title: Plain Handlers
-description: Handler functions shaped like Pages Functions are the native crashtest format — usually zero glue.
+description: Handler functions shaped like Pages Functions are the native crashtest format - usually zero glue.
 ---
 
 # Plain Handlers
@@ -43,14 +43,14 @@ That's it. Every scenario now attacks `enroll` and `device` by name.
 
 Handlers receive `{ request, env, params, data }`:
 
-- `request` — a real WHATWG `Request` (the same class the Edge runtime gives
+- `request` - a real WHATWG `Request` (the same class the Edge runtime gives
   you), built from the attack's method/url/headers/body
-- `env` — the fake backend from `config.env`
-- `params` / `data` — whatever the attack passes in `harness.run()`
+- `env` - the fake backend from `config.env`
+- `params` / `data` - whatever the attack passes in `harness.run()`
 
 ## Return contract
 
 Return a `Response` (status numbers and headers are read from it). Returning
 anything else surfaces as a finding-class fault
-(`harness: handler "x" did not return a Response`) — by design, a missing
+(`harness: handler "x" did not return a Response`) - by design, a missing
 Response is behavior, not a test problem.

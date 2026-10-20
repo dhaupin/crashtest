@@ -7,8 +7,8 @@ description: Framework-less http.createServer handlers get per-route adapters.
 
 # Raw Node Servers
 
-For an undecorated Node server — the shape everything on `http.createServer`
-and its wrappers uses — point crashtest at the dispatch function directly:
+For an undecorated Node server - the shape everything on `http.createServer`
+and its wrappers uses - point crashtest at the dispatch function directly:
 
 ```js
 // crashtest.config.js
@@ -45,21 +45,21 @@ export default {
 
 - A **real `streams.Readable` req** (method/url/headers/socket) that supports
   both consumer archetypes: `req.on('data'/'end')` listeners **and** async
-  iteration — plus `req.setTimeout(ms, cb)` and a working `req.destroy()`.
+  iteration - plus `req.setTimeout(ms, cb)` and a working `req.destroy()`.
 - A **`FakeRes`** carrying the Node response verbs your server touches
   (`writeHead`, `setHeader`, `write`, `end`, `json`, `send`, …).
 - A bounded settle: the returned Response is collected when the handler
-  actually ends (or throws loudly past the timeout — never a phantom 200).
+  actually ends (or throws loudly past the timeout - never a phantom 200).
 
 ## Single-dispatch vs multi-route
 
 - `adapters: { node: { handle, name } }` registers **one** named route off
-  your handler — good when scenarios and your handler agree on the surface.
+  your handler - good when scenarios and your handler agree on the surface.
 - Multi-route servers (every real one) use the pattern above: one helper per
   surface, reusing `dispatchNodeRequest`. It's the same door vant's own
   server code is attacked through.
 
 ## It is genuinely in-process
 
-No `listen()`, no `localhost`, no sockets — the fake transport is the point.
+No `listen()`, no `localhost`, no sockets - the fake transport is the point.
 Same commit, same attack, same verdict, forever.

@@ -2,7 +2,7 @@
 permalink: publish
 title: Publish
 layout: default
-description: Maintainer runbook — npm Trusted Publishing (OIDC), the one-time bootstrap, and the tag-driven release flow.
+description: Maintainer runbook - npm Trusted Publishing (OIDC), the one-time bootstrap, and the tag-driven release flow.
 noindex: true
 ---
 
@@ -11,19 +11,19 @@ noindex: true
 ## The one-time bootstrap (a few minutes)
 
 npm Trusted Publishing (OIDC) cannot *create* a new package (npm/cli #8544 is
-still open) — the package name must exist on npmjs.com before OIDC takes over.
+still open) - the package name must exist on npmjs.com before OIDC takes over.
 Since 2026-10-02 there are two ways to create it
 ([staged publishing](https://docs.npmjs.com/staged-publishing/) supports
 new-package creation):
 
-**Route A — direct publish (simplest):**
+**Route A - direct publish (simplest):**
    ```bash
    npm login            # if not already
    npm test             # should be green
    npm publish          # publishes 0.0.1 as `crashtest`
    ```
 
-**Route B — staged publish (release goes through a maintainer approval):**
+**Route B - staged publish (release goes through a maintainer approval):**
    ```bash
    npm login            # logged-in session, or a stage-only granular token
    npm stage publish    # creates the package + a 0.0.0-stage placeholder
@@ -46,7 +46,7 @@ npm version patch -m "release: v%s"   # or minor/alpha manually
 git push origin main --follow-tags    # pushes the v* tag
 ```
 
-CI (`.github/workflows/publish.yml`) runs tests and publishes with OIDC —
+CI (`.github/workflows/publish.yml`) runs tests and publishes with OIDC -
 **no NPM_TOKEN secret is stored anywhere**. Provenance is generated
 automatically because the repo is public and `repository.url` matches.
 

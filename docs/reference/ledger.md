@@ -2,15 +2,15 @@
 permalink: reference/ledger
 layout: default
 title: The Hardening Ledger
-description: labs/crashledger.json and labs/hardening.md — what each record means and how CI uses them.
+description: labs/crashledger.json and labs/hardening.md - what each record means and how CI uses them.
 ---
 
 # The Hardening Ledger
 
 Two files carry the memory of a run:
 
-- **`labs/crashledger.json`** — the machine baseline CI gates on
-- **`labs/hardening.md`** — the human report reviewers read
+- **`labs/crashledger.json`** - the machine baseline CI gates on
+- **`labs/hardening.md`** - the human report reviewers read
 
 ## crashledger.json
 
@@ -23,7 +23,7 @@ on every run after:
   "module": "guards",
   "attack": "hygiene-no-store",
   "verdict": "EXPLOITED",
-  "detail": "2xx write from \"enroll\" has NO Cache-Control — shared caches may replay the write",
+  "detail": "2xx write from \"enroll\" has NO Cache-Control - shared caches may replay the write",
   "evidence": { "route": "enroll" },
   "costDelta": { "route.invoke": 1 },
   "requests": 1
@@ -31,14 +31,14 @@ on every run after:
 ```
 
 `verdict` is one of `REFUSED` · `EXPLOITED` · `BOUNDED`. Bounded records carry
-`owner` and `bound` — the named owner of a deliberate, explicit risk. A
+`owner` and `bound` - the named owner of a deliberate, explicit risk. A
 verdict without its owner/bound pair is a finding by definition.
 
 ## hardening.md
 
 The report joins every verdict with its evidence and the run's cost
 economics (`total: 271 backend ops across 510 in-process requests …`) plus a
-**baseline diff** — `NEW: n` and `REGRESSED: m` lines that are exactly what
+**baseline diff** - `NEW: n` and `REGRESSED: m` lines that are exactly what
 CI reads to gate.
 
 ## How CI reads the frame

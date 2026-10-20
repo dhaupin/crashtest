@@ -2,7 +2,7 @@
 permalink: playbooks/hono
 layout: default
 title: Hono
-description: Dispatch through app.request() — Hono's own test entry point.
+description: Dispatch through app.request() - Hono's own test entry point.
 ---
 
 # Hono
@@ -36,12 +36,12 @@ export default {
 
 ## Context notes that changed verdicts (real behavior, not lore)
 
-- **Read the oracle id from `query`** — the scenario appends `?key=<id>` to
+- **Read the oracle id from `query`** - the scenario appends `?key=<id>` to
   probe foreign rows; a route that takes `:id` as a path param still works
   through the alias, but mount the scenario's `query: true` to match.
 - **Throw shapes become findings.** If your frequently-hit route lets a
   hostile body crash it into a 500, `never-fail-mutations` marks the route
-  EXPLOITED — that's the finding working, not the adapter.
+  EXPLOITED - that's the finding working, not the adapter.
 - **cache-control counts.** `guards/hygiene-no-store` reads 2xx write
   responses for store directives; return `{ 'cache-control': 'no-store' }`
   with your writes and the check turns green.
