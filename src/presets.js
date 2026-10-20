@@ -172,7 +172,6 @@ export async function scaffoldPreset(name, repoRoot, probeHarness = null) {
     } else if (d.tanstackStart) {
       notes.push('TanStack Start detected (src/routeTree.gen.ts) — server functions are framework-managed routes, not plain (req)=>Response handlers.');
       warnings.push('No direct handler export path for TanStack Start server functions in this preset version. Wire the built output manually (.output/server/index.mjs, node adapter) — PRD v0.3 "framework recipes" documents this as a detected-but-not-yet-automatable shape.');
-      configParts.push('// TanStack Start: no automatic handler wiring in this preset — see note.');
       configParts.push('// TanStack Start: wire .output/server/index.mjs through the node adapter in this config.');
     } else {
       notes.push('No supabase/ or TanStack Start markers in this export.');
