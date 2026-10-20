@@ -65,6 +65,9 @@ export default {
     description: 'Plant a canary via JSON body __proto__ keys; it must never surface on a fresh object',
     async run(harness, ctx = {}) {
       const route = ctx.route ?? 'enroll';
+      if (!harness.listRoutes().includes(route)) {
+        return refused(`route "${route}" not declared on this target — attack skipped (declare it for coverage)`, { route, skipped: true });
+      }
       const payload = { ['__proto__']: { [CRASHTEST_CANARY]: 'planted' } };
       const record = await post(harness, route, payload);
       const fresh = {}; // object literal — inherits Object.prototype only
@@ -87,6 +90,9 @@ export default {
     description: 'Seed-deterministic hostile bodies: never 500, never an uncaught throw',
     async run(harness, ctx = {}) {
       const route = ctx.route ?? 'enroll';
+      if (!harness.listRoutes().includes(route)) {
+        return refused(`route "${route}" not declared on this target — attack skipped (declare it for coverage)`, { route, skipped: true });
+      }
       const iterations = ctx.iterations ?? 64;
       const seed = mixSpreadSeeds(ctx.seed ?? 0xC0FFEE, 'input/never-fail-mutations');
       const rng = new Rng(seed);
@@ -112,6 +118,9 @@ export default {
     description: 'A 1 MiB value must be refused or handled — never 5xx, never an uncaught throw',
     async run(harness, ctx = {}) {
       const route = ctx.route ?? 'enroll';
+      if (!harness.listRoutes().includes(route)) {
+        return refused(`route "${route}" not declared on this target — attack skipped (declare it for coverage)`, { route, skipped: true });
+      }
       const size = ctx.size ?? 1024 * 1024;
       const big = { key: 'D'.repeat(size), owner: 'crashtest-oversize' };
       const record = await post(harness, route, big);

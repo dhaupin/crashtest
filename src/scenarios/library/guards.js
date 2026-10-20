@@ -19,6 +19,9 @@ export default {
     description: 'A surviving state-change (2xx POST) must carry explicit caching hygiene',
     async run(harness, ctx = {}) {
       const route = ctx.route ?? 'enroll';
+      if (!harness.listRoutes().includes(route)) {
+        return refused(`route "${route}" not declared on this target — attack skipped (declare it for coverage)`, { route, skipped: true });
+      }
       const body = ctx.body !== undefined ? ctx.body : JSON.stringify({ key: `hyg-${Date.now() % 100000}`, owner: 'rook' });
       const record = await harness.run(route, {
         method: 'POST', body,
@@ -48,6 +51,9 @@ export default {
     description: 'Burst N rapid identical requests: walls (429/503) must include Retry-After; breaks are findings',
     async run(harness, ctx = {}) {
       const route = ctx.route ?? 'burst';
+      if (!harness.listRoutes().includes(route)) {
+        return refused(`route "${route}" not declared on this target — attack skipped (declare it for coverage)`, { route, skipped: true });
+      }
       if (!harness.listRoutes().includes(route)) {
         // Config gap, not a finding — zero false-positive CI failures (PRD §12).
         return refused(`route "${route}" not declared on this target — wall check skipped (declare it for burst coverage)`, { route, skipped: true });

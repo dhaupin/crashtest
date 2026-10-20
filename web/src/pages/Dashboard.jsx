@@ -338,7 +338,10 @@ export default function Dashboard() {
             Want the gate in CI instead of on a page? That is the same verdict, computed inside
             {' '}<code>npx crashtest run</code> — see the{' '}
             <a href="https://docs.creadev.org/crashtest/reference/exit-rules">exit rules</a> and the{' '}
-            <a href="https://docs.creadev.org/crashtest/reference/ledger">ledger format</a>.
+            <a href="https://docs.creadev.org/crashtest/reference/ledger">ledger format</a>. CI can emit
+            exactly this artifact with <code>npx crashtest run --json</code> (the last stdout line is the
+            same blob this page renders) — the pipeline recipe lives at{' '}
+            <a href="https://docs.creadev.org/crashtest/playbooks/run-roots">run roots &amp; recipes</a>.
           </p>
         </div>
       </section>

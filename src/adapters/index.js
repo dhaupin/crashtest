@@ -6,14 +6,15 @@
 import { registerHono } from './hono.js';
 import { registerExpress, registerNodeDispatch, dispatchNodeRequest } from './express.js';
 import { registerFastify } from './fastify.js';
+import { registerWordPress } from './wordpress.js';
 
 // `node` takes a raw (nodeReq, nodeRes) => void handler — the shape of
 // undecorated http.createServer handlers (vant Server._handleRequest, etc.).
-const REGISTRY = { hono: registerHono, express: registerExpress, fastify: registerFastify, node: registerNodeDispatch };
+const REGISTRY = { hono: registerHono, express: registerExpress, fastify: registerFastify, node: registerNodeDispatch, wordpress: registerWordPress };
 
 // Convenience re-exports — `require('crashtest/adapters')` gives power users
 // direct access without filename spelunking.
-export { registerHono, registerExpress, registerNodeDispatch, registerFastify, dispatchNodeRequest };
+export { registerHono, registerExpress, registerNodeDispatch, registerFastify, dispatchNodeRequest, registerWordPress };
 
 /** Apply every adapter from a config's `adapters` map onto a harness. */
 export function registerAdapters(harness, adapters = {}) {

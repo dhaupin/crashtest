@@ -61,6 +61,7 @@ adapters: {
   hono: honoApp,                     // app.request()
   express: expressApp,               // app.handle() (routes must end their response)
   fastify: await fastifyApp.ready(), // app.inject() (routes exist post-ready)
+  // wordpress: { wpRoot },           // v0.3 spike — PHP worker, NDJSON stdio, no sockets
 }
 ```
 

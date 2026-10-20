@@ -28,6 +28,9 @@ export default {
     async run(harness, ctx = {}) {
       const route = ctx.route ?? 'enroll';
       const rounds = ctx.rounds ?? 60;
+      if (!harness.listRoutes().includes(route)) {
+        return refused(`route "${route}" not declared on this target — stuffing skipped (declare it for coverage)`, { route, skipped: true });
+      }
       let admitted = 0, refusedN = 0, broke = 0, firstBreak = null;
       const before = harness.costTotals();
 
@@ -99,6 +102,9 @@ export default {
       const route = ctx.route ?? 'enroll';
       const rounds = ctx.rounds ?? 40;
       const maxOpsPerRequest = ctx.maxOpsPerRequest ?? 12;
+      if (!harness.listRoutes().includes(route)) {
+        return refused(`route "${route}" not declared on this target — amplification skipped (declare it for coverage)`, { route, skipped: true });
+      }
       const body = ctx.body !== undefined
         ? JSON.stringify(ctx.body)
         : JSON.stringify({ key: 'amp-probe', owner: 'amplifier' });

@@ -22,7 +22,8 @@ Adversarial QA for agent-built software, in-process. No sockets, ever.
 
 Usage:
   crashtest init            Create labs/ scaffold: crashledger.json + hardening.md stub
-  crashtest run [--config path]   Attack the target declared in crashtest.config.js
+  crashtest run [--config path] [--json]   Attack the target declared in crashtest.config.js
+                 [--json]       print the machine run blob (JSON) as the LAST stdout line — CI artifact / dashboard paste-ready
   crashtest --version
   crashtest --help
 
@@ -101,6 +102,10 @@ async function cmdInit({ force }) {
 }
 
 async function cmdRun(opts = {}) {
+  // PRD §14 alignment: `run --json` appends the machine run blob (tally,
+  // verdict rows, cost economics) as the LAST stdout line — the exact shape
+  // the dashboard bridge (/dashboard and web/src/lib/ledgerModel.js) and any
+  // future hosted runner read. Human output is unchanged.
   const root = repoRoot();
   const configPath = join(root, opts.config ?? 'crashtest.config.js');
   if (!(await exists(configPath))) {
@@ -164,6 +169,7 @@ async function cmdRun(opts = {}) {
   console.log(`\ntally: ${JSON.stringify(run.tally)} · cost: ${run.cost.totals.ops} ops / ${run.cost.totals.requests} requests`);
   console.log(`ledger: ${LEDGER_PATH} · report: ${REPORT_PATH}`);
   console.log(`baseline: ${diff.newExploited.length} new · ${diff.regressed.length} regressed · ${diff.acceptedHits.length} accepted hits`);
+  if (opts.json) console.log(JSON.stringify(run));
   process.exitCode = exitCode(diff);
 }
 
@@ -183,7 +189,9 @@ export async function main(argv) {
   }
   if (verb === 'run') {
     const confIdx = argv.indexOf('--config');
-    return cmdRun(confIdx > -1 ? { config: argv[confIdx + 1] } : {});
+    const config = confIdx > -1 ? argv[confIdx + 1] : undefined;
+    const json = argv.includes('--json');
+    return cmdRun({ config, json });
   }
   console.error(`crashtest: unknown command "${verb}" (try --help)`);
   process.exitCode = 1;

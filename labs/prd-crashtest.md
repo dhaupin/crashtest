@@ -181,3 +181,60 @@ accepted risk without a bound is a finding.
 - How do Windows agents run in-memory SQLite? (better-sqlite3 vs node:sqlite
   — node:sqlite is experimental; decide at first Windows report.)
 - Ledger ownership UX: who "accepts" a risk in a purely agentic repo?
+
+## 14. The platform thread (v0.4+): crashtest as a CI runner
+
+**Vision.** The lane is not just "a CLI you run" — it is **a greptile-style
+review service that replaces home-brew test suites as the quality gate for
+agent-built repos**: point crashtest at a repo (or a run root beside it),
+and every push gets the seeded adversarial suite, a diff against the
+committed ledger, and a shareable finding report — without the repo
+carrying its own test rig.
+
+The pieces this PRD builds toward, aligned to today's ships + thread:
+
+1. **CLI = drone engine.** The CLI stays zero-dep and offline; the service
+   shells it, it never becomes a runtime. Every future flag must keep a
+   story in both worlds:
+   - shipped 2026-10: `crashtest run --json` — the full run blob on stdout
+     (machine artifact for CI + paste-into-dashboard), humans keep the
+     verdict stream.
+   - next: `--out-dir` (artifact fan-out), `--expect-baseline <path>`
+     (diff against a given ledger without touching labs/ — the piece that
+     makes a hosted run read-only), `--module-plan` (dry-run: which attack
+     ids WOULD fire against this target).
+2. **Adapters = target surface.** The adapter registry (hono / express /
+   fastify / node / **wordpress spike**) is what lets the service attack
+   repos with zero changes to them — run roots OUTSIDE the target repo
+   (the WP issue-#1/#2 pattern is already the template for cross-repo
+   adoption: config + scenarioDirs + a read-only CI identity).
+3. **Ledger = the artifact contract.** schemaVersion 1 (findings /
+   acceptedRisks / baseline) is the API between drone, service, and
+   dashboard. Every consumer (CI gate, dashboard bridge, future web
+   service) reads the same JSON; the §7 exit rule has exactly one
+   implementation (`src/report.js`) and everything else imports it.
+4. **Dashboard = the human surface, headless-first.** The shipped
+   `/dashboard` (web/src/lib/ledgerModel.js) already renders any ledger or
+   run blob the way the service eventually will; the service adds: remote
+   run roots (cron/PR-triggered), org dashboards, and ledger-hosting with
+   owner+bound sign-off UX (§13's ownership question must be answered
+   BEFORE hosted accepted-risks exist).
+
+**Still true when it's a service (no drift from principles):**
+- No sockets, ever — the drone runs in your runner/namespace; it never
+  dials anything. The service collects ARTIFACTS (ledger, run blob),
+  not traffic.
+- Deterministic: a service rerun of the same commit must reproduce the
+  same findings — §7's diff semantics make that auditable replay.
+- The repo owns its baseline; the service never overwrites `labs/` of a
+  target repo — hosted runs diff against the committed ledger and hand
+  the user the diff, never a rewritten file.
+
+**Sequencing (rough):** v0.3 = WP spike stabilization + recipes (the
+current thread); v0.4 = service-shaped flags (above) + GitHub Action
+rerunability (re-push-tag workaround retired); v0.5 = hosted run roots +
+service ledger reads; then the org tier.
+
+**Success metric for the thread** (extends §12): an agent-built repo with
+NO test suite of its own gets its first ledger + CI gate in <5 minutes
+without installing anything beyond the drone.

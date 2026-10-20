@@ -24,9 +24,14 @@ src/harness/            counters (ops+cost), d1 (SQL-subset fake), kv, env, harn
 src/scenarios/          contract.js (module contract) + loader.js + library/*
 src/campaigns/runner.js campaign execution, verdict rows, cost accounting
 src/report.js           ledger build/diff, §7 exit rules, markdown renderer
-src/adapters/           hono / express / fastify in-process adapters + registry
+src/adapters/           hono / express / fastify / node in-process adapters + registry
+                        + wordpress (v0.3 subprocess spike — NDJSON stdio, wire format,
+                        not a transport; PRD §10 note + §14 service thread)
 src/rng.js              seeded xorshift (determinism)
 fixtures/demo/app.js    the self-dogfood target (hardened + vulnerable variants)
+fixtures/wordpress/     wp-worker.php + example wordpress-money pack (out of
+                        labs/scenarios ON PURPOSE: the dogfood auto-scans labs/, so
+                        target-specific packs live beside their examples)
 crashtest.config.js     THIS repo's dogfood target config
 labs/                   PRD · TASKS (rolling log) · crashledger.json · hardening.md
 docs/publish.md         maintainer publish runbook (OIDC trusted publishing)

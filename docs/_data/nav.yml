@@ -28,6 +28,10 @@
     url: /crashtest/playbooks/raw-node
   - title: CI Gate (GitHub Action)
     url: /crashtest/playbooks/github-action
+  - title: Run Roots & Recipes
+    url: /crashtest/playbooks/run-roots
+  - title: WordPress (v0.3 spike)
+    url: /crashtest/playbooks/wordpress
 
 - title: Reference
   items:

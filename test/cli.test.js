@@ -77,6 +77,33 @@ test('run is an honest pending placeholder (exit 2), never silently succeeds', a
   });
 });
 
+test('run --json appends the machine run blob as the LAST stdout line (PRD §14)', async () => {
+  await inRepo('run-json', async () => {
+    // Minimal in-process target: one burst route the guards library can hit;
+    // every other library's routes stay undeclared (skip-parity rows).
+    await writeFile('crashtest.config.js',
+      "export default { routes: { burst: async () => new Response('accepted', { headers: { 'cache-control': 'no-store' } }) }, seed: 7 };\n");
+    const out = [];
+    const orig = console.log;
+    console.log = (...a) => out.push(a.join(' '));
+    try {
+      await main(['run', '--json']);
+    } finally {
+      console.log = orig;
+    }
+    // The machine contract: the last stdout line IS the run blob, parseable
+    // by the dashboard bridge (web/src/lib/ledgerModel.js run shape).
+    const blob = JSON.parse(out.at(-1));
+    assert.ok(Array.isArray(blob.rows) && blob.rows.length > 0);
+    assert.ok(blob.tally && blob.cost?.totals && blob.startedAt);
+    assert.ok(blob.rows.every((r) => ['REFUSED', 'EXPLOITED', 'BOUNDED'].includes(r.verdict)));
+    // And the ledger itself still lands as the v1 artifact.
+    const ledger = JSON.parse(await readFile(LEDGER_PATH, 'utf8'));
+    assert.equal(ledger.schemaVersion, 1);
+    process.exitCode = 0;
+  });
+});
+
 test('unknown verb exits 1', async () => {
   await inRepo('badverb', async () => {
     await main(['explode']);
