@@ -62,8 +62,50 @@ reality directly — tracked vs machine-private.
 - **npm packages**: a pack is just a directory of ESM files — publish it as
   a package and point `packs:` at its installed path (e.g.
   `packs: ['node_modules/@you/crashtest-pack']`), or vendor it into
-  `packs/local/`. First-class npm metadata (`packs add`) is a planned step
-  once the schema settles.
+  `packs/local/`. First-class npm *metadata* (registry lookup, version pin)
+  remains planned; the CLI's `packs add` scaffolding exists now (below).
+- **Scaffold by command**: `npx crashtest packs add <name>` creates
+  `packs/local/<name>/` (schema-v1 manifest + a contract-valid stub module
+  + the `.gitignore` entry) and `--public` puts it in `packs/public/`
+  instead. The stub loads, lists, and runs immediately — fill in the
+  `TODO` attacks and the pack's `moduleCtx[<name>]` vocabulary.
+
+## Naming convention
+
+Pack names are kebab-case, and the prefix names the **surface the pack
+speaks**, not the product that inspired it:
+
+- Packs that ride a specific adapter get that surface as a prefix —
+  `wp-money-shapes` speaks the WordPress harness dialect (`harness.wpState`
+  ops), so `wp-`. Vant's private pack riding the raw-node adapter could be
+  plain `vant-core` (no adapter prefix needed — it speaks generic HTTP).
+- Transport-agnostic packs skip the prefix entirely.
+
+**What "money" means here**: the dollar-shaped abuse family. The same
+family the built-in `volume` library already covers (credential-stuffing,
+storage-fill, cost-amplification) — attacks whose payoff is value: an
+anonymous write with payment intent must not *stick* (write-volley), one
+paid receipt must not buy a *second* registration (txn-replay), a metered
+wall must *trip* under rapid floods (gate-burst). "Shapes" = engines, not
+instances: every name (CPTs, meta keys, actions) is injected from the
+target's `moduleCtx[<pack-name>]`, so one pack serves every plugin and the
+khf/fm-specific lore stays in their private instantiations.
+
+## Public vs local — the decision rule
+
+- **`packs/public/`** is for **shapes reusable across many targets** —
+  vocabulary comes from each target's config, no product's names hardcoded.
+- **`packs/local/`** is for **instance lore** — one target's real routes,
+  one maintainer's plugin internals (khf's money flows live here, in khf's
+  own run root, not in this repo).
+
+So: no `packs/public/vant-*` branded by target. Vant's generic surface is
+already covered by the built-in libraries (the raw-node run-root recipe
+landed 13/13 REFUSED with zero custom code), and anything vant-*specific*
+— brain endpoints, identity-file guards — is instance lore by definition:
+run `npx crashtest packs add vant-core` in the vant run root and keep it
+private. A public pack earns that visibility by being provably
+target-independent, like the shipped wp-money-shapes.
 
 ## Config knobs
 
@@ -84,6 +126,9 @@ Inventory any run root with:
 
 ```bash
 npx crashtest packs
-# public 0.3.0 — wp-money-shapes: 3 attacks from public/wp-money-shapes
-#         WP money-flow attacks (nonce-less volley, payment replay, gate burst)…
+# local 0.0.1 — vant-core: 1 attacks from local/vant-core
+#         TODO: one line on what vant-core attacks
+
+npx crashtest packs add vant-core          # → packs/local/vant-core/ (gitignored)
+npx crashtest packs add my-shapes --public # → packs/public/my-shapes/ (tracked)
 ```

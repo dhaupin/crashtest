@@ -25,7 +25,8 @@ Usage:
   crashtest init            Create labs/ scaffold: crashledger.json + hardening.md stub
   crashtest run [--config path] [--json]   Attack the target declared in crashtest.config.js
   crashtest packs [--config path]   List discovered scenario packs (public + local)
-                 [--json]       print the machine run blob (JSON) as the LAST stdout line — CI artifact / dashboard paste-ready
+  crashtest packs add <name> [--public]   Scaffold a fresh pack — local (gitignored) by default;
+                 --public puts it in packs/public/ as tracked/sharable
   crashtest --version
   crashtest --help
 
@@ -239,6 +240,80 @@ async function cmdPacks(opts = {}) {
   }
 }
 
+/**
+ * `crashtest packs add <name> [--public]` — scaffold a fresh pack.
+ * local (gitignored) by default; --public means tracked/sharable. Writes a
+ * schema-v1 manifest + a contract-valid scenario-module stub so `packs` and
+ * `run` pick it up immediately; target vocabulary rides moduleCtx[<name>].
+ */
+async function cmdPackAdd(name, opts = {}) {
+  if (!name) {
+    console.error('crashtest packs add: usage: crashtest packs add <name> [--public]');
+    process.exitCode = 1;
+    return;
+  }
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(name)) {
+    console.error(`crashtest packs add: "${name}" is not kebab-case (lowercase letters, digits, hyphens; must start with a letter or digit)`);
+    process.exitCode = 1;
+    return;
+  }
+  const root = repoRoot();
+  const visibility = opts.public ? 'public' : 'local';
+  const dir = join(root, 'packs', visibility, name);
+  if (await exists(dir)) {
+    console.error(`crashtest packs add: packs/${visibility}/${name} already exists — refusing to overwrite`);
+    process.exitCode = 1;
+    return;
+  }
+  const manifest = JSON.stringify({
+    schemaVersion: 1,
+    name,
+    description: `TODO: one line on what ${name} attacks`,
+    version: '0.0.1',
+    entry: 'index.js',
+  }, null, 2) + '\n';
+  const stub = `// packs/${visibility}/${name}/index.js — scaffolded by \`crashtest packs add ${name}\`.
+// Scenario contract: { name, description, attacks: [{ name, run(harness, ctx) → ONE record }] }.
+// Record verdicts: 'REFUSED' (defense held) · 'EXPLOITED' · 'BOUNDED' (needs owner + bound).
+// Target vocabulary (route names, CPTs, meta keys…) goes in crashtest.config.js as
+//   moduleCtx: { ${name}: { … } } — missing keys degrade to a REFUSED skip, never a false positive.
+export default {
+  name: '${name}',
+  description: 'TODO: one line',
+  attacks: [{
+    name: 'first-attack',
+    description: 'TODO: what this attack fires and what must hold',
+    async run(harness, ctx) {
+      const cfg = ctx?.config?.['${name}'] ?? null;
+      if (!cfg) {
+        return { verdict: 'REFUSED', skip: true, detail: "not armed — set moduleCtx['${name}'] in crashtest.config.js" };
+      }
+      // TODO: fire requests with harness.run(...) (or harness.wpState on the WP
+      // adapter) and return EXACTLY one record. See docs/reference/packs.md.
+      return { verdict: 'REFUSED', detail: 'scaffold attack — replace with a real probe' };
+    },
+  }],
+};
+`;
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, 'pack.json'), manifest);
+  await writeFile(join(dir, 'index.js'), stub);
+  console.log(`crashtest packs add: wrote packs/${visibility}/${name}/ (pack.json + index.js stub)`);
+  if (visibility === 'public') {
+    console.log('next: it is tracked content — list it in the check inventory / docs if this repo ships it');
+  } else {
+    // Local privacy: same rule `init` applies — root .gitignore owns it.
+    const dotIgnore = join(root, '.gitignore');
+    const ignoreEntry = 'packs/local/\n';
+    const existing = (await exists(dotIgnore)) ? await readFile(dotIgnore, 'utf8') : '';
+    if (!existing.split('\n').includes(ignoreEntry.trim())) {
+      await writeFile(dotIgnore, existing + (existing && !existing.endsWith('\n') ? '\n' : '') + ignoreEntry);
+      console.log('crashtest packs add: appended packs/local/ to .gitignore (stays on your machine)');
+    }
+    console.log('next: fill moduleCtx[\'' + name + '\'] in crashtest.config.js, then `crashtest packs` to verify');
+  }
+}
+
 export async function main(argv) {
   if (!argv.length || argv[0] === '--help' || argv[0] === '-h' || argv[0] === 'help') {
     process.stdout.write(HELP);
@@ -254,6 +329,10 @@ export async function main(argv) {
     return cmdInit({ force });
   }
   if (verb === 'packs') {
+    if (argv[1] === 'add') {
+      const name = argv[2];
+      return cmdPackAdd(name, { public: argv.includes('--public') });
+    }
     const confIdx = argv.indexOf('--config');
     return cmdPacks(confIdx > -1 ? { config: argv[confIdx + 1] } : {});
   }

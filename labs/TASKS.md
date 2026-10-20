@@ -507,3 +507,25 @@
   by the loader's own loud manifest check — exactly the failure mode it exists for.
 - Verified: 91/91 tests, check exit 0, packs verb lists both packs, dogfood 13/13
   with packs:false (gate decoupled), no stale references outside TASKS history.
+
+### 2026-10-20 — `packs add`: the first-user path is one command
+- User question answered with receipts: "why wp-money-shapes / what's the
+  money?" — naming convention now documented (prefix = the surface the pack
+  SPEAKS, wp- rides harness.wpState), and "money" = the dollar-shaped abuse
+  family the volume library alreadyowns (credential-stuffing /
+  cost-amplification): write-with-value must not stick, one receipt must not
+  buy two, metered wall must trip.
+- Vant decision: NO packs/public/vant-* branded by target. Vant's generic
+  surface is already covered by built-ins (run-root recipe, 13/13 REFUSED,
+  zero custom code); vant-specific lore (brain endpoints, identity-file
+  guards) is instance lore = packs/local in vant's run root. Decision rule
+  documented in docs/reference/packs.md.
+- Delivered the general mechanism instead: `crashtest packs add <name>
+  [--public]` — schema-v1 manifest + contract-valid stub module + gitignore
+  append (local), loud refusals on collisions/bad names. vant's first
+  private pack is now literally one command on the vant run root.
+- Fixed at cause along the way: process.exitCode delete→assign in tests,
+  strict-assert has no assert.exists, the runtime's leftover refuse-exit
+  leaking into the test runner's status.
+- Verified: 94/94 tests (3 new packs-add tests), check exit 0, live packs add
+  local+public from a tmp cwd, dogfood gate decoupled 13/13.

@@ -93,3 +93,76 @@ test('CLI: crashtest packs lists discovered packs with visibility + counts', asy
   assert.match(text, /1 attacks/);
   assert.equal(process.exitCode, undefined);
 });
+
+async function withCwd(root, fn) {
+  const prev = process.cwd();
+  const out = [];
+  const orig = console.log;
+  const origErr = console.error;
+  console.log = (...a) => out.push(a.join(' '));
+  console.error = (...a) => out.push(a.join(' '));
+  process.chdir(root);
+  try {
+    await fn();
+  } finally {
+    console.log = orig;
+    console.error = origErr;
+    process.chdir(prev);
+  }
+  return out.join('\n');
+}
+
+test('CLI: packs add scaffolds a LOCAL pack that the loader immediately discovers', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'packs-add-'));
+  await withCwd(root, async () => {
+    process.exitCode = undefined;
+    await main(['packs', 'add', 'vant-brain']);
+  });
+  const manifest = JSON.parse(await readFile(join(root, 'packs', 'local', 'vant-brain', 'pack.json'), 'utf8'));
+  assert.equal(manifest.schemaVersion, 1);
+  assert.equal(manifest.name, 'vant-brain');
+  assert.equal(manifest.entry, 'index.js');
+  // Privacy: the gitignore owns local-pack reality.
+  assert.match(await readFile(join(root, '.gitignore'), 'utf8'), /^packs\/local\/$/m);
+  // The stub must be contract-valid right out of the box (loader round-trip).
+  const packs = await loadPacks([join(root, 'packs')]);
+  assert.equal(packs.length, 1);
+  assert.equal(packs[0].visibility, 'local');
+  assert.equal(packs[0].manifest.name, 'vant-brain');
+  assert.equal(packs[0].module.attacks[0].name, 'first-attack');
+});
+
+test('CLI: packs add --public lands in packs/public and is NOT gitignored', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'packs-add-pub-'));
+  await withCwd(root, async () => {
+    process.exitCode = undefined;
+    await main(['packs', 'add', 'shared-shapes', '--public']);
+  });
+  assert.ok((await readFile(join(root, 'packs', 'public', 'shared-shapes', 'pack.json'), 'utf8')).length > 0);
+  try { await readFile(join(root, '.gitignore'), 'utf8'); assert.fail('public add must not create .gitignore'); } catch (e) { assert.equal(e.code, 'ENOENT'); }
+  const packs = await loadPacks([join(root, 'packs')]);
+  assert.equal(packs[0].visibility, 'public');
+});
+
+test('CLI: packs add refuses existing dirs and non-kebab-case names LOUDLY', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'packs-add-col-'));
+  await withCwd(root, async () => {
+    process.exitCode = undefined;
+    await main(['packs', 'add', 'dupe-me']);
+  });
+  process.exitCode = undefined;
+  const dupeOut = await withCwd(root, async () => {
+    process.exitCode = undefined;
+    await main(['packs', 'add', 'dupe-me']);
+  });
+  assert.equal(process.exitCode, 1);
+  assert.match(dupeOut, /already exists/);
+  process.exitCode = undefined; // CLI-refuse tests must not leak the refuse-exit into the runner's own status
+  const bad = await withCwd(root, async () => {
+    process.exitCode = undefined;
+    await main(['packs', 'add', 'Nope!']);
+  });
+  assert.equal(process.exitCode, 1);
+  assert.match(bad, /kebab-case/);
+  process.exitCode = undefined;
+});
