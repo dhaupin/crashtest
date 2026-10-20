@@ -39,6 +39,14 @@ const FAQS = [
     a: <>D1-style SQL (a real SQL-subset engine in-process - tables, uniques, seeds, D1-shaped error messages other attacks chain on), KV namespaces, secrets, and vars. You seed it with the shape of your real schema so the attacks exercise the real branching, and plant FAKE secrets to verify nothing ever echoes them.</>,
   },
   {
+    q: 'Can I attack with community attacks, not just the built-ins?',
+    a: <>Three delivery surfaces, one contract. Packs are file-bundles in your repo (<code>packs/public/</code> tracked, <code>packs/local/</code> gitignored). Plugins are importable specifiers straight into the config: <code>plugins: ['&lt;npm-package&gt;', './shims/wallet-profile.js']</code> - same validator, same campaign, same module plan, and a broken/unresolvable plugin fails the run loudly naming the file. Docs: <a href="https://docs.creadev.org/crashtest/reference/plugins">plugins</a> and <a href="https://docs.creadev.org/crashtest/reference/packs">packs</a>.</>,
+  },
+  {
+    q: 'Does it help me adopt an agent-builder export (Lovable, Bolt, Replit)?',
+    a: <><code>crashtest preset lovable|bolt|replit --root &lt;dir&gt;</code> generates a starter config from what the repo ACTUALLY contains - Supabase Edge Function layouts, TanStack Start markers, the .replit run command, package.json shape. It never guesses a handler from the builder name: if the export has no server handlers (a static SPA) it says so, and anything it cannot resolve lands in warnings naming the exact files to wire by hand. Docs: <a href="https://docs.creadev.org/crashtest/reference/presets">presets</a>.</>,
+  },
+  {
     q: 'What do exit codes mean in CI?',
     a: <>0: baseline held. 1: a NEW EXPLOITED finding, or a previously-REFUSED surface that regressed. 2: configuration problem (missing or malformed config/baseline) - the run is untrustworthy, which is different from "your app is weak". Never a false positive on undeclared routes: those degrade to skipped-REFUSED.</>,
   },

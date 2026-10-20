@@ -43,6 +43,10 @@
     url: /crashtest/reference/exit-rules
   - title: Scenario Packs
     url: /crashtest/reference/packs
+  - title: Plugins
+    url: /crashtest/reference/plugins
+  - title: Builder Presets
+    url: /crashtest/reference/presets
   - title: Module Plans
     url: /crashtest/reference/module-plan
 

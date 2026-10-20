@@ -10,7 +10,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { loadPlugins, configDir } from '../src/plugins/loader.js';
-import { listPresets, detect, scaffoldPreset } from '../src/presets.js';
+import { listPresets, detect, scaffoldPreset, probeHandler } from '../src/presets.js';
 
 async function tempRepo(files) {
   const dir = await mkdtemp(join(tmpdir(), 'ct-v03-'));
@@ -212,4 +212,54 @@ test('presets: invalid package.json gets a loud warning, never silently ignored'
   assert.equal(d.packageJson.parseFailed, true);
   const out = await scaffoldPreset('replit', dir);
   assert.ok(out.warnings.some((w) => w.includes('not valid JSON')));
+});
+
+// ---- the probe: detect-then-prove (v0.3.1) ----
+
+test('probe: a plain-JS default-{fetch} handler executes once in-process and reports the response', async () => {
+  const dir = await tempRepo({
+    'supabase/functions/hello/index.js': [
+      'export default { async fetch(req) {',
+      '  return new Response(JSON.stringify({ hello: true }), { status: 200, headers: { "content-type": "application/json" } });',
+      '} };',
+    ].join('\n'),
+  });
+  const p = await probeHandler(join(dir, 'supabase/functions/hello/index.js'));
+  assert.equal(p.probed, true);
+  assert.equal(p.status, 200);
+  assert.equal(p.ok, true);
+  assert.ok(p.bodyBytes > 0);
+  assert.ok(typeof p.ms === 'number');
+});
+
+test('probe: a TypeScript/Deno path is refused with the no-transpile reason (never a fake success)', async () => {
+  const dir = await tempRepo({ 'supabase/functions/f/index.ts': 'export default { fetch: () => new Response("ok") };\n' });
+  const p = await probeHandler(join(dir, 'supabase/functions/f/index.ts'));
+  assert.equal(p.probed, false);
+  assert.match(p.reason, /not plain ESM JS/);
+});
+
+test('probe: a module without default-{fetch} reports the missing interface, not a guess', async () => {
+  const dir = await tempRepo({ 'supabase/functions/x/index.js': 'export const answer = 42;\n' });
+  const p = await probeHandler(join(dir, 'supabase/functions/x/index.js'));
+  assert.equal(p.probed, false);
+  assert.match(p.reason, /no default .{0,4}fetch.{0,4} export found/);
+});
+
+test('probe: a handler that throws on GET reports the throw as evidence', async () => {
+  const dir = await tempRepo({
+    'supabase/functions/boom/index.js': 'export default { async fetch() { throw new Error("probe-witnessed"); } };\n',
+  });
+  const p = await probeHandler(join(dir, 'supabase/functions/boom/index.js'));
+  assert.equal(p.probed, false);
+  assert.match(p.reason, /handler threw on a plain GET: probe-witnessed/);
+});
+
+test('probe: scaffoldPreset embeds the probe line for compilable functions', async () => {
+  const dir = await tempRepo({
+    'supabase/config.toml': 'project_id = "x"\n',
+    'supabase/functions/hi/index.js': 'export default { async fetch() { return new Response("ok") } };\n',
+  });
+  const out = await scaffoldPreset('lovable', dir);
+  assert.ok(out.notes.some((n) => n.match(/probe hi: GET .*__ct-probe -> 200 ok=true/)), JSON.stringify(out.notes));
 });

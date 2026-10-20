@@ -21,6 +21,7 @@
 import { readFile, readdir, access } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const PRESETS = {
   lovable: {
@@ -146,12 +147,22 @@ export async function scaffoldPreset(name, repoRoot, probeHarness = null) {
       // that names each found function with the import the config author
       // replaces once they know their interface (fetch-export vs serve).
       for (const fn of d.supabase.functions) {
-        const rel = `supabase/functions/${fn}/index.ts`;
-        const src = await readIfPresent(repoRoot, rel);
+        const tsRel = `supabase/functions/${fn}/index.ts`;
+        const src = await readIfPresent(repoRoot, tsRel);
         const isFetchExport = src != null && /export\s+default\s*{[\s\S]*fetch\s*[:(]/.test(src); // fetch: or fetch( (method style)
         const isDenoServe = src != null && /Deno\.serve\s*\(/.test(src);
         notes.push(`found edge function ${fn}: ${isFetchExport ? 'default { fetch } export' : isDenoServe ? 'Deno.serve()' : 'unknown interface (read the file; pick the matching adapter shape)'}`);
-        warnings.push(`${rel} is TypeScript/Deno — the in-process adapter needs the handler imported as JS. Options: a JS shim in your repo exporting { fetch }, OR a compiled copy. crashtest does not transpile and never runs Deno APIs in Node.`);
+        // The probe: execute what was found ONCE (detect-then-prove). The
+        // source of truth for the probe is a compilable JS entry — the .ts
+        // source's own compiled neighbor (index.js) when the repo carries
+        // one, else the probe reports the no-transpile reason, never a fake:
+        const probe = await probeHandler(join(repoRoot, `supabase/functions/${fn}/index.js`));
+        if (probe.probed) {
+          notes.push(`probe ${fn}: GET /__ct-probe -> ${probe.status} ok=${probe.ok} ${probe.bodyBytes}B in ${probe.ms}ms - the dispatch path WORKS in-process`);
+        } else if (probe.reason) {
+          notes.push(`probe ${fn}: not executed - ${probe.reason}`);
+        }
+        warnings.push(`${tsRel} is TypeScript/Deno — the in-process adapter needs the handler imported as JS. Options: a JS shim in your repo exporting { fetch }, OR a compiled copy. crashtest does not transpile and never runs Deno APIs in Node.`);
       }
       configParts.push(`// Supabase Edge Functions found: ${d.supabase.functions.join(', ')}`);
       configParts.push('// Mark the USE of the fetch interface explicitly in your config — example shape:');
@@ -187,4 +198,75 @@ export async function scaffoldPreset(name, repoRoot, probeHarness = null) {
   return { preset: name, detection: d, configSource: configParts.join('\n') + '\n', notes, warnings };
 }
 
-export default { listPresets, detect, scaffoldPreset };
+export default { listPresets, detect, scaffoldPreset, probeHandler };
+
+// ─── the probe: detect-then-prove ─────────────────────────────────────────────
+
+/**
+ * probeHandler(fnPath, opts) — the v0.3.1 stronger proof: execute a FOUND
+ * handler ONCE in-process and report what came back, so the preset's answer
+ * is "here's what I measured" rather than "here's what the shape looks like".
+ *
+ * The rules that keep this safe and honest:
+ * - **No sockets.** The handler is import()'d and CALLED with a WHATWG
+ *   Request, exactly like the harness does. If it calls app.listen() at
+ *   module scope, the import itself fails loudly with the caught error — the
+ *   probe reports that as the finding, it does not wrap the listen in a fake.
+ * - **Plain ESM import().** TS/Deno files cannot be probed — the caller
+ *   (cmdPreset) skips probing for `.ts` paths and says why instead of
+ *   pretending. This is the same no-transpile rule the loader enforces.
+ * - **Fetch-export interface only** (default { fetch }) — the documented
+ *   Supabase quickstart shape. A Deno.serve() file has no callable export
+ *   object; the probe reports `probed: false` with that reason instead of
+ *   guessing at a wrapper.
+ * - **Determinism**: a fixed GET on the module origin + `/__ct-probe`, no
+ *   randomness, timeout-guarded long-poll-free (no instrumentation around a
+ *   single await — the CLI's own clock is the only cost meter).
+ *
+ * @param {string} fnPath absolute path to the JS entry of a found handler
+ * @param {{ timeoutMs?: number }} opts
+ * @returns {Promise<{
+ *   probed: boolean,
+ *   reason?: string,
+ *   status?: number,
+ *   ok?: boolean,
+ *   bodyBytes?: number,
+ *   ms?: number,
+ *   error?: string,
+ * }>} a probe RESULT record — never a throw (probing is evidence, and a
+ *   failed probe is evidence too; the caller renders it as such).
+ */
+export async function probeHandler(fnPath, opts = {}) {
+  const out = (r) => ({ probed: false, ...r });
+  if (!/\.(m?js)$/.test(fnPath)) {
+    return out({ reason: 'not plain ESM JS (.ts/.deno cannot be probed — crashtest does not transpile)' });
+  }
+  let mod;
+  try {
+    mod = await import(pathToFileURL(fnPath).href);
+  } catch (e) {
+    return out({ reason: `import failed (watch for top-level listen() errors): ${e.message}` });
+  }
+  const candidate = mod.default;
+  if (!candidate || typeof candidate !== 'object' || typeof candidate.fetch !== 'function') {
+    return out({ reason: 'no default { fetch } export found (the documented quickstart interface); Deno.serve() files have no callable export object' });
+  }
+  const request = new Request('https://crashtest-probe.local/__ct-probe', { method: 'GET' });
+  const started = performance.now();
+  try {
+    const response = await candidate.fetch(request);
+    if (!response || typeof response.status !== 'number' || typeof response.headers?.get !== 'function') {
+      return out({ reason: `default.fetch did not return a Response (got ${typeof response})` });
+    }
+    const text = await response.text();
+    return {
+      probed: true,
+      status: response.status,
+      ok: response.ok,
+      bodyBytes: text.length,
+      ms: Math.round(performance.now() - started),
+    };
+  } catch (e) {
+    return out({ reason: `handler threw on a plain GET: ${e?.message ?? e}` });
+  }
+}

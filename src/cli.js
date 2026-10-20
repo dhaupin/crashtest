@@ -14,7 +14,7 @@ import { loadPlugins, configDir } from './plugins/loader.js';
 import { runCampaign } from './campaigns/runner.js';
 import { buildLedger, diffAgainstBaseline, exitCode, renderMarkdown } from './report.js';
 import { buildModulePlan } from './plans.js';
-import { listPresets, scaffoldPreset } from './presets.js';
+import { listPresets, scaffoldPreset, probeHandler } from './presets.js';
 
 const VERSION = '0.1.1';
 const LEDGER_PATH = 'labs/crashledger.json';
@@ -343,12 +343,41 @@ async function cmdPreset(name, opts = {}) {
   console.log(`preset ${name} — detection against ${opts.repoRoot}`);
   for (const n of out.notes) console.log(`  · ${n}`);
   for (const w of out.warnings) console.log(`  ! ${w}`);
+  const probes = await probeDetectedHandlers(name, opts.repoRoot, out);
+  for (const [fn, p] of probes) {
+    if (p.probed) {
+      console.log(`  ✓ probe ${fn}: GET -> ${p.status} (ok=${p.ok}, ${p.bodyBytes}B, ${p.ms}ms) — in-process dispatch PROVEN, no socket opened`);
+    } else if (p.reason) {
+      console.log(`  − probe ${fn}: not executed — ${p.reason}`);
+    }
+  }
   if (!out.notes.length && !out.warnings.length) console.log('  (nothing notable)');
   console.log('\n--- crashtest.config.js ---');
   console.log(out.configSource);
   if (out.warnings.length) {
     console.log('warnings above name exactly what detect() could not resolve — wire the handler by hand; nothing was guessed.');
   }
+}
+
+/**
+ * Probe every JS-eligible handler the preset found (v0.3.1 probe): the
+ * preset's notes carry the per-function detail; this renders the one-line
+ * proof/not-executed statement per handler. Evidence, never a throw — a
+ * failed probe is reported as the finding it is.
+ */
+async function probeDetectedHandlers(name, repoRoot, presetOutput) {
+  const out = [];
+  const fns = presetOutput.detection?.supabase?.functions ?? [];
+  for (const fn of fns) {
+    const rel = `supabase/functions/${fn}/index.ts`;
+    const candidate = join(repoRoot, rel.replace(/\.ts$/, '.js'));
+    // Only plain-JS entries are probeable: the compiled-output / shim path.
+    // A .ts path probes its .js neighbor IF the repo compiled one; otherwise
+    // probeHandler answers with the no-transpile reason.
+    const p = await probeHandler(candidate);
+    out.push([fn, p]);
+  }
+  return out;
 }
 
 async function cmdPacks(opts = {}) {

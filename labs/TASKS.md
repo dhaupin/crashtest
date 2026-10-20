@@ -70,7 +70,17 @@
 
 ## Log
 
-- [2026-10-20 ~21Z] **v0.3 "the ecosystem": plugins API + builder presets.**
+- [2026-10-20 ~22Z] **Docs/web for v0.3 + the preset probe (v0.3.1).** Docs:
+  reference/plugins.md + reference/presets.md (24 pages, nav, all four gates
+  green). Web: FAQ grew two Q&As (community attacks via plugins; builder
+  presets with the never-guess stance), FAQ meta in ssr.config updated,
+  consistency + parity probes green, clean 6/6 prerender with JSON-LD.
+  Preset probe: detect-then-prove — scaffoldPreset now EXECUTES every found
+  JS-eligible handler once in-process (plain ESM import() + WHATWG Request,
+  no sockets, no transpile) and reports status/ok/bodyBytes/ms as a note,
+  or honest not-executed reasons for .ts/.deno (no-transpile), missing
+  default-{fetch} interface, and throwing handlers — probes are evidence,
+  never a throw. 5 new tests; 148/148. **v0.3 "the ecosystem": plugins API + builder presets.**
   Both PRD lines closed. Plugins (`config plugins: [npm-name | './file.js']`):
   importable ESM scenario modules through the SAME contract as packs/libraries
   (src/plugins/loader.js), resolved against the config file's dir; contract-
