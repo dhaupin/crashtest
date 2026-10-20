@@ -290,3 +290,18 @@
   — edit #214's one garbled sentence manually when convenient.
 - [2026-10-20T05:05Z] Version bumped 0.1.0 → 0.1.1 (package.json +
   src/cli.js VERSION) for the next tag when the user wants to ship.
+- [2026-10-20T06:30Z] Site theme bug found + fixed live (crashtest.creadev.org
+  / crashtest.pages.dev): prerendered pages shipped WITHOUT theme — root
+  cause is a SECOND init-vs-example gap in prestruct: `init/index.html`
+  lacks the example's module entry script
+  `<script type="module" src="/src/main.jsx">`, so vite build emitted
+  nothing from the app graph (no JS bundle, no CSS; only the manualChunks
+  vendor file trickled out) and inject-brand+prerender "succeeded" into
+  fully-rendered, fully-unstyled HTML. Fixed by restoring the entry tag in
+  web/index.html (with an explanatory comment), rebuilt, verified hashed
+  script+stylesheet on index/attacks and stylesheet-only on 404 (scripts
+  stripped there by prerender design). Committed c7811ee + pushed; CF
+  redeploy picks it up. Upstream note intended for prestruct#20 (same
+  issues-write-but-no-edit/comment integration limits as vant #214):
+  suggested there too — build-time check in inject-brand/prerender that
+  dist/assets holds an index-*.js + .css pair, else fail loudly.
