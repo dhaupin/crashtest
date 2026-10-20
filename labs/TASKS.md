@@ -305,3 +305,20 @@
   issues-write-but-no-edit/comment integration limits as vant #214):
   suggested there too — build-time check in inject-brand/prerender that
   dist/assets holds an index-*.js + .css pair, else fail loudly.
+- [2026-10-20T07:15Z] Black-screen bug on the live site fixed (reproduced in
+  headless Chromium on crashtest.creadev.org, mobile viewport, iPhone UA):
+  first paint = prerendered SSR + stylesheet (the "flash of theme"), then the
+  client bundle threw React error #321 (invalid hook call) —
+  usePageMeta (a hook) was being called INSIDE useEffect in both
+  web/src/pages/Home.jsx and Attacks.jsx. Hooks may only run in the
+  component body; with no error boundary React 18 unmounts the entire tree,
+  leaving #root empty on the dark body bg = "rendered black". Fixed by
+  calling the hook in the component body (its own effect handles the head
+  tags), rebuilt, verified all three routes hydration-clean with zero page
+  errors (local Chromium). Commit a972142.
+- [2026-10-20T07:15Z] /api/version 502 at platform layer (plain-text
+  "error code: 502", not our JSON): dropped the `cf` fetch option from
+  web/functions/api/version.js as the likely cause; edge cache now comes
+  from the response cache-control. Zone-level noise noted: Zaraz injects a
+  GA tag (G-C454VG9F3M → doubleclick/ads) that the site CSP correctly
+  blocks — user-side Zaraz/CSP tweak if they want GA live.
