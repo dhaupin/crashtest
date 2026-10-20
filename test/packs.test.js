@@ -58,6 +58,37 @@ test('loadPacks: broken pack.json fails LOUDLY (rule 3), missing manifest skips 
   await assert.rejects(() => loadPacks([root]), /unreadable JSON/);
 });
 
+test('validatePackManifest: optional npm package field must be a string when present', () => {
+  assert.equal(validatePackManifest({ ...GOOD_MANIFEST, package: '@you/crashtest-pack' }, 'x').package, '@you/crashtest-pack');
+  assert.throws(() => validatePackManifest({ ...GOOD_MANIFEST, package: 42 }, 'x'), /"package" must be a string/);
+});
+
+test('CLI: crashtest packs --json inventories manifests as the LAST line (package + armedByKey ride along)', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'packs-json-'));
+  const base = join(root, 'packs');
+  await mkPack(base, 'public', 'probe-pack', { ...GOOD_MANIFEST, version: '2.4.1', package: '@you/crashtest-pack' }, ENTRY_OK);
+  await mkPack(base, 'local', 'loose-pack', { ...GOOD_MANIFEST, name: 'loose-pack', armedByKey: 'loose-pack' }, ENTRY_OK.replace(/probe-pack/g, 'loose-pack'));
+  const prev = process.cwd();
+  const out = [];
+  const orig = console.log;
+  console.log = (...a) => out.push(a.join(' '));
+  process.chdir(root);
+  try {
+    await main(['packs', '--json']);
+  } finally {
+    console.log = orig;
+    process.chdir(prev);
+  }
+  const inv = JSON.parse(out[out.length - 1]);
+  assert.equal(inv.packs.length, 2);
+  const publicPack = inv.packs.find((p) => p.name === 'probe-pack');
+  assert.equal(publicPack.version, '2.4.1');
+  assert.equal(publicPack.package, '@you/crashtest-pack');
+  const localPack = inv.packs.find((p) => p.name === 'loose-pack');
+  assert.equal(localPack.visibility, 'local');
+  assert.equal(localPack.armedByKey, 'loose-pack');
+});
+
 test('loadPacks: the same pack name across public+local is a collision (x)', async () => {
   const root = await mkdtemp(join(tmpdir(), 'packs-'));
   await mkPack(root, 'public', 'dupe', GOOD_MANIFEST, ENTRY_OK);

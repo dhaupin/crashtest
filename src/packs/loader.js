@@ -47,6 +47,12 @@ export function validatePackManifest(manifest, origin) {
   if (manifest.schemaVersion !== 1) {
     throw new Error(`pack manifest at ${origin}: unsupported schemaVersion ${manifest.schemaVersion} (have: 1)`);
   }
+  // Optional npm metadata: the package name this pack ships as, for registry
+  // version joins (`crashtest packs --json` inventories it; the actual
+  // registry LOOKUP stays in npm's own tools — the CLI never dials out).
+  if (manifest.package !== undefined && typeof manifest.package !== 'string') {
+    throw new Error(`pack manifest at ${origin}: "package" must be a string (npm package name)`);
+  }
   if (!/^[a-z0-9][a-z0-9-]*$/.test(manifest.name)) {
     throw new Error(`pack manifest at ${origin}: name "${manifest.name}" is not kebab-case`);
   }

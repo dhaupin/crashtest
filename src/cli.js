@@ -26,7 +26,7 @@ Usage:
   crashtest init            Create labs/ scaffold: crashledger.json + hardening.md stub
   crashtest run [--config path] [--json]   Attack the target declared in crashtest.config.js
                  [--module-plan]  dry-run: which attack ids WOULD fire (NEEDS-ARMING shows un-armed packs)
-  crashtest packs [--config path]   List discovered scenario packs (public + local)
+  crashtest packs [--config path] [--json]   List discovered scenario packs (public + local); --json = machine inventory
   crashtest packs add <name> [--public]   Scaffold a fresh pack — local (gitignored) by default;
                  --public puts it in packs/public/ as tracked/sharable
   crashtest --version
@@ -253,8 +253,28 @@ async function cmdPacks(opts = {}) {
     return;
   }
   for (const p of packs) {
-    console.log(`${p.visibility}${p.manifest.version ? ` @${p.manifest.version}` : ''} — ${p.manifest.name}: ${p.module.attacks.length} attacks from ${p.origin}`);
+    const pkg = p.manifest.package ? ` (npm: ${p.manifest.package})` : '';
+    const arm = p.manifest.armedByKey ? ` · armedBy moduleCtx['${p.manifest.armedByKey}']` : '';
+    console.log(`${p.visibility}${p.manifest.version ? ` @${p.manifest.version}` : ''} — ${p.manifest.name}: ${p.module.attacks.length} attacks from ${p.origin}${pkg}${arm}`);
     console.log(`         ${p.manifest.description}`);
+  }
+  if (opts.json) {
+    // Machine inventory (PRD §14 artifact): the registry VERSION JOIN stays
+    // outside the CLI on purpose — a CI step pairs this with `npm view <pkg>
+    // version` and diffs, keeping the drone fully offline.
+    console.log(JSON.stringify({
+      packs: packs.map((p) => ({
+        name: p.manifest.name,
+        visibility: p.visibility,
+        version: p.manifest.version ?? null,
+        package: p.manifest.package ?? null,
+        entry: p.manifest.entry ?? 'index.js',
+        origin: p.origin,
+        attacks: p.module.attacks.length,
+        armedByKey: p.manifest.armedByKey ?? null,
+        description: p.manifest.description,
+      })),
+    }));
   }
 }
 
@@ -355,7 +375,7 @@ export async function main(argv) {
       return cmdPackAdd(name, { public: argv.includes('--public') });
     }
     const confIdx = argv.indexOf('--config');
-    return cmdPacks(confIdx > -1 ? { config: argv[confIdx + 1] } : {});
+    return cmdPacks({ config: confIdx > -1 ? argv[confIdx + 1] : undefined, json: argv.includes('--json') });
   }
   if (verb === 'run') {
     const confIdx = argv.indexOf('--config');

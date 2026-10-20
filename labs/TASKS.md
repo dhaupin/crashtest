@@ -546,3 +546,18 @@
 - Verified: 101/101 tests (7 new), check exit 0 with src/plans.js +
   test/module-plan.test.js in the inventory, live dry-run vs the dogfood config
   (13/13 WILL-FIRE, packs correctly absent via packs:false), exit 0 informational.
+
+### 2026-10-20 — packs npm metadata (offline-first) + `packs --json`
+- npm metadata now travels WITH the pack: optional `"package"` field in
+  pack.json (string-validated, loud on wrong type) shown in the packs verb
+  inline and inventoried by `crashtest packs --json` (LAST stdout line, same
+  discipline as `run --json`) alongside version/entry/armedByKey.
+- Deliberate boundary: the REGISTRY LOOKUP stays in npm's own tools — the CLI
+  is a drone that never dials (PRD §14 binding line). The docs carry the CI
+  recipe: pair `packs --json` with `npm view <pkg> version` and fail on drift.
+- Two real bugs fixed at cause on the way: my main() route dropped the
+  closing brace of the packs branch (parse broke at the file's trailing
+  export — caught by --check) and a ternary that silently discarded the
+  --json flag when no --config was passed (caught by the new test).
+- Verified: 103/103 tests, check exit 0, live verb shows armedBy hints +
+  JSON inventory for both shipped packs.

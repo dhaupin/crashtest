@@ -62,13 +62,26 @@ reality directly — tracked vs machine-private.
 - **npm packages**: a pack is just a directory of ESM files — publish it as
   a package and point `packs:` at its installed path (e.g.
   `packs: ['node_modules/@you/crashtest-pack']`), or vendor it into
-  `packs/local/`. First-class npm *metadata* (registry lookup, version pin)
-  remains planned; the CLI's `packs add` scaffolding exists now (below).
+  `packs/local/`.
+- **npm metadata lives with the pack, offline-first.** A manifest may declare
+  its `"package": "@you/crashtest-pack"` field (string, optional) and
+  `"version"`; `npx crashtest packs` shows both inline and
+  `npx crashtest packs --json` emits the machine inventory (last stdout
+  line) with them. The REGISTRY LOOKUP stays in npm's own tools on purpose —
+  the CLI is a drone that never dials out (PRD §14): do the join in your CI
+  script, e.g.
+  `npx crashtest packs --json` paired with
+  `npm view @you/crashtest-pack version`, and fail the step on drift.
+  That keeps zero dependencies, zero sockets, and deterministic runs while
+  still catching "a newer pack version is out" mechanically.
 - **Scaffold by command**: `npx crashtest packs add <name>` creates
   `packs/local/<name>/` (schema-v1 manifest + a contract-valid stub module
   + the `.gitignore` entry) and `--public` puts it in `packs/public/`
   instead. The stub loads, lists, and runs immediately — fill in the
-  `TODO` attacks and the pack's `moduleCtx[<name>]` vocabulary.
+  `TODO` attacks and the pack's `moduleCtx[<name>]` vocabulary. The stub
+  declares `armedByKey` in its module, so
+  [`run --module-plan`](/crashtest/reference/module-plan) reports it as
+  NEEDS-ARMING until you arm it.
 
 ## Naming convention
 
@@ -126,9 +139,10 @@ Inventory any run root with:
 
 ```bash
 npx crashtest packs
-# local 0.0.1 — vant-core: 1 attacks from local/vant-core
+# local @0.0.1 — vant-core: 1 attacks from local/vant-core · armedBy moduleCtx['vant-core']
 #         TODO: one line on what vant-core attacks
 
 npx crashtest packs add vant-core          # → packs/local/vant-core/ (gitignored)
 npx crashtest packs add my-shapes --public # → packs/public/my-shapes/ (tracked)
+npx crashtest packs --json                 # machine inventory (LAST stdout line) — pair with `npm view <pkg> version` in CI for version joins
 ```
