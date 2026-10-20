@@ -529,3 +529,20 @@
   leaking into the test runner's status.
 - Verified: 94/94 tests (3 new packs-add tests), check exit 0, live packs add
   local+public from a tmp cwd, dogfood gate decoupled 13/13.
+
+### 2026-10-20 — `run --module-plan`: the coverage dry-run (PRD §14 service flag)
+- Which attack ids WOULD fire against this target, before any request — same
+  loaders, same filters, same arming rules as the real run (shared code, no
+  drift possible). Three statuses: WILL-FIRE / NEEDS-ARMING / SKIPPED-FILTER.
+- Arming keys travel with the pack: module-level `armedByKey` export or pack
+  manifest `armedByKey`, checked against `moduleCtx[<key>]`. Shipped
+  wp-money-shapes + the packs-add stub declare theirs; a module's explicit
+  `armedByKey: null` disables detection (precedence = module wins when present).
+- NEEDS-ARMING rows are the honest gate: un-armed packs REFUSE-skip at run
+  time (skip-parity, never false positives) — the plan surfaces them BEFORE
+  you trust a green tally, which is the whole point of the flag.
+- `--json` prints the plan blob as the LAST stdout line (same discipline as
+  `run --json`) — the CI artifact the dashboard ate in the same session.
+- Verified: 101/101 tests (7 new), check exit 0 with src/plans.js +
+  test/module-plan.test.js in the inventory, live dry-run vs the dogfood config
+  (13/13 WILL-FIRE, packs correctly absent via packs:false), exit 0 informational.

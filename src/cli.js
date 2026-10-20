@@ -12,6 +12,7 @@ import { loadScenarios } from './scenarios/loader.js';
 import { loadPacks } from './packs/loader.js';
 import { runCampaign } from './campaigns/runner.js';
 import { buildLedger, diffAgainstBaseline, exitCode, renderMarkdown } from './report.js';
+import { buildModulePlan } from './plans.js';
 
 const VERSION = '0.1.1';
 const LEDGER_PATH = 'labs/crashledger.json';
@@ -24,6 +25,7 @@ Adversarial QA for agent-built software, in-process. No sockets, ever.
 Usage:
   crashtest init            Create labs/ scaffold: crashledger.json + hardening.md stub
   crashtest run [--config path] [--json]   Attack the target declared in crashtest.config.js
+                 [--module-plan]  dry-run: which attack ids WOULD fire (NEEDS-ARMING shows un-armed packs)
   crashtest packs [--config path]   List discovered scenario packs (public + local)
   crashtest packs add <name> [--public]   Scaffold a fresh pack — local (gitignored) by default;
                  --public puts it in packs/public/ as tracked/sharable
@@ -172,10 +174,11 @@ async function cmdRun(opts = {}) {
   // or an explicit list of pack roots. Loaded modules join the same campaign.
   const packsOpt = target.packs ?? true;
   let packScenarios = [];
+  let loadedPacks = [];
   if (packsOpt !== false) {
     const packRoots = Array.isArray(packsOpt) ? packsOpt : [join(root, 'packs')];
-    const packs = await loadPacks(packRoots);
-    packScenarios = packs.map((p) => ({ origin: p.origin, module: p.module }));
+    loadedPacks = await loadPacks(packRoots);
+    packScenarios = loadedPacks.map((p) => ({ origin: p.origin, module: p.module }));
     const names = new Map(scenarios.map((s) => [s.module.name, s.origin]));
     for (const s of packScenarios) {
       if (names.has(s.module.name)) {
@@ -186,6 +189,21 @@ async function cmdRun(opts = {}) {
   }
   const allScenarios = [...scenarios, ...packScenarios].sort((a, b) => a.module.name.localeCompare(b.module.name));
   if (!allScenarios.length) throw new Error('no scenario modules found (built-ins missing?)');
+
+  // PRD §14: `run --module-plan` — the coverage dry-run. Same loaders, same
+  // filters, same arming rules as the real run; NO harness, NO requests,
+  // nothing written. Exit 0 always (informational, not a gate).
+  if (opts.modulePlan) {
+    const plan = buildModulePlan(target, loadedPacks, allScenarios);
+    for (const m of plan.modules) {
+      const mark = { 'WILL-FIRE': '▶', 'NEEDS-ARMING': '⚑', 'SKIPPED-FILTER': '·' }[m.status] ?? '?';
+      console.log(`${mark} ${m.name} [${m.source}${m.version ? ` @${m.version}` : ''}] ${m.attacks.length} attack(s) — ${m.status}${m.reason ? `: ${m.reason}` : ''}`);
+      for (const a of m.attacks) console.log(`    ${a.id} — ${a.status}`);
+    }
+    console.log(`plan: ${plan.totals.attacks} attack ids — ${plan.totals.willFire} WILL-FIRE · ${plan.totals.needsArming} NEEDS-ARMING · ${plan.totals.skippedFilter} SKIPPED-FILTER`);
+    if (opts.json) console.log(JSON.stringify(plan));
+    return;
+  }
 
   const run = await runCampaign(harness, allScenarios, {
     modules: target.modules,
@@ -280,6 +298,9 @@ async function cmdPackAdd(name, opts = {}) {
 export default {
   name: '${name}',
   description: 'TODO: one line',
+  // Coverage (module-plan) sees this: while your moduleCtx['${name}'] is
+  // unset, the plan marks NEEDS-ARMING instead of assuming the pack fires.
+  armedByKey: '${name}',
   attacks: [{
     name: 'first-attack',
     description: 'TODO: what this attack fires and what must hold',
@@ -340,7 +361,8 @@ export async function main(argv) {
     const confIdx = argv.indexOf('--config');
     const config = confIdx > -1 ? argv[confIdx + 1] : undefined;
     const json = argv.includes('--json');
-    return cmdRun({ config, json });
+    const modulePlan = argv.includes('--module-plan');
+    return cmdRun({ config, json, modulePlan });
   }
   console.error(`crashtest: unknown command "${verb}" (try --help)`);
   process.exitCode = 1;
