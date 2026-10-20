@@ -1,0 +1,46 @@
+# Changelog
+
+Notable changes to the `crashtest` package. The released version lives in
+`package.json` + `VERSION` in `src/cli.js` (kept equal by
+`test/version.test.js`); releases go out on `vX.Y.Z` git tags via npm
+Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
+
+## 1.0.0 (unreleased)
+
+The pre-1.0 lineage shipped the full QA surface; note this repo's docs
+narrated v0.2-v0.4 features (packs, plugins, presets, `--out-dir`) while
+`package.json` lagged at 0.1.1 - this release locks the version surfaces to
+everything that actually ships.
+
+Core:
+- In-process adversarial QA harness: explicit route table, fake
+  transport (WHATWG Request/Response, no sockets), fake D1/KV/env, op
+  counters and cost meters, seeded RNG determinism.
+- Scenario libraries: auth, input, guards, state, volume; two-way
+  vulnerable/hardened proof tests for each verdict.
+- Ledger + report pipeline: `labs/crashledger.json` (schema v1) +
+  `labs/hardening.md`; exit 1 ONLY on a new EXPLOITED finding or a
+  REFUSED-to-EXPLOITED regression; declared-gap rows degrade to
+  skipped-REFUSED (zero false positives); BOUNDED requires owner + bound.
+- Read-only gates: `run --expect-baseline <ledger>` writes nothing and
+  applies the same exit rule; `--out-dir` fans out artifact copies.
+
+Surfaces:
+- Framework adapters dispatching in-process: plain handler
+  (Pages-Functions shape), hono, express, fastify, raw node
+  (`dispatchNodeRequest`), route aliases; WordPress subprocess spike
+  (NDJSON stdio, still no sockets).
+- Ecosystem: `packs/` (public/local, `packs add` scaffold,
+  self-contained bundles via bundled `plugins`), config `plugins:`
+  imports, builder presets (`crashtest preset lovable|bolt|replit`),
+  `run --module-plan` coverage preview, `crashtest packs` inventory.
+
+Self-dogfood:
+- Attacking fixtures/demo gated in CI against the committed ledger.
+- `packs/public/crashtest-site` attacks the shipped website itself
+  (real /api/version function, deployed headers, prerendered HTML,
+  sitemap, manifest, robots) - its first run caught the real
+  registry-shape bug in `web/functions/api/version.js`, fixed with the
+  semver/validation floor and pinned by `test/site-pack.test.js`.
+- Loader honors the documented "one pack dir only" `packs:` shape;
+  WordPress packs degrade honestly on non-WP targets.
