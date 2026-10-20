@@ -403,3 +403,18 @@
   paid-for bug: prestruct's incremental cache served three asset
   generations at once after the first dashboard build — full clean rebuild
   fixed; `rm -rf .prestruct dist` is the restore ritual if assets go stale.
+- [2026-10-20 ~09Z] **v0.3 WP spike LANDED + §14 platform thread opened + the
+  CLI went service-shaped.** Colleague issues #1/#2 adopted from a real
+  patch: wordpress adapter (NDJSON-over-stdio worker — wire format, not a
+  transport; no sockets kept honest), skip-parity for undeclared routes in
+  volume/input/guards (proto of it: no harness-wide bombs), 6 envelope
+  contract tests. Paid-for lesson repeated: the pack first landed in
+  labs/scenarios and nearly tripped the self-dogfood CI gate (workerAbsent
+  → attack-threw EXPLOITED rows) — target packs live in fixtures/ beside
+  examples, labs/scenarios stays the dogfood scan dir. CLI: `run --json`
+  prints the machine run blob as the LAST stdout line (dashboard-compatible
+  run shape) with a live sanity run (13 rows, exit 0). PRD §14 codifies the
+  greptile-style CI-runner platform thread: drone CLI, ledger-as-artifact
+  contract, headless dashboard alignment, sequencing to v0.5. Docs:
+  playbooks/wordpress + playbooks/run-roots (the #2 runbook, generalized).
+  Issues #1/#2 closed with adoption notes; 83/83 tests; pushed as 0710c84.
