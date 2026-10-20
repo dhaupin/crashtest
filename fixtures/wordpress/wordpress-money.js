@@ -11,6 +11,12 @@ import { refused, exploited, bounded } from '../../src/scenarios/contract.js';
 
 const NS = () => 'ct' + Date.now().toString(16); // attacker frame per run
 
+/* The pack's OWN vocabulary (khf-flavored example — swap per target):
+   CPT + meta keys live HERE and in the run-root config (callAllow for
+   fm_mark_registration_paid, allowOptions for fm_settings). The generic
+   worker knows none of them — that's the who-owns-specifics rule. */
+const KP = { postType: 'fm_registration', metaEmail: '_fm_reg_email', metaPaid: '_fm_reg_paid', metaType: '_fm_reg_type', settings: 'fm_settings', settingsKey: 'fm_paypal_email' };
+
 const fuzzNames = [
   'A'.repeat(256), '<script>alert(1)</script>', '🦀'.repeat(64), 'a\0b',
   '{"x":9}', '=WEBSERVICE("http://pwn")', String.fromCharCode(0x2028),
@@ -38,7 +44,8 @@ export default {
       if (!harness.listRoutes().includes('app')) return exploited('wordpress harness route not mounted');
       const email = NS() + 'fuzz@probe.example.org';
       const scanPrefix = email.slice(0, 20);
-      const before = await harness.wpState({ kind: 'state', op: 'count-emails', prefix: scanPrefix });
+      const count = (prefix) => harness.wpState({ kind: 'state', op: 'posts-query', postType: KP.postType, metaKey: KP.metaEmail, metaValue: prefix, compare: 'LIKE' });
+      const before = await count(scanPrefix);
       if (before?.body === undefined) return exploited('state oracle unusable (worker wpState)');
       const bodies = [];
       for (const q of fuzzQty) for (const n of fuzzNames.slice(0, 3)) {
@@ -60,8 +67,8 @@ export default {
         // The plugin must redirect or die (never a silent 200 that writes a new row).
         if (loc && loc.includes('fm_ticket=')) sanity = sanity && true;
       }
-      const after = await harness.wpState({ kind: 'state', op: 'count-emails', prefix: scanPrefix });
-      rows = parseInt(after.body, 10) - parseInt(before.body, 10);
+      const after = await count(scanPrefix);
+      rows = JSON.parse(after.body ?? '[]').length - JSON.parse(before.body ?? '[]').length;
       if (fatals > 0 || rows !== 0) {
         return exploited(`nonce-less hostile volley broke the floor: fatals=${fatals} rows=${rows}`, { fatals, rows, attempts: bodies.length });
       }
@@ -77,18 +84,20 @@ export default {
       // restore was the first crashtest-vs-khf incident; the khf G-05 suite
       // caught it as a REPRODUCED finding).
       const receiver = 'ct-replay-' + ((ctx.seed ?? 0xC0FFEE) >>> 0).toString(36) + '@probe.example.org';
-      const prior = await harness.wpState({ kind: 'state', op: 'setting', key: 'fm_paypal_email' });
+      const setting = (value) => harness.wpState({ kind: 'state', op: 'option', name: KP.settings, key: KP.settingsKey, ...(value !== undefined ? { value } : {}) });
+      const prior = await setting();
       const restoreEmail = String(prior.body ?? '');
-      const seeded = await harness.wpState({ kind: 'state', op: 'setting', key: 'fm_paypal_email', value: receiver });
-      if (String(seeded.body) !== receiver) return exploited('receiver fixture seed failed (state op setting)');
+      const seeded = await setting(receiver);
+      if (String(seeded.body) !== receiver) return exploited('receiver fixture seed failed (state op option)');
       const mark = ((ctx.seed ?? 0xC0FFEE) >>> 0).toString(36);
-      const a = await harness.wpState({ kind: 'state', op: 'mkreg', prefix: `ctreplay${mark}a`, type: 'vendor' });
-      const b = await harness.wpState({ kind: 'state', op: 'mkreg', prefix: `ctreplay${mark}b`, type: 'vendor' });
+      const seedReg = (slot) => harness.wpState({ kind: 'state', op: 'insert-post', postType: KP.postType, prefix: `ctreplay${mark}${slot}`, meta: { [KP.metaEmail]: `ctreplay${mark}${slot}@probe.example.org`, [KP.metaType]: 'vendor' } });
+      const a = await seedReg('a');
+      const b = await seedReg('b');
       const ridA = parseInt(a.body, 10); const ridB = parseInt(b.body, 10);
-      if (!ridA || !ridB) return exploited('fixture seed failed (mkreg)');
+      if (!ridA || !ridB) return exploited('fixture seed failed (insert-post)');
       const paid = await harness.wpState({ kind: 'call', fn: 'fm_mark_registration_paid', args: [ridA, { gateway: 'paypal', txn_id: `CTREPLAY${mark}` }] });
       // khf's real money path returns 'marked' (idempotent re-marks return 'already').
-      if (!/^(marked|already|paid)($|\n)/.test(String(paid.body ?? ''))) { await harness.wpState({ kind: 'state', op: 'delete-emails', prefix: `ctreplay${mark}` }); return exploited(`seed paid failed (${String(paid.body).slice(0, 40)})`); }
+      if (!/^(marked|already|paid)($|\n)/.test(String(paid.body ?? ''))) { await harness.wpState({ kind: 'state', op: 'delete-posts', postType: KP.postType, metaKey: KP.metaEmail, metaValue: `ctreplay${mark}`, compare: 'LIKE' }); return exploited(`seed paid failed (${String(paid.body).slice(0, 40)})`); }
       const ipn = (custom) => 'payment_status=Completed&txn_type=_xclick'
         + `&mc_gross=75.00&txn_id=CTREPLAY${mark}&custom=${custom || ''}`
         + `&receiver_email=${encodeURIComponent(receiver)}&payer_email=replay${mark}@probe.example.org`;
@@ -100,12 +109,12 @@ export default {
           headers: { 'content-type': 'application/x-www-form-urlencoded' },
           body: ipn(custom),
         });
-        const bp = await harness.wpState({ kind: 'state', op: 'postmeta', id: ridB, key: '_fm_reg_paid' });
+        const bp = await harness.wpState({ kind: 'state', op: 'post-meta', id: ridB, key: KP.metaPaid });
         if (String(bp.body) === 'paid') markedB = true; else denied++;
       }
-      await harness.wpState({ kind: 'state', op: 'delete-emails', prefix: `ctreplay${mark}` });
+      await harness.wpState({ kind: 'state', op: 'delete-posts', postType: KP.postType, metaKey: KP.metaEmail, metaValue: `ctreplay${mark}`, compare: 'LIKE' });
       // Restore the shared receiver fixture (standing rule: restore what you touch).
-      await harness.wpState({ kind: 'state', op: 'setting', key: 'fm_paypal_email', value: restoreEmail });
+      await setting(restoreEmail);
       if (markedB) return exploited('replayed txn id paid a SECOND registration (G-05 regression)', { regA: ridA, regB: ridB });
       return refused(`replay against reg ${ridB} denied ${denied}x — B stayed pending`, { regA: ridA, regB: ridB, denied });
     },

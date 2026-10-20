@@ -30,7 +30,13 @@ a transport** (PRD §10 + §14 still hold: the drone never dials anything).
 // crashtest.config.js (any CMS target; nothing installs into the target repo)
 export default {
   adapters: {
-    wordpress: { wpRoot: '/srv/wordpress', phpBin: 'php' }, // registers route 'app'
+    wordpress: {
+      wpRoot: '/srv/wordpress', phpBin: 'php',  // registers route 'app'
+      // WHO OWNS THE SPECIFICS: the target's run root. The worker is generic —
+      // it knows NO plugin. You declare what your pack is allowed to touch:
+      callAllow: { fm_mark_registration_paid: 3, wp_create_nonce: 1 }, // seeded whitelisted fns, fn => max args
+      allowOptions: ['fm_settings'],                                  // option rows your pack may read/write
+    },
   },
   scenarioDirs: ['/abs/path/to/your/wp-scenarios'], // keep target scenarios outside the target repo
   seed: 0xC0FFEE,
@@ -50,8 +56,9 @@ const rec = await harness.run('app', {
   body: 'item=widget&qty=1',
 });
 // fixture oracles (whitelisted; the worker carries no fuzzing surface):
-await harness.wpState({ kind: 'state', op: 'postmeta', id: 42, key: '_acme_paid' });
-await harness.wpState({ kind: 'call', fn: 'acme_mark_paid', args: [42] }); // CALL_ALLOW whitelist
+await harness.wpState({ kind: 'state', op: 'post-meta', id: 42, key: '_acme_paid' });
+await harness.wpState({ kind: 'state', op: 'option', name: 'acme_settings', key: 'receiver' }); // gated by allowOptions
+await harness.wpState({ kind: 'call', fn: 'acme_mark_paid', args: [42] }); // gated by callAllow
 ```
 
 Dispatch inference: an `admin-post.php` URL maps to `admin_post` (with its
@@ -71,9 +78,11 @@ ships as the template — point `scenarioDirs` at a run-root copy of it and set
    settings must snapshot + restore in the attack's own teardown. A target's
    regression suite WILL catch the miss (the spike's own first run proved it).
 2. **Fixtures live on attacker-namespaced identifiers** and get torn down
-   via the whitelisted delete ops — never shared rows.
-3. **Keep dispatch harness-agnostic:** the worker knows nothing about any
-   plugin; plugin money paths run only through the `CALL_ALLOW` whitelist.
+   via the generic `delete-posts` op — never shared rows.
+3. **The worker is generic; packs own specifics.** CPT slugs, meta keys,
+   option rows, and seeder functions are the target pack's vocabulary,
+   declared once via `callAllow` + `allowOptions` in the run-root config.
+   The khf names in the example pack are examples, not plumbing.
 
 ## What's next for the spike
 

@@ -445,3 +445,28 @@
   headless-install recipe on the WP playbook. The §12 metric is now
   self-paying: crashtest found ≥1 real bug on the first unaudited repo —
   and that repo was OURS.
+- [2026-10-20 ~11Z] **THE WP STORY WENT GENERIC + crashtest-vs-vant PoC RAN.**
+  Codified the who-owns-specifics split the product demanded: worker is
+  GENERIC (fields a first 'cfg' envelope: callAllow fn=>maxArgs +
+  allowOptions list; state ops are plain WP primitives — posts-query /
+  post-meta / option / delete-posts / insert-post / postmeta alias; khf
+  names gone from plumbing, alive in the pack's own vocabulary). Adapter
+  delivers the run-root's specifics once per worker; config shape gains
+  callAllow/allowOptions. Class-of-1 paid-for bug caught by the e2e itself:
+  callAllow referenced `fix` before init (TDZ) — the PoC run tripped first.
+  Stock-WP smoke grew the option-gates attack (allowOptions deny + declared
+  row whole-read — worker now returns scalars unchanged for string rows):
+  17/17 REFUSED, real data read (blogname) from the real SQLite.
+  WordPress-money pack rides the generic ops (khf flow e2e still needs the
+  khf plugin runtime — honest limitation, unchanged).
+  And the van PoC the user asked about: adapters + recipes existed; running
+  against vant did NOT — now proven: a run root mounts vant's real
+  Server._handleRequest via the raw-node adapter (no listen, no vant
+  changes, routeAliases map the seeded vocabulary onto /call + /tools);
+  full built-in suite → 13/13 REFUSED · 633 requests · exit 0. Real
+  receipts: Retry-After on 50/50 throttles, honest 413 on oversized, 60/60
+  stuffing refused, amplification held at 1 ops/request. Two probes
+  correctly ask for declarations (CRASHTEST_SECRET to arm, env.DB.snapshot
+  for alias coverage) — run roots get to be smarter next thread.
+  Run-roots playbook gained the van-style raw-node recipe with the PoC
+  numbers; WP playbook rewrote "who owns specifics". 85/85 green.

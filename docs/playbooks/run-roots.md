@@ -44,7 +44,38 @@ dedicated baseline repo) instead. Route names the scenario vocabulary needs
 (`enroll`, `burst`, …) map onto real paths with `routeAliases` — see
 [Configuration](/crashtest/getting-started/config).
 
-## 2. CI recipe: the run blob artifact
+## 2. Framework adapter recipe: raw-node servers (van-style)
+
+Vant-style undecorated `http.createServer` handlers mount in-process via the
+`node` adapter — no socket, no changes to the target repo:
+
+```js
+// run-root crashtest.config.js
+import { createRequire } from 'node:module';
+const vantReq = createRequire('/path/to/vant/package.json');
+const { Server } = vantReq('./lib/server.js');
+const server = new Server({ port: 3456 }); // only the handler — never .listen()
+export default {
+  adapters: { node: { name: 'app', handle: (req, res) => server._handleRequest(req, res) } },
+  routeAliases: {   // the seeded-library vocabulary rides real endpoints
+    enroll: { route: 'app', path: '/call' }, admin: { route: 'app', path: '/call' },
+    burst:  { route: 'app', path: '/call' }, kvwrite: { route: 'app', path: '/call' },
+  },
+  seed: 0xC0FFEE,
+};
+```
+
+A real run of exactly this shape against the vant Server (its VAF → QoS →
+auth chain in-process) held 13/13 REFUSED — burst walls carried
+`Retry-After` on all 50 throttles, oversized bodies got honest 413s, and
+credential stuffing was refused 60/60. Note: `name` in the node spec is
+required (the registry's options-shape heuristic keys on it).
+
+Express/hono/fastify targets swap the one adapter line — same shape as the
+[per-framework playbooks](/crashtest/playbooks/); nothing about the pack or
+the ledger changes.
+
+## 3. CI recipe: the run blob artifact
 
 `run --json` prints the full machine run blob as the **last stdout line** —
 the exact shape the [dashboard](https://crashtest.creadev.org/dashboard)
@@ -67,7 +98,7 @@ Then paste `run.json` into the dashboard (or host it and let the dashboard
 fetch the raw URL) — the gate banner, module cards, and cost bars render
 from the same artifact CI tripped on. One artifact, one truth.
 
-## 3. Where the platform thread lives
+## 4. Where the platform thread lives
 
 The run root + artifact contract is the seed of PRD **§14 — crashtest as a
 CI runner** (a greptile-style review lane: hosted run roots, org dashboards,

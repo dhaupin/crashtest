@@ -108,8 +108,20 @@ function ct_emit( $id, array $fields ) {
 
 /** A non-transfer Throwable means the handler faulted — flush + die. The parent respawns. */
 
-/* --- fixed whitelist for 'call' (scenario seeders only — nothing fuzz-reachable) --- */
-const CALL_ALLOW = array( 'fm_mark_registration_paid' => 3, 'wp_create_nonce' => 1, 'fm_portal_ensure_person' => 1 );
+/* --- run-config: whitelists arrive on the FIRST 'cfg' envelope (one JSON
+ line) from the JS adapter — fn => max-args pairs, plus the option names the
+ caller's pack may read/write. Defaults = stock-safe: nothing plugin-specific
+ is known here, because the worker is GENERIC (targets teach it their own
+ specifics; PRD §10 note + the wp adapter docs 'who owns specifics'). --- */
+$CT_CFG = array(
+	'callAllow'    => array( 'wp_create_nonce' => 1 ),
+	'allowOptions' => array(),
+);
+
+function ct_options_allowed() {
+	global $CT_CFG;
+	return array_flip( (array) ( $CT_CFG['allowOptions'] ?? array() ) );
+}
 
 function ct_simple( $v ) {
 	return array(
@@ -126,6 +138,7 @@ function ct_simple( $v ) {
 
 function ct_handle( $req ) {
 	switch ( (string) ( $req['kind'] ?? '' ) ) {
+		case 'cfg':    return ct_run_cfg( $req );
 		case 'request': return ct_run_request( $req );
 		case 'state':   return ct_run_state( $req );
 		case 'call':    return ct_run_call( $req );
@@ -135,59 +148,91 @@ function ct_handle( $req ) {
 	return $f;
 }
 
+/** The FIRST envelope every run: teach the generic worker this target's specifics. */
+function ct_run_cfg( $req ) {
+	global $CT_CFG;
+	$CT_CFG['callAllow'] = array_map(
+		'intval',
+		(array) ( $req['callAllow'] ?? $CT_CFG['callAllow'] )
+	);
+	$CT_CFG['allowOptions'] = array_values( (array) ( $req['allowOptions'] ?? array() ) );
+	return ct_simple( 'cfg-ok' );
+}
+
 function ct_run_state( $req ) {
+	/* --- generic state ops over WP primitives (posts, meta, options). The
+	 plugin's OWN names — CPTs, meta keys, option rows, seeder functions —
+	 arrive via the caller's pack and the cfg envelope; the worker knows none
+	 of them (generic-adapter rule from the WP playbook + PRD §10 note). --- */
 	$prefix = (string) ( $req['prefix'] ?? '' );
 	switch ( (string) ( $req['op'] ?? '' ) ) {
-		case 'count-emails': // registrations matching an email prefix (attack fixture scoping)
+		case 'posts-query': // ids matching postType + optional meta key/value (fixture scoping or counts)
 			$hit = (array) get_posts( array(
-				'post_type' => 'fm_registration', 'post_status' => 'any',
+				'post_type' => (string) ( $req['postType'] ?? 'post' ), 'post_status' => 'any',
 				'posts_per_page' => -1, 'fields' => 'ids',
-				'meta_query' => array( array( 'key' => '_fm_reg_email', 'value' => $prefix, 'compare' => 'LIKE' ) ),
 			) );
-			return ct_simple( count( $hit ) );
-		case 'postmeta': // one meta value on one post — the money/txn/paid oracle
+			if ( null !== ( $req['metaKey'] ?? null ) ) {
+				$hit = (array) get_posts( array(
+					'post_type' => (string) ( $req['postType'] ?? 'post' ), 'post_status' => 'any',
+					'posts_per_page' => -1, 'fields' => 'ids',
+					'meta_query' => array( array(
+						'key' => (string) $req['metaKey'],
+						'value' => (string) ( $req['metaValue'] ?? '' ),
+						'compare' => (string) ( $req['compare'] ?? 'LIKE' ),
+					) ),
+				) );
+			}
+			return ct_simple( $hit );
+		case 'post-meta': // one meta value on one post — the money/txn/paid oracle
 			return ct_simple( get_post_meta( (int) ( $req['id'] ?? 0 ), (string) ( $req['key'] ?? '' ), true ) );
-		case 'delete-emails': // fixture cleanup (uses the real delete, hard-delete)
-			$n = 0;
-			foreach ( (array) get_posts( array(
-				'post_type' => 'fm_registration', 'post_status' => 'any',
+		case 'delete-posts': // fixture teardown, hard-delete, scoped by the caller's own query
+			$found = (array) get_posts( array(
+				'post_type' => (string) ( $req['postType'] ?? 'post' ), 'post_status' => 'any',
 				'posts_per_page' => -1, 'fields' => 'ids',
-				'meta_query' => array( array( 'key' => '_fm_reg_email', 'value' => $prefix, 'compare' => 'LIKE' ) ),
-			) ) as $pid ) { wp_delete_post( (int) $pid, true ); $n++; }
+				'meta_query' => array( array(
+					'key' => (string) ( $req['metaKey'] ?? '' ),
+					'value' => (string) ( $req['metaValue'] ?? '' ),
+					'compare' => (string) ( $req['compare'] ?? 'LIKE' ),
+				) ),
+			) );
+			$n = 0;
+			foreach ( $found as $pid ) { wp_delete_post( (int) $pid, true ); $n++; }
 			return ct_simple( $n );
-		case 'setting': // ONE whitelisted fixture key — the receiver the attacks bind to
-			if ( 'fm_paypal_email' !== (string) ( $req['key'] ?? '' ) ) {
+		case 'option': // read/write ONE option row — the config/fixture oracle (gated)
+			$name = (string) ( $req['name'] ?? '' );
+			if ( '' === $name || ! isset( ct_options_allowed()[ $name ] ) ) {
 				$f = ct_simple( null );
-				$f['fatal'] = 'setting key not allowed';
+				$f['fatal'] = 'option not allowed (declare it via allowOptions in your run-root config): ' . $name;
 				return $f;
 			}
-			if ( isset( $req['value'] ) ) {
-				$s = (array) get_option( 'fm_settings', array() );
-				$s['fm_paypal_email'] = (string) $req['value'];
-				update_option( 'fm_settings', $s, false );
+			$row = get_option( $name, null );
+			if ( ! array_key_exists( 'key', $req ) ) {
+				// Whole-option read without slicing — scalars stay scalars, arrays
+				// stay arrays (the pack narrows what it wants). The khf-style
+				// settings rows are arrays; stock rows like blogname are strings.
+				return ct_simple( $row );
 			}
-			$s2 = (array) get_option( 'fm_settings', array() );
-			return ct_simple( isset( $s2['fm_paypal_email'] ) ? $s2['fm_paypal_email'] : '' );
-		// fixture teardown for OTHER record types (portal people etc.) — the
-		// restore-what-you-touch rule needs a delete that covers person rows
-		case 'delete-post':
-			$found = get_posts( array(
-					'post_type' => (string) ( $req['postType'] ?? '' ),
-					'post_status' => 'any', 'posts_per_page' => 5, 'fields' => 'ids',
-					'title' => (string) ( $req['title'] ?? '' ),
-			) );
-			$n = 0;
-			foreach ( (array) $found as $pid ) { wp_delete_post( (int) $pid, true ); $n++; }
-			return ct_simple( $n );
-		case 'mkreg': // fixture seed: one empty registration; email = prefix-id@…
-			$pid = wp_insert_post( array(
-				'post_type' => 'fm_registration', 'post_status' => 'publish',
+			$key = (string) $req['key'];
+			if ( isset( $req['value'] ) ) {
+				$slice = is_array( $row ) ? $row : array();
+				$slice[ $key ] = $req['value'];
+				update_option( $name, $slice, false );
+				$row = get_option( $name, null );
+			}
+			$slice = is_array( $row ) ? $row : array();
+			return ct_simple( array_key_exists( $key, $slice ) ? $slice[ $key ] : null );
+		case 'insert-post': // fixture seed: one post of the caller's type, with the caller's meta
+			$meta = (array) ( $req['meta'] ?? array() );
+			$pid = wp_insert_post( array_merge( array(
+				'post_type' => (string) ( $req['postType'] ?? 'post' ),
+				'post_status' => (string) ( $req['status'] ?? 'publish' ),
 				'post_title' => 'CT seed ' . $prefix . ' ' . time(),
-			) );
+			), (array) ( $req['fields'] ?? array() ) ) );
 			if ( is_wp_error( $pid ) || ! $pid ) { return ct_simple( 0 ); }
-			update_post_meta( (int) $pid, '_fm_reg_email', $prefix . '-' . (int) $pid . '@probe.example.org' );
-			update_post_meta( (int) $pid, '_fm_reg_type', (string) ( $req['type'] ?? 'ticket' ) );
+			foreach ( $meta as $mk => $mv ) { update_post_meta( (int) $pid, (string) $mk, $mv ); }
 			return ct_simple( (int) $pid );
+		case 'postmeta': // kept for pack compatibility: alias of post-meta
+			return ct_simple( get_post_meta( (int) ( $req['id'] ?? 0 ), (string) ( $req['key'] ?? '' ), true ) );
 	}
 	$f = ct_simple( null );
 	$f['fatal'] = 'unknown state op';
@@ -196,14 +241,16 @@ function ct_run_state( $req ) {
 
 /** The whitelist executor: real production paths, never user/array-fuzz input. */
 function ct_run_call( $req ) {
+	global $CT_CFG;
 	$fn = (string) ( $req['fn'] ?? '' );
-	if ( ! array_key_exists( $fn, CALL_ALLOW ) || ! function_exists( $fn ) ) {
+	$allow = (array) ( $CT_CFG['callAllow'] ?? array() );
+	if ( ! array_key_exists( $fn, $allow ) || ! function_exists( $fn ) ) {
 		$f = ct_simple( null );
-		$f['fatal'] = 'call not allowed: ' . $fn;
+		$f['fatal'] = 'call not allowed (declare it via callAllow in your run-root config): ' . $fn;
 		return $f;
 	}
 	$args = array_values( (array) ( $req['args'] ?? array() ) );
-	if ( count( $args ) > (int) CALL_ALLOW[ $fn ] ) { $args = array_slice( $args, 0, (int) CALL_ALLOW[ $fn ] ); }
+	if ( count( $args ) > (int) $allow[ $fn ] ) { $args = array_slice( $args, 0, (int) $allow[ $fn ] ); }
 	// display quarantine: WP's boot may have flipped display_errors back on
 	// (the khf heredoc interpolation warning surfaced this). The whitelist
 	// calls must return their value clean; the handler's own envelopes keep

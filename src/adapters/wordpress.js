@@ -163,12 +163,29 @@ export function registerWordPress(harness, opts = {}) {
   const fix = (opts.app && typeof opts.app === 'object') ? opts.app : opts;
   const name = opts.name ?? 'app';
   const worker = new WPWorker({ wpRoot: fix.wpRoot, phpBin: fix.phpBin, script: fix.script });
+  // Generic-adapter rule: the worker knows NO plugin. This run's specifics —
+  // seeder functions (callAllow) and option rows (allowOptions) — arrive from
+  // the run-root config and cross the boundary ONCE as the first 'cfg'
+  // envelope. Packs declare what they need; the target config owns it.
+  const callAllow = fix.callAllow ?? { wp_create_nonce: 1 };
+  const allowOptions = fix.allowOptions ?? [];
+  const cfgSent = (async () => {
+    try {
+      await worker.exchange({ id: 'cfg0', kind: 'cfg', callAllow, allowOptions });
+      return true;
+    } catch {
+      // An older worker (pre-cfg) will fatal on the unknown kind and respawn
+      // per request — surface it as a loud config error rather than silent skip.
+      throw new Error('wordpress adapter: worker rejected the cfg envelope (stale wp-worker.php next to an older adapter?)');
+    }
+  })();
   // Cost hooks (PRD §13): real-SQL ops tick the same ledger as fake backends.
   for (const [opName, unit] of [['wp.query', 2], ['wp.redirect', 1], ['wp.die', 1], ['wp.fatal', 4]]) {
     try { harness._counter.declare(opName, unit); } catch { /* harness without counters */ }
   }
 
   harness.registerRoute(name, async (ctx) => {
+    await cfgSent; // cfg crosses first, once — every later envelope is scoped by it
     const envelope = await ctRequestToEnvelope(ctx.request, { data: ctx.data });
     const reply = await worker.exchange(envelope);
     const ops = reply.ops ?? { queries: 0 };
@@ -179,9 +196,11 @@ export function registerWordPress(harness, opts = {}) {
     return ctReplyToResponse(reply);
   });
 
-  // Fixture-oracle surface for scenario modules (khf-style flows read state
-  // after the attack: counts, money metas, whitelisted seeder calls).
+  // Fixture-oracle surface for scenario modules (packs read state after the
+  // attack: counts, money metas, whitelisted seeder calls — all through the
+  // generic ops + this run's cfg whitelist).
   harness.wpState = async (payload) => {
+    await cfgSent;
     const envelope = { id: 's' + Math.random().toString(16).slice(2), ...payload };
     const reply = await worker.exchange(envelope);
     const ops = reply.ops ?? { queries: 0 };

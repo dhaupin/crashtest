@@ -66,5 +66,17 @@ export default {
         return refused('whitelist held: destructive call refused by the worker (' + String(rec.fatal).slice(0, 40) + '); post 1 intact');
       },
     },
+    {
+      name: 'option-gates',
+      description: 'allowOptions gating: non-declared option rows are refused by the worker; declared rows read real data',
+      async run(harness) {
+        const denied = await harness.wpState({ kind: 'state', op: 'option', name: 'ct_not_allowed', key: 'x' });
+        if (!denied?.fatal) return exploited('allowOptions gate broke: a non-declared option row was readable');
+        const whole = await harness.wpState({ kind: 'state', op: 'option', name: 'blogname' });
+        if (whole?.fatal) return exploited('declared option unreadable (allowOptions lost after cfg): ' + String(whole.fatal).slice(0, 60));
+        if (!String(whole.body ?? '')) return exploited("declared option read empty — whole-read never returned the scalar row");
+        return refused('gates held: non-declared refused (' + String(denied.fatal).slice(0, 40) + '); declared blogname = ' + String(whole.body).slice(0, 24));
+      },
+    },
   ],
 };
