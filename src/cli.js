@@ -19,25 +19,60 @@ const LEDGER_PATH = 'labs/crashledger.json';
 const REPORT_PATH = 'labs/hardening.md';
 
 const HELP = `
-crashtest v${VERSION} — "We break it so they can't."
-Adversarial QA for agent-built software, in-process. No sockets, ever.
+crashtest v${VERSION} - "We break it so they can't."
+Adversarial QA for agent-built apps: redteam/fuzz/barrage/guards campaigns
+against your REAL handlers, in-process. No sockets, ever.
 
-Usage:
-  crashtest init            Create labs/ scaffold: crashledger.json + hardening.md stub
-  crashtest run [--config path] [--json]   Attack the target declared in crashtest.config.js
-                 [--module-plan]  dry-run: which attack ids WOULD fire (NEEDS-ARMING shows un-armed packs)
-                 [--expect-baseline path]  diff against a given ledger WITHOUT touching labs/\n                                    (read-only CI/hosted mode; exit rules unchanged)
-  crashtest packs [--config path] [--json]   List discovered scenario packs (public + local); --json = machine inventory
-  crashtest packs add <name> [--public]   Scaffold a fresh pack — local (gitignored) by default;
-                 --public puts it in packs/public/ as tracked/sharable
+QUICK START (about 2 minutes)
+  npx crashtest init            # labs/crashledger.json + labs/hardening.md stub
+  # write crashtest.config.js: your routes/adapters + a fake env (see docs)
+  npx crashtest run --module-plan   # WHICH attacks would fire? (dry-run)
+  npx crashtest run                 # attack for real; exit 0 unless a NEW
+                                    # EXPLOITED finding or a regression
+  # commit labs/ - CI now fails when old defenses rot
+
+COMMANDS
+  crashtest init [--force]    Scaffold labs/ (+ packs/public + packs/local stubs)
+  crashtest run               Attack the target declared in crashtest.config.js
+    --config <path>           Target config (default ./crashtest.config.js)
+    --json                    Append the machine run blob to stdout (LAST line)
+    --module-plan             Dry-run: which attack ids WOULD fire (exit 0 always)
+    --expect-baseline <path>  Diff against a given ledger WITHOUT touching labs/
+                              (read-only CI/hosted mode; exit rules unchanged)
+  crashtest packs             List discovered packs (public + local)
+    --config <path>           Honor the config's packs knob
+    --json                    Machine inventory (versions, armedByKey, npm pkg)
+  crashtest packs add <name> [--public]
+                              Scaffold a fresh pack (local + gitignored by default)
   crashtest --version
   crashtest --help
 
-Modules:   auth / guards / input / state / volume (plus your own via packs/ or labs/scenarios/)
-Verdicts:  REFUSED (defense held) · EXPLOITED (you got hit) · BOUNDED (accepted risk, has owner + bound)
+EXIT CODES (the CI contract)
+  0  baseline held (nothing new weak, nothing old broke)
+  1  NEW EXPLOITED finding, or a REFUSED -> EXPLOITED regression
+  2  config problem (missing/bad config or baseline) - the run is wrong,
+     not your code
 
-Docs:      https://docs.creadev.org/crashtest/
-Site:      https://crashtest.creadev.org/
+MODULES  auth - guards - input - state - volume (plus your own via packs/ or
+labs/scenarios/). Every attack returns one verdict:
+  REFUSED   the defense held
+  EXPLOITED you got hit (CI fails the FIRST time this is new)
+  BOUNDED   accepted risk; needs owner + bound or it is a finding
+
+FIRST RUN INFO
+  - init scaffolds packs/local/ and appends it to .gitignore (private packs
+    stay on your machine); packs/public/ is tracked + sharable
+  - run --module-plan: the coverage dry-run. NEEDS-ARMING rows mean a pack
+    wants moduleCtx['<key>'] in your config; at run time they REFUSE-skip,
+    never false-positive.
+  - run rewrites labs/crashledger.json + labs/hardening.md; that is how you
+    cut a baseline. In CI/hosted read-only lanes use --expect-baseline.
+  - the run blob (run --json, last stdout line) - and ledgers - paste straight
+    into the dashboard: https://crashtest.creadev.org/dashboard
+
+DOCS       https://docs.creadev.org/crashtest/ (quick start, playbooks per
+           framework, attack catalog, ledger format, module plans)
+SITE       https://crashtest.creadev.org/
 `;
 
 function repoRoot() {

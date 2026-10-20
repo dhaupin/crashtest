@@ -1,0 +1,79 @@
+import { Link } from 'react-router-dom'
+import usePageMeta from '../hooks/usePageMeta.js'
+
+const FAQS = [
+  {
+    q: 'What does crashtest actually do?',
+    a: <>It fires seeded attacks (identity spoofing, prototype pollution, burst floods, credential stuffing, cost-amplification probes - 13 across 5 modules) at your <strong>real</strong> route handlers inside your own Node process. Each attack returns one verdict: REFUSED (your defense held), EXPLOITED (you got hit), or BOUNDED (a known risk with an owner and a bound). Everything lands in a machine ledger your CI diffs against.</>,
+  },
+  {
+    q: 'Is it safe to run on my real codebase?',
+    a: <>Yes - that is the point. There is no socket, no network traffic, no live server. The harness hands your handlers in-process WHATWG <code>Request</code> objects backed by a fake D1/KV/env backend. Nothing leaves your machine, and nothing in the ledger can be a false positive from a flaky network, because there is no network.</>,
+  },
+  {
+    q: 'How does it avoid ban waves and Cloudflare rate limits?',
+    a: <>It cannot get banned: every request is an in-process function call, never a socket. Probe the same handler 8000 times and no firewall ever sees a packet. This is also why runs are deterministic and fast (the PRD metric is &lt;60s on a small API).</>,
+  },
+  {
+    q: 'How is this different from a pentest or a SAST scanner?',
+    a: <>SAST tools (semgrep, CodeQL) read your code but never run it, so behavioral holes survive review. Pentest tools (ffuf, nuclei, ZAP) need a live server and network traffic - the wrong shape for a solo dev or an agent loop, and hosts throttle them. Crashtest is behavioral QA <em>before</em> deploy: it runs the code, in-process, with cost accounting and a regression ledger.</>,
+  },
+  {
+    q: 'What is the ledger and why does CI care about it?',
+    a: <><code>labs/crashledger.json</code> records every attack id and its verdict. CI fails ONLY on a NEW EXPLOITED finding or a REFUSED-to-EXPLOITED regression - things that were fine yesterday that broke today. Accepted risks (with an owner and a bound on file) never re-alarm. That is the whole exit contract.</>,
+  },
+  {
+    q: 'What is an accepted risk (BOUNDED)?',
+    a: <>A risk you decided is worth taking, recorded with a named owner and an explicit bound ("rate-limiting deferred to the paid tier", bound = the limit value). A BOUNDED without owner + bound is demoted to EXPLOITED - an accepted risk without accountability is a finding, not a shrug.</>,
+  },
+  {
+    q: 'Can I write my own attacks?',
+    a: <>Yes - that is the pack system. An attack is an ESM module matching a small contract: <code>{'{ name, description, attacks: [{ name, run(harness, ctx) }] }'}</code>. Drop it in <code>packs/public/</code> (tracked, sharable) or <code>packs/local/</code> (gitignored, private). The seeded context is deterministic so your pack is reproducible like everything else.</>,
+  },
+  {
+    q: 'Does it work with my framework?',
+    a: <>Shipped adapters: Cloudflare Pages Functions shape (plain handlers), Hono (<code>app.request()</code>), Express (<code>app.handle()</code>), Fastify (<code>app.inject()</code>), raw <code>http.createServer</code> handlers, and a WordPress subprocess spike (NDJSON over stdio - still no sockets). Multiple routes on one dispatching app? Use routeAliases. Playbooks per framework are in the <a href="https://docs.creadev.org/crashtest/playbooks/">docs</a>.</>,
+  },
+  {
+    q: 'What backends does the fake env support?',
+    a: <>D1-style SQL (a real SQL-subset engine in-process - tables, uniques, seeds, D1-shaped error messages other attacks chain on), KV namespaces, secrets, and vars. You seed it with the shape of your real schema so the attacks exercise the real branching, and plant FAKE secrets to verify nothing ever echoes them.</>,
+  },
+  {
+    q: 'What do exit codes mean in CI?',
+    a: <>0: baseline held. 1: a NEW EXPLOITED finding, or a previously-REFUSED surface that regressed. 2: configuration problem (missing or malformed config/baseline) - the run is untrustworthy, which is different from "your app is weak". Never a false positive on undeclared routes: those degrade to skipped-REFUSED.</>,
+  },
+  {
+    q: 'Who builds with this?',
+    a: <>Agent developers who want a hardening pass as part of "done" (the primary audience - it is built to run in the agent loop), solo and small-OSS maintainers who cannot afford a pentest, and security-minded teams as a first-pass filter before human review.</>,
+  },
+  {
+    q: 'How much does it cost?',
+    a: <>Nothing. MIT-licensed, zero runtime dependencies, no account, no telemetry, no network. The npm package ships with signed provenance you can verify.</>,
+  },
+]
+
+export default function FAQ() {
+  usePageMeta({ path: '/faq', title: 'FAQ | Crashtest', description: 'Crashtest FAQ: what it does, safety on real code, how it differs from pentest/SAST tools, the ledger and CI exit contract, BOUNDED risks, writing your own attack packs, framework support.' })
+  return (
+    <section className="section" style={{ paddingTop: 56 }}>
+      <div className="wrap legal">
+        <p className="eyebrow">Straight answers</p>
+        <h2>Frequently asked questions</h2>
+        <p className="sub">If a question is missing here, the <a href="https://docs.creadev.org/crashtest/">docs</a> go deeper - this page is the short version.</p>
+
+        {FAQS.map((f, i) => (
+          <div key={i} style={{ marginBottom: 22 }}>
+            <h3 style={{ marginBottom: 6 }}>{f.q}</h3>
+            <p style={{ marginTop: 0 }}>{f.a}</p>
+          </div>
+        ))}
+
+        <p style={{ marginTop: 26 }}>
+          <Link to="/attacks" className="btn btn-ghost">See the attack catalog</Link>
+          {' '}
+          <Link to="/dashboard" className="btn btn-ghost">Render your first ledger</Link>
+        </p>
+      </div>
+    </section>
+  )
+}

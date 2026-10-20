@@ -13,6 +13,7 @@ export default function Nav() {
           <NavLink to="/" className={cls} end>Home</NavLink>
           <NavLink to="/attacks" className={cls}>Attacks</NavLink>
           <NavLink to="/dashboard" className={cls}>Dashboard</NavLink>
+          <NavLink to="/faq" className={cls}>FAQ</NavLink>
           <a href="https://docs.creadev.org/crashtest/">Docs</a>
           <a href="https://github.com/dhaupin/crashtest" target="_blank" rel="noreferrer">GitHub</a>
           <a href="https://www.npmjs.com/package/crashtest" target="_blank" rel="noreferrer">npm</a>

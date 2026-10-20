@@ -18,12 +18,35 @@
  *   same class as >= or infinity). Everything else (dingbats, emoji
  *   blocks, variation selectors) fails. Glyphs inside inline-code spans
  *   are literal data.
+ * - AI cliches banned (delve/leverage/unlock/seamless/empower/journey/
+ *   realm/game-changer/cutting-edge/revolutionary + "we're excited to",
+ *   "click here" link text, "this section covers" placeholders) — HARD
+ *   FAIL. The list lives above and in docs/about/style.md; add a phrase
+ *   here when it surfaces twice.
  * Exit 1 on any hard finding; the voice corpus pass landed, so warnings
  * no longer apply — a violation is a regression.
  */
 const fs = require('fs');
 const path = require('path');
 const DOCS = path.resolve(__dirname, '..', 'docs');
+// AI-cliche list (docs/about/style.md): phrases that signal generated filler.
+// HARD FAIL outside CHANGELOG (historical records keep their punctuation).
+const CLICHES = [
+  [/\bdelve into\b/i, 'cliche "delve into" (say "explore")'],
+  [/\bleverag(e|ing)\b/i, 'cliche "leverage" (say "use")'],
+  [/\bunlock(s|ed|ing)?\b/i, 'cliche "unlock" (be specific)'],
+  [/\bseamless(ly)?\b/i, 'cliche "seamless" (remove)'],
+  [/\bempower(s|ed|ing)?\b/i, 'cliche "empower" (say "let you")'],
+  [/\bjourney\b/i, 'cliche "journey" (remove)'],
+  [/\brealm\b/i, 'cliche "realm" (remove)'],
+  [/\bgame[- ]?changer\b/i, 'cliche "game-changer" (remove)'],
+  [/\bcutting[- ]?edge\b/i, 'cliche "cutting-edge" (remove)'],
+  [/\brevolutionar(y|ily)\b/i, 'cliche "revolutionary" (state the fact)'],
+  [/\bin today'?s (world|landscape)\b/i, 'cliche "in today\'s ..." (remove)'],
+  [/\bwe'?re excited to\b/i, 'cliche "we\'re excited to" (remove)'],
+  [/\bclick here\b/i, 'non-descriptive link text "click here"'],
+  [/\bthis section (covers|will)\b/i, 'placeholder intro "this section covers" (write the content)'],
+];
 // Voice-rule exempt files: historical records keep their punctuation.
 const VOICE_EXEMPT = /CHANGELOG\.md$/;
 // Emoji-exempt: the verdict marks are semantic content on catalog/ledger pages.
@@ -61,6 +84,11 @@ for (const f of files) {
     if (/\t/.test(line)) { console.log(`${rel}:${n} tab character`); issues++; }
     if (!VOICE_EXEMPT.test(rel)) {
       if (/[\u2013\u2014]/.test(line)) { console.log(`${rel}:${n} em/en dash (hyphen-only voice; see docs/about/style)`); issues++; }
+      // AI-cliche scan: inline-code spans are literal data, strip first.
+      const proseLine = line.replace(/`[^`]*`/g, '');
+      for (const [re, why] of CLICHES) {
+        if (re.test(proseLine)) { console.log(`${rel}:${n} ${why}`); issues++; }
+      }
       // Arrows, dingbats, emoji blocks, variation selectors. Verdict marks
       // are exempt on the pages that define them (EMOJI_EXEMPT). Glyphs
       // inside inline-code spans are literal data, so strip spans first.

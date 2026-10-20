@@ -70,6 +70,22 @@
 
 ## Log
 
+- [2026-10-20 ~18Z] **Fiction gate round 2 (cliches), CLI onboarding, FAQ
+  page, and 4 freestruct issues.** Lint iteration 2 landed: the style gate
+  now hard-fails the AI-cliche list (delve/leverage/unlock/seamless/
+  empower/journey/realm/game-changer/cutting-edge/revolutionary), non-
+  descriptive "click here" link text, and "this section covers" placeholder
+  intros - inline-code spans exempt (the style page quotes the banned words
+  as code spans). CLI --help rebuilt as onboarding: quick-start block, all
+  commands/flags, the exit-code contract, and a FIRST-RUN INFO section
+  (arming, read-only lanes, dashboard paste target). Site: new /faq page
+  (12 Q&As w/ honest answers, SEO meta, nav + home teaser grid),
+  ssr.config route + priority. README/DEPLOY: module-plan step in both
+  quick starts, packs scaffolding note, FAQ in docs map. 4 issues filed on
+  dhaupin/freestruct (#3 sitemap strips basePath - LIVE-BROKEN on our
+  deploy; #4 linkCheck never fails the build; #5 searchIndex/noindex
+  semantics; #6 packaging: docs/lib layout + --out/--strict/--version
+  flags). Gates 22/22 + 109/109 green.
 - [2026-10-20 ~17Z] **Corpus pass + style gate flipped HARD + docs system
   built out.** The 138 tracked voice warnings became work: all 150 prose
   em/en dashes in docs/ converted to hyphens by a fence/inline-code-blind

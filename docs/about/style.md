@@ -87,13 +87,15 @@ job in prose, not a violation.
   loaded by the CLI".
 - Specific over abstract. "Crashtest attacks your real handlers in-process"
   not "crashtest elevates your QA workflow".
-- No AI cliches: delve, leverage, unlock, seamless, empower, journey,
-  realm, game-changer, cutting-edge, revolutionary.
+- No AI cliches: `delve`, `leverage`, `unlock`, `seamless`, `empower`, `journey`,
+  `realm`, `game-changer`, `cutting-edge`, `revolutionary` - the enforced
+  ban list lives in the style gate; add a phrase when it surfaces twice.
 - Every code block gets a one-sentence brief before it.
-- Descriptive link text, never "click here".
+- Descriptive link text - the link's target in words, never `click here`.
 
-These ride the next lint iteration; write this way now and the pass costs
-nothing later.
+These are enforced as of this iteration - the cliche list is hard-fail in
+the style gate (the enforceable list above quotes the banned words as code
+spans, the same carve-out inline code gets everywhere).
 
 ## The docs frontmatter contract
 

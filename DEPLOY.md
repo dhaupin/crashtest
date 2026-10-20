@@ -35,6 +35,21 @@ Creates `labs/` with:
   baseline). **Commit it** — this is your CI regression baseline.
 - `hardening.md` — human-first report stub that every run overwrites.
 
+Also scaffolds `packs/public/my-pack/` and `packs/local/my-private-pack/`
+stubs (pack manifests + contract-valid attack stubs), and appends
+`packs/local/` to your `.gitignore` — private packs stay on your machine.
+
+**Coverage check before your first run** (recommended):
+
+```bash
+npx crashtest run --module-plan
+```
+
+Shows which attack ids WOULD fire (WILL-FIRE), which packs still need
+their `moduleCtx` key (NEEDS-ARMING), and which the `modules` filter
+excludes (SKIPPED-FILTER). Arm what you want, then run for real.
+Full semantics: [Module Plans](https://docs.creadev.org/crashtest/reference/module-plan).
+
 ### 2. Declare a target — `crashtest.config.js` at your repo root
 
 The target is *your real handler code*, in-process:

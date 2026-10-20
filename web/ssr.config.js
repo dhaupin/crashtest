@@ -39,6 +39,15 @@ export default {
       },
     },
     {
+      path: '/faq',
+      priority: '0.8',
+      changefreq: 'monthly',
+      meta: {
+        title: 'FAQ | Crashtest',
+        description: 'Crashtest FAQ: what it does, safety on real code, how it differs from pentest and SAST tools, the ledger and CI exit contract, BOUNDED accepted risks, writing your own attack packs, framework support.',
+      },
+    },
+    {
       path: '/terms',
       priority: '0.3',
       changefreq: 'yearly',

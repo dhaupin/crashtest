@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import usePageMeta from '../hooks/usePageMeta.js'
 
 const SITE_URL = 'https://crashtest.creadev.org'
@@ -29,6 +30,7 @@ export default function Home() {
             <pre-island data-pre-island="version-badge" data-pre-load="visible">
               <a className="btn btn-ghost" href="https://www.npmjs.com/package/crashtest" target="_blank" rel="noreferrer">npm · crashtest</a>
             </pre-island>
+            <a className="btn btn-ghost" href="/faq">FAQ</a>
             <a className="btn btn-ghost" href="https://github.com/dhaupin/crashtest" target="_blank" rel="noreferrer">View on GitHub</a>
             <a className="btn btn-ghost" href="https://docs.creadev.org/crashtest/">Full docs</a>
           </div>
@@ -58,6 +60,19 @@ export default function Home() {
             <div className="card"><h3><span className="glyph">§</span>Deterministic attacks</h3><p>Seeded RNG from commit to commit. A scratch-run today reproduces bit-for-bit in CI tomorrow.</p></div>
             <div className="card"><h3><span className="glyph">§</span>Cost-aware from day one</h3><p>Every request is accounted in ops — amplification attacks get named per-request and bounded, not vibes.</p></div>
             <div className="card"><h3><span className="glyph">§</span>Fits CI, not just dev</h3><p>Zero runtime deps, plain Node, one command. Plus a composite GitHub Action to gate other repos.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="wrap">
+          <h2>Questions people ask first</h2>
+          <p className="sub">The short versions. Full answers on the <Link to="/faq">FAQ page</Link>.</p>
+          <div className="grid">
+            <div className="card"><h3>Is it safe on real code?</h3><p>Yes - that is the whole design. No socket, no network, no live server: your handlers receive in-process <code>Request</code> objects backed by a fake D1/KV/env. Nothing leaves the process.</p></div>
+            <div className="card"><h3>How is it different from SAST or pentest tools?</h3><p>Scanners read code and never run it, so behavioral holes survive. Pentest tools need a live server and traffic. Crashtest runs the real handlers - in-process - before deploy.</p></div>
+            <div className="card"><h3>What does CI actually gate on?</h3><p>Exit 1 only on a NEW EXPLOITED finding or a REFUSED-to-EXPLOITED regression. Accepted risks with an owner + bound never re-alarm. Undeclared routes degrade to skipped-REFUSED - never a false positive.</p></div>
+            <div className="card"><h3>Can I write my own attacks?</h3><p>Yes - packs. One ESM file matching a small contract, dropped in <code>packs/public/</code> (shipped) or <code>packs/local/</code> (gitignored). <code>run --module-plan</code> shows exactly what would fire.</p></div>
           </div>
         </div>
       </section>
