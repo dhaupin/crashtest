@@ -1,0 +1,48 @@
+{
+  "name": "crashtest",
+  "version": "0.0.1",
+  "description": "In-process adversarial QA for agent-built app code — redteam/fuzz/barrage/guards campaigns against real handlers, no sockets, no bans. (v0.0.x placeholder; full harness ships in 0.1.)",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "crashtest": "bin/crashtest.js"
+  },
+  "main": "src/cli.js",
+  "exports": {
+    ".": "./src/cli.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "bin",
+    "src"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check bin/crashtest.js && node --check src/cli.js && node --check test/cli.test.js"
+  },
+  "keywords": [
+    "security",
+    "adversarial",
+    "qa",
+    "fuzzing",
+    "redteam",
+    "agent",
+    "ci",
+    "cloudflare",
+    "pages-functions",
+    "hardening"
+  ],
+  "author": "dhaupin",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dhaupin/crashtest.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dhaupin/crashtest/issues"
+  },
+  "homepage": "https://github.com/dhaupin/crashtest#readme",
+  "sideEffects": false
+}

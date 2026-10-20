@@ -1,0 +1,38 @@
+name: npm-publish
+
+# Publish on version tags: `git tag v0.1.0 && git push origin v0.1.0`
+# (or create a GitHub release from a tag — set one trigger, not both,
+# to avoid double-publishing.)
+#
+# npm Trusted Publishing (OIDC): no NPM_TOKEN secret needed, provenance
+# is generated automatically for public packages from public repos.
+# One-time setup on npmjs.com is REQUIRED (see docs/publish.md).
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24" # trusted publishing needs node >=22.14, npm >=11.5.1
+          registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
+
+      - name: Install (no runtime deps — lockfile-light install)
+        run: npm install --no-audit --no-fund
+
+      - name: Test
+        run: npm test
+
+      - name: Publish
+        run: npm publish
