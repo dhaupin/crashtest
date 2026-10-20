@@ -7,6 +7,7 @@ export default {
   siteName: 'Crashtest',
   author:   'dhaupin',
   tagline:  'Adversarial QA your agent-built app survives, not passes.',
+  ogImage:  'https://crashtest.creadev.org/og-image.png',
   keywords: 'crashtest, adversarial testing, agent security, LLM app hardening, QA harness, prototype pollution, in-process attack testing',
 
   routes: [

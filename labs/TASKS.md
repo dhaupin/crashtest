@@ -322,3 +322,17 @@
   from the response cache-control. Zone-level noise noted: Zaraz injects a
   GA tag (G-C454VG9F3M → doubleclick/ads) that the site CSP correctly
   blocks — user-side Zaraz/CSP tweak if they want GA live.
+- [2026-10-20T05:30Z] Web presence hardening pass (user: "we need web to be
+  solid" — dashboard-able): icon set generated with the same Chromium that
+  verified the site (icon.svg hand-drawn crash-shield glyph -> favicon-32,
+  apple-touch, icon-192/512 PNGs); og-image.png (1200x630 lab card, real
+  headings + verdict chips) baked via Playwright; ssr.config ogImage wires
+  og:image + twitter:image into every prerendered page; site.webmanifest
+  with dark theme colors; robots.txt with sitemap pointer (was relying on
+  CF's synthesized one); <meta name="theme-color"> + CSS color-scheme:
+  dark so mobile chrome matches the lab palette. Layout QA programmatic
+  (Chromium): zero horizontal overflow on mobile (390px) and desktop its
+  (1280px) on / and /attacks — scroll containers behave, nav on one line,
+  zero page errors. All a11y-relevant details leave in styles.css.
+  Icons/manifest/og artifacts live in web/public — graft naturally into
+  future dashboard (PWA-grade identity ready).

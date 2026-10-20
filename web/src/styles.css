@@ -17,7 +17,13 @@
   --code-bg: #14100c;
 }
 
-html { background: var(--paper); }
+html {
+  background: var(--paper);
+  /* Dark-page color-scheme: native controls (scroll bars, form UI, mobile
+     URL bar via theme-color meta) adopt the lab palette instead of fighting
+     it — and 'light initial painting then reskin' stays theme-coherent. */
+  color-scheme: dark;
+}
 body {
   margin: 0;
   background: var(--paper);
