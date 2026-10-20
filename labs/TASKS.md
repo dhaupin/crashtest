@@ -70,7 +70,25 @@
 
 ## Log
 
-- [2026-10-20 ~20Z] **Back to building: harness memory reuse (PRD v0.2 open
+- [2026-10-20 ~21Z] **v0.3 "the ecosystem": plugins API + builder presets.**
+  Both PRD lines closed. Plugins (`config plugins: [npm-name | './file.js']`):
+  importable ESM scenario modules through the SAME contract as packs/libraries
+  (src/plugins/loader.js), resolved against the config file's dir; contract-
+  broken or unresolvable listings fail the run loudly naming the plugin;
+  cross-surface name collisions carry the earlier origin; wired into cmdRun
+  and merged into the same sorted campaign + module-plan blob. Presets
+  (`crashtest preset lovable|bolt|replit [--root dir]`): detect-first, NO
+  builder-name fiction — researched the actual export shapes first (primary
+  docs; Lovable = Supabase Edge Functions with TWO documented module
+  interfaces, Bolt = managed edge functions with no portable source doc,
+  Replit = project-specific server named by .replit), so presets detect the
+  supabase/ layout, TanStack Start markers, .replit run command and package
+  shape, and WARN plainly when nothing resolvable exists (static-SPA exports,
+  listening-server-vs-handler, TS/Deno-must-be-shimmed). detect() findings
+  carry file evidence; an invalid package.json warns, never silently ignored.
+  Help text + README + DEPLOY updated (rule 7 held: nothing documented that the
+  CLI doesn't do). 16 new tests incl. an end-to-end plugins-knob run landing a
+  canary attack in the ledger at exit 0. Suite 143/143. **Back to building: harness memory reuse (PRD v0.2 open
   line) + web round shipped.** Web/docs detour closed out first: sidebar nav
   shell, consistency + parity probes (28 new tests), live-audit fixes
   (version-function registry 406, pagefind import.meta, WCAG contrast,

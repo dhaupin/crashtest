@@ -4,15 +4,17 @@
 // finding or a regression of a previously REFUSED check.
 
 import { mkdir, writeFile, readFile, access } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
+import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { buildHarness } from './harness/harness.js';
 import { registerAdapters } from './adapters/index.js';
 import { loadScenarios } from './scenarios/loader.js';
 import { loadPacks } from './packs/loader.js';
+import { loadPlugins, configDir } from './plugins/loader.js';
 import { runCampaign } from './campaigns/runner.js';
 import { buildLedger, diffAgainstBaseline, exitCode, renderMarkdown } from './report.js';
 import { buildModulePlan } from './plans.js';
+import { listPresets, scaffoldPreset } from './presets.js';
 
 const VERSION = '0.1.1';
 const LEDGER_PATH = 'labs/crashledger.json';
@@ -44,6 +46,10 @@ COMMANDS
     --json                    Machine inventory (versions, armedByKey, npm pkg)
   crashtest packs add <name> [--public]
                               Scaffold a fresh pack (local + gitignored by default)
+  crashtest preset <name> [--root <dir>]
+                              Generate a starter config for an agent-builder
+                              export (lovable | bolt | replit) from what is
+                              ACTUALLY in the repo — never a guess
   crashtest --version
   crashtest --help
 
@@ -53,8 +59,9 @@ EXIT CODES (the CI contract)
   2  config problem (missing/bad config or baseline) - the run is wrong,
      not your code
 
-MODULES  auth - guards - input - state - volume (plus your own via packs/ or
-labs/scenarios/). Every attack returns one verdict:
+MODULES  auth - guards - input - state - volume (plus your own via packs/,
+labs/scenarios/, or config plugins: [npm-package-or-path]). Every attack
+returns one verdict:
   REFUSED   the defense held
   EXPLOITED you got hit (CI fails the FIRST time this is new)
   BOUNDED   accepted risk; needs owner + bound or it is a finding
@@ -223,7 +230,20 @@ async function cmdRun(opts = {}) {
       names.set(s.module.name, s.origin);
     }
   }
-  const allScenarios = [...scenarios, ...packScenarios].sort((a, b) => a.module.name.localeCompare(b.module.name));
+  // Plugins (PRD v0.3 "the ecosystem"): config `plugins` = an array of
+  // importable ESM specifiers (npm package names / local paths relative to
+  // the config file). Same contract as packs and libraries — the plan's
+  // source labels distinguish the surfaces honestly.
+  let pluginScenarios = [];
+  if (Array.isArray(target.plugins)) {
+    const names = new Map(scenarios.map((s) => [s.module.name, s.origin]));
+    const pluginRows = await loadPlugins(target.plugins, configDir(configPath), names);
+    pluginScenarios = pluginRows.map((p) => ({ origin: p.origin, module: p.module }));
+  } else if (target.plugins !== undefined) {
+    throw new TypeError('config `plugins` must be an array of ESM specifiers (npm names or .js/.mjs paths)');
+  }
+  const allScenarios = [...scenarios, ...packScenarios, ...pluginScenarios]
+    .sort((a, b) => a.module.name.localeCompare(b.module.name));
   if (!allScenarios.length) throw new Error('no scenario modules found (built-ins missing?)');
 
   // PRD §14: `run --module-plan` — the coverage dry-run. Same loaders, same
@@ -304,6 +324,31 @@ async function cmdRun(opts = {}) {
   console.log(`baseline: ${diff.newExploited.length} new · ${diff.regressed.length} regressed · ${diff.acceptedHits.length} accepted hits`);
   if (opts.json) console.log(JSON.stringify(run));
   process.exitCode = exitCode(diff);
+}
+
+/**
+ * `crashtest preset <name> [--root <dir>]` — the v0.3 one-line preset verb.
+ * Detects what is actually in an exported repo and prints the config source
+ * plus honest notes/warnings. Never guesses a handler shape from the
+ * builder's name (rule 7: no fiction).
+ */
+async function cmdPreset(name, opts = {}) {
+  if (!name || name === 'list') {
+    console.log('presets: one-line configs generated from what detect() finds in a repo');
+    for (const p of listPresets()) console.log(`  ${p.name} — ${p.oneLine}`);
+    if (!name) console.log('usage: crashtest preset <lovable|bolt|replit> [--root <dir>]');
+    return;
+  }
+  const out = await scaffoldPreset(name, opts.repoRoot);
+  console.log(`preset ${name} — detection against ${opts.repoRoot}`);
+  for (const n of out.notes) console.log(`  · ${n}`);
+  for (const w of out.warnings) console.log(`  ! ${w}`);
+  if (!out.notes.length && !out.warnings.length) console.log('  (nothing notable)');
+  console.log('\n--- crashtest.config.js ---');
+  console.log(out.configSource);
+  if (out.warnings.length) {
+    console.log('warnings above name exactly what detect() could not resolve — wire the handler by hand; nothing was guessed.');
+  }
 }
 
 async function cmdPacks(opts = {}) {
@@ -446,6 +491,12 @@ export async function main(argv) {
     }
     const confIdx = argv.indexOf('--config');
     return cmdPacks({ config: confIdx > -1 ? argv[confIdx + 1] : undefined, json: argv.includes('--json') });
+  }
+  if (verb === 'preset') {
+    const name = argv[1];
+    const rootIdx = argv.indexOf('--root');
+    const root = rootIdx > -1 ? argv[rootIdx + 1] : '.';
+    return cmdPreset(name, { repoRoot: resolve(root) });
   }
   if (verb === 'run') {
     const confIdx = argv.indexOf('--config');

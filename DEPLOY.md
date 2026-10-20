@@ -157,7 +157,47 @@ crashtest run --config ../mytarget/crashtest.config.js \
 # exit 0 = baseline held · exit 1 = NEW EXPLOITED or REFUSED→EXPLOITED regression
 ```
 
-## III. Publish (maintainers — one-time setup, then automatic)
+## v0.3: plugins and builder presets (the ecosystem thread)
+
+### `plugins` — community scenario modules by import specifier
+
+Packs are file-bundles living in your repo tree. **Plugins** are the same
+scenario contract delivered as an *importable specifier* — an npm install or
+a local file, resolved relative to the config file:
+
+```js
+// crashtest.config.js
+export default {
+  routes: buildRoutes(),
+  env: ENV_SPEC,
+  plugins: [
+    'crashtest-plugin-rails-shapes',   // an npm package (imported as-is)
+    './shims/wallet-profile.js',       // a local file, config-relative
+  ],
+};
+```
+
+Same rules as every other surface: the module must default-export a valid
+scenario (`name`/`description`/`attacks[]`), a name collision with another
+loaded module throws, and anything unresolvable or contract-broken FAILS THE
+RUN loudly naming the plugin — a broken plugin is a config error, never a
+silent gap. The module-plan's plan blob labels these `plugin:<specifier>`.
+
+### `crashtest preset <name>` — one-line starter configs for agent-builder exports
+
+```bash
+crashtest preset lovable --root ../my-lovable-export   # also: bolt, replit
+```
+
+Prints a starter `crashtest.config.js` generated from what `detect()` found
+**in that repo** — Supabase Edge Function layout, TanStack Start markers,
+the `.replit` run command, package.json shape — plus notes and warnings
+naming anything it could not resolve. It never guesses a handler from the
+builder's name: Lovable and Bolt are Supabase-backed only when the repo has
+the `supabase/` evidence, Replit only when `.replit`/`replit.nix` exists, and
+a static-SPA export says so plainly (nothing to attack server-side). If
+detection is ambiguous, the warnings tell you exactly which files to wire by
+hand — nothing was invented.
 
 The release flow uses **npm Trusted Publishing (OIDC)** — the repo holds
 **no publish tokens** (`.github/workflows/publish.yml`, permissions

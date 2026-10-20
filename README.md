@@ -104,6 +104,26 @@ every npm release traces package → commit (verify the badge on npm).
 5. **Zero dependencies by default.** The attacker ships light.
 6. **Accepted risks must have owners and bounds.**
 
+## v0.3 surface (the ecosystem thread)
+
+**Plugins** — community scenario modules by import specifier, same contract
+as packs and libraries, same loud-failure rules:
+
+```js
+// crashtest.config.js
+export default {
+  routes: buildRoutes(),
+  env: ENV_SPEC,
+  plugins: ['some-shape-pack-npm-name', './shims/wallet-profile.js'],
+};
+```
+
+**Builder presets** — `crashtest preset lovable|bolt|replit [--root <dir>]`
+generates a starter config from what detect() actually finds in an exported
+repo (Supabase Edge Function layout, TanStack Start markers, the `.replit`
+run command, package.json shape) — and names plainly what it could NOT
+resolve rather than guessing a handler from the builder's name.
+
 ## Docs map
 
 - **Full docs** → [docs.creadev.org/crashtest](https://docs.creadev.org/crashtest/) (quick start, playbooks, catalog, ledger format — the same content crosslinked from the CLI help)
