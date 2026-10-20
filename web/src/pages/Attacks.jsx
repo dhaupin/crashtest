@@ -22,7 +22,7 @@ const MODULES = [
   {
     mod: 'input',
     attacks: [
-      ['proto-pollution-body', 'Feeds __proto__/constructor keys through JSON bodies (hostileSerialize preserves the drop: JSON.stringify kills them)', 'recursive-merge handlers that spread untrusted bodies'],
+      ['proto-pollution-body', 'Feeds __proto__/constructor keys through JSON bodies (JSON.stringify silently DROPS them — hostileSerialize is built to keep them on the wire)', 'recursive-merge handlers that spread untrusted bodies'],
       ['never-fail-mutations', '64 hostile bodies (huge ids, nested types, unicode tricks) — any failure mode past a 4xx is a finding', 'mutation routes without shaped rejection'],
       ['oversized-field', '1MB fields, deep nesting, giant arrays', 'handlers without a body limit'],
     ],
@@ -31,7 +31,7 @@ const MODULES = [
     mod: 'state',
     attacks: [
       ['enumeration-oracle', 'Arms mustDenyIds, probes each — 200s (or content ripples) mean foreign rows leak by guessable id', 'GET-by-id without ownership checks'],
-      ['id-collision-alias', 'Two owners claim the same id; stack dump diffs strip the scratch-truth away — silent overwrite is a finding', 'write routes without unique constraints'],
+      ['id-collision-alias', 'Two owners claim the same id; the env snapshot diff decides — owner-a\'s row silently overwritten in place is a finding', 'write routes without unique constraints'],
     ],
   },
   {

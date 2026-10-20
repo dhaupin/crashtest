@@ -24,6 +24,9 @@ export default function Home() {
           </p>
           <div className="cta-row">
             <a className="btn btn-primary" href="https://www.npmjs.com/package/crashtest" target="_blank" rel="noreferrer">npm i crashtest</a>
+            <pre-island data-pre-island="version-badge" data-pre-load="visible">
+              <a className="btn btn-ghost" href="https://www.npmjs.com/package/crashtest" target="_blank" rel="noreferrer">npm · crashtest</a>
+            </pre-island>
             <a className="btn btn-ghost" href="https://github.com/dhaupin/crashtest" target="_blank" rel="noreferrer">View on GitHub</a>
             <a className="btn btn-ghost" href="https://github.com/dhaupin/crashtest/blob/main/DEPLOY.md" target="_blank" rel="noreferrer">Read the deploy guide</a>
           </div>

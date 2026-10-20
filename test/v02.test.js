@@ -291,3 +291,42 @@ test('scenarios/state id-collision-alias: missing DB binding REFUSES instead of 
   assert.equal(r.skipped, true);
   assert.match(r.detail, /no DB binding/);
 });
+
+test('harness/aliasRoute: rewrites only the path (query passes through), body stream survives the rewrite', async () => {
+  let captured;
+  const h = buildHarness({
+    app: async ({ request }) => {
+      captured = { url: new URL(request.url), text: await request.text() };
+      return new Response('ok', { status: 201, headers: { 'cache-control': 'no-store' } });
+    },
+  }, { env: {} });
+  h.aliasRoute('enroll', 'app', { path: '/real/enroll' });
+
+  const r = await h.run('enroll', {
+    method: 'POST',
+    url: '/enroll?key=x1&tag=probe',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ key: 'x1', owner: 'rook' }),
+  });
+  assert.equal(r.status, 201);
+  assert.equal(captured.url.pathname, '/real/enroll');
+  assert.equal(captured.url.searchParams.get('key'), 'x1');
+  assert.equal(captured.url.searchParams.get('tag'), 'probe');
+  assert.equal(captured.text, JSON.stringify({ key: 'x1', owner: 'rook' }));
+});
+
+test('harness/registerRoute: duplicate names fail loudly (silent overwrite leaked requests)', () => {
+  const h = buildHarness({ app: async () => new Response('one') }, { env: {} });
+  assert.throws(
+    () => h.registerRoute('app', async () => new Response('treaty side lied')),
+    /already registered/,
+  );
+});
+
+test('harness/aliasRoute: aliasing a missing source route names the cause', () => {
+  const h = buildHarness({}, { env: {} });
+  assert.throws(
+    () => h.aliasRoute('enroll', 'ghost'),
+    /needs a registered source route/,
+  );
+});
