@@ -3,7 +3,6 @@ version: 0.1.1
 permalink: /
 layout: default
 title: Crashtest Documentation
-nav_order: 0
 description: Crashtest drives a seeded, in-process attack suite against your real handlers and produces a hardening ledger your CI fails on regressions — no sockets, no redeploy loop.
 ---
 

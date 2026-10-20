@@ -80,7 +80,7 @@ reality directly — tracked vs machine-private.
   instead. The stub loads, lists, and runs immediately — fill in the
   `TODO` attacks and the pack's `moduleCtx[<name>]` vocabulary. The stub
   declares `armedByKey` in its module, so
-  [`run --module-plan`](/crashtest/reference/module-plan) reports it as
+  `run --module-plan` reports it as
   NEEDS-ARMING until you arm it.
 
 ## Naming convention

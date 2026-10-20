@@ -166,7 +166,7 @@
                     {%- assign i_path = item.url | remove: '.html' | replace: '/', '' -%}
                     {%- assign p_path = page.url | remove: 'index.html' | replace: '/', '' -%}
                   {%- endunless -%}
-                <li><a href="{{ item.url | relative_url }}"
+                <li><a href="{{ item.url }}"
                        {%- if external %} target="_blank" rel="noopener"{% else %}{% if p_path != '' and p_path contains i_path %} class="active"{% endif %}{% endif %}>{{ item.title }}</a></li>
                 {% endfor %}
             </ul>

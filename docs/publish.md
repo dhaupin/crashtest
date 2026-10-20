@@ -1,3 +1,11 @@
+---
+permalink: publish
+title: Publish
+layout: default
+description: Maintainer runbook — npm Trusted Publishing (OIDC), the one-time bootstrap, and the tag-driven release flow.
+noindex: true
+---
+
 # Publishing crashtest
 
 ## The one-time bootstrap (a few minutes)

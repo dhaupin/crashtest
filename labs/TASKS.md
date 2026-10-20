@@ -70,7 +70,18 @@
 
 ## Log
 
-- [2026-10-20 ~14Z] **Docs parity with vant: burger nav + pagefind search.**
+- [2026-10-20 ~15Z] **Docs audit: the doubled-prefix fix + full link/frontmatter
+  sweep.** Live site served nav as /crashtest/crashtest/* (404s) — the layout
+  piped nav URLs (already absolute, /crashtest-prefixed) through Jekyll's
+  `relative_url`, which prepends baseurl a second time. Fix: emit item.url
+  raw (vant never filters its nav either). Full audit script (frontmatter
+  required keys × all pages, nav.yml↔permalink reachability, internal-link
+  graph incl. doubled prefixes + raw .md links) over 20 pages: 3 findings —
+  the layout bug itself, docs/publish.md having no frontmatter (gained one,
+  noindex'd — maintainer content, not user docs), packs.md linking a
+  module-plan page that doesn't exist (demoted to a code span). Dead
+  `nav_order: 0` on docs/index.md removed (sidebar order is nav.yml-driven).
+  Audit re-run: CLEAN. **Docs parity with vant: burger nav + pagefind search.**
   docs.creadev.org/crashtest was rendering the nav inline with no search —
   gap: the layout shipped "same shape as vant, minus pagefind/prism extras"
   and the extras were the UX. Ported vant's shape onto the crashtest
