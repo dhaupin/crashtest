@@ -5,7 +5,11 @@
 
 import { mkdir, writeFile, readFile, access } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { buildHarness } from './harness/harness.js';
+import { loadScenarios } from './scenarios/loader.js';
+import { runCampaign } from './campaigns/runner.js';
+import { buildLedger, diffAgainstBaseline, exitCode, renderMarkdown } from './report.js';
 
 const VERSION = '0.0.1';
 const LEDGER_PATH = 'labs/crashledger.json';
@@ -17,7 +21,7 @@ Adversarial QA for agent-built software, in-process. No sockets, ever.
 
 Usage:
   crashtest init            Create labs/ scaffold: crashledger.json + hardening.md stub
-  crashtest run [target]    Run all campaigns against the target's real handlers
+  crashtest run [--config path]   Attack the target declared in crashtest.config.js
   crashtest --version
   crashtest --help
 
@@ -92,13 +96,58 @@ async function cmdInit({ force }) {
   console.log('Next: commit labs/ so CI has a baseline, then `crashtest run` (0.1).');
 }
 
-async function cmdRun() {
-  // v0.0.x placeholder: the harness (fake transport + in-memory D1),
-  // scenario libraries and campaign runner land in 0.1 (lib S1.1–S1.4).
-  console.error(`crashtest v${VERSION}: campaign pipeline not implemented yet.`);
-  console.error('Status: 0.0.x is a name-stake + scaffolding release.');
-  console.error('Roadmap: 0.1 = auth/input/guards campaigns + report+ledger (see labs/TASKS.md in the repo).');
-  process.exitCode = 2;
+async function cmdRun(opts = {}) {
+  const root = repoRoot();
+  const configPath = join(root, opts.config ?? 'crashtest.config.js');
+  if (!(await exists(configPath))) {
+    console.error(`crashtest run: no ${configPath.split('/').pop()} in ${root}`);
+    console.error('A target needs a config declaring its routes + env, e.g.:');
+    console.error('  export default { routes: { enroll: handler }, env: { d1: {…}, secrets: {…} } }');
+    console.error('Directories: labs/scenarios/ is auto-scanned for extra scenario modules.');
+    process.exitCode = 2;
+    return;
+  }
+
+  const target = (await import(pathToFileURL(configPath).href)).default;
+  const harness = buildHarness(target.routes ?? {}, {
+    env: target.env ?? {},
+    cost: target.cost ?? {},
+    baseUrl: target.baseUrl,
+  });
+
+  const scenarios = await loadScenarios([
+    ...(target.scenarioDirs ?? []),
+    join(root, 'labs', 'scenarios'),
+  ]);
+  if (!scenarios.length) throw new Error('no scenario modules found (built-ins missing?)');
+
+  const run = await runCampaign(harness, scenarios, {
+    attackCtx: target.attackCtx,
+    moduleCtx: target.moduleCtx,
+    seed: target.seed,
+  });
+
+  const ledgerPath = join(root, LEDGER_PATH);
+  let prior = null;
+  if (await exists(ledgerPath)) {
+    prior = JSON.parse(await readFile(ledgerPath, 'utf8'));
+  }
+  const ledger = buildLedger(run, prior);
+  const diff = diffAgainstBaseline(run, prior);
+
+  await mkdir(join(root, 'labs'), { recursive: true });
+  await writeFile(ledgerPath, JSON.stringify(ledger, null, 2) + '\n');
+  await writeFile(join(root, REPORT_PATH), renderMarkdown(run, ledger, diff, { version: VERSION, seed: target.seed }));
+
+  // Console summary: verdicts as they land, ledger + exit rule at the end.
+  for (const row of run.rows) {
+    const mark = { REFUSED: '🛡', EXPLOITED: '⚡', BOUNDED: '🔒' }[row.verdict] ?? '?';
+    console.log(`${mark} ${row.id}: ${row.detail}`);
+  }
+  console.log(`\ntally: ${JSON.stringify(run.tally)} · cost: ${run.cost.totals.ops} ops / ${run.cost.totals.requests} requests`);
+  console.log(`ledger: ${LEDGER_PATH} · report: ${REPORT_PATH}`);
+  console.log(`baseline: ${diff.newExploited.length} new · ${diff.regressed.length} regressed · ${diff.acceptedHits.length} accepted hits`);
+  process.exitCode = exitCode(diff);
 }
 
 export async function main(argv) {
@@ -116,7 +165,8 @@ export async function main(argv) {
     return cmdInit({ force });
   }
   if (verb === 'run') {
-    return cmdRun();
+    const confIdx = argv.indexOf('--config');
+    return cmdRun(confIdx > -1 ? { config: argv[confIdx + 1] } : {});
   }
   console.error(`crashtest: unknown command "${verb}" (try --help)`);
   process.exitCode = 1;

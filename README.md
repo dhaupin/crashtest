@@ -24,17 +24,23 @@ It ends with `labs/hardening.md` (human-first) and `labs/crashledger.json`
 (CI gate: fail **only** on a new EXPLOITED or a regression of something
 previously REFUSED — accepted risks never re-alarm you).
 
-## Status: 0.0.x (name-stake + scaffolding release)
+## Status: v0.1 in flight (pipeline works end-to-end)
 
-The full pipeline (harness → scenario libraries → campaigns → report lands
-**0.1**). This early release exists to claim the name and ship the skeleton:
+The campaign pipeline runs against a declared target:
 
 ```bash
-npx crashtest init             # writes labs/crashledger.json + labs/hardening.md stub
-npx crashtest --version
+crashtest init               # writes labs/crashledger.json + labs/hardening.md stub
+crashtest run                # attacks the target from crashtest.config.js
+# → prints verdicts live, writes labs/hardening.md + labs/crashledger.json
+# → exit 0 unless a NEW EXPLOITED finding or a REFUSED→EXPLOITED regression
 ```
 
-`crashtest run` honestly refuses until 0.1 (exit 2, with roadmap).
+This repo dogfoods itself: `crashtest run` attacks `fixtures/demo/` and CI
+gates on the committed `labs/crashledger.json` baseline. Seed campaigns:
+`auth` (identity spoofing, secret watermark, privilege escalation), `input`
+(proto-pollution, mutation fuzz floor, oversized fields), `guards`
+(cache hygiene, burst walls + Retry-After). Bring your own scenarios by
+dropping ESM modules into `labs/scenarios/`.
 
 ## Landscape
 

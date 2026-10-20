@@ -1,0 +1,39 @@
+name: ci
+
+# The dogfood run IS the CI gate: the committed labs/crashledger.json is the
+# baseline; a fresh run fails this workflow iff a previously-REFUSED check
+# regressed or a NEW EXPLOITED finding appears (PRD §7). Accepted risks
+# (owner+bound on file) never re-alarm.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      - name: Install
+        run: npm install --no-audit --no-fund
+
+      - name: Syntax check
+        run: npm run check
+
+      - name: Test suite
+        run: npm test
+
+      - name: Dogfood — attack our own fixture against the baseline
+        run: node bin/crashtest.js run
+
+      - name: Snapshot report (on failure, shows what changed)
+        if: failure()
+        run: tail -30 labs/hardening.md

@@ -1,19 +1,29 @@
 # Publishing crashtest
 
-## The one-time bootstrap (manual, ~5 minutes)
+## The one-time bootstrap (a few minutes)
 
-npm Trusted Publishing (OIDC) cannot create a new package — the first version
-must exist on npmjs.com first. So:
+npm Trusted Publishing (OIDC) cannot *create* a new package (npm/cli #8544 is
+still open) — the package name must exist on npmjs.com before OIDC takes over.
+Since 2026-10-02 there are two ways to create it
+([staged publishing](https://docs.npmjs.com/staged-publishing/) supports
+new-package creation):
 
-1. On your machine, from a checkout of `dhaupin/crashtest`:
+**Route A — direct publish (simplest):**
    ```bash
    npm login            # if not already
    npm test             # should be green
    npm publish          # publishes 0.0.1 as `crashtest`
    ```
-   (npm 2FA applies per your account settings.)
 
-2. On npmjs.com → package `crashtest` → **Settings → Trusted Publisher**:
+**Route B — staged publish (release goes through a maintainer approval):**
+   ```bash
+   npm login            # logged-in session, or a stage-only granular token
+   npm stage publish    # creates the package + a 0.0.0-stage placeholder
+   ```
+   The name + title are visible immediately; contents release after approval
+   (staged publishing requires npm >= 11.15.0).
+
+3. Then configure Trusted Publisher: npmjs.com → package `crashtest` → **Settings → Trusted Publisher**:
    - Provider: **GitHub Actions**
    - Organization/user: `dhaupin`
    - Repository: `crashtest`

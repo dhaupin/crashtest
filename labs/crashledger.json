@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-20T01:24:23.640Z",
+  "findings": [
+    {
+      "id": "auth/identity-spoof-headers",
+      "verdict": "REFUSED",
+      "detail": "all 54 identity-header spoofs denied or ignored on \"admin\""
+    },
+    {
+      "id": "auth/secret-watermark",
+      "verdict": "REFUSED",
+      "detail": "4 routes × 3 error-path probes: no fake secret ever left the env"
+    },
+    {
+      "id": "auth/privilege-escalation",
+      "verdict": "REFUSED",
+      "detail": "ownership mutations rejected by \"device\" (baseline 403)"
+    },
+    {
+      "id": "guards/hygiene-no-store",
+      "verdict": "REFUSED",
+      "detail": "\"enroll\" write responses marked no-store"
+    },
+    {
+      "id": "guards/burst-wall",
+      "verdict": "REFUSED",
+      "detail": "no wall under 50-burst on \"burst\" (0 client errors) — wall presence optional, breakage none"
+    },
+    {
+      "id": "input/proto-pollution-body",
+      "verdict": "REFUSED",
+      "detail": "payload to \"enroll\" did not pollute state (status 400)"
+    },
+    {
+      "id": "input/never-fail-mutations",
+      "verdict": "REFUSED",
+      "detail": "64 hostile bodies all under the floor on \"enroll\" (seed 3650991062)"
+    },
+    {
+      "id": "input/oversized-field",
+      "verdict": "REFUSED",
+      "detail": "oversized body handled on \"enroll\" (status 400)"
+    }
+  ],
+  "acceptedRisks": [],
+  "baseline": [
+    "auth/identity-spoof-headers",
+    "auth/secret-watermark",
+    "auth/privilege-escalation",
+    "guards/hygiene-no-store",
+    "guards/burst-wall",
+    "input/proto-pollution-body",
+    "input/never-fail-mutations",
+    "input/oversized-field"
+  ]
+}
