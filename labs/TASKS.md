@@ -365,3 +365,23 @@
   - Known limitation: docs/ not built locally (no ruby/jekyll in sandbox) —
     structure mirrors vant's proven layout; GH Pages (or freestruct layer)
     builds it at docs.creadev.org/crashtest on push.
+- [2026-10-20T06:55Z] freestruct wired into the Jekyll docs build (vant's
+  docs.yml as the template — ruby 3.2 + bundler-cache + jekyll build +
+  GH Pages artifact deploy, pagefind dropped until the layout earns a
+  search UI). Two upstream findings handled en route: freestruct's npm
+  name is not published and its bin shim has no shebang (both filed to
+  freestruct#2; verified workaround = npm install github:dhaupin/freestruct
+  + node node_modules/freestruct/docs/lib/inject.js). Docs wiring adds
+  docs/ssr-config.yml (outputDir docs/_site, basePath /crashtest,
+  linkCheck on), a crashtest-tailored inject template that adds ONLY the
+  layer the layout lacks (twitter card, og:image from the main site card,
+  SoftwareApplication JSON-LD) so inject stays dupe-free, and docs/Gemfile.
+  Local end-to-end verified with a synthetic _site: injection applied,
+  sitemap/robots/404 generated, exit 0. Also filed vant#217 (shadow index
+  docs: operations/operations.md and runtime/runtime.md duplicate their
+  section index.md titles/paths and split nav+search; same-title agents
+  pair flagged as disambiguation candidates; storage pair judged a
+  legitimate split). One paste-scrub note: vant#217's posted table has one
+  garbled word in a permalink cell (integration cannot edit; manual fix
+  worth 10 seconds). docs/_site gitignored; GH Pages build lands
+  docs.creadev.org/crashtest on push.

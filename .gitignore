@@ -3,3 +3,4 @@ coverage/
 *.tgz
 .npm/
 .DS_Store
+docs/_site/

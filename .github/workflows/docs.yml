@@ -1,0 +1,73 @@
+name: Deploy Docs
+
+# Builds docs/ (Jekyll) then runs the freestruct post-build SEO layer on
+# _site (canonical/description, og:image + twitter, JSON-LD, sitemap, robots,
+# 404, cache-bust hash, last-modified, internal-link check). Same shape as
+# vant's docs deploy — structure shared so docs.creadev.org projects build
+# one another learn from.
+
+on:
+  push:
+    branches: [main]
+    paths: ['docs/**', '.github/workflows/docs.yml']
+  workflow_dispatch:
+
+# Permissions for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: './docs'
+
+      - name: Build Jekyll
+        run: |
+          cd docs
+          bundle exec jekyll build
+        env:
+          JEKYLL_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # freestruct consumes, relative to the REPO ROOT:
+      #   docs/ssr-config.yml (config) · docs/_freestruct/inject-brand.html
+      #   (template) · docs/_site (output; default arg)
+      # Install from the GitHub source tarball — the npm registry name is
+      # not published yet, and the package bin lacks a shebang, so invoke
+      # inject.js with node directly (works everywhere; revisit once
+      # freestruct is npm-published with a proper bin).
+      - name: Install freestruct
+        run: npm install --no-save --no-audit --no-fund github:dhaupin/freestruct
+
+      - name: Run freestruct post-build layer
+        run: node node_modules/freestruct/docs/lib/inject.js
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './docs/_site'
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
