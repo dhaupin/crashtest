@@ -70,6 +70,21 @@
 
 ## Log
 
+- [2026-10-20 ~20Z] **Back to building: harness memory reuse (PRD v0.2 open
+  line) + web round shipped.** Web/docs detour closed out first: sidebar nav
+  shell, consistency + parity probes (28 new tests), live-audit fixes
+  (version-function registry 406, pagefind import.meta, WCAG contrast,
+  JSON-LD bare-object drop) — committed f181045, upstream prestruct #21 +
+  freestruct #15/#16. Then v0.2: freezeTo()/restoreTo()/runFresh() on the
+  harness (memory reuse for sub-second repeat runs, PRD line 136) — deep
+  snapshot of every KV store, D1 table row set + nextId + uniques, and op
+  counters; restore mutates bindings IN PLACE because the fake backends hold
+  a counter identity from buildEnv (a naive clone swap silently orphaned
+  every backend op tick, caught by the smoke test's op-shape assertion).
+  runFresh = freeze at call time, replay, restore after — success OR throw,
+  per the restore-what-you-touch rule. 4 harness tests: replay-ops identity,
+  throw-path health, no-trace no-explicit-at default, junk-snapshot loud
+  TypeError. 127/127 green.
 - [2026-10-20 ~19Z] **Web polish round: JSON-LD fix, UI parity probe, dash
   stale-test sweep.** inject-brand.js silently emitted an empty structured-
   data block when ssr.config buildJsonLd() returned a bare object (only the

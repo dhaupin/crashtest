@@ -12,6 +12,8 @@
 
 import { newBackendCounter } from './counters.js';
 import { buildEnv } from './env.js';
+import { FakeKV } from './kv.js';
+import { FakeD1 } from './d1.js';
 
 export class Harness {
   /**
@@ -147,6 +149,102 @@ export class Harness {
   /** Absolute cost totals across the whole run (campaign-level accounting). */
   costTotals() {
     return this._counter.snapshot();
+  }
+
+  /**
+   * freezeTo() — deep-copy snapshot of the whole fake backend (PRD v0.2
+   * "memory reuse for sub-second repeat runs").
+   *
+   * Captures everything stateful the harness owns: every KV namespace's
+   * store, every D1 database's tables (rows, nextId counters, unique
+   * constraints), and the op/cost counters. Returns an opaque snapshot
+   * object for restoreTo(); nothing about it is useful outside this
+   * instance. Handlers and route tables are NOT copied — they are the
+   * target's real code and never mutate during a campaign.
+   */
+  freezeTo() {
+    const kv = new Map();
+    const d1 = new Map();
+    for (const [name, binding] of Object.entries(this.env)) {
+      if (binding instanceof FakeKV) {
+        kv.set(name, new Map(binding._store));
+      } else if (binding instanceof FakeD1) {
+        const tables = new Map();
+        for (const [tname, t] of binding._t) {
+          tables.set(tname, {
+            name: t.name,
+            rows: t.rows.map(r => ({ ...r })),
+            nextId: t.nextId,
+            uniques: new Map(t.uniques),
+          });
+        }
+        d1.set(name, { tables, drained: binding._drained });
+      }
+      // vars/secrets are plain strings — buildEnv copies them by value, so
+      // nothing to freeze. A non-fake binding (user-supplied adapter object)
+      // is out of scope: document vs freeze-and-heal is a v0.3 call.
+    }
+    return { kv, d1, counter: this._counter.clone() };
+  }
+
+  /**
+   * restoreTo(snapshot) — return the fake backend to a freezeTo() state.
+   * Mutations earlier requests made (KV writes, D1 inserts, counter ticks)
+   * disappear; the next run() behaves exactly like the first did on a
+   * fresh in-memory backend. Restores registers in place (same FakeKV /
+   * FakeD1 objects the handlers close over), so adapters never see a
+   * binding identity change mid-run.
+   */
+  restoreTo(snapshot) {
+    if (!snapshot || !(snapshot.kv instanceof Map) || !(snapshot.d1 instanceof Map)) {
+      throw new TypeError('harness: restoreTo needs a freezeTo() snapshot');
+    }
+    for (const [name, binding] of Object.entries(this.env)) {
+      if (binding instanceof FakeKV && snapshot.kv.has(name)) {
+        const frozen = snapshot.kv.get(name);
+        binding._store = new Map(frozen);
+      } else if (binding instanceof FakeD1 && snapshot.d1.has(name)) {
+        const frozen = snapshot.d1.get(name);
+        binding._t = new Map();
+        for (const [tname, t] of frozen.tables) {
+          binding._t.set(tname, {
+            name: t.name,
+            rows: t.rows.map(r => ({ ...r })),
+            nextId: t.nextId,
+            uniques: new Map(t.uniques),
+          });
+        }
+        binding._drained = frozen.drained;
+      }
+    }
+    // Restoring the counter must preserve OBJECT IDENTITY, not just values:
+    // the fake KV/D1 bindings captured this._counter at build time, so
+    // swapping in a clone would silently orphan every backend op tick.
+    // Mutate counts in place (opCost pricing is immutable per instance).
+    this._counter.counts = new Map(snapshot.counter.counts);
+    return this;
+  }
+
+  /**   *   runFresh(name, reqInit) — one request against the state as it stood when
+   *   the call STARTED (default: freeze at call time, restore after, so each
+   *   default call is a no-trace replay); pass an explicit `at` to share one
+   *   state across a multi-step flow. Backend state is restored EXACTLY
+   *   after the call, success or throw (restore-what-you-touch, self-pack
+   *   rule). The sub-second repeat: every runFresh replays like the first
+   *   run without re-importing the app or rebuilding the in-memory backend.
+   * every runFresh replays like the first run without re-importing the app
+   * or rebuilding the in-memory backend.
+   *
+   *   const at = harness.freezeTo();              // share a state across steps
+   *   const a = await harness.runFresh('enroll', body, at);
+   *   const b = await harness.runFresh('enroll', body, at); // identical ops, identical verdict path
+   */
+  async runFresh(name, reqInit = {}, at = this.freezeTo()) {
+    try {
+      return await this.run(name, reqInit);
+    } finally {
+      this.restoreTo(at);
+    }
   }
 }
 

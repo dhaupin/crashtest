@@ -106,3 +106,58 @@ test('harness: env seeding lets secret-variant campaigns compare states', async 
   const snap = h.env.DB.snapshot();
   assert.equal(snap.devices[0].key, 'seed');
 });
+
+// v0.2 — memory reuse: freezeTo/restoreTo/runFresh. The PRD's "sub-second
+// repeat runs": replay a request like the FIRST run without re-importing or
+// re-instantiating the backend — and restore-what-you-touch exactly.
+
+test('harness: runFresh replays with identical op shapes and restores state exactly', async () => {
+  const h = buildHarness(makeRoutes(), { env: envSpec });
+  const at = h.freezeTo();
+  const body = { method: 'POST', body: JSON.stringify({ key: 'fresh-1', owner: 'rook' }) };
+  const r1 = await h.runFresh('enroll', body, at);
+  assert.equal(r1.status, 201);
+  const r2 = await h.runFresh('enroll', body, at);
+  assert.equal(r2.status, 201);
+  assert.deepEqual(r1.ops, r2.ops, 'identical request through the frozen state = identical ops');
+  // restore-what-you-touch: the INSERT is gone, the KV put is gone, the
+  // counter ticks are back at the frozen point.
+  const rows = await h.env.DB.prepare('SELECT * FROM devices').all();
+  assert.equal(rows.results.length, 1, 'only the seed row remains');
+  assert.equal(await h.env.DEVICE_CACHE.get('last'), 'seed', 'KV put reverted');
+  const beforeCost = at.counter.snapshot().__cost__;
+  assert.equal(h.costTotals().__cost__, beforeCost + r2.ops.__cost__, 'counter restored to frozen point per runFresh');
+});
+
+test('harness: restoreTo throws back unique-violation state too (handler threw mid-write)', async () => {
+  const h = buildHarness(makeRoutes(), { env: envSpec });
+  const at = h.freezeTo();
+  const bad = { method: 'POST', body: JSON.stringify({ key: 'seed', owner: 'attacker' }) };
+  const r = await h.runFresh('enroll', bad, at);
+  assert.equal(r.threw, true, 'the hostile replay still throws (campaigns must see it)');
+  // And the harness is still healthy for the next fresh replay.
+  const after = await h.runFresh('enroll', { method: 'POST', body: JSON.stringify({ key: 'fresh-2', owner: 'rook' }) }, at);
+  assert.equal(after.status, 201);
+});
+
+test('harness: runFresh without an explicit at is a no-trace replay (fresh sandbox each call)', async () => {
+  const h = buildHarness(makeRoutes(), { env: envSpec });
+  const r = await h.runFresh('enroll', { method: 'POST', body: JSON.stringify({ key: 'a1', owner: 'x' }) });
+  assert.equal(r.status, 201);
+  // No-trace default: the call froze the pre-request state and restored it
+  // after, so the write never persists ("fresh" = zero footprints per call).
+  const rows = await h.env.DB.prepare('SELECT * FROM devices').all();
+  assert.equal(rows.results.length, 1, 'only the seed row remains (a1 wiped)');
+  // An explicit freeze point is how multi-step / state-splitting flows work.
+  const at = h.freezeTo();
+  await h.runFresh('enroll', { method: 'POST', body: JSON.stringify({ key: 'a2', owner: 'x' }) }, at);
+  await h.runFresh('enroll', { method: 'POST', body: JSON.stringify({ key: 'a3', owner: 'x' }) }, at);
+  const rows2 = await h.env.DB.prepare('SELECT * FROM devices').all();
+  assert.equal(rows2.results.length, 1, 'explicit-at replays restore to the shared freeze point too');
+});
+
+test('harness: restoreTo rejects junk snapshots loudly (rule 3)', () => {
+  const h = buildHarness(makeRoutes(), { env: envSpec });
+  assert.throws(() => h.restoreTo(null), /freezeTo\(\) snapshot/);
+  assert.throws(() => h.restoreTo({ hello: 1 }), /freezeTo\(\) snapshot/);
+});
