@@ -82,9 +82,14 @@
                 <div class="group">
                     <div class="group-title">{{ group.title }}</div>
                     {% for item in group.items %}
-                    <a href="{{ item.url | relative_url }}{% if item.url contains 'http' %}{% endif %}"
-                       {% if item.external == true %}target="_blank" rel="noopener"{% endif %}
-                       {% assign this_abs = item.url | relative_url %}{% if page.url != '/' %}{% endif %}>{{ item.title }}</a>
+                    {%- assign external = false -%}
+                    {%- if item.url contains '://' -%}{%- assign external = true -%}{%- endif -%}
+                    {%- unless external -%}
+                      {%- assign i_path = item.url | remove: '.html' | replace: '/', '' -%}
+                      {%- assign p_path = page.url | remove: 'index.html' | replace: '/', '' -%}
+                    {%- endunless -%}
+                    <a href="{{ item.url | relative_url }}"
+                       {%- if external %} target="_blank" rel="noopener"{% else %}{% if p_path != '' and p_path contains i_path %} class="active"{% endif %}{% endif %}>{{ item.title }}</a>
                     {% endfor %}
                 </div>
                 {% endfor %}
