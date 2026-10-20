@@ -1,12 +1,13 @@
 import usePageMeta from '../hooks/usePageMeta.js'
-import { useEffect } from 'react'
 
 const SITE_URL = 'https://crashtest.creadev.org'
 
 export default function Home() {
-  useEffect(() => {
-    usePageMeta({ siteUrl: SITE_URL, path: '/', title: 'Crashtest — adversarial QA for agent-built apps', description: 'Seeded, in-process attack suite that produces a hardening ledger your CI fails on regressions.' })
-  }, [])
+  // Hook call lives in the COMPONENT BODY (prestruct's hook updates head tags
+  // via its own effect). Calling it inside another effect was an invalid hook
+  // call — React #321 in production tore the tree down (flash of theme, then
+  // black screen) — found with headless Chromium on the live site.
+  usePageMeta({ siteUrl: SITE_URL, path: '/', title: 'Crashtest — adversarial QA for agent-built apps', description: 'Seeded, in-process attack suite that produces a hardening ledger your CI fails on regressions.' })
   return (
     <>
       <section className="hero">

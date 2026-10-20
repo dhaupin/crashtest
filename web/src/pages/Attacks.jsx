@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import usePageMeta from '../hooks/usePageMeta.js'
 
 const SITE_URL = 'https://crashtest.creadev.org'
@@ -45,9 +44,8 @@ const MODULES = [
 ]
 
 export default function Attacks() {
-  useEffect(() => {
-    usePageMeta({ siteUrl: SITE_URL, path: '/attacks', title: 'Attack catalog | Crashtest', description: 'Every shipped crashtest scenario module and attack, with the real findings the first external run produced.' })
-  }, [])
+  // Hook in the component body (see Home for the #321 flash-then-black lesson).
+  usePageMeta({ siteUrl: SITE_URL, path: '/attacks', title: 'Attack catalog | Crashtest', description: 'Every shipped crashtest scenario module and attack, with the real findings the first external run produced.' })
   return (
     <section className="section" style={{ paddingTop: 56 }}>
       <div className="wrap">

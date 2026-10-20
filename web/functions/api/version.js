@@ -8,9 +8,11 @@
  */
 export const onRequestGet = async () => {
   try {
+    // Plain fetch only: the `cf` cache-hint option is not portable across
+    // Pages runtime versions (502s at the platform layer when it's present) —
+    // edge caching is left to the response's cache-control header.
     const res = await fetch('https://registry.npmjs.org/crashtest/latest', {
       headers: { accept: 'application/vnd.npm.install-v1+json' },
-      cf: { cacheTtl: 300, cacheEverything: true }, // 5-minute edge cache
     });
     if (!res.ok) throw new Error(`registry ${res.status}`);
     const pkg = await res.json();
