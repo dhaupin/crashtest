@@ -36,6 +36,9 @@ export default {
     description: 'Spoof identity headers on a denied request; a 403→2xx flip is an unauthenticated bypass',
     async run(harness, ctx = {}) {
       const route = ctx.route ?? 'admin';
+      if (!harness.listRoutes().includes(route)) {
+        return refused(`route "${route}" not declared on this target — spoof matrix skipped (declare it for coverage)`, { route, skipped: true });
+      }
       const base = await get(harness, route);
       if (base.threw) {
         return exploited(`baseline request to "${route}" throws — ${base.error.name}: ${base.error.message}`, { route });
@@ -102,6 +105,9 @@ export default {
     description: 'Mutating identity/ownership fields in a denied request must never flip it',
     async run(harness, ctx = {}) {
       const route = ctx.route ?? 'device';
+      if (!harness.listRoutes().includes(route)) {
+        return refused(`route "${route}" not declared on this target — escalation skipped (declare it for coverage)`, { route, skipped: true });
+      }
       const baseline = await harness.run(route, {
         method: 'POST',
         body: ctx.baselineBody !== undefined ? ctx.baselineBody : JSON.stringify({ key: 'r1', owner: 'victim' }),

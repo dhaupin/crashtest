@@ -1,0 +1,59 @@
+name: 'crashtest'
+description: >-
+  In-process adversarial QA gate: runs crashtest against your target config
+  and fails on a NEW EXPLOITED finding or a REFUSED→EXPLOITED regression
+  against your committed labs/crashledger.json baseline.
+branding:
+  icon: 'shield'
+  color: 'red'
+
+inputs:
+  node-version:
+    description: Node version to run crashtest with
+    required: false
+    default: '22'
+  config:
+    description: Path to your crashtest.config.js (relative to repo root)
+    required: false
+    default: 'crashtest.config.js'
+  run-tests:
+    description: Also run `npm test` from the caller's repo before the gate
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup node
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
+        package-manager-cache: false
+
+    - name: Install crashtest
+      shell: bash
+      run: npm install --no-save --no-audit --no-fund crashtest
+
+    - name: Target tests (optional)
+      if: ${{ inputs.run-tests == 'true' }}
+      shell: bash
+      run: npm test
+
+    - name: Run crashtest gate
+      id: crashtest
+      shell: bash
+      run: |
+        set -o pipefail
+        npx crashtest run --config "${{ inputs.config }}" | tee labs/hardening-run.md
+        echo "exit=$?" >> "$GITHUB_OUTPUT"
+
+    - name: Upload hardening run
+      if: always()
+      uses: actions/upload-artifact@v6
+      with:
+        name: hardening-report
+        path: labs/hardening-run.md
+
+    - name: Gate
+      shell: bash
+      run: exit ${{ steps.crashtest.outputs.exit }}

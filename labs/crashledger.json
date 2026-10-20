@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-20T01:24:23.640Z",
+  "generatedAt": "2026-10-20T02:02:43.229Z",
   "findings": [
     {
       "id": "auth/identity-spoof-headers",
@@ -41,6 +41,32 @@
       "id": "input/oversized-field",
       "verdict": "REFUSED",
       "detail": "oversized body handled on \"enroll\" (status 400)"
+    },
+    {
+      "id": "state/enumeration-oracle",
+      "verdict": "REFUSED",
+      "detail": "no mustDenyIds configured — declare ids the CURRENT identity must never read to arm the oracle"
+    },
+    {
+      "id": "state/id-collision-alias",
+      "verdict": "REFUSED",
+      "detail": "owner-b's claim on [alias-48430] by \"enroll\" stayed separate (status 409; owner-a row intact)"
+    },
+    {
+      "id": "volume/credential-stuffing",
+      "verdict": "REFUSED",
+      "detail": "enroll held 60 stuffing attempts (1 admitted, 59 refused) · 121 ops total · ~2.02 ops/request"
+    },
+    {
+      "id": "volume/storage-fill",
+      "verdict": "REFUSED",
+      "detail": "route \"kvwrite\" not declared on this target — fill check skipped (declare a KV-writing route)"
+    },
+    {
+      "id": "volume/cost-amplification",
+      "verdict": "REFUSED",
+      "detail": "\"enroll\" held the amplification bound: 2.02 ops/request over 40 identical replays (bound 12)",
+      "bound": 12
     }
   ],
   "acceptedRisks": [],
@@ -52,6 +78,11 @@
     "guards/burst-wall",
     "input/proto-pollution-body",
     "input/never-fail-mutations",
-    "input/oversized-field"
+    "input/oversized-field",
+    "state/enumeration-oracle",
+    "state/id-collision-alias",
+    "volume/credential-stuffing",
+    "volume/storage-fill",
+    "volume/cost-amplification"
   ]
 }

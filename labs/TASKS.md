@@ -70,6 +70,38 @@
 
 ## Log
 
+- [2026-10-20 ~09Z] **Name claimed on npm — crashtest@0.0.0-stage is live.**
+  dhaupin published from Termux via a granular access token (Route B,
+  staged): package title/public name are on the registry as of
+  2026-10-20T01:57Z, contents pending stage approval with 2FA. Version bumped
+  0.0.1 → 0.1.0 in package.json + src/cli.js (single VERSION const) and the
+  report header's stale 0.0.1 fallback removed — the first REAL version to
+  ship over the staged placeholder is 0.1.0, riding the OIDC workflow once
+  Trusted Publisher is configured (dhaupin/crashtest, publish.yml, direct
+  publish). v0.2 modules land inside the 0.1.0 tarball as clearly-labeled
+  ahead-of-0.2.0 features (README documents them as v0.2). Tarball now
+  31.1 kB / version-verified. Next: dhaupin approves stage + configures TP,
+  then v0.1.0 tag.
+- [2026-10-20 ~08Z] **v0.2 landed — everyone's backend + the Action wrapper.**
+  `src/adapters/` (hono via `.request`, express via `app.handle` + Node-style
+  req/res with Buffer-normalized bodies and MUST-END dispatch — a route that
+  never ends is a finding past the drain window, fastify via `app.inject`;
+  config `adapters: { hono, express, fastify }` wired through the CLI, options
+  vs bare-app shapes detected by own-key heuristic). Seed `state`:
+  enumeration-oracle (foreign ids must deny; id always carried — body/params
+  or querystyle), id-collision-alias (second-owner same-key write must
+  conflict or fork; overwrite detected by DB snapshot diff, not response
+  text; default key derived from ctx.seed — determinism). Seed `volume`:
+  credential-stuffing, storage-fill, cost-amplification — every run reports
+  ops/request; EXPLOITED only on breaks or bound violations (bound via
+  ctx, default 12 ops/request). Runner gets `opts.modules` filter.
+  `action.yml` composite GitHub Action (setup-node + install crashtest +
+  optional target tests + `npx crashtest run --config` with artifact upload
+  of the hardening run). Full suite 59/59; dogfood now 13/13 REFUSED
+  (snapshot regenerated — attack count grew from 8 to 13); check script
+  covers all v0.2 files. v0.2 PRD scope code-complete except: adoption wave
+  against real framework apps (gistory adapter honors hono/express),
+  harness memory-reuse for sub-second reruns.
 - [2026-10-20 ~07Z] **S1.5 landed — crashtest dogfoods itself.** In-repo
   fixture (fixtures/demo/app.js: hardened + vulnerable drafts incl. the
   classic recursive merge), root crashtest.config.js, CLI-level dogfood

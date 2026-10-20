@@ -7,11 +7,12 @@ import { mkdir, writeFile, readFile, access } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { buildHarness } from './harness/harness.js';
+import { registerAdapters } from './adapters/index.js';
 import { loadScenarios } from './scenarios/loader.js';
 import { runCampaign } from './campaigns/runner.js';
 import { buildLedger, diffAgainstBaseline, exitCode, renderMarkdown } from './report.js';
 
-const VERSION = '0.0.1';
+const VERSION = '0.1.0';
 const LEDGER_PATH = 'labs/crashledger.json';
 const REPORT_PATH = 'labs/hardening.md';
 
@@ -114,6 +115,7 @@ async function cmdRun(opts = {}) {
     cost: target.cost ?? {},
     baseUrl: target.baseUrl,
   });
+  if (target.adapters) registerAdapters(harness, target.adapters);
 
   const scenarios = await loadScenarios([
     ...(target.scenarioDirs ?? []),

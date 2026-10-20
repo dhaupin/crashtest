@@ -39,8 +39,42 @@ This repo dogfoods itself: `crashtest run` attacks `fixtures/demo/` and CI
 gates on the committed `labs/crashledger.json` baseline. Seed campaigns:
 `auth` (identity spoofing, secret watermark, privilege escalation), `input`
 (proto-pollution, mutation fuzz floor, oversized fields), `guards`
-(cache hygiene, burst walls + Retry-After). Bring your own scenarios by
-dropping ESM modules into `labs/scenarios/`.
+(cache hygiene, burst walls + Retry-After), `state` (cross-tenant reads, id
+collision/alias overwrite), `volume` (stuffing, storage fill, cost
+amplification — every campaign reports backend ops/request). Bring your own
+scenarios by dropping ESM modules into `labs/scenarios/`.
+
+## Framework targets (v0.2)
+
+The target config can dispatch **any framework that can fire in-process** —
+no server, no sockets, ever:
+
+```js
+// crashtest.config.js
+import { ENV_SPEC, buildRoutes } from './fixtures/demo/app.js';
+export default {
+  env: ENV_SPEC,
+  routes: buildRoutes(),          // plain (ctx) => Response handlers
+  adapters: { hono: honoApp, express: expressApp, fastify: await fastifyApp.ready() },
+  seed: 0xC0FFEE,
+};
+```
+
+Adapters dispatch through the framework's own in-process surface (`hono.request`,
+`app.handle`, `fastify.inject`) and expose the app as a harness route named
+`app` (configurable) — every scenario library runs against it unchanged.
+
+## CI as a GitHub Action (v0.2)
+
+```yaml
+- uses: dhaupin/crashtest@v0   # composite: install + run + gate
+  with:
+    config: crashtest.config.js
+    run-tests: 'true'          # optional: also run the target's own tests
+```
+
+Fails on a NEW EXPLOITED finding or a REFUSED→EXPLOITED regression — never
+on accepted risks.
 
 ## Landscape
 

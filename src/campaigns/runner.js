@@ -9,16 +9,19 @@ import { attackIds } from '../scenarios/contract.js';
  * @param {Harness} harness
  * @param {Array<{origin, module}>} scenarios   loader output
  * @param {object} opts
- * @param {object} [opts.attackCtx]  per-attack ctx overrides: { 'module/attack': {...} }
- * @param {object} [opts.moduleCtx]  module-level ctx defaults: { module: {...} }
- * @param {number} [opts.seed]       campaign seed (0xC0FFEE by default)
+ * @param {string[]} [opts.modules]      run only these scenario modules
+ * @param {object} [opts.attackCtx]      per-attack ctx overrides: { 'module/attack': {...} }
+ * @param {object} [opts.moduleCtx]      module-level ctx defaults: { module: {...} }
+ * @param {number} [opts.seed]           campaign seed (0xC0FFEE by default)
  */
 export async function runCampaign(harness, scenarios, opts = {}) {
   const campaignSeed = opts.seed ?? 0xC0FFEE;
+  const moduleFilter = opts.modules ? new Set(opts.modules) : null;
   const startedAt = new Date().toISOString();
   const rows = [];
 
   for (const { module } of scenarios) {
+    if (moduleFilter && !moduleFilter.has(module.name)) continue;
     const beforeModule = { rowsBefore: harness.log().length };
     for (const attack of module.attacks) {
       const id = `${module.name}/${attack.name}`;

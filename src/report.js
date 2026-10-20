@@ -72,7 +72,7 @@ export function renderMarkdown(run, ledger, diff, opts = {}) {
   const P = (s = '') => lines.push(s);
   P(`# Hardening report`);
   P();
-  P(`> crashtest v${opts.version ?? '0.0.1'} · ${new Date(run.startedAt).toISOString()} · seed ${opts.seed ?? '0xC0FFEE'}`);
+  P(`> crashtest v${opts.version ?? 'unknown'} · ${new Date(run.startedAt).toISOString()} · seed ${opts.seed ?? '0xC0FFEE'}`);
   P(`> CI rule: fail on a NEW EXPLOITED finding, or a REGRESSION of anything previously REFUSED.`);
   P();
   P(`## Findings`);
