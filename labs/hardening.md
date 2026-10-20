@@ -1,6 +1,6 @@
 # Hardening report
 
-> crashtest v0.1.0 · 2026-10-20T02:02:43.135Z · seed 12648430
+> crashtest v0.1.1 · 2026-10-20T08:12:45.446Z · seed 12648430
 > CI rule: fail on a NEW EXPLOITED finding, or a REGRESSION of anything previously REFUSED.
 
 ## Findings

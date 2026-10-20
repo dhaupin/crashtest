@@ -491,3 +491,19 @@
   reference/packs page + nav + playbook links + AGENTS layout. 91/91
   green; dogfood gate stays 13/13 with packs:false; WP stock run-root e2e
   unaffected (17/17).
+
+### 2026-10-20 — wp-money-shapes: the shipped money pack is now plugin-agnostic
+- Question that drove it: "is wordpress-money general, or khf/fm lore?" Honest
+  answer: attack SHAPES were general, vocabulary was khf-specific — wrong
+  bucket for a public pack.
+- Rework: `packs/public/wordpress-money/` → `packs/public/wp-money-shapes/`
+  (@0.3.0). Zero plugin names in the pack; every vocabulary item (postType,
+  metaPaid, metaEmail, optionKey, action, nonceAction, pacedHints) comes from
+  `moduleCtx['wp-money-shapes']` in the target's run-root config. Missing keys
+  degrade to a REFUSED skip (skip-parity, never a false positive).
+- The khf/fm instantiations are these engines rebinding their own vocabulary in
+  their run root's `packs/local/` — private pack, by design, never in repo.
+- Fixed along the way: JS comments inside pack.json (JSON forbids them) caught
+  by the loader's own loud manifest check — exactly the failure mode it exists for.
+- Verified: 91/91 tests, check exit 0, packs verb lists both packs, dogfood 13/13
+  with packs:false (gate decoupled), no stale references outside TASKS history.

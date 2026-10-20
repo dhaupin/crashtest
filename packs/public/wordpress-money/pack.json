@@ -1,7 +1,0 @@
-{
-  "schemaVersion": 1,
-  "name": "wordpress-money",
-  "description": "WP money-flow attacks (nonce-less volley, payment replay, gate burst) — the generic-adapter example pack: plugin vocabulary owned here, worker stays generic.",
-  "version": "0.2.0",
-  "entry": "index.js"
-}

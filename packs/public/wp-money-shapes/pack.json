@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "name": "wp-money-shapes",
+  "description": "Plugin-agnostic WP money-flow shapes (write-volley / txn-replay / gate-burst) for any install exposing a payment or registration flow",
+  "version": "0.3.0",
+  "entry": "index.js"
+}

@@ -52,7 +52,7 @@ reality directly — tracked vs machine-private.
 
 ## Natural extension points
 
-- **Public packs** (like the shipped [`wordpress-money`](https://github.com/dhaupin/crashtest/blob/main/packs/public/wordpress-money/pack.json)
+- **Public packs** (like the shipped [`wp-money-shapes`](https://github.com/dhaupin/crashtest/blob/main/packs/public/wp-money-shapes/pack.json)
   and [`wp-stock-smoke`](https://github.com/dhaupin/crashtest/blob/main/packs/public/wp-stock-smoke/pack.json)
   examples) live in the OSS repo and get versioned, reviewed, and shared.
 - **Private packs** (the khf-style case: money paths guarded by a
@@ -84,6 +84,6 @@ Inventory any run root with:
 
 ```bash
 npx crashtest packs
-# public 0.2.0 — wordpress-money: 3 attacks from public/wordpress-money
+# public 0.3.0 — wp-money-shapes: 3 attacks from public/wp-money-shapes
 #         WP money-flow attacks (nonce-less volley, payment replay, gate burst)…
 ```

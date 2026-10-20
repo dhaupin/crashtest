@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-20T02:02:43.229Z",
+  "generatedAt": "2026-10-20T08:12:45.504Z",
   "findings": [
     {
       "id": "auth/identity-spoof-headers",

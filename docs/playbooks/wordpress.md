@@ -68,9 +68,12 @@ its envelope with `x-ct-fatal` set and the handler turns it into an honest
 500 (never a fake 200). Cost economics ride the REAL database: ops = SQL
 queries (`wp.query` @ 2), plus redirect/die/fatal counters.
 
-The example pack [`packs/public/wordpress-money/index.js`](https://github.com/dhaupin/crashtest/blob/main/packs/public/wordpress-money/index.js)
-ships as the template — point `scenarioDirs` at a run-root copy of it and set
-`moduleCtx['wordpress-money']` for your target's action slug + fixture keys.
+The example pack [`packs/public/wp-money-shapes/index.js`](https://github.com/dhaupin/crashtest/blob/main/packs/public/wp-money-shapes/index.js)
+ships the three plugin-agnostic money shapes (write-volley / txn-replay /
+gate-burst). It carries NO plugin vocabulary of its own: point a run-root copy
+of it (or a rebinding wrapper in `packs/local/`) at your target and set
+`moduleCtx['wp-money-shapes']` — postType, metaPaid, metaEmail, optionKey,
+action, nonceAction, pacedHints.
 
 ## The three rules scenarios MUST obey (cross-repo edition)
 
