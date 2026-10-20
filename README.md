@@ -106,6 +106,7 @@ every npm release traces package → commit (verify the badge on npm).
 
 - **Full docs** → [docs.creadev.org/crashtest](https://docs.creadev.org/crashtest/) (quick start, playbooks, catalog, ledger format — the same content crosslinked from the CLI help)
 - **Site** → [crashtest.creadev.org](https://crashtest.creadev.org) (sourced from this repo's `/web`, prerendered by prestruct)
+- **Dashboard** → [crashtest.creadev.org/dashboard](https://crashtest.creadev.org/dashboard) (render any ledger or run in-browser — same §7 rule, zero backend)
 - **Adopting / releasing** → [`DEPLOY.md`](./DEPLOY.md) (install → adopt → publish runbook → troubleshooting)
 - **Agent/human contributor conventions** → [`AGENTS.md`](./AGENTS.md)
 - **Publish internals** (npm Trusted Publishing, staged route, token policy) → [`docs/publish.md`](./docs/publish.md)

@@ -1,0 +1,178 @@
+/**
+ * src/lib/ledgerModel.js — the dashboard's headless ledger bridge.
+ *
+ * Zero-dependency: shape-detects a crashtest artifact (a committed
+ * `labs/crashledger.json` file or a full run blob from a CI artifact), normalizes
+ * it into a small view model, and computes the §7 CI gate verdict.
+ *
+ * The gate verdict is NOT re-derived here: it imports `diffAgainstBaseline` +
+ * `exitCode` straight from the CLI's own `src/report.js`, the exact functions
+ * `src/cli.js` calls when a run completes. The dashboard therefore renders
+ * exactly what CI would decide — one copy of the rule, no drift.
+ *
+ * Nothing in this file touches the network. Fetching a user-supplied URL is
+ * done by the page; this module stays a pure, testable transformer.
+ */
+
+// These two functions are pure ESM with no imports of their own, so bundling
+// them into the web build is trivial — and the parity is pinned by test.
+import { diffAgainstBaseline, exitCode } from '../../../src/report.js';
+
+export const VERDICTS = {
+  REFUSED:   { glyph: '🛡',  cls: 'v-ok',      label: 'REFUSED' },
+  EXPLOITED: { glyph: '⚡',  cls: 'v-bad',     label: 'EXPLOITED' },
+  BOUNDED:   { glyph: '🔒',  cls: 'v-bounded', label: 'BOUNDED' },
+};
+
+function normVerdict(v) {
+  // An unknown verdict is treated as hit-grade and loudly labeled by the page.
+  return VERDICTS[v] ? v : 'EXPLOITED';
+}
+
+function normalizeFinding(id, verdict, detail, extra = {}) {
+  const slash = String(id).indexOf('/');
+  return {
+    id: String(id),
+    module: extra.module ?? (slash > 0 ? String(id).slice(0, slash) : 'other'),
+    attack: extra.attack ?? (slash > 0 ? String(id).slice(slash + 1) : String(id)),
+    verdict: normVerdict(verdict),
+    unknownVerdict: !VERDICTS[verdict],
+    detail: String(detail ?? ''),
+    owner: extra.owner ?? undefined,
+    bound: extra.bound ?? undefined,
+  };
+}
+
+/** Gate verdict for a run + prior ledger — mirrors src/cli.js's cmdRun exactly. */
+function computeGate(runLike, priorLedger) {
+  const diff = diffAgainstBaseline(runLike, priorLedger);
+  return {
+    status: exitCode(diff) === 0 ? 'pass' : 'fail',
+    newExploited: diff.newExploited,
+    regressed: diff.regressed,
+    acceptedHits: diff.acceptedHits,
+    exitCode: exitCode(diff),
+  };
+}
+
+function counts(findings) {
+  return {
+    total: findings.length,
+    refused: findings.filter((f) => f.verdict === 'REFUSED').length,
+    exploited: findings.filter((f) => f.verdict === 'EXPLOITED').length,
+    bounded: findings.filter((f) => f.verdict === 'BOUNDED').length,
+  };
+}
+
+function groupByModule(findings) {
+  const groups = new Map();
+  for (const f of findings) {
+    if (!groups.has(f.module)) groups.set(f.module, []);
+    groups.get(f.module).push(f);
+  }
+  return [...groups.entries()].map(([module, items]) => ({ module, items }));
+}
+
+/**
+ * parseArtifact(obj, opts) — pure transformer, throws an honest Error on any
+ * shape it does not recognize (the page surfaces that message verbatim):
+ *
+ *   ledger shape: { schemaVersion, findings[], acceptedRisks?, baseline?, generatedAt? }
+ *                 — the committed `labs/crashledger.json`
+ *   run shape:    { rows[], tally?, cost?, startedAt? }   — a full campaign run
+ *                 of the kind a CI artifact could carry.
+ */
+export function parseArtifact(obj, opts = {}) {
+  const sourceLabel = opts.sourceLabel ?? 'inline data';
+  // A ledger file carries no cost numbers — they live in hardening.md. The
+  // bundled dogfood snapshot therefore ships its cost summary as a sidecar;
+  // any user-pasted ledger simply gets cost: null (an honest empty state).
+  const sidecarCost = opts.cost ?? null;
+
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+    throw new Error('Not a JSON object — expected a run or ledger blob.');
+  }
+
+  if (Array.isArray(obj.findings)) {
+    const findings = obj.findings.map((f) =>
+      normalizeFinding(f.id, f.verdict, f.detail, { owner: f.owner, bound: f.bound }),
+    );
+    const acceptedRisks = (obj.acceptedRisks ?? []).filter((a) => a && a.id);
+    const baseline = (obj.baseline ?? []).map(String);
+    // Mirror the CLI: diff the current verdicts against this ledger's own
+    // baseline + acceptedRisks — exactly what cmdRun does before writing.
+    const runLike = {
+      rows: findings,
+      exploited: findings.filter((f) => f.verdict === 'EXPLOITED').map((f) => ({ id: f.id })),
+      refused: findings.filter((f) => f.verdict === 'REFUSED').map((f) => ({ id: f.id })),
+      accepted: findings.filter((f) => f.verdict === 'BOUNDED').map((f) => ({ id: f.id })),
+    };
+    const gate = computeGate(runLike, { baseline, acceptedRisks });
+    return {
+      kind: 'ledger',
+      sourceLabel,
+      schemaVersion: obj.schemaVersion ?? null,
+      generatedAt: obj.generatedAt ?? null,
+      findings,
+      counts: counts(findings),
+      acceptedRisks,
+      baseline,
+      groupings: groupByModule(findings),
+      gate,
+      cost: sidecarCost,
+    };
+  }
+
+  if (Array.isArray(obj.rows)) {
+    const findings = obj.rows
+      .filter((r) => r && r.id)
+      .map((r) => normalizeFinding(r.id, r.verdict, r.detail, {
+        module: r.module, attack: r.attack, owner: r.owner, bound: r.bound,
+      }));
+    const rowCounts = counts(findings);
+    const t = obj.tally ?? null;
+    const theCounts = t
+      ? {
+          total: t.TOTAL ?? rowCounts.total,
+          refused: t.REFUSED ?? rowCounts.refused,
+          exploited: t.EXPLOITED ?? rowCounts.exploited,
+          bounded: t.BOUNDED ?? rowCounts.bounded,
+        }
+      : rowCounts;
+    return {
+      kind: 'run',
+      sourceLabel,
+      schemaVersion: null,
+      generatedAt: obj.startedAt ?? obj.finishedAt ?? null,
+      findings,
+      counts: theCounts,
+      acceptedRisks: (obj.acceptedRisks ?? []).filter((a) => a && a.id),
+      baseline: [],
+      groupings: groupByModule(findings),
+      // A run blob has no committed prior ledger with it — say so honestly.
+      gate: {
+        status: theCounts.exploited > 0 ? 'fail' : 'pass',
+        note: 'single-run view — no committed ledger supplied, so no §7 baseline diff',
+        newExploited: [],
+        regressed: [],
+        acceptedHits: [],
+        exitCode: theCounts.exploited > 0 ? 1 : 0,
+      },
+      cost: obj.cost?.totals
+        ? { totals: obj.cost.totals, perAttack: obj.cost.perAttack ?? [] }
+        : null,
+    };
+  }
+
+  throw new Error(
+    'Unrecognized artifact shape — expected { findings[] } (crashledger.json) ' +
+    'or { rows[] } (full run). Did you paste the markdown report by mistake?',
+  );
+}
+
+export function prettyDate(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
+}

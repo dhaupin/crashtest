@@ -144,3 +144,97 @@ table.attacks td .why { color: var(--ink-soft); font-size: 12.5px; }
   .hero { padding-top: 44px; }
   .nav-links { gap: 10px; }
 }
+
+/* --- dashboard --- */
+.dash-gate {
+  display: flex; align-items: flex-start; gap: 14px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--line); border-radius: 12px;
+  padding: 16px 18px; margin: 6px 0 22px;
+}
+.dash-gate.is-pass { border-left-color: var(--moss); }
+.dash-gate.is-fail { border-left-color: var(--err); }
+.dash-gate-glyph { font-size: 26px; line-height: 1.2; }
+.dash-gate-title { font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 10px; }
+.dash-gate-chip {
+  font-size: 11px; letter-spacing: 0.1em; padding: 2px 8px; border-radius: 5px;
+  border: 1px solid var(--line); color: var(--ink-soft);
+}
+.dash-gate.is-pass .dash-gate-chip { color: var(--moss); border-color: var(--moss); }
+.dash-gate.is-fail .dash-gate-chip { color: var(--err); border-color: var(--err); }
+.dash-gate-sub { color: var(--ink-soft); font-size: 13.5px; margin-top: 2px; }
+.dash-gate-sub code { color: var(--ink); }
+
+.dash-stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px; margin-bottom: 24px;
+}
+.dash-stat {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 10px; padding: 12px 16px;
+}
+.dash-stat b { display: block; font-size: 24px; line-height: 1.2; }
+.dash-stat span {
+  color: var(--ink-soft); font-size: 11.5px; letter-spacing: 0.07em; text-transform: uppercase;
+}
+.dash-stat-meta { min-width: 200px; }
+.dash-stat-meta b { font-size: 14px; font-family: "SF Mono", ui-monospace, Menlo, monospace; }
+
+.dash-error {
+  border: 1px solid var(--err); color: var(--err); border-radius: 10px;
+  padding: 12px 16px; font-size: 13.5px; margin: 16px 0 0;
+}
+
+.dash-load { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 4px 0 8px; }
+.dash-load .btn { cursor: pointer; }
+.dash-file-btn { display: inline-flex; align-items: center; }
+.dash-paste { width: 100%; display: flex; gap: 10px; align-items: flex-start; }
+.dash-paste textarea {
+  flex: 1; min-width: 0; background: var(--code-bg); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
+  font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 12.5px;
+  resize: vertical;
+}
+.dash-urlform { display: flex; gap: 10px; flex: 1; min-width: 260px; }
+.dash-urlform input {
+  flex: 1; min-width: 0; background: var(--code-bg); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px;
+  font-size: 13px; font-family: "SF Mono", ui-monospace, Menlo, monospace;
+}
+
+.dash-modules { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.dash-module-count {
+  color: var(--ink-soft); font-size: 11px; font-weight: 400;
+  border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; margin-left: 6px;
+}
+.dash-rows { display: grid; gap: 8px; }
+.dash-row { display: flex; gap: 10px; align-items: baseline; }
+.dash-row-body { min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.dash-row-id { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 12.5px; color: var(--ink); }
+.v-ok { color: var(--moss); }
+.v-bad { color: var(--err); }
+.v-bounded { color: var(--accent); }
+.dash-row-detail { color: var(--ink-soft); font-size: 12.5px; width: 100%; }
+.dash-row-flag {
+  font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase;
+  border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; color: var(--ink-soft);
+}
+.dash-row-flag-owner { color: var(--moss); border-color: var(--moss); }
+
+.dash-cost { display: grid; gap: 7px; }
+.dash-cost-row { display: flex; gap: 12px; align-items: center; }
+.dash-cost-id {
+  font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 12px;
+  color: var(--ink-soft); width: 240px; flex-shrink: 0;
+}
+.dash-bar { flex: 1; height: 8px; background: var(--raised); border-radius: 6px; overflow: hidden; }
+.dash-bar i { display: block; height: 100%; background: var(--accent); border-radius: 6px; }
+.dash-cost-num {
+  font-size: 12px; color: var(--ink-soft); width: 130px; flex-shrink: 0; text-align: right;
+}
+
+@media (max-width: 720px) {
+  .dash-cost-id { width: 150px; }
+  .dash-cost-num { width: 100px; }
+  .dash-urlform { flex-wrap: wrap; }
+}

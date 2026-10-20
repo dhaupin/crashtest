@@ -30,6 +30,15 @@ export default {
       },
     },
     {
+      path: '/dashboard',
+      priority: '0.7',
+      changefreq: 'weekly',
+      meta: {
+        title: 'Ledger dashboard | Crashtest',
+        description: 'Render any crashtest ledger or run: the §7 CI gate verdict, findings by module, cost economics — computed in your browser with the CLI\'s own rule, no backend.',
+      },
+    },
+    {
       path: '/terms',
       priority: '0.3',
       changefreq: 'yearly',

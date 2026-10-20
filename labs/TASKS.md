@@ -385,3 +385,21 @@
   garbled word in a permalink cell (integration cannot edit; manual fix
   worth 10 seconds). docs/_site gitignored; GH Pages build lands
   docs.creadev.org/crashtest on push.
+- [2026-10-20 ~07Z] **Dashboard shipped — /dashboard renders the ledger with the
+  CLI's own §7 rule.** Headless bridge, zero backend:
+  `web/src/lib/ledgerModel.js` imports `diffAgainstBaseline` + `exitCode`
+  straight from `src/report.js` — the page shows exactly what CI exits with,
+  one copy of the rule (parity pinned by `test/dashboard-ledger.test.js`,
+  12 tests: new exploited flips gate, regression detected via baseline,
+  accepted risk with owner+bound never re-alarms, run-blob shape, unsupported
+  shapes fail loudly). Default view = committed dogfood baseline generated
+  from the REAL artifacts by `web/scripts/make-ledger-snapshot.mjs`
+  (crashledger.json + hardening.md cost economics → `dogfoodSnapshot.js`;
+  regen after dogfood runs change labs/). Users load their own ledger by
+  paste / file upload / CORS raw GitHub URL — nothing server-side, matching
+  the CLI-collects-nothing privacy story. Page: gate banner (exit 0/1),
+  stat strip, findings grouped by module with verdict glyphs, per-attack
+  op-economics bars, accepted-risks table. Prerendered as route #5;
+  paid-for bug: prestruct's incremental cache served three asset
+  generations at once after the first dashboard build — full clean rebuild
+  fixed; `rm -rf .prestruct dist` is the restore ritual if assets go stale.
