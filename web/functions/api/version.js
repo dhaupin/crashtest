@@ -16,6 +16,13 @@ export const onRequestGet = async () => {
     });
     if (!res.ok) throw new Error(`registry ${res.status}`);
     const pkg = await res.json();
+    // Never lie by omission: a registry response without a version string is
+    // an outage in function, not a success — found by crashtest's own
+    // self-dogfood (site/registry-hostile-statuses). The badge contract is
+    // "200 means a version, 502 means say why".
+    if (typeof pkg?.version !== 'string' || !pkg.version) {
+      throw new Error(`registry response carried no version (status ${res.status})`);
+    }
     const version = pkg.version;
     const provenance = Boolean(pkg.dist?.attestations);
     return new Response(

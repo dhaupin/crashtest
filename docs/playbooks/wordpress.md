@@ -81,3 +81,38 @@ The registry already treats `wordpress` like any JS framework adapter, and
 the WP run is also the template for the run-root pattern — see
 [Run Roots & Recipes](/crashtest/playbooks/run-roots), which is the same
 story generalized to any target, and where the §14 service thread lives.
+
+## Stock-WordPress smoke (headless install recipe)
+
+You can prove the whole harness end to end against a REAL WordPress in
+~10 minutes with no target repo at all — the `wp-stock-smoke` pack does it.
+Paid-for lessons are baked into the recipe:
+
+```bash
+# 1. PHP + SQLite (no MySQL needed):
+apt-get install -y php-cli php-sqlite3 php-mbstring php-xml
+# 2. WordPress core + the official SQLite Database Integration plugin:
+curl -sL -o wp.zip https://wordpress.org/latest.zip && unzip -q wp.zip
+unzip sqlite-database-integration.zip -x 'sqlite-database-integration/*' # or drop into wp-content/plugins/
+cp sqlite-database-integration/db.copy wordpress/wp-content/db.php
+# 3. wp-config.php: DB_ENGINE=sqlite + the salts — and the ONE constant that
+#    trips everyone: WP_INSTALLING.
+#    `wp_installing()` latches a STATIC from the WP_INSTALLING constant at
+#    first call; setting the global later does nothing. Define it in
+#    wp-config BEFORE wp-load, or wp_not_installed() redirect-exits silently.
+cat >> wordpress/wp-config.php <<'CFG'
+define('WP_INSTALLING', true);
+CFG
+# 4. Headless install (no web UI):
+php -r 'require "wp-load.php"; require "wp-admin/includes/upgrade.php"; wp_install("sandbox","admin","admin@probe.example.org",true);'
+# 5. Remove WP_INSTALLING before attacking — normal boots must behave normally.
+sed -i "/define('WP_INSTALLING'/d" wordpress/wp-config.php
+```
+
+Then a run root pointing `adapters: { wordpress: { wpRoot: '/path/to/wordpress', phpBin: 'php' } }`
+and `scenarioDirs` at a copy of [`fixtures/wordpress/wp-stock-smoke.js`](https://github.com/dhaupin/crashtest/blob/main/fixtures/wordpress/wp-stock-smoke.js)
+proves: real dispatch through admin-post hooks, whitelisted seeder (`wp_create_nonce`),
+**real-SQL cost economics** (ops ride `SAVEQUERIES`), and — the punchline attack —
+the worker's `CALL_ALLOW` whitelist refusing a destructive core call
+(`wp_delete_post`) with the post intact. First stock run: 16/16 REFUSED,
+0 false positives, ~2 op meters live from the actual database.

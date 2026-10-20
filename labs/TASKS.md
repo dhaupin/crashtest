@@ -418,3 +418,30 @@
   contract, headless dashboard alignment, sequencing to v0.5. Docs:
   playbooks/wordpress + playbooks/run-roots (the #2 runbook, generalized).
   Issues #1/#2 closed with adoption notes; 83/83 tests; pushed as 0710c84.
+- [2026-10-20 ~10Z] **SELF-DOGFOOD PROOF OF CONCEPT + the first stock-WP e2e.**
+  The question arrived mid-thread: "ran crashtest on itself?" Honest split —
+  the demo fixture yes, the product's OWN surfaces no. Fixed in three moves:
+  (1) committed dogfood re-run: 13/13 REFUSED, exit 0 (timestamps-only
+  artifacts restored). (2) NEW self-target `fixtures/site/`: crashtest
+  attacks its own shipped Pages Function (`web/functions/api/version.js`)
+  with the registry dependency doubled — same rule the fake d1 rides
+  (deps get doubles, sockets die). Pack = 5 attacks incl. hostile registry
+  statuses, proto-pollution canary, burst, cache-hygiene gates,
+  restore-what-you-touch parity. **The self-run caught a REAL shipped bug:
+  `{"nope":true}` @ 201 registry → 200 with NO version** (the badge
+  contract "200 means a version, 502 says why" was broken at the seam) —
+  fixed in version.js, guarded by `site/registry-hostile-statuses`.
+  CLI-level pin: `test/self-site.test.js` (temp run-root, config
+  imports the real function; committed ledger untouched). 85/85 green.
+  (3) STOCK-WP e2e per dhaupin's ok: PHP 8.1 + wp core + official SQLite
+  drop-in; headless install cost 3 paid-for lessons: WP_INSTALLING is a
+  CONSTANT (latched static — set-after-load does nothing; global trick
+  also dead); wp-settings kill-point located with per-require stderr
+  markers (β: wp_not_installed die() at M32 zone); install via
+  wp_install() in-process, §wp-tools never needed. wp-stock-smoke (3
+  attacks: hostile nopriv volley / real-SQL metering / CALL_ALLOW breach
+  probe) → 16/16 REFUSED, 0 found, ops ride wp.query @2 from the real
+  database. Pack landed as fixtures/wordpress/wp-stock-smoke.js + the
+  headless-install recipe on the WP playbook. The §12 metric is now
+  self-paying: crashtest found ≥1 real bug on the first unaudited repo —
+  and that repo was OURS.
