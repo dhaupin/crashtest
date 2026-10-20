@@ -170,6 +170,67 @@ export function parseArtifact(obj, opts = {}) {
   );
 }
 
+const PLAN_STATUSES = ['WILL-FIRE', 'NEEDS-ARMING', 'SKIPPED-FILTER'];
+
+/**
+ * parsePlan(obj, opts) — the coverage-plan surface (v2).
+ * Accepts the LAST stdout line of `npx crashtest run --module-plan --json`
+ * (src/plans.js output: { schemaVersion, modules[], packs[], totals } and
+ * normalizes it for the page. Unknown statuses are flagged loudly, never
+ * silently relabeled (same honesty rule as unknown verdicts).
+ */
+export function parsePlan(obj, opts = {}) {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+    throw new Error('Not a JSON object — expected a module-plan blob.');
+  }
+  if (!Array.isArray(obj.modules) || !obj.totals) {
+    throw new Error(
+      'Unrecognized artifact shape — expected a coverage plan ({ modules[], totals }) ' +
+      'from `crashtest run --module-plan --json`. This is neither a ledger, a run blob, nor a plan.',
+    );
+  }
+  const modules = obj.modules.map((m) => {
+    const status = PLAN_STATUSES.includes(m.status) ? m.status : 'SKIPPED-FILTER';
+    return {
+      name: String(m.name ?? '?'),
+      origin: String(m.origin ?? ''),
+      source: String(m.source ?? ''),
+      version: m.version ?? null,
+      status,
+      unknownStatus: !PLAN_STATUSES.includes(m.status),
+      reason: m.reason ?? null,
+      attacks: (m.attacks ?? []).map((a) => ({
+        id: String(a.id ?? '?'),
+        status: PLAN_STATUSES.includes(a.status) ? a.status : status,
+        reason: a.reason ?? null,
+      })),
+    };
+  });
+  return {
+    kind: 'plan',
+    sourceLabel: opts.sourceLabel ?? 'inline plan',
+    schemaVersion: obj.schemaVersion ?? null,
+    generatedAt: null,
+    filter: Array.isArray(obj.filter) ? obj.filter : null,
+    modules,
+    packs: (obj.packs ?? []).map((p) => ({
+      name: String(p.name ?? '?'),
+      visibility: String(p.visibility ?? '?'),
+      version: p.version ?? null,
+      origin: String(p.origin ?? ''),
+      attacks: Number.isFinite(p.attacks) ? p.attacks : null,
+      armedByKey: p.armedByKey ?? null,
+      package: p.package ?? null,
+    })),
+    totals: {
+      attacks: obj.totals.attacks ?? obj.totals.willFire ?? null,
+      willFire: obj.totals.willFire ?? null,
+      needsArming: obj.totals.needsArming ?? null,
+      skippedFilter: obj.totals.skippedFilter ?? null,
+    },
+  };
+}
+
 export function prettyDate(iso) {
   if (!iso) return null;
   const d = new Date(iso);

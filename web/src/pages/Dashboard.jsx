@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import usePageMeta from '../hooks/usePageMeta.js'
-import { parseArtifact, prettyDate, VERDICTS } from '../lib/ledgerModel.js'
+import { parseArtifact, parsePlan, prettyDate, VERDICTS } from '../lib/ledgerModel.js'
 import { dogfood }      from '../lib/dogfoodSnapshot.js'
 
 const SITE_URL = 'https://crashtest.creadev.org'
@@ -21,6 +21,82 @@ function initialModel() {
     // so the snapshot generator ships them as a sidecar blob.
     cost: dogfood.cost,
   })
+}
+
+const PLAN_STATUS = {
+  'WILL-FIRE':      { chip: 'is-fire',   label: 'WILL-FIRE' },
+  'NEEDS-ARMING':   { chip: 'is-arming', label: 'NEEDS-ARMING' },
+  'SKIPPED-FILTER': { chip: 'is-skip',   label: 'SKIPPED-FILTER' },
+}
+
+function PlanTotals({ totals, sourceLabel, filter }) {
+  const items = [
+    { label: 'attack ids', value: totals.attacks },
+    { label: '▶ will-fire', value: totals.willFire },
+    { label: '⚑ needs-arming', value: totals.needsArming },
+    { label: '· filtered', value: totals.skippedFilter },
+  ]
+  return (
+    <div className="dash-stats">
+      {items.map((it) => (
+        <div className="dash-stat" key={it.label}>
+          <b>{it.value ?? '—'}</b>
+          <span>{it.label}</span>
+        </div>
+      ))}
+      <div className="dash-stat dash-stat-meta">
+        <b>coverage plan</b>
+        <span>{sourceLabel}{filter ? ` · filter: ${filter.join(', ')}` : ''}</span>
+      </div>
+    </div>
+  )
+}
+
+function PlanModuleCard({ m }) {
+  const st = PLAN_STATUS[m.status] ?? { chip: 'is-unknown', label: m.status }
+  return (
+    <div className="card" key={m.name}>
+      <h3>
+        <span className="glyph">§</span>
+        {m.name}
+        <span className={`dash-plan-chip ${st.chip}`}>{st.label}</span>
+      </h3>
+      <div className="dash-rows">
+        {m.attacks.map((a) => (
+          <div className="dash-row" key={a.id}>
+            <span className="dash-row-id">{a.id}</span>
+            {a.reason && <span className="dash-row-detail">{a.reason}</span>}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function PlanPacks({ packs }) {
+  if (!packs.length) return <p className="sub">No packs in this inventory — the plan covers the built-in libraries only.</p>
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Pack</th><th>Visibility</th><th>Version</th><th>Origin</th><th>Attacks</th><th>Armed by</th><th>npm package</th></tr>
+        </thead>
+        <tbody>
+          {packs.map((p) => (
+            <tr key={`${p.visibility}/${p.name}`}>
+              <td><code>{p.name}</code></td>
+              <td>{p.visibility}</td>
+              <td>{p.version ?? '—'}</td>
+              <td><code>{p.origin}</code></td>
+              <td>{p.attacks ?? '—'}</td>
+              <td>{p.armedByKey ? <code>{`moduleCtx['${p.armedByKey}']`}</code> : '—'}</td>
+              <td>{p.package ?? '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
 }
 
 function GateBanner({ gate }) {
@@ -265,8 +341,14 @@ export default function Dashboard() {
     setError(null)
     try {
       setModel(parseArtifact(obj, { sourceLabel: label }))
-    } catch (err) {
-      setError(err)
+    } catch (artifactErr) {
+      // v2: a coverage plan is NOT a gate artifact — try the plan bridge
+      // before giving up, and surface both gaps honestly if both fail.
+      try {
+        setModel(parsePlan(obj, { sourceLabel: label }))
+      } catch (_planErr) {
+        setError(artifactErr)
+      }
     }
   }
 
@@ -289,12 +371,25 @@ export default function Dashboard() {
             your browser against a JSON the CLI wrote — the CLI collects nothing and makes no calls,
             and neither does the dashboard.
           </p>
-          <GateBanner gate={model.gate} />
-          <StatStrip
-            counts={model.counts}
-            cost={model.cost}
-            meta={model.kind === 'ledger' ? { cutLabel, sourceLabel: model.sourceLabel } : null}
-          />
+          {model.kind === 'plan' ? (
+            <>
+              <PlanTotals totals={model.totals} sourceLabel={model.sourceLabel} filter={model.filter} />
+              <p className="sub">
+                Coverage plan — what <code>run --module-plan</code> reports BEFORE any request fires.
+                NEEDS-ARMING rows REFUSE-skip at run time; arm them via <code>moduleCtx</code> or accept
+                the skip. No gate verdict here on purpose: plans attack nothing, so they never pass or fail CI.
+              </p>
+            </>
+          ) : (
+            <>
+              <GateBanner gate={model.gate} />
+              <StatStrip
+                counts={model.counts}
+                cost={model.cost}
+                meta={model.kind === 'ledger' ? { cutLabel, sourceLabel: model.sourceLabel } : null}
+              />
+            </>
+          )}
           <Loader
             onSnapshot={() => { setError(null); setModel(initialModel()) }}
             onParse={setParsed}
@@ -308,17 +403,37 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <section className="section">
-        <div className="wrap">
-          <h2>Findings by module</h2>
-          <p className="sub">
-            {model.counts.exploited > 0
-              ? 'Rows marked ⚡ are hit-grade. BOUNDED rows carry owner + bound.'
-              : 'Every row below is a receipt of an attack that did not land.'}
-          </p>
-          <ModuleCards groupings={model.groupings} acceptedRisks={model.acceptedRisks} />
-        </div>
-      </section>
+      {model.kind === 'plan' ? (
+        <>
+          <section className="section">
+            <div className="wrap">
+              <h2>Coverage by module</h2>
+              <p className="sub">Every module the resolved run would carry, and its arming status.</p>
+              <div className="dash-modules">
+                {model.modules.map((m) => <PlanModuleCard key={m.name} m={m} />)}
+              </div>
+            </div>
+          </section>
+          <section className="section">
+            <div className="wrap">
+              <h2>Packs in this inventory</h2>
+              <PlanPacks packs={model.packs} />
+            </div>
+          </section>
+        </>
+      ) : (
+        <section className="section">
+          <div className="wrap">
+            <h2>Findings by module</h2>
+            <p className="sub">
+              {model.counts.exploited > 0
+                ? 'Rows marked ⚡ are hit-grade. BOUNDED rows carry owner + bound.'
+                : 'Every row below is a receipt of an attack that did not land.'}
+            </p>
+            <ModuleCards groupings={model.groupings} acceptedRisks={model.acceptedRisks} />
+          </div>
+        </section>
+      )}
 
       {model.cost && (
         <section className="section">
@@ -329,9 +444,10 @@ export default function Dashboard() {
         </section>
       )}
 
-      <section className="section">
-        <div className="wrap">
-          <h2>Accepted risks</h2>
+      {model.kind !== 'plan' && (
+        <section className="section">
+          <div className="wrap">
+            <h2>Accepted risks</h2>
           <p className="sub">Owner + bound on file. Accepted risks never re-alarm — they are reported, not failed.</p>
           <AcceptedRisks risks={model.acceptedRisks} />
           <p className="sub" style={{ marginTop: 20 }}>
@@ -342,9 +458,10 @@ export default function Dashboard() {
             exactly this artifact with <code>npx crashtest run --json</code> (the last stdout line is the
             same blob this page renders) — the pipeline recipe lives at{' '}
             <a href="https://docs.creadev.org/crashtest/playbooks/run-roots">run roots &amp; recipes</a>.
-          </p>
-        </div>
-      </section>
+            </p>
+          </div>
+        </section>
+      )}
     </>
   )
 }

@@ -561,3 +561,23 @@
   --json flag when no --config was passed (caught by the new test).
 - Verified: 103/103 tests, check exit 0, live verb shows armedBy hints +
   JSON inventory for both shipped packs.
+
+### 2026-10-20 — dashboard v2: the coverage-plan surface
+- The dashboard now accepts all three artifact kinds a run root can emit:
+  ledger (findings + §7 gate), run blob (single-run), and NEW the
+  `run --module-plan --json` coverage plan — shape-detected, one adapter
+  each, loud errors when a shape fits none.
+- Plan view: WILL-FIRE / NEEDS-ARMING / SKIPPED-FILTER totals strip, per-
+  module cards with the arming reason inline, and a packs inventory table
+  (visibility, version, origin, attacks, armedByKey, npm package). No gate
+  verdict on plans by design: they attack nothing, so they never pass/fail CI.
+- Same honesty rules as findings: unknown statuses are FLAGGED, never
+  silently relabeled; the plan bridge refuses ledgers and vice versa.
+- Ledger bridge stays pure/testable (parsePlan in ledgerModel.js); pinned by
+  3 new node-test cases + a live crosscheck: real CLI plan blob → parsePlan
+  (13/13 will-fire) while the ledger still parses with gate pass, and the
+  plan bridge loudly rejects a ledger.
+- CSS: chip vocabulary reuses the existing moss/err/ink-soft tokens; page
+  JSX verified parse-clean via esbuild (no build run needed).
+- Verified: 105/105 tests, check exit 0, CLI plan blob round-trips through
+  the bridge exactly as CI would paste it.

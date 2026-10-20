@@ -238,3 +238,15 @@ table.attacks td .why { color: var(--ink-soft); font-size: 12.5px; }
   .dash-cost-num { width: 100px; }
   .dash-urlform { flex-wrap: wrap; }
 }
+
+/* Coverage-plan chips (module-plan view, v2) — same token vocabulary as the
+   gate banner: moss = healthy, err = action needed, ink-soft = neutral. */
+.dash-plan-chip {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 999px;
+  border: 1px solid var(--ink-soft); color: var(--ink-soft);
+}
+.dash-plan-chip.is-fire   { color: var(--moss); border-color: var(--moss); }
+.dash-plan-chip.is-arming { color: var(--err);  border-color: var(--err); }
+.dash-plan-chip.is-skip   { color: var(--ink-soft); }
+.dash-plan-chip.is-unknown { color: var(--err); border-color: var(--err); }

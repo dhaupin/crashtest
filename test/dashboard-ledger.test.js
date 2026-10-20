@@ -6,7 +6,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { parseArtifact, VERDICTS, prettyDate } from '../web/src/lib/ledgerModel.js';
+import { parseArtifact, parsePlan, VERDICTS, prettyDate } from '../web/src/lib/ledgerModel.js';
 import { dogfood } from '../web/src/lib/dogfoodSnapshot.js';
 
 test('dogfood snapshot parses as a ledger and reports a clean gate (exit 0)', () => {
@@ -128,6 +128,38 @@ test('groupings nest by module prefix; finding rows carry verdict styling data',
   assert.deepEqual(auth.items.map((i) => i.verdict), ['REFUSED', 'BOUNDED']);
   assert.equal(VERDICTS.BOUNDED.cls, 'v-bounded');
   assert.equal(VERDICTS.EXPLOITED.glyph, '⚡');
+});
+
+test('parsePlan: accepts the module-plan blob, normalizes all three statuses, carries packs', () => {
+  const vm = parsePlan({
+    schemaVersion: 1,
+    filter: null,
+    modules: [
+      { name: 'auth', origin: 'library/auth.js', source: 'library', status: 'WILL-FIRE', reason: null,
+        attacks: [{ id: 'auth/a', status: 'WILL-FIRE', reason: null }] },
+      { name: 'wp-money-shapes', origin: 'public/wp-money-shapes/index.js', source: 'pack:public', version: '0.3.0',
+        status: 'NEEDS-ARMING', reason: "vocabulary rides moduleCtx['wp-money-shapes']…",
+        attacks: [{ id: 'wp-money-shapes/a', status: 'NEEDS-ARMING', reason: 'x' }] },
+      { name: 'guards', origin: 'library/guards.js', source: 'library', status: 'SKIPPED-FILTER',
+        attacks: [{ id: 'guards/hygiene-no-store', status: 'SKIPPED-FILTER' }] },
+    ],
+    packs: [{ name: 'wp-money-shapes', visibility: 'public', version: '0.3.0', origin: 'public/wp-money-shapes',
+      attacks: 3, armedByKey: 'wp-money-shapes', package: null }],
+    totals: { attacks: 3, willFire: 1, needsArming: 1, skippedFilter: 1 },
+  }, { sourceLabel: 'coverage plan · CI artifact' });
+  assert.equal(vm.kind, 'plan');
+  assert.equal(vm.totals.needsArming, 1);
+  assert.deepEqual(vm.modules.map((m) => m.status), ['WILL-FIRE', 'NEEDS-ARMING', 'SKIPPED-FILTER']);
+  assert.equal(vm.packs[0].armedByKey, 'wp-money-shapes');
+  assert.match(vm.sourceLabel, /coverage plan/);
+});
+
+test('parsePlan: unknown statuses are flagged (never silently relabeled) and junk shapes fail loudly', () => {
+  const vm = parsePlan({ modules: [{ name: 'x', status: 'QUANTUM', attacks: [] }], totals: {} });
+  assert.equal(vm.modules[0].unknownStatus, true);
+  assert.equal(vm.modules[0].status, 'SKIPPED-FILTER');
+  assert.throws(() => parsePlan({'nope': true}), /coverage plan/);
+  assert.throws(() => parsePlan(null), /Not a JSON object/);
 });
 
 test('prettyDate normalizes an ISO stamp and rejects junk', () => {
