@@ -24,7 +24,7 @@
     <style>
         :root {
             --paper: #16130f; --surface: #100d0a; --raised: #201912;
-            --ink: #ece3d4; --ink-soft: #a3968a; --ink-light: #7a6f63;
+            --ink: #ece3d4; --ink-soft: #a3968a; --ink-light: #94867a; /* was #7a6f63: 3.78:1 on the footer bg fails WCAG AA (4.5:1 needed) — #94867a clears it at 5.25:1 (Lighthouse color-contrast) */
             --accent: #dfa14f; --moss: #7db691; --err: #e07752;
             --line: #3a2e21; --code-bg: #14100c;
             --header-height: 54px; --sidebar-width: 240px;
@@ -193,7 +193,9 @@
         <button class="search-close" id="searchClose" aria-label="Close search">×</button>
     </div>
 
-    <script defer src="/crashtest/pagefind/pagefind.js"></script>
+    <!-- pagefind loads via the dynamic await import() in doSearch() below — a
+         static <script src> classic tag throws "Cannot use 'import.meta' outside
+         a module" (pagefind 1.5.x contains import.meta) on every page. -->
     <script>
     // Sidebar (vant shape)
     function toggleSidebar() {

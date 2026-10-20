@@ -11,8 +11,12 @@ export const onRequestGet = async () => {
     // Plain fetch only: the `cf` cache-hint option is not portable across
     // Pages runtime versions (502s at the platform layer when it's present) —
     // edge caching is left to the response's cache-control header.
+    // Accept header: npm's registry 406s the /latest document route when
+    // asked for the packument content-type (install-v1) — it serves plain
+    // application/json there (found live: the badge 502d site-wide while the
+    // registry itself was healthy).
     const res = await fetch('https://registry.npmjs.org/crashtest/latest', {
-      headers: { accept: 'application/vnd.npm.install-v1+json' },
+      headers: { accept: 'application/json' },
     });
     if (!res.ok) throw new Error(`registry ${res.status}`);
     const pkg = await res.json();

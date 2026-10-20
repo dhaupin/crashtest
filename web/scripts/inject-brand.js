@@ -156,11 +156,16 @@ const ogTags = `
 let jsonLdBlock = ''
 if (typeof buildJsonLd === 'function') {
   const jsonLdData = buildJsonLd.call(config)
-  if (Array.isArray(jsonLdData) && jsonLdData.length > 0) {
-    // Wrap in @graph if multiple objects, or use directly if single
-    const payload = jsonLdData.length === 1
-      ? jsonLdData[0]
-      : { '@context': 'https://schema.org', '@graph': jsonLdData }
+  // Accept a bare object (most common shape), a non-empty array of objects
+  // (wrapped in @graph), or an already-complete payload. Anything else is a
+  // config mistake the user should see, not a silent empty block.
+  const isLdObject = jsonLdData && typeof jsonLdData === 'object' && !Array.isArray(jsonLdData)
+  if (isLdObject || (Array.isArray(jsonLdData) && jsonLdData.length > 0)) {
+    const payload = isLdObject
+      ? jsonLdData
+      : jsonLdData.length === 1
+        ? jsonLdData[0]
+        : { '@context': 'https://schema.org', '@graph': jsonLdData }
     jsonLdBlock = `
     <!-- JSON-LD Structured Data -- generated from ssr.config.js -->
     <script type="application/ld+json">

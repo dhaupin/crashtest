@@ -70,6 +70,15 @@
 
 ## Log
 
+- [2026-10-20 ~19Z] **Web polish round: JSON-LD fix, UI parity probe, dash
+  stale-test sweep.** inject-brand.js silently emitted an empty structured-
+  data block when ssr.config buildJsonLd() returned a bare object (only the
+  array shape was handled) - fixed to accept object / array / complete
+  payload, unusable shapes still fail loudly. New test/web-ui-parity.test.js
+  (7 passing): dogfood snapshot ⇄ ledger-model parity, gate exit-code
+  agreement with the CLI rule, garbage/markdown shape rejection, unknown-
+  verdict flagging, glyph/CSS-class sync. Existing dashboard-ledger tests
+  confirmed current (14/14) after the state/enumeration-oracle skip fix.
 - [2026-10-20 ~18Z] **Fiction gate round 2 (cliches), CLI onboarding, FAQ
   page, and 4 freestruct issues.** Lint iteration 2 landed: the style gate
   now hard-fails the AI-cliche list (delve/leverage/unlock/seamless/

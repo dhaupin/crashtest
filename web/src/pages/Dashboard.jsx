@@ -6,7 +6,7 @@ import { dogfood }      from '../lib/dogfoodSnapshot.js'
 const SITE_URL = 'https://crashtest.creadev.org'
 
 /**
- * src/pages/Dashboard.jsx — "the ledger, rendered."
+ * src/pages/Dashboard.jsx - "the ledger, rendered."
  *
  * The page is fully static at prerender (default view = the committed dogfood
  * baseline) and hydrates like any other route; all state lives client-side.
@@ -17,7 +17,7 @@ const SITE_URL = 'https://crashtest.creadev.org'
 function initialModel() {
   return parseArtifact(dogfood.ledger, {
     sourceLabel: `crashtest dogfood baseline · v${dogfood.meta.version} · seed ${dogfood.meta.seed}`,
-    // the ledger file has no cost numbers — they live in hardening.md,
+    // the ledger file has no cost numbers - they live in hardening.md,
     // so the snapshot generator ships them as a sidecar blob.
     cost: dogfood.cost,
   })
@@ -40,7 +40,7 @@ function PlanTotals({ totals, sourceLabel, filter }) {
     <div className="dash-stats">
       {items.map((it) => (
         <div className="dash-stat" key={it.label}>
-          <b>{it.value ?? '—'}</b>
+          <b>{it.value ?? '-'}</b>
           <span>{it.label}</span>
         </div>
       ))}
@@ -74,7 +74,7 @@ function PlanModuleCard({ m }) {
 }
 
 function PlanPacks({ packs }) {
-  if (!packs.length) return <p className="sub">No packs in this inventory — the plan covers the built-in libraries only.</p>
+  if (!packs.length) return <p className="sub">No packs in this inventory - the plan covers the built-in libraries only.</p>
   return (
     <div className="table-wrap">
       <table>
@@ -86,11 +86,11 @@ function PlanPacks({ packs }) {
             <tr key={`${p.visibility}/${p.name}`}>
               <td><code>{p.name}</code></td>
               <td>{p.visibility}</td>
-              <td>{p.version ?? '—'}</td>
+              <td>{p.version ?? '-'}</td>
               <td><code>{p.origin}</code></td>
-              <td>{p.attacks ?? '—'}</td>
-              <td>{p.armedByKey ? <code>{`moduleCtx['${p.armedByKey}']`}</code> : '—'}</td>
-              <td>{p.package ?? '—'}</td>
+              <td>{p.attacks ?? '-'}</td>
+              <td>{p.armedByKey ? <code>{`moduleCtx['${p.armedByKey}']`}</code> : '-'}</td>
+              <td>{p.package ?? '-'}</td>
             </tr>
           ))}
         </tbody>
@@ -104,19 +104,19 @@ function GateBanner({ gate }) {
   const pieces = [
     gate.newExploited.length > 0 && `${gate.newExploited.length} new exploited (${gate.newExploited.map((r) => r.id).join(', ')})`,
     gate.regressed.length > 0 && `${gate.regressed.length} regressed (${gate.regressed.map((r) => r.id).join(', ')})`,
-    gate.acceptedHits.length > 0 && `${gate.acceptedHits.length} accepted-risk hit(s) — reported, not failed`,
+    gate.acceptedHits.length > 0 && `${gate.acceptedHits.length} accepted-risk hit(s) - reported, not failed`,
   ].filter(Boolean)
   return (
     <div className={`dash-gate ${pass ? 'is-pass' : 'is-fail'}`}>
       <span className="dash-gate-glyph" aria-hidden="true">{pass ? '🛡' : '⚡'}</span>
       <div>
         <div className="dash-gate-title">
-          {pass ? 'CI hold — exit 0' : 'CI gate trips — exit 1'}
+          {pass ? 'CI hold - exit 0' : 'CI gate trips - exit 1'}
           <span className="dash-gate-chip">{pass ? 'PASS' : 'FAIL'}</span>
         </div>
         <div className="dash-gate-sub">
           {pieces.length > 0 ? pieces.join(' · ') : (gate.note ?? 'No new EXPLOITED findings, no REFUSED→EXPLOITED regressions.')}
-          {' '}— same rule the CLI applies via <code>exit(diff)</code>.
+          {' '}- same rule the CLI applies via <code>exit(diff)</code>.
         </div>
       </div>
     </div>
@@ -194,7 +194,7 @@ function CostBars({ cost }) {
   return (
     <>
       <p className="sub">
-        Cost economics — every request is accounted in backend ops. Amplification is bounded by config, not vibes.
+        Cost economics - every request is accounted in backend ops. Amplification is bounded by config, not vibes.
       </p>
       <div className="dash-cost">
         {cost.perAttack.map((p) => (
@@ -213,7 +213,7 @@ function CostBars({ cost }) {
 
 function AcceptedRisks({ risks }) {
   if (!risks.length) {
-    return <p className="sub">No accepted risks on file — nothing finds its way around an owner + bound.</p>
+    return <p className="sub">No accepted risks on file - nothing finds its way around an owner + bound.</p>
   }
   return (
     <div className="table-wrap">
@@ -225,8 +225,8 @@ function AcceptedRisks({ risks }) {
           {risks.map((r) => (
             <tr key={r.id}>
               <td><code>{r.id}</code></td>
-              <td>{r.owner ?? '—'}</td>
-              <td>{r.bound ?? '—'}</td>
+              <td>{r.owner ?? '-'}</td>
+              <td>{r.bound ?? '-'}</td>
               <td>{r.detail ?? ''}</td>
             </tr>
           ))}
@@ -246,7 +246,7 @@ function Loader({ onSnapshot, onParse, onError }) {
     try {
       let obj = textOrObj
       if (typeof obj === 'string') {
-        // The CLI writes markdown next to the ledger — refuse it with a pointer
+        // The CLI writes markdown next to the ledger - refuse it with a pointer
         // to the JSON file, never silently mis-read it.
         if (obj.trimStart().startsWith('#') || /https:\/\/schema\.json/.test(obj)) {}
         obj = JSON.parse(obj)
@@ -274,13 +274,13 @@ function Loader({ onSnapshot, onParse, onError }) {
     try {
       const target = urlText.trim()
       // raw.githubusercontent serves with CORS enabled; the fetch goes straight
-      // from the browser to the repo's file — no proxy, nothing server-side.
+      // from the browser to the repo's file - no proxy, nothing server-side.
       const res = await fetch(target)
       if (!res.ok) throw new Error(`Fetch returned HTTP ${res.status}`)
       const text = await res.text()
       tryParse(text, target)
     } catch (err) {
-      onError(new Error(`${err.message} — CORS-enabled raw JSON URLs work best (e.g. the raw.githubusercontent form)`))
+      onError(new Error(`${err.message} - CORS-enabled raw JSON URLs work best (e.g. the raw.githubusercontent form)`))
     } finally {
       setBusy(false)
     }
@@ -331,7 +331,7 @@ export default function Dashboard() {
     siteUrl: SITE_URL,
     path: '/dashboard',
     title: 'Ledger dashboard | Crashtest',
-    description: 'Render any crashtest ledger or run: the §7 CI gate verdict, findings by module, cost economics — in your browser, against real JSON, no backend.',
+    description: 'Render any crashtest ledger or run: the §7 CI gate verdict, findings by module, cost economics - in your browser, against real JSON, no backend.',
   })
 
   const [model, setModel] = useState(initialModel)
@@ -342,7 +342,7 @@ export default function Dashboard() {
     try {
       setModel(parseArtifact(obj, { sourceLabel: label }))
     } catch (artifactErr) {
-      // v2: a coverage plan is NOT a gate artifact — try the plan bridge
+      // v2: a coverage plan is NOT a gate artifact - try the plan bridge
       // before giving up, and surface both gaps honestly if both fail.
       try {
         setModel(parsePlan(obj, { sourceLabel: label }))
@@ -352,7 +352,7 @@ export default function Dashboard() {
     }
   }
 
-  // Derived corner data — memoized on model only (pure transform).
+  // Derived corner data - memoized on model only (pure transform).
   const cutLabel = useMemo(() => prettyDate(model.generatedAt), [model])
 
   return (
@@ -368,14 +368,14 @@ export default function Dashboard() {
             Point this dashboard at any <code>labs/crashledger.json</code> (or a run blob from a CI
             artifact): it normalizes the artifact, computes the §7 gate with the exact functions the CLI
             uses, breaks findings down by module, and draws the cost-economics bars. All of it runs in
-            your browser against a JSON the CLI wrote — the CLI collects nothing and makes no calls,
+            your browser against a JSON the CLI wrote - the CLI collects nothing and makes no calls,
             and neither does the dashboard.
           </p>
           {model.kind === 'plan' ? (
             <>
               <PlanTotals totals={model.totals} sourceLabel={model.sourceLabel} filter={model.filter} />
               <p className="sub">
-                Coverage plan — what <code>run --module-plan</code> reports BEFORE any request fires.
+                Coverage plan - what <code>run --module-plan</code> reports BEFORE any request fires.
                 NEEDS-ARMING rows REFUSE-skip at run time; arm them via <code>moduleCtx</code> or accept
                 the skip. No gate verdict here on purpose: plans attack nothing, so they never pass or fail CI.
               </p>
@@ -397,7 +397,7 @@ export default function Dashboard() {
           />
           {error && (
             <div className="dash-error" role="alert">
-              Could not render that artifact — {error.message}
+              Could not render that artifact - {error.message}
             </div>
           )}
         </div>
@@ -448,15 +448,15 @@ export default function Dashboard() {
         <section className="section">
           <div className="wrap">
             <h2>Accepted risks</h2>
-          <p className="sub">Owner + bound on file. Accepted risks never re-alarm — they are reported, not failed.</p>
+          <p className="sub">Owner + bound on file. Accepted risks never re-alarm - they are reported, not failed.</p>
           <AcceptedRisks risks={model.acceptedRisks} />
           <p className="sub" style={{ marginTop: 20 }}>
             Want the gate in CI instead of on a page? That is the same verdict, computed inside
-            {' '}<code>npx crashtest run</code> — see the{' '}
+            {' '}<code>npx crashtest run</code> - see the{' '}
             <a href="https://docs.creadev.org/crashtest/reference/exit-rules">exit rules</a> and the{' '}
             <a href="https://docs.creadev.org/crashtest/reference/ledger">ledger format</a>. CI can emit
             exactly this artifact with <code>npx crashtest run --json</code> (the last stdout line is the
-            same blob this page renders) — the pipeline recipe lives at{' '}
+            same blob this page renders) - the pipeline recipe lives at{' '}
             <a href="https://docs.creadev.org/crashtest/playbooks/run-roots">run roots &amp; recipes</a>.
             </p>
           </div>

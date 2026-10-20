@@ -2,19 +2,19 @@ import { Link } from 'react-router-dom'
 import usePageMeta from '../hooks/usePageMeta.js'
 
 export default function Terms() {
-  usePageMeta({ path: '/terms', title: 'Terms of Use | Crashtest', description: 'Plain-language terms for crashtest — what the tool is for, what it is not for, no warranties, MIT open source.' })
+  usePageMeta({ path: '/terms', title: 'Terms of Use | Crashtest', description: 'Plain-language terms for crashtest - what the tool is for, what it is not for, no warranties, MIT open source.' })
   return (
     <section className="section" style={{ paddingTop: 56 }}>
       <div className="wrap legal">
         <p className="eyebrow">Plain language, no theater</p>
         <h2>Terms of Use</h2>
-        <p className="sub">Web version 2026-10-20 — the long-form lives in the <a href="https://github.com/dhaupin/crashtest">repo</a>.</p>
+        <p className="sub">Web version 2026-10-20 - the long-form lives in the <a href="https://github.com/dhaupin/crashtest">repo</a>.</p>
 
         <h3>What this tool is for</h3>
         <p>
           Crashtest is an open-source testing assistant. It fires adversarial
-          tests at <strong>code you own</strong> — server handlers, routes,
-          state, cost logic — inside your own Node process, and reports what
+          tests at <strong>code you own</strong> - server handlers, routes,
+          state, cost logic - inside your own Node process, and reports what
           held and what didn't. Use it on your apps, your team's apps, or
           projects where you're invited to test. Every request it fires is an
           in-process call: nothing leaves your machine.
@@ -22,10 +22,10 @@ export default function Terms() {
 
         <h3>What it is not for</h3>
         <ul>
-          <li><strong>Systems you don't own</strong> — no testing code, servers, or services belonging to other people</li>
-          <li><strong>Anything malicious or illegal</strong> — by design the tool targets code, not people, and we mean that literally</li>
-          <li><strong>Tooling attacks against third parties</strong> — if it isn't your repo, it isn't your target</li>
-          <li><strong>Merch or exploit development</strong> — findings belong in fixes, not showcase weaponization</li>
+          <li><strong>Systems you don't own</strong> - no testing code, servers, or services belonging to other people</li>
+          <li><strong>Anything malicious or illegal</strong> - by design the tool targets code, not people, and we mean that literally</li>
+          <li><strong>Tooling attacks against third parties</strong> - if it isn't your repo, it isn't your target</li>
+          <li><strong>Merch or exploit development</strong> - findings belong in fixes, not showcase weaponization</li>
         </ul>
 
         <h3>No warranty, no blame, no stress</h3>
@@ -39,7 +39,7 @@ export default function Terms() {
         </p>
         <p>
           To the maximum extent law allows, the authors are not liable for any
-          damages that come from using it. You test at your own risk — which,
+          damages that come from using it. You test at your own risk - which,
           granted, is rather the point.
         </p>
 
@@ -59,7 +59,7 @@ export default function Terms() {
 
         <h3>Changes</h3>
         <p>
-          These terms may be adjusted as the project grows — material changes
+          These terms may be adjusted as the project grows - material changes
           land with a date bump, and the repo history keeps every prior
           version.
         </p>
