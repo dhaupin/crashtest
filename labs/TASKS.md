@@ -23,10 +23,13 @@
 
 - [ ] **S1.0** Repo skeleton: package.json (bin: `crashtest`), `src/`,
   tsconfig, CI workflow (typecheck + tests + report-snapshot).
-- [ ] **S1.1** `src/harness/`: explicit route table (PRD open question: static
+- [x] **S1.1** `src/harness/`: explicit route table (PRD open question: static
   import analysis is v0.2/v0.3 — no convention sniffing yet), fake transport
   (Request/Response objects, never sockets), in-memory D1 shim + KV/env
   bindings, op counters + cost meters per request.
+  — DONE 2026-10-20 counters.js / d1.js (SQL subset, uniques throw page-D1
+  messages, textual-order param binding) / kv.js / env.js / harness.js
+  (threw-first, never a fake 500); 27/27 node:test green.
 - [ ] **S1.2** `src/scenarios/`: port gistory suites → `auth`, `input`, 
   `guards` libraries under the §6 contract. Delete gistory-specific bits
   (deviceId regex fixtures etc.) during the port, not after.
@@ -42,6 +45,19 @@
 
 ## Log
 
+- [2026-10-20 ~04Z] **S1.1 harness core landed.** `src/harness/` complete:
+  counters (declared op set + weighted cost + deltas), FakeD1 (SELECT/
+  INSERT/UPDATE/DELETE subset against seeded tables; UNIQUE constraints throw
+  D1-shaped `UNIQUE constraint failed: t.col` — takeover/row-move campaigns
+  depend on it; params bind in textual order incl. SET-before-WHERE; `COUNT(*)`;
+  gaps throw with gap-naming messages so DISCOVER surfaces them), FakeKV
+  (get/put/delete/list, TTL accepted-ignored for determinism), fake env
+  factory (kv seed + d1 tables + secrets), Harness (explicit route table,
+  in-process WHATWG Request → handler → Response; uncaught handler errors
+  surface as `threw:` records — NEVER converted into fake 500s; per-run op
+  deltas + whole-campaign cost totals). 27/27 node:test green. Not yet:
+  route-table loading from user code (`crashtest run`), cost economics from
+  run-deltas → S1.3/S1.4.
 - [2026-10-20 ~03Z] **Name-stake release staged (S1.0 partial, done).** Repo now
   carries a publishable 0.0.1: package.json (exact name `crashtest`, zero
   runtime deps, node >=18.17, MIT), bin + src/cli.js (`init` scaffolds
