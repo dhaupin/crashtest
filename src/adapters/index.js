@@ -4,10 +4,16 @@
 // One dispatching app per route — adapters compose with plain `routes`.
 
 import { registerHono } from './hono.js';
-import { registerExpress } from './express.js';
+import { registerExpress, registerNodeDispatch, dispatchNodeRequest } from './express.js';
 import { registerFastify } from './fastify.js';
 
-const REGISTRY = { hono: registerHono, express: registerExpress, fastify: registerFastify };
+// `node` takes a raw (nodeReq, nodeRes) => void handler — the shape of
+// undecorated http.createServer handlers (vant Server._handleRequest, etc.).
+const REGISTRY = { hono: registerHono, express: registerExpress, fastify: registerFastify, node: registerNodeDispatch };
+
+// Convenience re-exports — `require('crashtest/adapters')` gives power users
+// direct access without filename spelunking.
+export { registerHono, registerExpress, registerNodeDispatch, registerFastify, dispatchNodeRequest };
 
 /** Apply every adapter from a config's `adapters` map onto a harness. */
 export function registerAdapters(harness, adapters = {}) {

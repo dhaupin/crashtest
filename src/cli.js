@@ -12,7 +12,7 @@ import { loadScenarios } from './scenarios/loader.js';
 import { runCampaign } from './campaigns/runner.js';
 import { buildLedger, diffAgainstBaseline, exitCode, renderMarkdown } from './report.js';
 
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 const LEDGER_PATH = 'labs/crashledger.json';
 const REPORT_PATH = 'labs/hardening.md';
 
@@ -116,6 +116,17 @@ async function cmdRun(opts = {}) {
     baseUrl: target.baseUrl,
   });
   if (target.adapters) registerAdapters(harness, target.adapters);
+  // routeAliases: name => { route: baseName, path, method } — maps the
+  // scenario vocabulary (enroll/device/admin/kvwrite/burst) onto real paths
+  // of ONE dispatching app (raw Node or framework adapter). Read the docs:
+  // DEPLOY.md "routeAliases".
+  if (target.routeAliases) {
+    for (const [name, spec] of Object.entries(target.routeAliases)) {
+      const { route, path, method } = typeof spec === 'string' ? { route: spec } : spec;
+      if (!route) throw new TypeError(`routeAliases.${name}: needs a source "route"`);
+      harness.aliasRoute(name, route, { path, method });
+    }
+  }
 
   const scenarios = await loadScenarios([
     ...(target.scenarioDirs ?? []),

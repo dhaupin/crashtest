@@ -104,6 +104,7 @@ every npm release traces package → commit (verify the badge on npm).
 
 ## Docs map
 
+- **Site** → [crashtest.creadev.org](https://crashtest.creadev.org) (sourced from this repo's `/web`, prerendered by prestruct)
 - **Adopting / releasing** → [`DEPLOY.md`](./DEPLOY.md) (install → adopt → publish runbook → troubleshooting)
 - **Agent/human contributor conventions** → [`AGENTS.md`](./AGENTS.md)
 - **Publish internals** (npm Trusted Publishing, staged route, token policy) → [`docs/publish.md`](./docs/publish.md)

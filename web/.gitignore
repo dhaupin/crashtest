@@ -1,0 +1,6 @@
+# NOTE: unlike prestruct's default, crashtest's ssr.config.js is the site's
+# identity (public config, no secrets) — it is tracked, not ignored.
+# Prestruct cache (generated at build time)
+.prestruct/cache/
+node_modules/
+dist/

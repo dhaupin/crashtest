@@ -211,3 +211,82 @@
 - [2026-10-19T23:59Z] Still watching vant #119/#120/#121 (org-grant boot
   hydration, dept/team name=parent-id, health CWD false-negatives) per rook
   goals — re-test org-grant hydration when a fix lands.
+- [2026-10-20T04:10Z] First real external adoption test done: crashtest 0.1.0
+  (tarball, real `npm install`) driven against a test install of vant's raw
+  `http.createServer` server (`_handleRequest`), authRequired ON, real `/call`
+  MCP door + status endpoints, in-process via the new node adapter surface.
+  Crashtest bugs found + fixed at cause, all regression-tested (61/61 green,
+  `check`+dogfood exit 0):
+
+  - bare `./adapters` subpath `ERR_PACKAGE_PATH_NOT_EXPORTED` → explicit export
+    alias; registry re-exports registerExpress/registerFastify/registerHono/
+    registerNodeDispatch/dispatchNodeRequest.
+  - fake req missed the event-style raw-server surface vant touches
+    (`req.setTimeout`, `req.on('data'/'end')`, `req.destroy`) → toNodeReq is now
+    a real mini-Node req (EventEmitter, nextTick body events, record-and-forget
+    idle guard, listener-dropping destroy). Fixed the vant-pass phantom
+    `Unhandled Rejection: req.destroy is not a function` too.
+  - `dispatchNodeRequest` (new export) lost the drain-to-res.end semantics on
+    first cut and read the res before event handlers ended it → bounded drain
+    restored, races the WHOLE settle against the timeout cap.
+  - `state/id-collision-alias` crashed (`harness.env.DB.snapshot` undefined) on
+    targets with no DB binding instead of refusing gracefully → skips with a
+    "declare env.DB" hint like its siblings.
+
+  VANT findings (filed from the labs/hardening.md report of the fixed-wire run;
+  run-1 REFUSEDs on the same attacks were false-passes from the broken wire):
+
+  - guard/hygiene: 2xx writes over POST /call ship NO Cache-Control (shared
+    caches may replay writes).
+  - burst abuse: 11/50 handled requests 500'd mid-burst (5xx at request 39)
+    instead of shedding with 429 — vant's own QoS limiter logged
+    "Global rate exceeded: 60/60" but requests still failed as 500.
+  - never-fail-mutations: 64/64 hostile bodies → 500 (first: {"id":2147483648})
+    instead of 400-class rejection.
+  - credential-stuffing (60/60) and storage-fill (30/30) under load likewise
+    land as 500s, not honest refusals.
+
+  Good refusals that held: oversize 413, foreign-id oracle denied, proto
+  pollution did not stick, escal/spoof secrets never left the env.
+
+  File changes this session (uncommitted): package.json (./adapters export),
+  src/adapters/index.js (re-exports), src/adapters/express.js (mini-Node req,
+  drainUntil, dispatchNodeRequest), DEPLOY.md (node-adapter recipe),
+  test/v02.test.js (2 new regression tests). Remember cli.js `modules` +
+  docs sweep from earlier this session are also riding along.
+- [2026-10-20T05:05Z] Adapter-learnings wave shipped on crashtest itself (all
+  learned against REAL frameworks + the vant box, regression-tested 61/61):
+  - `routeAliases` config knob + `harness.aliasRoute()` + `rewriteRequest`
+    (path/query-pass-through/method, `duplex:'half'` for streamed bodies):
+    maps the scenario vocabulary onto the real paths of ONE dispatching app —
+    the exact friction that made the first framework smoke report
+    harness-faults-as-EXPLOITED.
+  - `registerRoute` now throws on duplicate names (silent overwrite =
+    requests leaking to the wrong handler, house rule: fail at cause).
+  - `toNodeReq` is a REAL streams.Readable now: express internals
+    (finalhandler.unpipe) touch raw stream state; EventEmitter stand-ins
+    crash. Idle-guard setTimeout stays record-and-forget (no wire, no lie).
+  - express adapter builds a REAL `http.ServerResponse` on its own socket
+    PassThrough (express re-prototypes the fake res onto its chain; shared
+    socket stalls OutgoingMessage._writeRaw flush; separate res socket
+    mirrors real HTTP). Verified: full 404/finalhandler error path settles.
+  - express path: winner timer is cleared (no unhandled rejections).
+  - Real-framework smokes (tarball install): express 13/13 REFUSED, fastify
+    13/13 REFUSED, hono 12/13 (the 1 EXPLOITED = the test app's own
+    500-on-hostile-shape — scanner working).
+- [2026-10-20T05:05Z] Site shipped: `web/` (prestruct scaffold copied from
+  dhaupin/prestruct init, identity-retuned) — React+Vite, prerendered SEO
+  (/, /attacks, 404, sitemap), Bolete-inspired dark lab theme, Pages
+  Function `web/functions/api/version.js` (live npm version + provenance,
+  edge-cached 5m). Build: `cd web && npm run build` → `web/dist` for
+  crashtest.creadev.org. Site is a separate workspace: npm package
+  `files` must stay /web-free (checked). Notes: prestruct's init template
+  lacks example/vite.config.js — without plugin-react the classic JSX
+  runtime breaks prerender with "React is not defined" (copied the config).
+- [2026-10-20T05:05Z] vant issues filed: #214 (Cache-Control missing on
+  /call writes), #215 (500-instead-of-429/400 under burst/hostile/stuffing/
+  fill — throw-based chain lands guard outcomes as server faults). gh app
+  auth can create but not edit issues (403 "not accessible by integration")
+  — edit #214's one garbled sentence manually when convenient.
+- [2026-10-20T05:05Z] Version bumped 0.1.0 → 0.1.1 (package.json +
+  src/cli.js VERSION) for the next tag when the user wants to ship.

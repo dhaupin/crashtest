@@ -1,6 +1,6 @@
 {
   "name": "crashtest",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "In-process adversarial QA for agent-built app code — redteam/fuzz/barrage/guards campaigns against real handlers, no sockets, no bans. (v0.0.x placeholder; full harness ships in 0.1.)",
   "license": "MIT",
   "type": "module",
@@ -10,6 +10,12 @@
   "main": "src/cli.js",
   "exports": {
     ".": "./src/cli.js",
+    "./adapters": "./src/adapters/index.js",
+    "./adapters/express.js": "./src/adapters/express.js",
+    "./adapters/fastify.js": "./src/adapters/fastify.js",
+    "./adapters/hono.js": "./src/adapters/hono.js",
+    "./adapters/index.js": "./src/adapters/index.js",
+    "./scenarios/contract.js": "./src/scenarios/contract.js",
     "./package.json": "./package.json"
   },
   "files": [

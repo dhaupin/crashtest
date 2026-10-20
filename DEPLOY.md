@@ -51,6 +51,11 @@ export default {
   //   hono: honoApp,                 // via app.request()
   //   express: expressApp,           // via app.handle(); routes must end their response
   //   fastify: await fastifyApp.ready(), // via app.inject() — routes exist only after ready()
+  //   // Raw http.createServer handlers (no framework) via 'node':
+  //   //   adapters: { node: { handle: (nodeReq, nodeRes) => myServer._handleRequest(nr, res) } }
+  //   // Multi-route servers: import dispatchNodeRequest from 'crashtest/adapters'
+  //   //   and declare plain `routes:` entries that rewrite the path onto the
+  //   //   real endpoints, then call dispatchNodeRequest(handle, request).
   // },
 
   // Fake backend mirrors what ctx.env carries — D1 tables (seed rows +
@@ -63,7 +68,11 @@ export default {
   // moduleCtx: { input: { route: 'enroll', iterations: 32 } },
   // attackCtx: { 'volume/cost-amplification': { maxOpsPerRequest: 6 } },
   // scenarioDirs: ['test/attacks'],  // extra scenario modules
-};
+  // routeAliases: {                // map scenario vocabulary onto real paths
+  //   enroll:  { route: 'app', path: '/enroll' },   // of ONE dispatching
+  //   device:  { route: 'app', path: '/device' },   // app (raw Node or a
+  //   kvwrite: { route: 'app', path: '/enroll' },   // framework adapter)
+  // },
 ```
 
 **Seeding the env** is the security-sensitive part: declare tables with the

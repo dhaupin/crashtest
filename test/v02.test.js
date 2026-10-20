@@ -253,3 +253,41 @@ test('volume/storage-fill: fills without breaks are REFUSED with growth numbers;
   assert.equal(skip.verdict, 'REFUSED');
   assert.equal(skip.skipped, true);
 });
+
+test('adapters/dispatchNodeRequest: raw server gets the event surface (on data/end, setTimeout, destroy) — vant-shape', async () => {
+  const { dispatchNodeRequest } = await import('../src/adapters/express.js');
+  // Event-style raw handler: collects via req.on, guards via req.setTimeout,
+  // cleans up via req.destroy() (the old surface threw on all three).
+  const seen = { chunks: [], timedOut: false, destroyed: false };
+  const rawHandler = (req, res) => {
+    req.setTimeout(5000, () => { seen.timedOut = true; });
+    req.on('data', (chunk) => seen.chunks.push(String(chunk)));
+    req.on('end', () => {
+      seen.destroyed = typeof req.destroy === 'function';
+      req.destroy();
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ got: seen.chunks.join(''), destroyable: seen.destroyed }));
+    });
+  };
+  const res = await dispatchNodeRequest(rawHandler, new Request('https://x.local/call', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ tool: 'probe' }),
+  }));
+  const body = JSON.parse(await res.text());
+  assert.equal(res.status, 200);
+  assert.equal(body.got, JSON.stringify({ tool: 'probe' }));
+  assert.equal(body.destroyable, true);
+  assert.equal(seen.timedOut, false);
+});
+
+test('scenarios/state id-collision-alias: missing DB binding REFUSES instead of crashing', async () => {
+  const [state] = (await loadScenarios()).map(l => l.module).filter(m => m.name === 'state');
+  const alias = state.attacks.find(a => a.name === 'id-collision-alias');
+  // Harness WITHOUT any d1 binding — the crash case the fix closes.
+  const h = buildHarness({ enroll: async () => Response.json({ ok: true }) }, { env: {} });
+  const r = await alias.run(h, { route: 'enroll' });
+  assert.equal(r.verdict, 'REFUSED', r.detail);
+  assert.equal(r.skipped, true);
+  assert.match(r.detail, /no DB binding/);
+});

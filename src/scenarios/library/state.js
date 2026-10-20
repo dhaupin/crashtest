@@ -66,6 +66,13 @@ export default {
       if (!harness.listRoutes().includes(route)) {
         return refused(`route "${route}" not declared on this target — alias check skipped`, { route, skipped: true });
       }
+      // Row-level aliasing needs a row snapshot to diff — targets that
+      // declare no D1 binding have no snapshot to read, so say so instead
+      // of crashing (learned against un-audited external targets where the
+      // binding simply isn't there).
+      if (typeof harness.env?.DB?.snapshot !== 'function') {
+        return refused(`no DB binding declared on this target (env.DB.snapshot missing) — alias check skipped (declare env.DB for coverage)`, { route, skipped: true });
+      }
       const key = ctx.key ?? `alias-${(ctx.seed ?? 0xC0FFEE) % 100000}`; // deterministic — aliasing findings must reproduce
       const first = { key, owner: 'owner-a', ...(ctx.extraFirst ?? {}) };
       const second = { key, owner: 'owner-b', ...(ctx.extraSecond ?? {}) };
