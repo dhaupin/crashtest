@@ -3,12 +3,13 @@ export default function Footer() {
     <footer className="footer">
       <div className="wrap footer-inner">
         <span>🛡 crashtest — the fake transport is the product</span>
-        <span>·</span>
-        <a href="https://github.com/dhaupin/crashtest" target="_blank" rel="noreferrer">Source</a>
-        <a href="https://www.npmjs.com/package/crashtest" target="_blank" rel="noreferrer">npm</a>
-        <a href="https://search.sigstore.dev/?logIndex=3329750463" target="_blank" rel="noreferrer">Sigstore provenance</a>
-        <span>·</span>
-        <span>rook-built</span>
+        <a href="https://docs.creadev.org/crashtest/" >Docs</a>
+        <a href="/terms">Terms</a>
+        <a href="/privacy">Privacy</a>
+        <a href="https://github.com/dhaupin/crashtest">Source</a>
+        <a href="https://www.npmjs.com/package/crashtest">npm</a>
+        <a href="https://search.sigstore.dev/?logIndex=3329750463">Provenance</a>
+        <span>· Made by <a href="https://creadev.org" target="_blank" rel="noopener" className="madeby">Rook @ Creadev.org</a></span>
       </div>
     </footer>
   )

@@ -1,0 +1,105 @@
+---
+# Lean docs layout for Crashtest — same shape as vant's (sidebar from
+# _data/nav.yml, kramdown-rendered content), minus pagefind/prism extras.
+# Self-contained: no external CSS/JS, no build step, GitHub-Pages native.
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page.title | default: "Crashtest Docs" }} · Crashtest</title>
+    <meta name="description" content="{{ page.description | default: 'Crashtest: seeded, in-process adversarial QA for agent-built apps.' }}">
+    <link rel="canonical" href="{{ page.url | absolute_url | replace: '.html', '' }}">
+    {% if page.noindex %}<meta name="robots" content="noindex">{% endif %}
+    <meta property="og:title" content="{{ page.title | default: 'Crashtest Docs' }}">
+    <meta property="og:description" content="{{ page.description | default: 'Crashtest: seeded, in-process adversarial QA for agent-built apps.' }}">
+    <meta property="og:url" content="{{ page.url | absolute_url | replace: '.html', '' }}">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Crashtest Docs">
+    <link rel="icon" type="image/svg+xml" href="/crashtest/icon.svg">
+    <meta name="color-scheme" content="dark">
+    <style>
+        :root {
+            --paper: #16130f; --surface: #100d0a; --raised: #201912;
+            --ink: #ece3d4; --ink-soft: #a3968a;
+            --accent: #dfa14f; --moss: #7db691; --err: #e07752;
+            --line: #3a2e21; --code-bg: #14100c;
+        }
+        * { box-sizing: border-box; }
+        html { background: var(--paper); color-scheme: dark; }
+        body { margin: 0; color: var(--ink); background: var(--paper);
+            font-family: Inter, "SF Pro Text", system-ui, -apple-system, "Segoe UI", sans-serif;
+            font-size: 15px; line-height: 1.65; }
+        .shell { display: flex; max-width: 1080px; margin: 0 auto; min-height: 100vh; }
+        aside { width: 230px; flex-shrink: 0; padding: 28px 10px 40px 20px;
+            border-right: 1px solid var(--line); }
+        main { flex: 1; padding: 40px 36px 80px; min-width: 0; }
+        .brand { display: flex; align-items: baseline; gap: 8px; text-decoration: none; color: var(--ink);
+            font-weight: 800; letter-spacing: .02em; margin: 0 12px 22px; font-size: 18px; }
+        .brand-crash { color: var(--accent); }
+        nav { font-size: 13.5px; }
+        nav .group { margin: 0 0 18px; }
+        nav .group-title { color: var(--ink-soft); font-size: 11px; letter-spacing: .12em;
+            text-transform: uppercase; margin: 0 12px 6px; }
+        nav a { display: block; color: var(--ink-soft); text-decoration: none; padding: 3px 12px;
+            border-radius: 6px; }
+        nav a:hover { color: var(--ink); background: var(--raised); }
+        nav a.active { color: var(--accent); background: var(--raised); }
+        h1 { font-size: 30px; margin: 0 0 18px; letter-spacing: -.01em; line-height: 1.2; }
+        h2 { font-size: 20px; margin: 30px 0 10px; }
+        h3 { font-size: 16px; margin: 22px 0 8px; }
+        p, ul, ol { color: var(--ink); }
+        a { color: var(--accent); }
+        ul { padding-left: 22px; }
+        code { font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 13px;
+            background: var(--code-bg); border: 1px solid var(--line); border-radius: 4px;
+            padding: 1px 5px; }
+        pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+            padding: 14px 16px; overflow-x: auto; font-size: 13px; line-height: 1.6; }
+        pre code { background: none; border: none; padding: 0; }
+        blockquote { margin: 0; padding: 12px 18px; color: var(--ink-soft);
+            border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 8px 8px 0; }
+        table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+        th { text-align: left; background: var(--raised); padding: 8px 12px; border-bottom: 1px solid var(--line); }
+        td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+        .doc-footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line);
+            color: var(--ink-soft); font-size: 13px; }
+        .doc-footer a { color: var(--ink-soft); }
+        @media (max-width: 800px) {
+            .shell { flex-direction: column; }
+            aside { width: 100%; border-right: 0; border-bottom: 1px solid var(--line); padding-bottom: 14px; }
+            main { padding: 26px 20px 60px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <aside>
+            <a class="brand" href="{{ '/crashtest/' | relative_url }}"><span class="brand-crash">crash</span>test <span style="color:var(--ink-soft);font-size:11px">docs</span></a>
+            <nav>
+                {% for group in site.data.nav %}
+                <div class="group">
+                    <div class="group-title">{{ group.title }}</div>
+                    {% for item in group.items %}
+                    <a href="{{ item.url | relative_url }}{% if item.url contains 'http' %}{% endif %}"
+                       {% if item.external == true %}target="_blank" rel="noopener"{% endif %}
+                       {% assign this_abs = item.url | relative_url %}{% if page.url != '/' %}{% endif %}>{{ item.title }}</a>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </nav>
+        </aside>
+        <main>
+            {{ content }}
+            <div class="doc-footer">
+                Crashtest is <a href="https://github.com/dhaupin/crashtest">open source</a> ·
+                site <a href="https://crashtest.creadev.org/">crashtest.creadev.org</a> ·
+                <a href="https://crashtest.creadev.org/terms">terms</a> ·
+                <a href="https://crashtest.creadev.org/privacy">privacy</a> ·
+                made by <a href="https://creadev.org" target="_blank">Rook @ Creadev.org</a>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

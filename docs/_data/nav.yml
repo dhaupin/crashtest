@@ -1,0 +1,48 @@
+# Crashtest docs nav (freestruct menu layer format — same as vant's).
+# URLs are /crashtest/<permalink>.
+
+- title: Getting Started
+  items:
+  - title: Overview
+    url: /crashtest/getting-started/
+  - title: Quick Start
+    url: /crashtest/getting-started/quick-start
+  - title: Installation
+    url: /crashtest/getting-started/install
+  - title: Configuration
+    url: /crashtest/getting-started/config
+
+- title: Playbooks
+  items:
+  - title: Overview
+    url: /crashtest/playbooks/
+  - title: Plain Handlers
+    url: /crashtest/playbooks/plain-handlers
+  - title: Express
+    url: /crashtest/playbooks/express
+  - title: Hono
+    url: /crashtest/playbooks/hono
+  - title: Fastify
+    url: /crashtest/playbooks/fastify
+  - title: Raw Node Servers
+    url: /crashtest/playbooks/raw-node
+  - title: CI Gate (GitHub Action)
+    url: /crashtest/playbooks/github-action
+
+- title: Reference
+  items:
+  - title: The Attack Catalog
+    url: /crashtest/reference/attacks
+  - title: The Hardening Ledger
+    url: /crashtest/reference/ledger
+  - title: Exit Rules
+    url: /crashtest/reference/exit-rules
+
+- title: About
+  items:
+  - title: Principles
+    url: /crashtest/about/principles
+  - title: Site Terms
+    url: https://crashtest.creadev.org/terms
+  - title: Site Privacy
+    url: https://crashtest.creadev.org/privacy

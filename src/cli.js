@@ -26,8 +26,11 @@ Usage:
   crashtest --version
   crashtest --help
 
-Campaigns (v0.1 target): redteam / fuzz / barrage / guards
+Modules:   auth / guards / input / state / volume (plus your own via labs/scenarios/)
 Verdicts:  REFUSED (defense held) · EXPLOITED (you got hit) · BOUNDED (accepted risk, has owner + bound)
+
+Docs:      https://docs.creadev.org/crashtest/
+Site:      https://crashtest.creadev.org/
 `;
 
 function repoRoot() {

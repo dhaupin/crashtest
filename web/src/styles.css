@@ -121,6 +121,14 @@ table.attacks td .why { color: var(--ink-soft); font-size: 12.5px; }
 .field-report .bad { color: var(--err); }
 .field-report .ok { color: var(--moss); }
 
+/* --- legal pages --- */
+.legal h3 { margin: 26px 0 8px; font-size: 16px; }
+.legal ul { color: var(--ink-soft); padding-left: 22px; }
+.legal ul li { margin: 6px 0; }
+.legal ul li strong { color: var(--ink); }
+
+.footer a.madeby { color: var(--accent); font-weight: 600; }
+
 /* --- footer --- */
 .footer { border-top: 1px solid var(--line); margin-top: 60px; padding: 26px 0 40px; color: var(--ink-soft); font-size: 13px; }
 .footer a { color: var(--ink-soft); }

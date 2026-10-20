@@ -29,6 +29,24 @@ export default {
         description: 'Every shipped crashtest scenario module and attack: auth spoof matrices, prototype pollution, burst walls, id-collision aliasing, volume economics — and real findings they produced.',
       },
     },
+    {
+      path: '/terms',
+      priority: '0.3',
+      changefreq: 'yearly',
+      meta: {
+        title: 'Terms of Use | Crashtest',
+        description: 'Plain-language terms: what crashtest is for, what it is not for, no warranties, MIT open source.',
+      },
+    },
+    {
+      path: '/privacy',
+      priority: '0.3',
+      changefreq: 'yearly',
+      meta: {
+        title: 'Privacy | Crashtest',
+        description: 'The CLI collects nothing, runs stay on your machine, and the site keeps no hidden tracking.',
+      },
+    },
   ],
 
   buildJsonLd() {

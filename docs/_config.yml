@@ -1,0 +1,24 @@
+# Jekyll config for Crashtest docs — sibling of vant's docs.creadev.org/vant.
+title: Crashtest
+baseurl: "/crashtest"
+url: "https://docs.creadev.org"
+description: Seeded, in-process adversarial QA for agent-built apps — CI is the wall.
+
+markdown: kramdown
+highlighter: rouge
+permalink: :title
+
+# pretty = /path/ (with trailing slug); individual frontmatter overrides.
+exclude: ['README.md', 'Gemfile', 'Gemfile.lock', 'tmp', 'pagefind*']
+
+kramdown:
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    default_lang: plaintext
+    css_class: 'highlight'
+  toc_levels: [1, 2, 3, 4, 5, 6]
+  auto_ids: true
+  auto_id_prefix: ''
+
+plugins:
+  - jekyll-redirect-from

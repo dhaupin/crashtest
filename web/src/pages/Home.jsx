@@ -24,12 +24,12 @@ export default function Home() {
             regressions. Same commit, same findings, forever.
           </p>
           <div className="cta-row">
-            <a className="btn btn-primary" href="https://www.npmjs.com/package/crashtest" target="_blank" rel="noreferrer">npm i crashtest</a>
+            <a className="btn btn-primary" href="https://docs.creadev.org/crashtest/getting-started/quick-start">Read the quick start →</a>
             <pre-island data-pre-island="version-badge" data-pre-load="visible">
               <a className="btn btn-ghost" href="https://www.npmjs.com/package/crashtest" target="_blank" rel="noreferrer">npm · crashtest</a>
             </pre-island>
             <a className="btn btn-ghost" href="https://github.com/dhaupin/crashtest" target="_blank" rel="noreferrer">View on GitHub</a>
-            <a className="btn btn-ghost" href="https://github.com/dhaupin/crashtest/blob/main/DEPLOY.md" target="_blank" rel="noreferrer">Read the deploy guide</a>
+            <a className="btn btn-ghost" href="https://docs.creadev.org/crashtest/">Full docs</a>
           </div>
           <pre className="code"><span className="dim"># 60 seconds — point it at your handlers</span>{'\n'}npx crashtest init{'\n'}<span className="dim"># edit crashtest.config.js — routes list your handlers, env the fake d1/kv/secrets</span>{'\n'}npx crashtest run{'\n'}<span className="dim"># → labs/hardening.md · labs/crashledger.json · exit 0 = hold, exit 1 = a finding regressed</span>{'\n\n'}<span className="ok">🛡 EFF.</span> auth/secret-watermark  <span className="ok">🛡</span> guards/burst-wall      <span className="ok">🛡</span> state/enumeration-oracle{'\n'}<span className="bad">⚡</span> guards/hygiene-no-store <span className="dim">(2xx write with no Cache-Control — real findings look like this)</span></pre>
         </div>

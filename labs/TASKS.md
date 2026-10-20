@@ -336,3 +336,32 @@
   zero page errors. All a11y-relevant details leave in styles.css.
   Icons/manifest/og artifacts live in web/public — graft naturally into
   future dashboard (PWA-grade identity ready).
+- [2026-10-20T06:05Z] Site content wave + real docs system shipped:
+  - /terms + /privacy pages (Routes+ssr routes, plain-language OSS legal:
+    for / not-for, no warranty to the max extent of law, findings belong
+    to the user, host/third parties named, CLI collects nothing), crosslinked
+    from the footer on every content page.
+  - Footer carries the do-follow made-by link (Made by Rook @ Creadev.org,
+    target _blank rel=noopener — no nofollow), plus Docs link to
+    docs.creadev.org/crashtest in footer AND nav.
+  - Copy/truth pass: CLI help no longer sells the fictional v0.1 "redteam/
+    fuzz/barrage" campaign list (now the real module set + docs/site URLs);
+    garbled wording fixed in docs/config.md (UNIQUE line, mustDenyIds ctx)
+    and docs/playbooks/express.md heading; Home CTAs lead to the docs
+    quick start now (enterprise-welcoming, not scary).
+  - docs/ born: Jekyll structure mirroring vant's docs (config baseurl
+    /crashtest, _data/nav.yml freestruct-layer nav, lean layout, index +
+    getting-started [index/quick-start/install/config] + playbooks [index/
+    plain-handlers/express/hono/fastify/raw-node/github-action] + reference
+    [attacks/ledger/exit-rules] + about/principles). Every claim is from
+    behavior verified this session (no-fiction rule 7 held: the redteam/
+    fuzz/barrage fictional help text got fixed, not copied).
+  - Verified: 4/4 pages prerendered (/, /attacks, /terms, /privacy),
+    404 by engine design renders from notFound config without React shell
+    (footer=False there is upstream behavior, not a defect), all content
+    routes footer-complete with the made-by link, zero overflow at
+    390px/1280px, zero page errors; 64/64 tests + cli.test 7/7 with the
+    new help text.
+  - Known limitation: docs/ not built locally (no ruby/jekyll in sandbox) —
+    structure mirrors vant's proven layout; GH Pages (or freestruct layer)
+    builds it at docs.creadev.org/crashtest on push.

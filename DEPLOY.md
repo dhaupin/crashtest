@@ -2,14 +2,15 @@
 
 > The user path (I. Install, II. Adopt) takes ~10 minutes. Maintainer path
 > (III. Publish, IV. Release) is the OIDC release flow this repo runs itself.
-> Product overview: [README.md](./README.md). Agent conventions:
+> Product overview: [README.md](./README.md). Full docs:
+> [docs.creadev.org/crashtest](https://docs.creadev.org/crashtest/). Agent conventions:
 > [AGENTS.md](./AGENTS.md). Maintainer token policy notes: [docs/publish.md](./docs/publish.md).
 
 ## I. Install
 
 ```bash
 npm install crashtest        # or: npx crashtest …
-crashtest --version          # 0.1.0 at time of writing
+crashtest --version          # 0.1.1 at time of writing
 ```
 
 Every install ships with **signed provenance automatically** (the package is
