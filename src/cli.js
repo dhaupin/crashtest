@@ -41,6 +41,9 @@ COMMANDS
     --module-plan             Dry-run: which attack ids WOULD fire (exit 0 always)
     --expect-baseline <path>  Diff against a given ledger WITHOUT touching labs/
                               (read-only CI/hosted mode; exit rules unchanged)
+    --out-dir <dir>           ALSO write run-blob.json + crashledger.json +
+                              hardening.md copies into dir (artifact fan-out;
+                              the repo's labs/ rules are untouched)
   crashtest packs             List discovered packs (public + local)
     --config <path>           Honor the config's packs knob
     --json                    Machine inventory (versions, armedByKey, npm pkg)
@@ -310,6 +313,33 @@ async function cmdRun(opts = {}) {
     await writeFile(join(root, REPORT_PATH), renderMarkdown(run, ledger, diff, { version: VERSION, seed: target.seed }));
   }
 
+  // PRD §14/§15: `run --out-dir <dir>` — artifact fan-out for the CI/service
+  // thread. Writes COPIES of the run blob, ledger, and report into the given
+  // directory (created if needed) WITHOUT touching the repo's labs/ rules:
+  // the gate artifacts stay where the contract says they live; --out-dir is
+  // a rendering surface, never authoritative (§15.3's hosted-copies rule).
+  // Deterministic filenames, no timestamps — same run, same bytes.
+  let outDirStat = null;
+  if (opts.outDir) {
+    const outDir = resolve(root, opts.outDir);
+    if (outDir === root) {
+      console.error('crashtest run: --out-dir must be a distinct directory (the repo root already owns labs/)');
+      process.exitCode = 2;
+      return;
+    }
+    await mkdir(outDir, { recursive: true });
+    const fanout = [
+      ['run-blob.json', JSON.stringify(run, null, 2) + '\n'],
+      ['crashledger.json', JSON.stringify(ledger, null, 2) + '\n'],
+      ['hardening.md', renderMarkdown(run, ledger, diff, { version: VERSION, seed: target.seed })],
+    ];
+    for (const [name, body] of fanout) {
+      await writeFile(join(outDir, name), body);
+    }
+    console.log(`artifacts: ${fanout.map(([n]) => n).join(', ')} -> ${outDir}`);
+    outDirStat = { dir: outDir, files: fanout.map(f => f[0]) };
+  }
+
   // Console summary: verdicts as they land, ledger + exit rule at the end.
   for (const row of run.rows) {
     const mark = { REFUSED: '🛡', EXPLOITED: '⚡', BOUNDED: '🔒' }[row.verdict] ?? '?';
@@ -322,7 +352,7 @@ async function cmdRun(opts = {}) {
     console.log(`ledger: ${LEDGER_PATH} · report: ${REPORT_PATH}`);
   }
   console.log(`baseline: ${diff.newExploited.length} new · ${diff.regressed.length} regressed · ${diff.acceptedHits.length} accepted hits`);
-  if (opts.json) console.log(JSON.stringify(run));
+  if (opts.json) console.log(JSON.stringify(outDirStat ? { ...run, artifacts: outDirStat } : run));
   process.exitCode = exitCode(diff);
 }
 
@@ -534,7 +564,9 @@ export async function main(argv) {
     const modulePlan = argv.includes('--module-plan');
     const baseIdx = argv.indexOf('--expect-baseline');
     const expectBaseline = baseIdx > -1 ? argv[baseIdx + 1] : undefined;
-    return cmdRun({ config, json, modulePlan, expectBaseline });
+    const outIdx = argv.indexOf('--out-dir');
+    const outDir = outIdx > -1 ? argv[outIdx + 1] : undefined;
+    return cmdRun({ config, json, modulePlan, expectBaseline, outDir });
   }
   console.error(`crashtest: unknown command "${verb}" (try --help)`);
   process.exitCode = 1;

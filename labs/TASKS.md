@@ -70,7 +70,16 @@
 
 ## Log
 
-- [2026-10-20 ~22Z] **Docs/web for v0.3 + the preset probe (v0.3.1).** Docs:
+- [2026-10-20 ~23Z] **v0.4 early flag: `run --out-dir <dir>` (§14/§15 close
+  out).** The one remaining §14 service-thread flag is shipped: artifact
+  fan-out COPIES of run-blob.json + crashledger.json + hardening.md land in
+  a distinct dir the caller owns — deterministic filenames, no timestamps;
+  the repo's labs/ contract stays authoritative (fan-out is a rendering
+  surface, §15.3's hosted-copies rule). Fan-out into the repo root is
+  refused at exit 2 (must be a distinct dir). Flag in --help; 2 new CLI
+  tests; suite 150/150, gates green. Successor-hygiene note: the --json
+  blob now carries { ...run, artifacts } when fan-out is requested — last
+  stdout line remains a single parseable object. **Docs/web for v0.3 + the preset probe (v0.3.1).** Docs:
   reference/plugins.md + reference/presets.md (24 pages, nav, all four gates
   green). Web: FAQ grew two Q&As (community attacks via plugins; builder
   presets with the never-guess stance), FAQ meta in ssr.config updated,

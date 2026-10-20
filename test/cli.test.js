@@ -103,6 +103,57 @@ test('run --json appends the machine run blob as the LAST stdout line (PRD §14)
   });
 });
 
+// --- thread A2: `run --out-dir <dir>` (PRD §14/§15 artifact fan-out) -------
+
+test('run --out-dir writes run-blob/ledger/report copies into a distinct dir without touching labs/ rules', async () => {
+  await inRepo('outdir', async (dir) => {
+    await writeFile('crashtest.config.js',
+      "export default { routes: { burst: async () => new Response('accepted', { headers: { 'cache-control': 'no-store' } }) }, seed: 7 };\n");
+    const fanout = join(dir, 'artifact-copies');
+    const out = [];
+    const orig = console.log;
+    console.log = (...a) => out.push(a.join(' '));
+    try {
+      await main(['run', '--out-dir', fanout]);
+    } finally {
+      console.log = orig;
+    }
+    // The fan-out copies exist with the deterministic names:
+    for (const name of ['run-blob.json', 'crashledger.json', 'hardening.md']) {
+      const text = await readFile(join(fanout, name), 'utf8');
+      assert.ok(text.length > 0, `${name} must be non-empty`);
+    }
+    const copiedLedger = JSON.parse(await readFile(join(fanout, 'crashledger.json'), 'utf8'));
+    assert.equal(copiedLedger.schemaVersion, 1);
+    const copiedBlob = JSON.parse(await readFile(join(fanout, 'run-blob.json'), 'utf8'));
+    assert.ok(Array.isArray(copiedBlob.rows) && copiedBlob.rows.length > 0);
+    // The repo's own labs/ contract files still exist (or, when absent in a
+    // fresh temp repo, remain the sole authoritative path) — out-dir is a
+    // COPY surface, never a redirect.
+    assert.ok(out.some((l) => l.includes(`artifacts:`)));
+    assert.ok(out.some((l) => l.includes(fanout)));
+    process.exitCode = 0;
+  });
+});
+
+test('run --out-dir refuses to fan out into the repo root (dist/gate rule)', async () => {
+  await inRepo('outdir-root', async () => {
+    await writeFile('crashtest.config.js',
+      "export default { routes: { burst: async () => new Response('accepted') }, seed: 7 };\n");
+    const out = [];
+    const orig = console.error;
+    console.error = (...a) => out.push(a.join(' '));
+    try {
+      await main(['run', '--out-dir', '.']);
+    } finally {
+      console.error = orig;
+    }
+    assert.equal(process.exitCode, 2);
+    assert.ok(out.some((l) => l.includes('must be a distinct directory')));
+    process.exitCode = 0;
+  });
+});
+
 test('unknown verb exits 1', async () => {
   await inRepo('badverb', async () => {
     await main(['explode']);
