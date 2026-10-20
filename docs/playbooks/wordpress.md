@@ -68,7 +68,7 @@ its envelope with `x-ct-fatal` set and the handler turns it into an honest
 500 (never a fake 200). Cost economics ride the REAL database: ops = SQL
 queries (`wp.query` @ 2), plus redirect/die/fatal counters.
 
-The example pack [`fixtures/wordpress/wordpress-money.js`](https://github.com/dhaupin/crashtest/blob/main/fixtures/wordpress/wordpress-money.js)
+The example pack [`packs/public/wordpress-money/index.js`](https://github.com/dhaupin/crashtest/blob/main/packs/public/wordpress-money/index.js)
 ships as the template — point `scenarioDirs` at a run-root copy of it and set
 `moduleCtx['wordpress-money']` for your target's action slug + fixture keys.
 
@@ -119,7 +119,7 @@ sed -i "/define('WP_INSTALLING'/d" wordpress/wp-config.php
 ```
 
 Then a run root pointing `adapters: { wordpress: { wpRoot: '/path/to/wordpress', phpBin: 'php' } }`
-and `scenarioDirs` at a copy of [`fixtures/wordpress/wp-stock-smoke.js`](https://github.com/dhaupin/crashtest/blob/main/fixtures/wordpress/wp-stock-smoke.js)
+and `scenarioDirs` at a copy of [`packs/public/wp-stock-smoke/index.js`](https://github.com/dhaupin/crashtest/blob/main/packs/public/wp-stock-smoke/index.js)
 proves: real dispatch through admin-post hooks, whitelisted seeder (`wp_create_nonce`),
 **real-SQL cost economics** (ops ride `SAVEQUERIES`), and — the punchline attack —
 the worker's `CALL_ALLOW` whitelist refusing a destructive core call

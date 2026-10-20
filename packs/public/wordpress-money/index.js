@@ -7,7 +7,7 @@
 // 'wordpress-money/<attack>'):
 //   ticketAction — the admin_post action slug for a purchase handler
 //   paypalEmail  — the receiver fixture email (the widget pool validates it)
-import { refused, exploited, bounded } from '../../src/scenarios/contract.js';
+import { refused, exploited, bounded } from '../../../src/scenarios/contract.js';
 
 const NS = () => 'ct' + Date.now().toString(16); // attacker frame per run
 

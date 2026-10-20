@@ -8,6 +8,9 @@ export default {
   baseUrl: 'https://dogfood.crashtest.local',
   env: ENV_SPEC,
   routes: buildRoutes({ vulnerable: false }),
+  // The dogfood attacks ONLY the demo fixture — shipped packs (e.g.
+  // wordpress-money, which needs a WP worker) never ride this run.
+  packs: false,
   // attackCtx per-module defaults live here (route names etc.) when needed.
   seed: 0xC0FFEE,
 };

@@ -470,3 +470,24 @@
   for alias coverage) — run roots get to be smarter next thread.
   Run-roots playbook gained the van-style raw-node recipe with the PoC
   numbers; WP playbook rewrote "who owns specifics". 85/85 green.
+- [2026-10-20 ~12Z] **THE EXTENSION SURFACE: scenario packs (packs/public +
+  packs/local).** The ask: user-owned defs/recipes/scenarios, private when
+  wanted. Schema decision: NOT vant's models/public-private (models is
+  AI/ML-adjacent vocabulary; packs is crashtest's own word) — pack.json v1
+  (schemaVersion/name/description/entry) living under packs/public/<name>/
+  (tracked, shipped examples) or packs/local/<name>/ (gitignored,
+  machine-private). Loader src/packs/loader.js: loud manifests (rule 3),
+  kebab names, shared name-collision guard against built-ins and between
+  visibility dirs, contract-validated entries. `crashtest run` merges pack
+  modules automatically (config knob packs: true|false|custom-roots;
+  dogfood opts OUT so shipped packs never ride the demo gate);
+  `crashtest init` scaffolds packs/ stubs + root .gitignore entry;
+  `crashtest packs` inventories with visibility@version/counts. The khf
+  "money-path e2e" question is now answered structurally: khf flows are a
+  PRIVATE PACK on khf's own run root — no e2e for them in this repo by
+  design, and the extra e2e limitation line is retired with the old
+  fixtures/wordpress/wordpress-money.js (promoted to packs/public as THE
+  example pack alongside wp-stock-smoke; worker/adapter untouched). Docs:
+  reference/packs page + nav + playbook links + AGENTS layout. 91/91
+  green; dogfood gate stays 13/13 with packs:false; WP stock run-root e2e
+  unaffected (17/17).

@@ -29,9 +29,11 @@ src/adapters/           hono / express / fastify / node in-process adapters + re
                         not a transport; PRD §10 note + §14 service thread)
 src/rng.js              seeded xorshift (determinism)
 fixtures/demo/app.js    the self-dogfood target (hardened + vulnerable variants)
-fixtures/wordpress/     wp-worker.php + example wordpress-money pack (out of
-                        labs/scenarios ON PURPOSE: the dogfood auto-scans labs/, so
-                        target-specific packs live beside their examples)
+fixtures/wordpress/     wp-worker.php (the generic subprocess worker only)
+packs/                  extension surface: public/<name>/pack.json (tracked,
+                        shipped packs) + local/<name>/ (gitignored, private);
+                        loader src/packs/loader.js, `crashtest packs` verb;
+                        dogfood config opts out (packs: false)
 crashtest.config.js     THIS repo's dogfood target config
 labs/                   PRD · TASKS (rolling log) · crashledger.json · hardening.md
 docs/publish.md         maintainer publish runbook (OIDC trusted publishing)

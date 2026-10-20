@@ -4,3 +4,4 @@ coverage/
 .npm/
 .DS_Store
 docs/_site/
+packs/local/

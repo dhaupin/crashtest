@@ -9,6 +9,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { buildHarness } from './harness/harness.js';
 import { registerAdapters } from './adapters/index.js';
 import { loadScenarios } from './scenarios/loader.js';
+import { loadPacks } from './packs/loader.js';
 import { runCampaign } from './campaigns/runner.js';
 import { buildLedger, diffAgainstBaseline, exitCode, renderMarkdown } from './report.js';
 
@@ -23,11 +24,12 @@ Adversarial QA for agent-built software, in-process. No sockets, ever.
 Usage:
   crashtest init            Create labs/ scaffold: crashledger.json + hardening.md stub
   crashtest run [--config path] [--json]   Attack the target declared in crashtest.config.js
+  crashtest packs [--config path]   List discovered scenario packs (public + local)
                  [--json]       print the machine run blob (JSON) as the LAST stdout line — CI artifact / dashboard paste-ready
   crashtest --version
   crashtest --help
 
-Modules:   auth / guards / input / state / volume (plus your own via labs/scenarios/)
+Modules:   auth / guards / input / state / volume (plus your own via packs/ or labs/scenarios/)
 Verdicts:  REFUSED (defense held) · EXPLOITED (you got hit) · BOUNDED (accepted risk, has owner + bound)
 
 Docs:      https://docs.creadev.org/crashtest/
@@ -96,8 +98,32 @@ async function cmdInit({ force }) {
   await mkdir(join(root, 'labs'), { recursive: true });
   await writeFile(ledgerAbs, JSON.stringify(EMPTY_LEDGER(), null, 2) + '\n');
   await writeFile(reportAbs, REPORT_STUB());
+  // Pack scaffold (the extension surface): public = tracked/sharable,
+  // local = machine-private (gitignored). crashtest never writes your
+  // private pack's contents — just the empty directories + a stub manifest.
+  const publicPack = join(root, 'packs', 'public', 'my-pack');
+  const localPack = join(root, 'packs', 'local', 'my-private-pack');
+  await mkdir(publicPack, { recursive: true });
+  await mkdir(localPack, { recursive: true });
+  const PACK_STUB = (name, desc) => JSON.stringify({
+    schemaVersion: 1,
+    name,
+    description: desc,
+    entry: 'index.js',
+    _notes: 'Set entry to your scenario-module file; every export must satisfy the scenario contract (see docs/reference/packs).',
+  }, null, 2) + '\n';
+  await writeFile(join(publicPack, 'pack.json'), PACK_STUB('my-pack', 'A public pack: share it, track it, version it'));
+  await writeFile(join(localPack, 'pack.json'), PACK_STUB('my-private-pack', 'A private pack: packs/local/ is gitignored by default — stays on your machine'));
+  // Root .gitignore owns the local-pack privacy (created or appended once).
+  const dotIgnore = join(root, '.gitignore');
+  const ignoreEntry = 'packs/local/\n';
+  const existingIgnore = (await exists(dotIgnore)) ? await readFile(dotIgnore, 'utf8') : '';
+  if (!existingIgnore.split('\n').includes(ignoreEntry.trim())) {
+    await writeFile(dotIgnore, existingIgnore + (existingIgnore && !existingIgnore.endsWith('\n') ? '\n' : '') + ignoreEntry);
+  }
   console.log(`crashtest init: wrote ${LEDGER_PATH}`);
   console.log(`crashtest init: wrote ${REPORT_PATH}`);
+  console.log('crashtest init: packs/ scaffold — packs/public/ (tracked) + packs/local/ (gitignored) with stub manifests');
   console.log('Next: commit labs/ so CI has a baseline, then `crashtest run` (0.1).');
 }
 
@@ -140,9 +166,27 @@ async function cmdRun(opts = {}) {
     ...(target.scenarioDirs ?? []),
     join(root, 'labs', 'scenarios'),
   ]);
-  if (!scenarios.length) throw new Error('no scenario modules found (built-ins missing?)');
+  // Packs (PRD §14 extension surface): `packs` config knob = true (default:
+  // discover packs/public + packs/local), false (dogfooded targets opt out),
+  // or an explicit list of pack roots. Loaded modules join the same campaign.
+  const packsOpt = target.packs ?? true;
+  let packScenarios = [];
+  if (packsOpt !== false) {
+    const packRoots = Array.isArray(packsOpt) ? packsOpt : [join(root, 'packs')];
+    const packs = await loadPacks(packRoots);
+    packScenarios = packs.map((p) => ({ origin: p.origin, module: p.module }));
+    const names = new Map(scenarios.map((s) => [s.module.name, s.origin]));
+    for (const s of packScenarios) {
+      if (names.has(s.module.name)) {
+        throw new Error(`scenario name collision: "${s.module.name}" at ${s.origin} (also in ${names.get(s.module.name)})`);
+      }
+      names.set(s.module.name, s.origin);
+    }
+  }
+  const allScenarios = [...scenarios, ...packScenarios].sort((a, b) => a.module.name.localeCompare(b.module.name));
+  if (!allScenarios.length) throw new Error('no scenario modules found (built-ins missing?)');
 
-  const run = await runCampaign(harness, scenarios, {
+  const run = await runCampaign(harness, allScenarios, {
     modules: target.modules,
     attackCtx: target.attackCtx,
     moduleCtx: target.moduleCtx,
@@ -173,6 +217,28 @@ async function cmdRun(opts = {}) {
   process.exitCode = exitCode(diff);
 }
 
+async function cmdPacks(opts = {}) {
+  const root = repoRoot();
+  const roots = [join(root, 'packs')];
+  if (opts.config) {
+    const target = (await import(pathToFileURL(join(root, opts.config)).href)).default;
+    if (target.packs === false) { console.log('packs: disabled in this config'); return; }
+    if (Array.isArray(target.packs)) {
+      roots.length = 0;
+      roots.push(...target.packs);
+    }
+  }
+  const packs = await loadPacks(roots);
+  if (!packs.length) {
+    console.log('packs: none found — `crashtest init` scaffolds packs/public/ (tracked) + packs/local/ (gitignored)');
+    return;
+  }
+  for (const p of packs) {
+    console.log(`${p.visibility}${p.manifest.version ? ` @${p.manifest.version}` : ''} — ${p.manifest.name}: ${p.module.attacks.length} attacks from ${p.origin}`);
+    console.log(`         ${p.manifest.description}`);
+  }
+}
+
 export async function main(argv) {
   if (!argv.length || argv[0] === '--help' || argv[0] === '-h' || argv[0] === 'help') {
     process.stdout.write(HELP);
@@ -186,6 +252,10 @@ export async function main(argv) {
   if (verb === 'init') {
     const force = argv.includes('--force') || argv.includes('-f');
     return cmdInit({ force });
+  }
+  if (verb === 'packs') {
+    const confIdx = argv.indexOf('--config');
+    return cmdPacks(confIdx > -1 ? { config: argv[confIdx + 1] } : {});
   }
   if (verb === 'run') {
     const confIdx = argv.indexOf('--config');
