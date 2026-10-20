@@ -31,7 +31,7 @@ never a silent gap.
 
 ## Where packs live
 
-```
+```text
 packs/
 ├── public/          ← tracked: shipped examples + shared packs
 │   └── my-pack/

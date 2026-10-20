@@ -15,7 +15,7 @@ formalized (see the [WordPress playbook](/crashtest/playbooks/wordpress))
 
 ## 1. The cross-repo run root
 
-```
+```text
 ~/mytarget-crashrun/
 ├── crashtest.config.js   # the target declaration (points AT the target)
 ├── scenarios/            # your attack packs for this target (optional)

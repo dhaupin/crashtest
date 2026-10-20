@@ -70,6 +70,24 @@
 
 ## Log
 
+- [2026-10-20 ~16Z] **Vant's docs-audit suite ported (scripts/ + CI).** Four
+  gates adopted from vant main, each adapted to this repo's rules:
+  check-docs-frontmatter (4 required fields; baseurl-relative permalinks —
+  leading-slash or baked-in /crashtest is the doubled-prefix fiction class,
+  `/` reserved for the docs home), check-docs-links (fence/inline-code
+  aware link graph vs frontmatter permalinks incl. doubled-prefix
+  signatures), check-docs-style (fence language tags, heading skips,
+  whitespace, pipe-table shape as HARD fails; em-dash/emoji as WARNs only
+  — vant's hyphen-voice is a corpus pass we have not made; verdict marks
+  are content), check-fiction-signatures (forward-dated release claims,
+  global-install fiction, sockets-allowed claims, web-deps conflation;
+  debunk-negation aware; ledger/PRD quote-fiction by design so they're
+  allow-listed). Wired as `npm run lint:docs` + a ci.yml step. First run's
+  hard findings: 2 missing fence language tags (run-roots, packs) — fixed;
+  links gate would have caught last session's dead module-plan link
+  mechanically. All four PASS (20 pages, 113 files, 138 voice warnings
+  tracked). package.json stays `files: [bin, src]` — scripts are dev
+  tooling, not shipped surface.
 - [2026-10-20 ~15Z] **Docs audit: the doubled-prefix fix + full link/frontmatter
   sweep.** Live site served nav as /crashtest/crashtest/* (404s) — the layout
   piped nav URLs (already absolute, /crashtest-prefixed) through Jekyll's

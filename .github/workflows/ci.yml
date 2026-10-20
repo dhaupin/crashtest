@@ -28,6 +28,9 @@ jobs:
       - name: Syntax check
         run: npm run check
 
+      - name: Docs gates (frontmatter, links, style, fiction)
+        run: npm run lint:docs
+
       - name: Test suite
         run: npm test
 
