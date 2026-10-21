@@ -81,8 +81,14 @@ jobs:
       # not published yet, and the package bin lacks a shebang, so invoke
       # inject.js with node directly (works everywhere; revisit once
       # freestruct is npm-published with a proper bin).
+      # PINNED to the last commit carrying docs/lib at the documented path:
+      # unpinned github:-installs float to freestruct's default HEAD, which
+      # moved/reorganized docs/lib mid-day on 2026-10-21 (six-centuries
+      # lesson: a floating install is a random deploy), red-lighting the
+      # docs deploys until it got pinned. Bump the pin when freestruct
+      # republishes the layer - never float again.
       - name: Install freestruct
-        run: npm install --no-save --no-audit --no-fund github:dhaupin/freestruct
+        run: npm install --no-save --no-audit --no-fund 'github:dhaupin/freestruct#dfb30aa498'
 
       - name: Run freestruct post-build layer
         run: node node_modules/freestruct/docs/lib/inject.js
