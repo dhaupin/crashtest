@@ -41,13 +41,14 @@ $ node bin/crashtest.js run --expect-baseline labs/crashledger.json   # against 
 ⚡ recursion/deep-nest-stack-overflow: deep-nested body (12000 levels) stack-overflowed a recursive walker on "enroll" - uncaught RangeError: Maximum call stack size exceeded
 ⚡ upload/filename-traversal-family: filename traversal landed at "upload": unix traversal: handler accepted "../../etc/passwd" and stored ["../../etc/passwd"] - the key escapes the safe-name grammar (+8 more)
 ⚡ race/concurrent-write-lost-update: concurrent pair on "profile" lost data: writer "B (email/alpha)" threw uncaught in the burst (a never-guarded race window: D1Error: UNIQUE constraint failed: blobs.user)
+⚡ session/token-replay-deny: replay window is open on "login": sid collision across the burst: login 1 + login 2 share a sid (6 total) (+1 more)
 ⚡ session/cookie-hygiene: login cookie on "login" misses 3 hygiene flag(s): Secure (cookie must never ride plain http on a real surface); HttpOnly (script-readability = one XSS harvests every session); SameSite=Lax (or Strict) (un-padded cross-site carrying)
 ⚡ taxonomy/abuse-not-5xx: 7/10 abuse shapes escalated on "enroll" - first: truncated-object (5xx: 500)
 ⚡ taxonomy/errors-stay-impersonal: 1/10 error paths leak on "enroll" - first: not-json (canary echo (handler parroting attacker-controlled data))
 🛡 volume/storage-fill: route "kvwrite" not declared on this target - fill check skipped (declare a KV-writing route)
 
-tally: {"TOTAL":29,"REFUSED":10,"EXPLOITED":19,"BOUNDED":0} / cost: 812 ops / 852 requests
-baseline: 0 new / 19 regressed / 0 accepted hits
+tally: {"TOTAL":30,"REFUSED":10,"EXPLOITED":20,"BOUNDED":0} / cost: 816 ops / 864 requests
+baseline: 0 new / 20 regressed / 0 accepted hits
 exit: 1  (REFUSED->EXPLOITED regressions - fix it or bound it, then re-run)
 ```
 

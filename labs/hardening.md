@@ -1,11 +1,11 @@
 # Hardening report
 
-> crashtest v1.0.0 / 2026-10-21T07:19:01.960Z / seed 12648430
+> crashtest v1.0.0 / 2026-10-21T08:06:53.290Z / seed 12648430
 > CI rule: fail on a NEW EXPLOITED finding, or a REGRESSION of anything previously REFUSED.
 
 ## Findings
 
-### 🛡 REFUSED (29)
+### 🛡 REFUSED (30)
 - auth/identity-spoof-headers: all 54 identity-header spoofs denied or ignored on "admin"
 - auth/secret-watermark: 12 routes x 3 error-path probes: no fake secret ever left the env
 - auth/privilege-escalation: ownership mutations rejected by "device" (baseline 403)
@@ -25,6 +25,7 @@
 - recursion/redos-catastrophic-pattern: 2 evil/benign backtracking pairs walked linearly through "validate" - no self-relative ratio crossed the bucket
 - session/cookie-hygiene: login cookie on "login" carries the full hygiene set: Secure + HttpOnly + SameSite policy
 - session/session-fixation: session rotation + forged-id rejection hold on "login"/"me" (two distinct sids, forged sid denied with 401)
+- session/token-replay-deny: 4 logins across 3 accounts minted pairwise-distinct sids on "login" - no token is ever re-issued, so expired-and-known tokens cannot replay
 - session/logout-invalidates: logout invalidation holds on "logout" - me() with the logged-out sid denies (status 401)
 - state/enumeration-oracle: no mustDenyIds configured - declare ids the CURRENT identity must never read to arm the oracle
 - state/id-collision-alias: owner-b's claim on [alias-48430] by "enroll" stayed separate (status 409; owner-a row intact)
@@ -41,7 +42,7 @@
 ### 🔒 BOUNDED (0)
 
 ## Cost economics
-- total: 814 backend ops across 1070 in-process requests from 29 attacks
+- total: 842 backend ops across 1082 in-process requests from 30 attacks
   - auth/identity-spoof-headers: 55 ops / 55 requests
   - auth/secret-watermark: 36 ops / 91 requests
   - auth/privilege-escalation: 4 ops / 95 requests
@@ -61,7 +62,8 @@
   - recursion/redos-catastrophic-pattern: 4 ops / 5 requests
   - session/cookie-hygiene: 7 ops / 1 requests
   - session/session-fixation: 16 ops / 4 requests
-  - session/logout-invalidates: 12 ops / 7 requests
+  - session/token-replay-deny: 28 ops / 8 requests
+  - session/logout-invalidates: 12 ops / 11 requests
   - state/enumeration-oracle: 0 ops / 0 requests
   - state/id-collision-alias: 5 ops / 2 requests
   - taxonomy/abuse-not-5xx: 12 ops / 10 requests

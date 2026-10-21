@@ -237,7 +237,8 @@ test('session: EXPLOITED on the trust-the-wire draft, REFUSED when rotated + for
   const hygiene = module.attacks.find(a => a.name === 'cookie-hygiene');
   const fixation = module.attacks.find(a => a.name === 'session-fixation');
   const logout = module.attacks.find(a => a.name === 'logout-invalidates');
-  for (const a of [hygiene, fixation, logout]) assert.ok(a);
+  const replay = module.attacks.find(a => a.name === 'token-replay-deny');
+  for (const a of [hygiene, fixation, logout, replay]) assert.ok(a);
 
   const vuln = buildHarness(sessionRoutes({ secure: false }), { env: sessionEnv });
   const r1 = await hygiene.run(vuln, { loginRoute: 'login' });
@@ -246,6 +247,9 @@ test('session: EXPLOITED on the trust-the-wire draft, REFUSED when rotated + for
   assert.equal(r2.verdict, 'EXPLOITED', `static sid + forged-200 must trip: ${r2.detail}`);
   const r3 = await logout.run(vuln, { loginRoute: 'login', meRoute: 'me', logoutRoute: 'logout' });
   assert.equal(r3.verdict, 'EXPLOITED', `logout no-op must trip: ${r3.detail}`);
+  const r7 = await replay.run(vuln, { loginRoute: 'login' });
+  assert.equal(r7.verdict, 'EXPLOITED', `the static-sid draft must trip the replay window: ${r7.detail}`);
+  assert.match(r7.detail, /collision|resurrect/);
 
   const hard = buildHarness(sessionRoutes({ secure: true }), { env: sessionEnv });
   const r4 = await hygiene.run(hard, { loginRoute: 'login' });
@@ -254,6 +258,8 @@ test('session: EXPLOITED on the trust-the-wire draft, REFUSED when rotated + for
   assert.equal(r5.verdict, 'REFUSED', `rotation + forged-deny must hold: ${r5.detail}`);
   const r6 = await logout.run(hard, { loginRoute: 'login', meRoute: 'me', logoutRoute: 'logout' });
   assert.equal(r6.verdict, 'REFUSED', `invalidation must hold: ${r6.detail}`);
+  const r8 = await replay.run(hard, { loginRoute: 'login' });
+  assert.equal(r8.verdict, 'REFUSED', `the rotating registry must hold: ${r8.detail}`);
 
   // Contract pin: undeclared session routes degrade to skipped-REFUSED.
   const skip = await fixation.run(buildHarness({}, { env: sessionEnv }), { loginRoute: 'login', meRoute: 'me' });

@@ -57,11 +57,11 @@ test('tone: site never claims a shipped-only CLI fact the docs refute (verdict v
     assert.ok(attacks.includes(v), `docs attacks missing verdict ${v}`);
     assert.ok(faq.includes(v), `web FAQ missing verdict ${v}`);
   }
-  // attack-count claim must match: FAQ says 29 attacks across 12 modules,
+  // attack-count claim must match: FAQ says 30 attacks across 12 modules,
   // docs' attack catalog is the source of truth
   const catalogRows = (attacks.match(/^\| `/gm) || []).length;
-  assert.equal(catalogRows, 29, 'attack catalog row count drifted - update FAQ copy or the catalog');
-  assert.ok(faq.includes('29 across 12 modules'), 'FAQ attack-count claim drifted from catalog');
+  assert.equal(catalogRows, 30, 'attack catalog row count drifted - update FAQ copy or the catalog');
+  assert.ok(faq.includes('30 across 12 modules'), 'FAQ attack-count claim drifted from catalog');
 });
 
 test('tone: both surfaces use the same exit-code contract (0 held / 1 finding / 2 config)', async () => {

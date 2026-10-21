@@ -9,8 +9,8 @@ import { parseArtifact, parsePlan, prettyDate, VERDICTS } from '../web/src/lib/l
 test('dogfood snapshot parses as a ledger and reports a clean gate (exit 0)', () => {
   const vm = parseArtifact(dogfood.ledger, { sourceLabel: 'test' });
   assert.equal(vm.kind, 'ledger');
-  assert.equal(vm.counts.total, 29);
-  assert.equal(vm.counts.refused, 29);
+  assert.equal(vm.counts.total, 30);
+  assert.equal(vm.counts.refused, 30);
   assert.equal(vm.counts.exploited, 0);
   assert.equal(vm.groupings.length, 12);
 });

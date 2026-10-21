@@ -19,6 +19,13 @@
 // Defaults aim at the common agent-app shape: login/me/logout routes over a
 // `sid` cookie. Nothing here is app-specific; arms live in per-module ctx
 // (see docs/getting-started/config for the cheat sheet).
+//
+// Replay window (shipped 2026-10-21): token-replay-deny covers the
+// "expiry-to-deletion" class the PRD reserved - in-process the honest oracle
+// is the ISSUER REGISTRY: a server that ever re-issues a sid it already
+// issued (same account re-login, or a colliding pool) makes every expired-
+// but-still-known token replayable. Four logins, pairwise distinct sids;
+// the re-login for the SAME account must not resurrect its original sid.
 
 import { refused, exploited } from '../contract.js';
 
@@ -131,6 +138,58 @@ export default {
       return refused(
         `session rotation + forged-id rejection hold on "${loginRoute}"/"${meRoute}" (two distinct sids, forged sid denied with ${forged.status})`,
         { loginRoute, meRoute, forgedStatus: forged.status },
+      );
+    },
+  }, {
+    name: 'token-replay-deny',
+    description: 'No login may ever re-issue a sid it already issued: 4 logins (same account, second account, the first account again, a third) must all mint pairwise-distinct sids, and the re-login must not resurrect its original sid - a reused sid makes every known token replayable',
+    async run(harness, ctx = {}) {
+      const loginRoute = ctx.loginRoute ?? 'login';
+      const code = (u) => ({ user: u ?? ctx.user ?? 'rook' });
+      const mint = async (who) => {
+        const rec = await harness.run(loginRoute, {
+          method: 'POST', body: JSON.stringify(code(who)),
+          headers: { 'content-type': 'application/json' },
+        });
+        if (rec.threw) return { threw: true };
+        const sid = sidFromCookie(rec.response?.headers?.get('set-cookie'));
+        return { sid, who };
+      };
+      if (!harness.listRoutes().includes(loginRoute)) {
+        return refused(`route "${loginRoute}" not declared on this target - session skipped (declare it for coverage)`, { loginRoute, skipped: true });
+      }
+      const first = await mint('rook');    // account A, first session
+      const second = await mint('other'); // account B
+      const again = await mint('rook');   // account A again - the replay probe
+      const third = await mint('guest');  // account C
+      if (first.threw || second.threw || again.threw || third.threw) {
+        return exploited(`login threw during the replay-window burst (first threw: ${first.threw})`, { loginRoute });
+      }
+      if (!first.sid) {
+        return refused(`login minted no sid cookie - replay window unassessable (arm with cookie auth for coverage)`, { loginRoute, armed: false });
+      }
+      const logins = [first, second, again, third];
+      const zeroed = logins.filter((l) => !l.sid).length;
+      const problems = [];
+      if (zeroed) problems.push(`${zeroed}/4 logins minted no sid (analytics gap or lazy issuance)`);
+      const pairs = [];
+      for (let i = 0; i < logins.length; i++) {
+        for (let j = i + 1; j < logins.length; j++) {
+          if (logins[i].sid && logins[j].sid && logins[i].sid === logins[j].sid) {
+            pairs.push(`login ${i + 1} + login ${j + 1} share a sid`);
+          }
+        }
+      }
+      if (pairs.length) problems.push(`sid collision across the burst: ${pairs[0]} (${pairs.length} total)`);
+      if (again.sid && again.sid === first.sid) {
+        problems.push(`the same-account RE-LOGIN resurrected its original sid - the expiry-to-deletion window is replayable forever`);
+      }
+      if (problems.length) {
+        return exploited(`replay window is open on "${loginRoute}": ${problems[0]} (+${problems.length - 1} more)`, { loginRoute, problems });
+      }
+      return refused(
+        `4 logins across 3 accounts minted pairwise-distinct sids on "${loginRoute}" - no token is ever re-issued, so expired-and-known tokens cannot replay`,
+        { loginRoute },
       );
     },
   }, {

@@ -7,7 +7,7 @@ description: Every shipped scenario module and attack, what it does, and what ve
 
 # The Attack Catalog
 
-Twenty-nine attacks across twelve modules ship in the core package. Each returns
+Thirty attacks across twelve modules ship in the core package. Each returns
 exactly one verdict per run: 🛡 REFUSED, ⚡ EXPLOITED, or 🔒 BOUNDED
 (BOUNDED requires an owner + bound or it demotes to EXPLOITED - loudly).
 
@@ -81,6 +81,7 @@ this module to assess it.
 | `cookie-hygiene` | The auth transition (login) must mint a `Set-Cookie` carrying `Secure`, `HttpOnly`, and a `SameSite` policy. Any missing flag = EXPLOITED with the flag named. |
 | `session-fixation` | Two logins must mint DIFFERENT session ids (a shared sid across the privilege transition is the fixation classic), and a forged canary sid must never authenticate - `me()` honoring an unknown cookie = EXPLOITED. |
 | `logout-invalidates` | A logged-out sid must be dead on arrival: `me()` with the pre-logout cookie must deny (4xx class). Still-200 = EXPLOITED - the server kept the session alive. |
+| `token-replay-deny` | The PRD's replay window: no login may ever re-issue a sid it already issued. Four logins (account A, B, A again, C) must mint pairwise-distinct sids, and the A-again re-login must not resurrect its original sid - a reused sid makes every expired-but-known token replayable forever. |
 
 ## `proto-hygiene` - bare request geometry
 

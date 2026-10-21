@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-21T07:19:02.073Z",
+  "generatedAt": "2026-10-21T08:06:53.379Z",
   "findings": [
     {
       "id": "auth/identity-spoof-headers",
@@ -98,6 +98,11 @@
       "detail": "session rotation + forged-id rejection hold on \"login\"/\"me\" (two distinct sids, forged sid denied with 401)"
     },
     {
+      "id": "session/token-replay-deny",
+      "verdict": "REFUSED",
+      "detail": "4 logins across 3 accounts minted pairwise-distinct sids on \"login\" - no token is ever re-issued, so expired-and-known tokens cannot replay"
+    },
+    {
       "id": "session/logout-invalidates",
       "verdict": "REFUSED",
       "detail": "logout invalidation holds on \"logout\" - me() with the logged-out sid denies (status 401)"
@@ -170,6 +175,7 @@
     "recursion/redos-catastrophic-pattern",
     "session/cookie-hygiene",
     "session/session-fixation",
+    "session/token-replay-deny",
     "session/logout-invalidates",
     "state/enumeration-oracle",
     "state/id-collision-alias",

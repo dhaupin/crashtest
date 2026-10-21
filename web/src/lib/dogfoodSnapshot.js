@@ -13,7 +13,7 @@
 export const dogfood = {
   "ledger": {
     "schemaVersion": 1,
-    "generatedAt": "2026-10-21T07:19:02.073Z",
+    "generatedAt": "2026-10-21T08:06:53.379Z",
     "findings": [
       {
         "id": "auth/identity-spoof-headers",
@@ -111,6 +111,11 @@ export const dogfood = {
         "detail": "session rotation + forged-id rejection hold on \"login\"/\"me\" (two distinct sids, forged sid denied with 401)"
       },
       {
+        "id": "session/token-replay-deny",
+        "verdict": "REFUSED",
+        "detail": "4 logins across 3 accounts minted pairwise-distinct sids on \"login\" - no token is ever re-issued, so expired-and-known tokens cannot replay"
+      },
+      {
         "id": "session/logout-invalidates",
         "verdict": "REFUSED",
         "detail": "logout invalidation holds on \"logout\" - me() with the logged-out sid denies (status 401)"
@@ -183,6 +188,7 @@ export const dogfood = {
       "recursion/redos-catastrophic-pattern",
       "session/cookie-hygiene",
       "session/session-fixation",
+      "session/token-replay-deny",
       "session/logout-invalidates",
       "state/enumeration-oracle",
       "state/id-collision-alias",
@@ -197,9 +203,9 @@ export const dogfood = {
   },
   "cost": {
     "totals": {
-      "ops": 814,
-      "requests": 1070,
-      "distinctAttacks": 29
+      "ops": 842,
+      "requests": 1082,
+      "distinctAttacks": 30
     },
     "perAttack": [
       {
@@ -298,9 +304,14 @@ export const dogfood = {
         "requests": 4
       },
       {
+        "id": "session/token-replay-deny",
+        "ops": 28,
+        "requests": 8
+      },
+      {
         "id": "session/logout-invalidates",
         "ops": 12,
-        "requests": 7
+        "requests": 11
       },
       {
         "id": "state/enumeration-oracle",
@@ -351,7 +362,7 @@ export const dogfood = {
   },
   "meta": {
     "version": "1.0.0",
-    "startedAt": "2026-10-21T07:19:01.960Z",
+    "startedAt": "2026-10-21T08:06:53.290Z",
     "seed": 12648430
   }
 };

@@ -107,7 +107,7 @@ Planned expansions (v1.x - wording stays `planned` until each ships):
 
 | Planned library | Attacks designed for | Status |
 |---|---|---|
-| `session` (extension) | replay windows (token reuse past expiry-to-deletion gaps) | planned - the base module shipped 2026-10-21; this row covers only what did not |
+| `session` (extension) | replay windows (token reuse past expiry-to-deletion gaps) | shipped 2026-10-21 - the in-process oracle is the ISSUER REGISTRY: four logins (account A, B, A again, C) must mint pairwise-distinct sids and the re-login must not resurrect its original sid; no clocks needed, same determinism as the base module |
 | `wp-roles` (pack scope) | role-callback bypass shapes on the WP envelope wire | shipped 2026-10-21, explicitly experimental (section 10 note) - the missing pieces landed: the stub-WP worker fixture (role/callback registration layer, seeded identity store, deterministic nonces) + the pack (3 attacks: nopriv refusal, low-privilege gate, body-declared role flip) + the armed CI exercise (`test/wp-roles.test.js`, skips loudly without PHP) |
 
 ## Extended sources (designed, deliberately not built yet)
@@ -126,10 +126,13 @@ harness stays a drone that never dials out. Shape:
 - Freshness is a CI join, not a runtime dial: pair `npx crashtest packs
   --json` with the data source's own last-modified check; a stale snapshot
   is a mechanical warning, never silent drift.
-- Status: designed, planned - not started. The bloat concern is honest and
-  answered by construction: the snapshot is CURATED (exploited-first,
-  adapter-relevant) and budget-capped; the full NVD corpus never enters
-  this repo.
+- Status: landed 2026-10-21 as the `cve-feed` snapshot pack - the shipped
+  pack carries the CURATED, budget-capped snapshot (its own integrity
+  budget: <= 12 rows / <= 4200 bytes, two-way teeth pinned in
+  `test/cve-feed.test.js`) and attacks banner/version disclosure against
+  it on every declared route. The maintainer-side sync step + CI
+  last-modified join is the remaining runtime-freshness work (the stated
+  design unchanged); the full NVD corpus still never enters this repo.
 
 ## The browser lane (designed, deliberately not built)
 

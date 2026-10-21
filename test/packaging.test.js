@@ -26,7 +26,7 @@ function dryRunFiles() {
 const files = dryRunFiles();
 
 test('tarball ships the reusable shape packs (adoption shapes stay real)', () => {
-  for (const pack of ['wp-money-shapes', 'wp-stock-smoke', 'wp-roles']) {
+  for (const pack of ['wp-money-shapes', 'wp-stock-smoke', 'wp-roles', 'cve-feed']) {
     assert.ok(
       files.includes(`packs/public/${pack}/pack.json`),
       `packs/public/${pack} must ship in the npm tarball`,
@@ -36,6 +36,8 @@ test('tarball ships the reusable shape packs (adoption shapes stay real)', () =>
   // entry would be a silently broken surface).
   assert.ok(files.includes('packs/public/wp-stock-smoke/index.js'), 'shipped packs carry their entry modules');
   assert.ok(files.includes('packs/public/wp-roles/index.js'), 'wp-roles ships its entry module (experimental, PRD section 10)');
+  assert.ok(files.includes('packs/public/cve-feed/index.js'), 'cve-feed ships its entry module (extended sources)');
+  assert.ok(files.includes('packs/public/cve-feed/snapshot.json'), 'cve-feed ships its committed offline snapshot');
 });
 
 test('tarball does NOT ship repo-bound packs (crashtest-site is self-dogfood only)', () => {

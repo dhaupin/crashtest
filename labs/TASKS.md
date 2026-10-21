@@ -70,6 +70,36 @@
 
 ## Log
 
+- [2026-10-21 ~16Z] **two pre-v1 builders land together: the session
+  replay-window extension + the cve-feed snapshot pack (extended sources).
+  Library now 30 attacks / 12 modules; full battery vs ourselves 60/60
+  REFUSED.** The planned session row SHIPPED: token-replay-deny (the
+  in-process oracle for 'token reuse past expiry-to-deletion gaps' is the
+  ISSUER REGISTRY - four logins across three accounts must mint pairwise-
+  distinct sids, and the same-account re-login must not resurrect its
+  original sid; a reused sid makes every expired-but-known token replayable
+  forever; honest skip for cookie-less logins, one false-PAIR paste-hazard
+  caught in review). Vuln bench: static-sid draft trips (6 shared-sid
+  half-pairs); hardened row-id rotation holds. And the extended-sources
+  design SHIPPED as the cve-feed snapshot pack (one law intact: run time
+  reads ONLY the committed snapshot - zero sockets, same commit -> same
+  findings; freshness stays the maintainer-side sync + CI last-modified
+  join): curated KEV/NVD slice (12 entries, own integrity budget <= 12
+  rows / 4200 bytes, real CVEs: nginx resolver, qs/express DoS, php,
+  wordpress, next middleware, vite traversal, ws, follow-redirects, node
+  fetch, lodash proto, apache traversal), two attacks (kev-banner-audit:
+  Server/X-Powered-By/Via/X-Generator + body-stack-tell sweep over every
+  declared route, word-boundary-safe tokens; kev-version-range-audit:
+  disclosed versions must not sit in the snapshot's vulnerable sets -
+  disclosure-only with a clean version is honest REFUSED). Two-way teeth +
+  snapshot-integrity gate pinned (test/cve-feed.test.js, incl. the 'ws'
+  must-not-match-'answer' boundary pin); both pack rows read clean on our
+  own combined surface (18 routes swept, quiet wire). Count pins moved
+  everywhere (29 -> 30 rows, 814/1070 -> 842/1082 ops, module-plan 30 ->
+  31, catalog/FAQ parity 29 -> 30 across 12); packaging gains cve-feed +
+  snapshot.json in the tarball; check chain gained the new test. Gates:
+  suite 175/175, check 0, lint:docs 0, web build 6/6.>
+
 - [2026-10-21 ~15Z] **the WP lane touched before v1: wp-roles shipped
   (experimental) + the stub-WP worker fixture closes the PRD gap list.**
   Per the browser-lane pacing call: puppeteer/playwright stays designed-
