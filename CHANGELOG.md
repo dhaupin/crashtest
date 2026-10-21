@@ -5,7 +5,7 @@ Notable changes to the `crashtest` package. The released version lives in
 `test/version.test.js`); releases go out on `vX.Y.Z` git tags via npm
 Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
-## 1.0.0
+## 1.0.0 (unreleased)
 
 - two more framework wire packs ship: `vite-dev-shapes` (0.1.0) - the vite
   dev-file wire (`/@fs/`): `vite-fs-deny-bypass` (grammar differential:

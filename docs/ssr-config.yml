@@ -8,9 +8,11 @@ site:
   url: https://docs.creadev.org
   description: Seeded, in-process adversarial QA for agent-built apps - quick starts, playbooks per framework, the attack catalog, and the ledger CI gates on.
 
-# Jekyll's own output directory (build runs npx freestruct with no arg -
-# this default keeps the CI step honest and overridable).
-outputDir: docs/_site
+# Jekyll's own output directory, relative to this config's docs/ dir (the
+# pinned freestruct layer resolves config.outputDir against the config's
+# own folder; the old root-relative `docs/_site` value doubled under the
+# reorganized layer and red-lighted the deploy).
+outputDir: _site
 
 # Page URLs are emitted under /crashtest/ - strip the prefix when freestruct
 # computes per-page paths.
