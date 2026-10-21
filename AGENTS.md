@@ -100,11 +100,13 @@ commit: the attacks doc + web catalog, the count pins (catalog=30,
 per-module census), and the changelog. The suite will find you otherwise;
 that is the pin wall doing its job.
 
-Shipped packs (`packs/public/`, latest first): `cve-feed` (2, offline
-KEV/NVD snapshot), `crashtest-site` (18, the release self-check),
-`wp-money-shapes` (3, armedByKey), `wp-roles` (3, experimental),
-`wp-stock-smoke` (4). Pack manifests carry their own semver - never
-bump those for CLI-level releases.
+Shipped packs (`packs/public/`, latest first): `next-middleware-shapes`
+(2, Next.js middleware subrequest wire), `vite-dev-shapes` (2, vite
+dev-file wire), `qs-shapes` (2, express-qs bracket-notation parser
+shapes), `cve-feed` (2, offline KEV/NVD snapshot), `crashtest-site`
+(18, the release self-check), `wp-money-shapes` (3, armedByKey),
+`wp-roles` (3, experimental), `wp-stock-smoke` (4). Pack manifests
+carry their own semver - never bump those for CLI-level releases.
 
 ## Common commands
 
@@ -128,7 +130,10 @@ fiction):
    constant behind it (9 headers x 6 values = 54 spoof VARIANTS, not
    "54 headers").
 3. Determinism double-run - two consecutive `crashtest run`s must give
-   byte-identical baselines. `Date.now()` in a shipped surface is a bug.
+   byte-identical baselines (`labs/crashledger.json` + `labs/hardening.md`).
+   `Date.now()` in a shipped surface is a bug; the ONE blessed exception is
+   `labs/run-meta.json`, the sidecar cut stamp - it may move, the artifacts
+   never do (pinned by the double-run test in test/cli.test.js).
 
 ## Version surfaces (all 1.0.0 at release)
 

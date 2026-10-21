@@ -5,8 +5,37 @@ Notable changes to the `crashtest` package. The released version lives in
 `test/version.test.js`); releases go out on `vX.Y.Z` git tags via npm
 Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
-## 1.0.0 (unreleased)
+## 1.0.0
 
+- two more framework wire packs ship: `vite-dev-shapes` (0.1.0) - the vite
+  dev-file wire (`/@fs/`): `vite-fs-deny-bypass` (grammar differential:
+  plain shape gated + bypass grammar like `?raw??` served = bypassed) and
+  `vite-env-canary` (content-shape oracle for the `.env` deny family -
+  an anything-200 handler stays honestly REFUSED); and
+  `next-middleware-shapes` (0.1.0) - the middleware-subrequest header:
+  `mw-bypass-grammar` (known grammars must not un-gate a gated route) and
+  `mw-value-blindness` (a canary value that is not a certified chain must
+  never unlock the gate). Both sweep declared routes with differential
+  oracles, both dogfooded end to end through the real CLI (vulnerable
+  wires exit 1 with the right EXPLOITED rows; hardened wires exit 0;
+  ungated/open wires honestly REFUSED), teeth in test/vite-shapes.test.js
+  + test/next-mw-shapes.test.js; tarball ships both.
+- new shipped pack `qs-shapes` (0.1.0): bracket-notation parser shapes for
+  the express extended-query / urlencoded wire (any qs-style expander) -
+  `qs-bracket-canary` (prototype-key canary via `__proto__` /
+  `constructor.prototype` bracket keys, library-input oracle through the
+  bracket wire) and `qs-depth-floor` (deep `[0]` nesting ladders must stay
+  under the fuzz floor). Sweep semantics (every declared route, optional
+  `ctx.routes` whitelist); two-way teeth in test/qs-shapes.test.js
+  (vulnerable parser EXPLOITED, hardened and bracket-blind wires honestly
+  REFUSED, empty run roots skip honestly); tarball ships it.
+- determinism: the wall-clock cut stamp moved OUT of the committed ledger
+  and report (`labs/crashledger.json` + `labs/hardening.md` are now
+  byte-stable per commit, `generatedAt` dropped) into the `labs/run-meta.json`
+  sidecar written alongside them by `run`/`init` and fanned out by
+  `--out-dir`. The pre-tag double-run ritual now passes by construction and
+  a determinism pin test enforces it (test/cli.test.js); verdict rows were
+  already byte-identical.
 - cve-feed snapshot refresh: 12 -> 27 verified KEV/NVD rows (pack 0.1.1 ->
   0.2.0; one row corrected: CVE-2022-0235 is the node-fetch npm package,
   not a Node.js runtime CVE) plus a boundary fix in

@@ -138,7 +138,32 @@ reality directly - tracked vs machine-private.
   safety of its match tokens (the `ws`/`answer` case) are all pinned in
   [`test/cve-feed.test.js`](../../test/cve-feed.test.js). Adapter-prefix
   rule applies: it speaks the generic HTTP dialect, so no `wp-`-style
-  prefix.
+  prefix. [`qs-shapes`](https://github.com/dhaupin/crashtest/blob/main/packs/public/qs-shapes/pack.json)
+  is the parser-shaped pack: it attacks the bracket-notation wire itself
+  (the express extended-query / urlencoded parser and any qs-style
+  expander) - a prototype-key canary carried on `__proto__` /
+  `constructor.prototype` bracket keys, and a deep-`[0]`-nesting ladder
+  that must stay under the fuzz floor (never 5xx, never an uncaught
+  throw). Sweep semantics like cve-feed: every declared route fired,
+  optional `ctx.routes` whitelist to narrow; two-way teeth (vulnerable
+  parser EXPLOITED, hardened and ignorant wires honestly REFUSED, empty
+  run roots skip honestly) pinned in
+  [`test/qs-shapes.test.js`](../../test/qs-shapes.test.js).
+  [`vite-dev-shapes`](https://github.com/dhaupin/crashtest/blob/main/packs/public/vite-dev-shapes/pack.json)
+  and [`next-middleware-shapes`](https://github.com/dhaupin/crashtest/blob/main/packs/public/next-middleware-shapes/pack.json)
+  complete the framework wire lane: vite-dev-shapes fires a differential
+  over the `@fs`-module route (plain shape gated, bypass grammar like
+  `?raw??` served = the gate was bypassed) plus a content-shape oracle for
+  the `.`-env deny family (env-shaped bodies on deny-listed paths only -
+  an anything-200 handler stays honestly REFUSED)
+  [`test/vite-shapes.test.js`](../../test/vite-shapes.test.js); and
+  next-middleware-shapes fires the middleware-subrequest header: known
+  bypass grammars and a canary value probe, where bare-gated + served =
+  the middleware got skipped, bare-gated + gated = the middleware verified
+  its caller
+  [`test/next-mw-shapes.test.js`](../../test/next-mw-shapes.test.js).
+  All three speak the generic HTTP dialect (the adapter-prefix rule - no
+  target-framework keys), so any run root can arm them.
 - **Private packs** (the khf-style case: money paths guarded by a
   maintainer's own plugin, scenarios nobody else should have) live in
   `packs/local/` of a run root OUTSIDE the target repo. Nothing on disk is

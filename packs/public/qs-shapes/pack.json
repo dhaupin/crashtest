@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "name": "qs-shapes",
+  "description": "Bracket-notation parser shapes (the express extended-query / urlencoded wire, any qs-style parser): prototype-key canaries and deep-nesting floor checks swept over every declared route. Zero dependencies, zero sockets: the harness is the fake transport.",
+  "version": "0.1.0",
+  "entry": "index.js"
+}

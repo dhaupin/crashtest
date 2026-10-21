@@ -6,6 +6,11 @@ coverage/
 docs/_site/
 packs/local/
 
+# The sidecar cut stamp is the ONE churn-by-design surface (see AGENTS.md's
+# determinism ritual): the committed ledger + report are byte-stable, the
+# stamp moves with every run.
+labs/run-meta.json
+
 # Environment files never travel with the repo (defense-in-depth: the CLI
 # itself reads no .env secrets - they only exist in maintainer sandboxes).
 .env

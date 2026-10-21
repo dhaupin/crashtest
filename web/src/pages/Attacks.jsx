@@ -127,20 +127,29 @@ export default function Attacks() {
         </div>
         <h3 style={{ marginTop: 40 }}>Shipped packs ride the same ledger</h3>
         <p className="sub">
-          Beyond the 30 library attacks above, two public packs ship in the
+          Beyond the 30 library attacks above, five public packs ship in the
           package and load wherever <code>packs:</code> points: <code>crashtest-site</code>{' '}
           (18 attacks - the release self-check that caught our own version
-          endpoint answering a malformed payload with a 200) and{' '}
+          endpoint answering a malformed payload with a 200),{' '}
           <code>cve-feed</code> (2 attacks - <code>kev-banner-audit</code> and{' '}
-          <code>kev-version-range-audit</code>), which reads a curated,
-          committed KEV/NVD snapshot instead of the network. Same verdicts,
-          same ledger, still zero sockets: run time reads only the committed
-          snapshot file, so findings stay deterministic (same commit, same
-          verdicts); refresh is a maintainer-side sync. The snapshot shape,
-          its 27-row/8500-byte budget, and the word-boundary grammar of its
-          match tokens (so <code>ws</code> never reads into <code>answer</code>) are all
-          pinned in{' '}
-          <a href="https://github.com/dhaupin/crashtest/blob/main/test/cve-feed.test.js" target="_blank" rel="noreferrer">test/cve-feed.test.js</a>.
+          <code>kev-version-range-audit</code>, reading a curated, committed
+          KEV/NVD snapshot instead of the network - the snapshot shape, its
+          27-row/8500-byte budget, and the word-boundary grammar of its match
+          tokens are pinned in{' '}
+          <a href="https://github.com/dhaupin/crashtest/blob/main/test/cve-feed.test.js" target="_blank" rel="noreferrer">test/cve-feed.test.js</a>),{' '}
+          <code>qs-shapes</code> (2 attacks - <code>qs-bracket-canary</code> and{' '}
+          <code>qs-depth-floor</code>, firing bracket-notation shapes at the
+          qs-style parser wire, pinned in{' '}
+          <a href="https://github.com/dhaupin/crashtest/blob/main/test/qs-shapes.test.js" target="_blank" rel="noreferrer">test/qs-shapes.test.js</a>),{' '}
+          <code>vite-dev-shapes</code> (2 attacks - the vite dev-file wire's
+          bypass grammar differential plus the env-family content-shape
+          oracle, pinned in{' '}
+          <a href="https://github.com/dhaupin/crashtest/blob/main/test/vite-shapes.test.js" target="_blank" rel="noreferrer">test/vite-shapes.test.js</a>),
+          and <code>next-middleware-shapes</code> (2 attacks - the middleware
+          subrequest header's known bypass grammar plus a value-blindness
+          canary that must never unlock a gated route, pinned in{' '}
+          <a href="https://github.com/dhaupin/crashtest/blob/main/test/next-mw-shapes.test.js" target="_blank" rel="noreferrer">test/next-mw-shapes.test.js</a>).
+          Same verdicts, same ledger, still zero sockets.
         </p>
         <p className="field-report">
           Field-report from the target we trust least: our own code. This repo

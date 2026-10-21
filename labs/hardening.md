@@ -1,6 +1,7 @@
 # Hardening report
 
-> crashtest v1.0.0 / 2026-10-21T19:22:39.101Z / seed 12648430
+> crashtest v1.0.0 / seed 12648430
+> cut stamp: labs/run-meta.json (wall clock, deliberately outside this file).
 > CI rule: fail on a NEW EXPLOITED finding, or a REGRESSION of anything previously REFUSED.
 
 ## Findings

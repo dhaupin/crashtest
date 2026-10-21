@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "name": "next-middleware-shapes",
+  "description": "Next.js middleware wire shapes: x-middleware-subrequest bypass grammars and value-blindness probes swept over every declared route, with a gate-on/gate-off differential oracle. Zero dependencies, zero sockets: the harness is the fake transport.",
+  "version": "0.1.0",
+  "entry": "index.js"
+}

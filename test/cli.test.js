@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, readFile, access, writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';import { main, LEDGER_PATH, REPORT_PATH, VERSION } from '../src/cli.js';
+import { join } from 'node:path';import { main, LEDGER_PATH, REPORT_PATH, META_PATH, VERSION } from '../src/cli.js';
 
 // chdir wrapper: main() targets the CWD (the repo being attacked), so tests
 // swap into a temp dir and restore afterwards. node:test asyncs the callback;
@@ -65,6 +65,33 @@ test('init --force overwrites existing labs', async () => {
     await main(['init', '--force']);
     const report = await readFile(REPORT_PATH, 'utf8');
     assert.match(report, /# Hardening report/);
+  });
+});
+
+test('determinism double-run: consecutive runs are byte-identical in ledger + report; the wall clock lives in the sidecar only', async () => {
+  await inRepo('double-run', async () => {
+    await writeFile('crashtest.config.js',
+      "export default { routes: { burst: async () => new Response('accepted', { headers: { 'cache-control': 'no-store' } }) }, seed: 7 };\n");
+    await main(['run']);
+    process.exitCode = 0;
+    const ledger1 = await readFile(LEDGER_PATH, 'utf8');
+    const report1 = await readFile(REPORT_PATH, 'utf8');
+    const stamp1 = JSON.parse(await readFile(META_PATH, 'utf8'));
+    assert.ok(stamp1.generatedAt && /^\d{4}-\d{2}-\d{2}T/.test(stamp1.generatedAt), 'sidecar carries the wall clock');
+    assert.equal(stamp1.seed, 7, 'sidecar records the cut seed');
+    assert.equal(JSON.parse(ledger1).generatedAt, undefined, 'the ledger itself carries NO wall clock');
+    // Advance the clock past ISO-second resolution so a hidden wall-clock
+    // write into the artifacts would show here.
+    await new Promise((r) => setTimeout(r, 1100));
+    await main(['run']);
+    process.exitCode = 0;
+    const ledger2 = await readFile(LEDGER_PATH, 'utf8');
+    const report2 = await readFile(REPORT_PATH, 'utf8');
+    assert.equal(ledger1, ledger2, 'ledger must be byte-identical across consecutive runs');
+    assert.equal(report1, report2, 'report must be byte-identical across consecutive runs');
+    // The sidecar is the ONE expected-churn surface: it may move forward.
+    const stamp2 = JSON.parse(await readFile(META_PATH, 'utf8'));
+    assert.ok(new Date(stamp2.generatedAt) >= new Date(stamp1.generatedAt), 'sidecar stamp moves; artifacts never do');
   });
 });
 

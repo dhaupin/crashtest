@@ -21,7 +21,9 @@ export function buildLedger(run, priorLedger = null) {
   }
   return {
     schemaVersion: 1,
-    generatedAt: new Date().toISOString(),
+    // No wall-clock stamp here on purpose: the committed ledger must be
+    // byte-stable per commit (determinism law). The cut stamp lives in
+    // labs/run-meta.json, written by the CLI next to this file.
     findings,
     acceptedRisks: accepted,
     baseline: run.refused.map(r => r.id),
@@ -72,7 +74,8 @@ export function renderMarkdown(run, ledger, diff, opts = {}) {
   const P = (s = '') => lines.push(s);
   P(`# Hardening report`);
   P();
-  P(`> crashtest v${opts.version ?? 'unknown'} / ${new Date(run.startedAt).toISOString()} / seed ${opts.seed ?? '0xC0FFEE'}`);
+  P(`> crashtest v${opts.version ?? 'unknown'} / seed ${opts.seed ?? '0xC0FFEE'}`);
+  P(`> cut stamp: labs/run-meta.json (wall clock, deliberately outside this file).`);
   P(`> CI rule: fail on a NEW EXPLOITED finding, or a REGRESSION of anything previously REFUSED.`);
   P();
   P(`## Findings`);

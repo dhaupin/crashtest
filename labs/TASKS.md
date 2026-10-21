@@ -70,6 +70,72 @@
 
 ## Log
 
+- [2026-10-22 ~06Z] **the framework pack lane finishes its agreed
+  shortlist: TWO more wire packs ship AND every pack dogfooded end to
+  end through the real CLI. (1) qs-shapes receipts (the precedent probe
+  proved on the wire): vulnerable qs target exit 1 with
+  qs-bracket-canary + qs-depth-floor EXPLOITED (canary landed via
+  urlencoded bracket shape, ladder broke at bracket depth 20000 on the
+  GET query wire); hardened target exit 0 both REFUSED; our own demo
+  fixture self-surface exit 0 - 24 canary fires + 120 ladder fires
+  across 12 routes, ZERO false positives. (2) vite-dev-shapes (0.1.0):
+  vite-fs-deny-bypass (differential: plain /@fs/ gated + bypass grammar
+  like ?raw?? served = bypassed) + vite-env-canary (content-shape
+  oracle: deny-family bodies must LOOK like env material, so
+  anything-200 handlers stay honest); CLI receipts: vulnerable exit 1
+  with BOTH EXPLOITED, hardened exit 0, ungated posture honestly
+  REFUSED (teeth test pins that too - a differential needs a gate).
+  (3) next-middleware-shapes (0.1.0): mw-bypass-grammar (five known
+  x-middleware-subrequest grammars must not un-gate a gated route) +
+  mw-value-blindness (a canary value that is NOT a certified chain must
+  never unlock the gate - presence-keyed gates are their own finding);
+  CLI receipts: grammar-vulnerable exit 1 (grammar EXPLOITED, canary
+  honestly refused - that wire does not have the second bug),
+  value-blind exit 1 with BOTH EXPLOITED, hardened exit 0. Registers:
+  packaging tarball pins (both packs), package.json files + check
+  chain, README, docs/reference/packs.md (framework wire lane section),
+  web Attacks shipped packs (now five), AGENTS census (latest-first).
+  Teeth 7/7 per pack file. Library count wall untouched (30/12). Full
+  gates at close: suite, check, lint:docs.**
+- [2026-10-22 ~05Z] **the framework-pack precedent probe lands: shipped
+  pack `qs-shapes` (0.1.0, packs/public/qs-shapes - the FIRST of the
+  framework-shaped pack lane agreed with the user, targeting the express
+  extended-query / urlencoded parser wire: a framework's OWN signature
+  that generic attacks cannot emit). Two attacks, library-oracle-honest:
+  (1) qs-bracket-canary - urlencoded bracket shapes carry a canary on
+  __proto__/constructor.prototype keys, fresh-object oracle (
+  input.js's technique delivered through the bracket wire, process
+  hygiene delete-after); (2) qs-depth-floor - fixed deterministic
+  deep-[0] ladders (64..20000) on BOTH wires (GET query + POST
+  urlencoded, since express hands qs both) must stay under the fuzz
+  floor. Sweep semantics like cve-feed (every declared route, optional
+  ctx.routes whitelist to arm). Teeth 6/6 in test/qs-shapes.test.js:
+  vulnerable parser (naive reducer, recursive like real qs) EXPLOITED
+  both; hardened parser (key guard + depth cap) holds; bracket-blind
+  wire honestly REFUSED; empty run roots skip honestly; ctx.routes
+  whitelist proven; manifest contract pinned. One fixture lesson paid
+  itself: the ignorant wire initially 204'd WITH a body - the Response
+  constructor threw and the floor correctly called it a violation (the
+  oracle is that honest). Registers updated everywhere: packaging
+  tarball pin, docs/reference/packs.md, README, web Attacks shipped-
+  packs section (now three packs), AGENTS shipped-packs census. Library
+  count wall untouched (30/12 - pack attacks are not library modules).
+  Full gates at close: suite, check, lint:docs.**
+- [2026-10-22 ~04Z] **the determinism stamp finally came home: the
+  wall-clock `generatedAt` stamp is OUT of the committed artifacts. The
+  two ledger surfaces (`labs/crashledger.json`, `labs/hardening.md`) are
+  now byte-stable per commit - the tea-stamp was found rolling back
+  during the last push review (two commits' diffs differed ONLY on the
+  stamp lines, so the pre-tag double-run ritual was failing on noise).
+  The cut stamp lives in `labs/run-meta.json` (schema 1: generatedAt,
+  crashtestVersion, seed), written by `init` and `run` next to the
+  artifacts and fanned out by `--out-dir`; the machine run blob's
+  `startedAt` (stdout-only) is untouched. web/ui consumers were already
+  stamp-optional, so the dashboard keeps its cut date from the embedded
+  snapshot. New gate: the DOUBLE-RUN PIN test in test/cli.test.js (1100ms
+  clock gap) enforces byte-identical artifacts while the sidecar moves -
+  the AGENTS pre-tag ritual now passes by construction and the ritual
+  notes the one blessed exception. Suite 183/183, check 0, lint:docs 0.**
 - [2026-10-22 ~03Z] **cve-feed snapshot expansion: 12 -> 27 verified rows
   (pack.json 0.1.1 -> 0.2.0; a pack-level DATA refresh, so the pack semver
   moves, per the pack-own-semver rule). Two research verification passes

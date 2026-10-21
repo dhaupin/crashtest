@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "name": "vite-dev-shapes",
+  "description": "Vite dev-server wire shapes: fs deny/allow bypass grammars (?raw?? / ?import&raw?? / traversal encodings) and deny-list (.env) leakage swept over every declared route. Zero dependencies, zero sockets: the harness is the fake transport.",
+  "version": "0.1.0",
+  "entry": "index.js"
+}

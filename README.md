@@ -113,6 +113,32 @@ Its shape, byte/row budget and token grammar (the `ws`/`answer`
 word-boundary case) are pinned in
 [`test/cve-feed.test.js`](./test/cve-feed.test.js).
 
+Parser-shaped packs follow the same teeth-first pattern:
+[`packs/public/qs-shapes/`](./packs/public/qs-shapes/pack.json) attacks
+the bracket-notation wire itself (the express extended-query / urlencoded
+parser, any qs-style expander): a prototype-key canary riding
+`__proto__`/`constructor.prototype` bracket keys, and a deep-nesting
+ladder that must stay under the fuzz floor (never 5xx, never an uncaught
+throw). It sweeps every declared route the way cve-feed does, narrowed
+with `ctx.routes`, and its two-way teeth (a vulnerable parser
+EXPLOITEDed, hardened and bracket-blind wires honestly REFUSED) are
+pinned in [`test/qs-shapes.test.js`](./test/qs-shapes.test.js).
+
+Two more framework wire packs ship the same way:
+[`packs/public/vite-dev-shapes/`](./packs/public/vite-dev-shapes/pack.json)
+attacks the vite DEV wire's own signature, the `/@fs/` module route: a
+grammar differential (plain endpoint gated, bypass-grammar suffixes like
+`?raw??` / `?import&raw??` served) and a content-shape oracle for the
+`.env` deny-list family, and
+[`packs/public/next-middleware-shapes/`](./packs/public/next-middleware-shapes/pack.json)
+attacks the Next.js middleware subrequest header: a known-grammar bypass
+must not turn a gated route into a 2xx, and a canary value that is NOT a
+certified chain must never unlock the gate (value-blindness is its own
+finding). Both sweep declared routes with differential oracles and are
+pinned two-way in
+[`test/vite-shapes.test.js`](./test/vite-shapes.test.js) and
+[`test/next-mw-shapes.test.js`](./test/next-mw-shapes.test.js).
+
 ## Landscape
 
 | Tool | Mode | Gap crashtest fills |
