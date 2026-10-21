@@ -223,7 +223,8 @@ function sessionRoutes({ secure }) {
     logout: async ({ request }) => {
       const sid = (request.headers.get('cookie') ?? '').match(/sid=([^;]*)/)?.[1];
       if (secure && sid) sessions.delete(sid);
-      return new Response('ok', { status: 204, headers: { 'cache-control': 'no-store' } });
+      // 204 reflex: null body required by WHATWG (a 204 cannot carry content).
+      return new Response(null, { status: 204, headers: { 'cache-control': 'no-store' } });
     },
   };
 }
@@ -316,4 +317,59 @@ test('authz: EXPLOITED on the header/body-trusting gate + debug alias, REFUSED w
   const skip = await matrix.run(buildHarness({}, { env: authzEnv }), { privilegedRoute: 'admin' });
   assert.equal(skip.verdict, 'REFUSED');
   assert.ok(skip.skipped === true, `undeclared routes must skip, not fail: ${skip.detail}`);
+});
+
+// ---- proto-hygiene (HEAD parity / request shape flood) -------------------
+function shapeRoutes({ safe }) {
+  return {
+    read: async ({ request }) => {
+      const u = new URL(request.url);
+      const key = u.searchParams.get('key');
+      const seg = u.pathname.split('/').filter(Boolean).pop();
+      // the draft: dereference a param the URL never carried - crash on '?'
+      return Response.json({ k: key.slice(0, 8).toUpperCase(), seg: seg ?? '' });
+    },
+    ok: safe
+      ? async () => new Response('ok')
+      : async ({ request }) => {
+          if (request.method === 'HEAD') throw new Error('head? never tested it');
+          return new Response('ok');
+        },
+  };
+}
+
+test('proto-hygiene: EXPLOITED on the crashing draft + untested-HEAD, REFUSED on the hardened shape handlers', async () => {
+  const [module] = (await loadScenarios()).map(l => l.module).filter(m => m.name === 'proto-hygiene');
+  assert.ok(module, 'proto-hygiene library module must load');
+  const parity = module.attacks.find(a => a.name === 'head-get-parity');
+  const flood = module.attacks.find(a => a.name === 'request-shape-flood');
+  for (const a of [parity, flood]) assert.ok(a);
+
+  // Vuln: 'ok' throws exactly on HEAD; 'read' dereferences a missing param.
+  const vuln = buildHarness(shapeRoutes({ safe: false }), {});
+  const r1 = await parity.run(vuln, { routes: ['ok'] });
+  assert.equal(r1.verdict, 'EXPLOITED', `untested HEAD must trip: ${r1.detail}`);
+  assert.match(r1.detail, /threw on HEAD/);
+  const r2 = await flood.run(vuln, { routes: ['read'] });
+  assert.equal(r2.verdict, 'EXPLOITED', `param dereference must trip: ${r2.detail}`);
+  assert.match(r2.detail, /threw - /);
+
+  const hardRoutes = {
+    ok: () => new Response('ok'),
+    read: ({ request }) => {
+      const u = new URL(request.url);
+      const key = u.searchParams.get('key') ?? '';
+      return Response.json({ k: key.slice(0, 8).toUpperCase() });
+    },
+  };
+  const hard = buildHarness(hardRoutes, {});
+  const r3 = await parity.run(hard, { routes: ['ok'] });
+  assert.equal(r3.verdict, 'REFUSED', `HEAD must mirror: ${r3.detail}`);
+  const r4 = await flood.run(hard, { routes: ['read'] });
+  assert.equal(r4.verdict, 'REFUSED', `safe shapes must hold: ${r4.detail}`);
+
+  // Sweep default without ctx.routes walks everything - works on empty too.
+  const emptySkip = await parity.run(buildHarness({}, {}), {});
+  assert.equal(emptySkip.verdict, 'REFUSED');
+  assert.ok(emptySkip.skipped === true, `empty sweep must skip, not fail: ${emptySkip.detail}`);
 });

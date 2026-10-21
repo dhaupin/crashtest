@@ -1,11 +1,11 @@
 # Hardening report
 
-> crashtest v1.0.0 / 2026-10-21T05:59:29.821Z / seed 12648430
+> crashtest v1.0.0 / 2026-10-21T06:10:08.129Z / seed 12648430
 > CI rule: fail on a NEW EXPLOITED finding, or a REGRESSION of anything previously REFUSED.
 
 ## Findings
 
-### 🛡 REFUSED (21)
+### 🛡 REFUSED (23)
 - auth/identity-spoof-headers: all 54 identity-header spoofs denied or ignored on "admin"
 - auth/secret-watermark: 8 routes x 3 error-path probes: no fake secret ever left the env
 - auth/privilege-escalation: ownership mutations rejected by "device" (baseline 403)
@@ -17,6 +17,8 @@
 - input/proto-pollution-body: payload to "enroll" did not pollute state (status 400)
 - input/never-fail-mutations: 64 hostile bodies all under the floor on "enroll" (seed 3650991062)
 - input/oversized-field: oversized body handled on "enroll" (status 400)
+- proto-hygiene/head-get-parity: 8 route(s): HEAD mirrors GET (no throws, no status drift beyond honest 405) + 7 info note(s)
+- proto-hygiene/request-shape-flood: 8 route(s) x 18 bare shapes (query chaos, path shapes, header casings) all landed 4xx-or-cleaner with case-parity intact
 - session/cookie-hygiene: login cookie on "login" carries the full hygiene set: Secure + HttpOnly + SameSite policy
 - session/session-fixation: session rotation + forged-id rejection hold on "login"/"me" (two distinct sids, forged sid denied with 401)
 - session/logout-invalidates: logout invalidation holds on "logout" - me() with the logged-out sid denies (status 401)
@@ -33,7 +35,7 @@
 ### 🔒 BOUNDED (0)
 
 ## Cost economics
-- total: 508 backend ops across 748 in-process requests from 21 attacks
+- total: 668 backend ops across 924 in-process requests from 23 attacks
   - auth/identity-spoof-headers: 55 ops / 55 requests
   - auth/secret-watermark: 24 ops / 79 requests
   - auth/privilege-escalation: 4 ops / 83 requests
@@ -45,6 +47,8 @@
   - input/proto-pollution-body: 1 ops / 1 requests
   - input/never-fail-mutations: 64 ops / 65 requests
   - input/oversized-field: 1 ops / 66 requests
+  - proto-hygiene/head-get-parity: 16 ops / 16 requests
+  - proto-hygiene/request-shape-flood: 144 ops / 160 requests
   - session/cookie-hygiene: 7 ops / 1 requests
   - session/session-fixation: 16 ops / 4 requests
   - session/logout-invalidates: 12 ops / 7 requests

@@ -13,7 +13,7 @@
 export const dogfood = {
   "ledger": {
     "schemaVersion": 1,
-    "generatedAt": "2026-10-21T05:59:29.890Z",
+    "generatedAt": "2026-10-21T06:10:08.208Z",
     "findings": [
       {
         "id": "auth/identity-spoof-headers",
@@ -69,6 +69,16 @@ export const dogfood = {
         "id": "input/oversized-field",
         "verdict": "REFUSED",
         "detail": "oversized body handled on \"enroll\" (status 400)"
+      },
+      {
+        "id": "proto-hygiene/head-get-parity",
+        "verdict": "REFUSED",
+        "detail": "8 route(s): HEAD mirrors GET (no throws, no status drift beyond honest 405) + 7 info note(s)"
+      },
+      {
+        "id": "proto-hygiene/request-shape-flood",
+        "verdict": "REFUSED",
+        "detail": "8 route(s) x 18 bare shapes (query chaos, path shapes, header casings) all landed 4xx-or-cleaner with case-parity intact"
       },
       {
         "id": "session/cookie-hygiene",
@@ -135,6 +145,8 @@ export const dogfood = {
       "input/proto-pollution-body",
       "input/never-fail-mutations",
       "input/oversized-field",
+      "proto-hygiene/head-get-parity",
+      "proto-hygiene/request-shape-flood",
       "session/cookie-hygiene",
       "session/session-fixation",
       "session/logout-invalidates",
@@ -149,9 +161,9 @@ export const dogfood = {
   },
   "cost": {
     "totals": {
-      "ops": 508,
-      "requests": 748,
-      "distinctAttacks": 21
+      "ops": 668,
+      "requests": 924,
+      "distinctAttacks": 23
     },
     "perAttack": [
       {
@@ -210,6 +222,16 @@ export const dogfood = {
         "requests": 66
       },
       {
+        "id": "proto-hygiene/head-get-parity",
+        "ops": 16,
+        "requests": 16
+      },
+      {
+        "id": "proto-hygiene/request-shape-flood",
+        "ops": 144,
+        "requests": 160
+      },
+      {
         "id": "session/cookie-hygiene",
         "ops": 7,
         "requests": 1
@@ -263,7 +285,7 @@ export const dogfood = {
   },
   "meta": {
     "version": "1.0.0",
-    "startedAt": "2026-10-21T05:59:29.821Z",
+    "startedAt": "2026-10-21T06:10:08.129Z",
     "seed": 12648430
   }
 };

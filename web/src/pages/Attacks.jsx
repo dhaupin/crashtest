@@ -35,6 +35,13 @@ const MODULES = [
     ],
   },
   {
+    mod: 'proto-hygiene',
+    attacks: [
+      ['head-get-parity', 'Sweeps every declared route: HEAD must be the cheap mirror of GET - no throw, no status drift where GET answered 2xx (only an honest 405 is excusable); HEAD body bytes are an INFO note, not a finding', 'handlers that never considered HEAD'],
+      ['request-shape-flood', 'Bare geometry attacks before payloads: duplicate query keys, malformed separators, control bytes, dot-segment paths, header casings - no 5xx, no throw, and answers must not change when only the spelling did', 'param handlers that dereference what the URL never carried'],
+    ],
+  },
+  {
     mod: 'state',
     attacks: [
       ['enumeration-oracle', 'Arms mustDenyIds, probes each - 200s (or content ripples) mean foreign rows leak by guessable id', 'GET-by-id without ownership checks'],
@@ -99,7 +106,7 @@ export default function Attacks() {
         <p className="field-report">
           Field-report from the target we trust least: our own code. This repo
           dogfoods itself in CI - runs we did on ourselves. The committed ledger
-          holds <span className="ok">21 REFUSED findings</span> on our own hardened demo
+          holds <span className="ok">23 REFUSED findings</span> on our own hardened demo
           app, and the self-site run paid for one real bug: the shipped version endpoint
           once answered a malformed registry payload with <span className="bad">200 and no
           version key</span>. Found, fixed, never regressing again - pinned by the

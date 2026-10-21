@@ -46,14 +46,14 @@ test('dogfood: hardened fixture - all attacks REFUSED, exit 0, artifacts written
   assert.equal(runCli(dir), 0);
   const ledger = JSON.parse(readFileSync(join(dir, 'labs/crashledger.json'), 'utf8'));
   assert.equal(ledger.schemaVersion, 1);
-  // 8 seed attacks + 5 state/volume attacks = 13 (v0.2); + 2 taxonomy = 15; + 3 session = 18; + 3 authz = 21 as of this round.
-  assert.equal(ledger.findings.length, 21, 'every seed attack ran');
+  // 8 seed attacks + 5 state/volume attacks = 13 (v0.2); + 2 taxonomy = 15; + 3 session = 18; + 3 authz = 21; + 2 proto-hygiene = 23 as of this round.
+  assert.equal(ledger.findings.length, 23, 'every seed attack ran');
   const bad = ledger.findings.filter(f => f.verdict !== 'REFUSED');
   assert.deepEqual(bad, [], bad.map(f => `${f.id}: ${f.detail}`).join(' | '));
-  assert.equal(ledger.baseline.length, 21);
+  assert.equal(ledger.baseline.length, 23);
   const report = readFileSync(join(dir, 'labs/hardening.md'), 'utf8');
   assert.match(report, /# Hardening report/);
-  assert.match(report, /REFUSED \(21\)/);
+  assert.match(report, /REFUSED \(23\)/);
   assert.match(report, /EXPLOITED \(0\)/);
 });
 

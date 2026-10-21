@@ -1,6 +1,6 @@
 // packs/public/crashtest-site/attacks.js - the hardcore attacks.
 //
-// Fourteen attacks against crashtest's own shipped website. Every one is
+// Fifteen attacks against crashtest's own shipped website. Every one is
 // brutal-by-design: it names its fault class precisely, demands specific
 // wire behavior (not "nice to have"), and EXPLOITEDs with evidence when a
 // claim the site makes turns out to be false. Verdicts are honest - a wall
@@ -532,6 +532,43 @@ export default {
           return { verdict: 'EXPLOITED', detail: 'role-claim bodies flipped a response decision: ' + flips.join(' | ') };
         }
         return { verdict: 'REFUSED', detail: 'no shipped artifact advertises a privileged surface and role-claim bodies flip nothing on ' + routes.length + ' routes - the privilege decision simply does not exist here, and nothing pretends it does' };
+      },
+    },
+
+    {
+      // The library `proto-hygiene` discipline aimed at the site: HEAD must
+      // mirror GET on every asset route, and query chaos must never break
+      // an asset serve. Same canary discipline, zero shared code.
+      name: 'proto-hygiene-shape-battery',
+      description: 'HEAD on every shipped route must mirror GET (same 2xx/4xx class, honest 405 allowed) and the bare-shape query chaos (duplicate keys, empty/separators-only queries, percent encodings) must never 5xx or throw an asset serve offline',
+      async run(harness) {
+        const routes = ['version', 'site-html', 'site-headers', 'site-manifest', 'site-sitemap', 'site-robotstxt'];
+        const faults = [];
+        for (const route of routes) {
+          if (!harness.listRoutes().includes(route)) continue;
+          const get = await hit(harness, route, { method: 'GET' });
+          if (get.threw || get.status >= 400) continue; // GET itself failing is other probes' floor
+          const headRes = await hit(harness, route, { method: 'HEAD' });
+          if (headRes.threw) { faults.push(`${route}: threw on HEAD`); continue; }
+          if (headRes.status !== get.status) {
+            faults.push(`${route}: GET ${get.status} but HEAD ${headRes.status} - asset parity broke`);
+          }
+        }
+        const queryShapes = ['?key=a&key=b', '?&&&', '?', '?=v', '?key=', '?key=a%00b', '?key=%2e%2e%2f'];
+        let probes = 0;
+        for (const route of routes) {
+          if (!harness.listRoutes().includes(route)) continue;
+          for (const qs of queryShapes) {
+            probes++;
+            const rec = await harness.run(route, { method: 'GET', headers: {}, url: `/${route}${qs}` });
+            if (rec.threw) { faults.push(`${route} ${qs}: threw - ${String(rec.error).slice(0, 70)}`); continue; }
+            if (rec.status >= 500) faults.push(`${route} ${qs}: ${rec.status}`);
+          }
+        }
+        if (faults.length) {
+          return { verdict: 'EXPLOITED', detail: 'bare-shape battery broke the asset surface: ' + faults[0] + ` (+${faults.length - 1} more)` };
+        }
+        return { verdict: 'REFUSED', detail: routes.length + ' route(s): HEAD mirrors GET and ' + probes + ' bare-shape queries all served cleanly (or denied honestly) - asset monotony holds' };
       },
     },
   ],

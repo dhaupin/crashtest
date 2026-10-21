@@ -7,7 +7,7 @@ description: Every shipped scenario module and attack, what it does, and what ve
 
 # The Attack Catalog
 
-Twenty-one attacks across eight modules ship in the core package. Each returns
+Twenty-three attacks across nine modules ship in the core package. Each returns
 exactly one verdict per run: 🛡 REFUSED, ⚡ EXPLOITED, or 🔒 BOUNDED
 (BOUNDED requires an owner + bound or it demotes to EXPLOITED - loudly).
 
@@ -81,6 +81,22 @@ this module to assess it.
 | `cookie-hygiene` | The auth transition (login) must mint a `Set-Cookie` carrying `Secure`, `HttpOnly`, and a `SameSite` policy. Any missing flag = EXPLOITED with the flag named. |
 | `session-fixation` | Two logins must mint DIFFERENT session ids (a shared sid across the privilege transition is the fixation classic), and a forged canary sid must never authenticate - `me()` honoring an unknown cookie = EXPLOITED. |
 | `logout-invalidates` | A logged-out sid must be dead on arrival: `me()` with the pre-logout cookie must deny (4xx class). Still-200 = EXPLOITED - the server kept the session alive. |
+
+## `proto-hygiene` - bare request geometry
+
+The guards extension from the PRD's cheap/low-false-positive slot: how the
+request's bare geometry is met, before any payload matters. Both attacks
+sweep every declared route (narrow with `ctx.routes`).
+
+| Attack | What it does |
+|---|---|
+| `head-get-parity` | HEAD must be the cheap mirror of GET: no throw, no status drift where GET answered 2xx (only an honest 405 is excusable). HEAD body bytes are an INFO note, never a finding - wire runtimes usually strip them, so grading that in-process would false-positive correct handlers. |
+| `request-shape-flood` | The bare shapes attackers fire before payloads: duplicate query keys, malformed separators, embedded control bytes, dot-segment/double-slash path shapes, and identity headers in three casings. No 5xx, no uncaught throw, and answers must not change when only the spelling did. This probe graded a real 204-with-body bug in this repo's own demo fixture on its first dogfood run. |
+
+Scope note: header CASE is a transport invariant here (the in-process WHATWG
+`Headers` normalizes names by construction), so the case axis pins the
+invariant rather than grading handler choices - differential control, exactly
+why the PRD filed it under cheap.
 
 ## Writing your own
 

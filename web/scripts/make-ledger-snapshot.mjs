@@ -37,7 +37,10 @@ const totals = hardening.match(/^- total: (\d+) backend ops across (\d+) in-proc
 if (!totals) throw new Error('could not find the cost total line in labs/hardening.md');
 
 // Per attack: "  - id: N ops / M requests"
-const perAttack = [...hardening.matchAll(/^  - ([a-z0-9]+\/[a-z0-9-]+): (\d+) ops \/ (\d+) requests$/gm)]
+// Both id halves are hyphen-tolerant - module names like 'proto-hygiene'
+// carry hyphens too (the taxonomy round paid for this once already; the
+// proto-hygiene round found the attack side of it).
+const perAttack = [...hardening.matchAll(/^  - ([a-z0-9-]+\/[a-z0-9-]+): (\d+) ops \/ (\d+) requests$/gm)]
   .map(([, id, ops, requests]) => ({ id, ops: Number(ops), requests: Number(requests) }));
 if (perAttack.length === 0) throw new Error('could not parse any per-attack cost lines from labs/hardening.md');
 

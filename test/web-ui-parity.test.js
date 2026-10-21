@@ -9,10 +9,10 @@ import { parseArtifact, parsePlan, prettyDate, VERDICTS } from '../web/src/lib/l
 test('dogfood snapshot parses as a ledger and reports a clean gate (exit 0)', () => {
   const vm = parseArtifact(dogfood.ledger, { sourceLabel: 'test' });
   assert.equal(vm.kind, 'ledger');
-  assert.equal(vm.counts.total, 21);
-  assert.equal(vm.counts.refused, 21);
+  assert.equal(vm.counts.total, 23);
+  assert.equal(vm.counts.refused, 23);
   assert.equal(vm.counts.exploited, 0);
-  assert.equal(vm.groupings.length, 8);
+  assert.equal(vm.groupings.length, 9);
 });
 
 test('web gate never disagrees with the CLI rule on a different-input sanity run', () => {

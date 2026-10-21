@@ -70,7 +70,38 @@
 
 ## Log
 
-- [2026-10-21 ~10Z] **authz module shipped - 21 attacks across 8 modules;
+- [2026-10-21 ~11Z] **proto-hygiene shipped - 23 attacks across 9 modules,
+  and its first run paid rent again: the 204-with-body bug.** PRD's cheap /
+  low-false-positive slot ships: src/scenarios/library/protohygiene.js
+  (2 sweep attacks, no arming). head-get-parity (HEAD must mirror GET: no
+  throw, no status drift where GET answered 2xx - only an honest 405 is
+  excusable; HEAD body bytes graded INFO-only because wire runtimes strip
+  them, so flagging in-process would false-positive correct handlers) and
+  request-shape-flood (bare geometry before payloads: duplicate query keys,
+  malformed separators, embedded control bytes, dot-segment/double-slash
+  path shapes, and identity headers in 3 casings - never 5xx, never threw,
+  answers must not change when only the spelling did).
+  FIRST DOGFOOD FIND: the demo's logout handler answered
+  new Response('ok', { status: 204 }) - WHATWG refuses a body-bearing 204
+  outright, so EVERY logout call had ridden rec.threw silently since the
+  session round; the session/logout-invalidates REFUSED rows carried the
+  throw only as an ungraded detail string. Flood graded it; fixed at cause
+  (null body on the 204 in demo hard + vuln + the test fixture). Honest
+  scope choices per PRD: header case is a transport invariant in-process
+  (WHATWG Headers normalizes), so the case axis pins the invariant
+  (differential control) instead of grading unformable behavior. Also
+  fixed at cause: the dashboard snapshot generator's per-attack regex could
+  not parse hyphenated module prefixes - 'proto-hygiene' rows silently
+  dropped from cost economics (the same family as the taxonomy round's
+  regex widen); both id halves now hyphen-tolerant. Count pins synced
+  everywhere (21 -> 23 rows, 8 -> 9 groups, 508/748 -> 668/924 cost,
+  module-plan 22 -> 24, catalog/FAQ parity 21 -> 23). Site pack gains
+  proto-hygiene-shape-battery (15 attacks now): HEAD mirrors GET on all 6
+  asset routes + 7 query shapes x 6 routes never 5xx/throw. Vuln bench:
+  9 REFUSED / 14 EXPLOITED (the flood's 31 broken probes on enrollVuln).
+  Full battery vs ourselves (demo + site, all 9 modules + packs): 45/45
+  REFUSED, exit 0, 982 ops / 1916 requests, 0 new / 0 regressed. Gates:
+  suite 167/167, check 0, lint:docs 0, web build 6/6.
   full battery vs ourselves: 42/42 held.** PRD section 6 planned row #2
   ships: src/scenarios/library/authz.js (3 attacks) attacks the privilege
   DECISION itself (privilege-escalation attacks the owner field - authz

@@ -104,7 +104,10 @@ const meHard = async ({ request, env }) => {
 const logoutHard = async ({ request, env }) => {
   const sid = parseSid(request);
   if (sid) await deleteSession(env, sid);
-  return new Response('ok', {
+  // 204 = no content by definition: WHATWG refuses a body-bearing Response
+  // with status 204 (the request-shape flood was the first probe to grade
+  // this live). Null body, honest headers.
+  return new Response(null, {
     status: 204,
     headers: {
       'set-cookie': 'sid=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict',
@@ -128,7 +131,7 @@ const meVuln = async ({ request }) => {
   return Response.json({ user: 'trusted', from: 'cookie' });
 };
 
-const logoutVuln = async () => new Response('ok', { status: 204 });
+const logoutVuln = async () => new Response(null, { status: 204 });
 
 function conflictOr500(handler) {
   return async ({ request, env }) => {
