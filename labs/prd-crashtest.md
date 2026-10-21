@@ -99,6 +99,7 @@ request is an in-process `Request` object through the app's own routing.
 | `session` | cookie hygiene (Secure/HttpOnly/SameSite on the login transition), fixation (sid rotation + forged-id rejection), logout invalidation | shipped 2026-10-21 - the cookie dimension `auth` deliberately left alone; skips politely on undeclared routes, honestly skips cookie-less logins |
 | `authz` | route x method matrix on privileged paths, self-declared role bodies, handler alias confusion (the dev/debug leftover trapdoor) | shipped 2026-10-21 - the door `privilege-escalation` opens: this attacks the privilege DECISION, not the owner field |
 | `proto-hygiene` | HEAD/GET parity, duplicate query keys, dot-segment/double-slash path shapes, header case chaos | shipped 2026-10-21 - as planned (cheap, low false-positive): HEAD body graded INFO-only (wire runtimes strip it), header case pinned as a transport invariant; first run graded a real 204-with-body bug in the demo fixture |
+| `recursion` | deep-nest stack exhaustion on recursive JSON walkers, catastrophic-backtracking patterns (redos) | shipped 2026-10-21 - the loop-without-a-guard class: two attacks, with the redos timing oracle self-controlled (evil/benign pairs on the SAME handler, ratio bucket only - no host clock); unbounded-language-loop shapes stay in scope notes |
 
 Planned expansions (v1.x - wording stays `planned` until each ships):
 
@@ -108,6 +109,27 @@ Planned expansions (v1.x - wording stays `planned` until each ships):
 | `upload` | multipart shapes: filename traversal, double extensions, null-byte names, polyglot content types | planned - FormData bodies are in-process; storage-fill pairs for size |
 | `race` | concurrent pairs: double-submit idempotency, lost-update window, expiry race (validation-to-use gap) | planned - needs interleaved scheduling in the harness |
 | `wp-roles` (pack scope) | role-callback bypass shapes on the WP envelope wire | planned - explicitly experimental (section 10 note) |
+
+## Extended sources (designed, deliberately not built yet)
+
+External vulnerability corpora (NVD, CISA KEV, GitHub Advisories) as packs.
+The design constraint is the one law: **no sockets at run time** - the
+harness stays a drone that never dials out. Shape:
+
+- A maintainer-side sync step (runs where network access is allowed) pulls
+  the curated slice - CISA KEV exploited-first rows or NVD CVEs matching the
+  adapter vocabulary - ONCE, and commits a compact snapshot into a pack
+  (a `packs/public/cve-feed/` shape, version-pinned, budget-capped:
+  e.g. <= 500 rows, <= 200KB serialized).
+- Run time reads ONLY the committed snapshot: deterministic, zero deps, zero
+  sockets, same commit -> same findings.
+- Freshness is a CI join, not a runtime dial: pair `npx crashtest packs
+  --json` with the data source's own last-modified check; a stale snapshot
+  is a mechanical warning, never silent drift.
+- Status: designed, planned - not started. The bloat concern is honest and
+  answered by construction: the snapshot is CURATED (exploited-first,
+  adapter-relevant) and budget-capped; the full NVD corpus never enters
+  this repo.
 
 Deliberate scope notes (kept out of the catalog, honest reasons):
 

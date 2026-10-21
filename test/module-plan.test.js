@@ -122,7 +122,7 @@ test('CLI: run --module-plan --json prints the plan blob as the LAST line', asyn
   const lastLine = out[out.length - 1];
   const plan = JSON.parse(lastLine);
   assert.equal(plan.schemaVersion, 1);
-  assert.equal(plan.totals.skippedFilter, 24); // 23 built-in library attacks + loose-attacks, all outside the filter
+  assert.equal(plan.totals.skippedFilter, 26); // 25 built-in library attacks + loose-attacks, all outside the filter
   const armed = plan.modules.find((m) => m.name === 'armed-pack');
   // The filter keeps the pack in the inventory, but nothing arms it - the
   // JSON view must say NEEDS-ARMING just like the human lines (test below).

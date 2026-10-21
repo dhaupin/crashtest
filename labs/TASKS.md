@@ -70,7 +70,39 @@
 
 ## Log
 
-- [2026-10-21 ~11Z] **proto-hygiene shipped - 23 attacks across 9 modules,
+- [2026-10-21 ~12Z] **recursion shipped - 25 attacks across 10 modules;
+  extended-sources design (CVE/KEV packs) lands in the PRD.** Two PRD
+  moves: a new planned row for `recursion` (loops without a guard - the
+  user's suggestion, and honestly the agentic-class frontier) plus an
+  "Extended sources" design section for offboard vulnerability corpora
+  (CISA KEV / NVD as packs) with the bloat answer built in: maintainers
+  sync a CURATED, budget-capped snapshot (KEV exploited-first, <= 500 rows)
+  that run time reads ONLY from the committed file - zero sockets at run
+  time (the one law), freshness checked by CI joins, never a runtime dial.
+  Then the planned row SHIPPED as this round's module: src/scenarios/
+  library/recursion.js (2 attacks). deep-nest-stack-overflow (a 12000-deep
+  JSON body vs recursive walkers - V8's JSON.parse is iterative so parsing
+  survives, the uncaught RangeError names the walker that was not guarded;
+  honest 4xx depth-cap refuses) and redos-catastrophic-pattern (the
+  library's one TIMING-RELATIVE probe by design: evil/benign pairs
+  self-control the ratio on the SAME handler - 40x bucket + 20ms absolute
+  floor, no host clock decides). V8 irregexp lessons paid for in probing:
+  (1) matching suffixes terminate fast - the evil probe must FAIL the
+  regex; (2) same-shape benign partners backtrack nearly as hard as evil
+  (34ms vs 224ms = ratio 7x, useless) - benign must be TINY ('ab', ~0.2ms)
+  to make the ratio >1000x; (3) the classic families cliff instant-
+  or-seconds, so the committed sizes sit just past the knee (~300ms evil)
+  and stay sub-second for CI. Demo grew a 'validate' route both ways
+  (hard: length-capped linear pattern; vuln: the /((a|aa)+)/ catastrophic
+  family). Vuln bench: 9 REFUSED / 16 EXPLOITED with BOTH recursion
+  attacks tripping (RangeError + both redos pairs). Dogfood hardened:
+  25/25 REFUSED (696 ops / 958 requests). Snapshot pins moved (23 -> 25
+  rows, 9 -> 10 groups, 668/924 -> 696/958). Site pack gains
+  recursion-depth-sweep (16 attacks now): 4000-deep bodies and
+  backtracking-shaped strings never take an asset serve down (24 probes,
+  honest REFUSED). Full battery vs ourselves (demo + site, all 10 modules
+  + packs): 48/48 REFUSED, exit 0, 1034 ops / 2149 requests, 0 new /
+  0 regressed. Gates: suite 168/168, check 0, lint:docs 0, web build 6/6.
   and its first run paid rent again: the 204-with-body bug.** PRD's cheap /
   low-false-positive slot ships: src/scenarios/library/protohygiene.js
   (2 sweep attacks, no arming). head-get-parity (HEAD must mirror GET: no

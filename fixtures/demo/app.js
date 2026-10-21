@@ -114,9 +114,29 @@ const logoutHard = async ({ request, env }) => {
       'cache-control': 'no-store',
     },
   });
-};
+};  // Recursion round: the 'validate' surface. Hardened: length cap + a
+  // LINEAR pattern (bounded, anchored) - the class redos-catastrophic-
+  // pattern refuses. Vulnerable: the classic nested-quantifier pattern
+  // riding attacker-controlled strings - catastrophic backtracking.
+  const validateHard = async ({ request }) => {
+    let body;
+    try { body = await request.json(); } catch { return new Response('bad json', { status: 400 }); }
+    const value = body?.value;
+    if (typeof value !== 'string' || value.length > 64) {
+      return new Response('invalid value', { status: 400 });
+    }
+    if (!/^[a-zA-Z0-9-]{0,64}$/.test(value)) return new Response('invalid value', { status: 400 });
+    return new Response('ok', { headers: { 'cache-control': 'no-store' } });
+  };
 
-// Vulnerable session surface - the classic LLM draft:
+  const validateVuln = async ({ request }) => {
+    const body = await request.json();
+    const value = String(body?.value ?? '');
+    // The classic draft: an UNANCHORED alternation-quantifier behind
+    // attacker-controlled text - catastrophic on failing inputs.
+    if (/((a|aa)+)$/.test(value)) return new Response('ok');
+    return new Response('rejected', { status: 400 });
+  };
 //   login: static sid every time (fixation classic) with ZERO hygiene flags
 //   me:    trusts ANY sid cookie straight from the wire (forged = 200)
 //   logout: a no-op 200 that neither deletes the row (there is none) nor
@@ -265,6 +285,7 @@ function buildRoutes({ vulnerable = false } = {}) {
     login: vulnerable ? loginVuln : loginHard,
     me: vulnerable ? meVuln : meHard,
     logout: vulnerable ? logoutVuln : logoutHard,
+    validate: vulnerable ? validateVuln : validateHard,
   };
 }
 

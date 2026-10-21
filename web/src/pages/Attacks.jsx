@@ -42,6 +42,13 @@ const MODULES = [
     ],
   },
   {
+    mod: 'recursion',
+    attacks: [
+      ['deep-nest-stack-overflow', 'A JSON structure nested many thousands deep meets the handler - V8 JSON.parse survives, so any recursive WALK over it (merges, flatteners, normalizers) is where the call stack detonates; an uncaught RangeError is a finding, a depth-capped 4xx refusal holds', 'recursive JSON walkers without a depth guard'],
+      ['redos-catastrophic-pattern', 'Validation regexes behind attacker-controlled strings must backtrack linearly - evil/benign pairs differing only in their last character self-control the timing ratio on the SAME handler, so no host clock decides (the library\'s one timing-relative probe by design)', 'nested-quantifier / alternation patterns on unanchored input'],
+    ],
+  },
+  {
     mod: 'state',
     attacks: [
       ['enumeration-oracle', 'Arms mustDenyIds, probes each - 200s (or content ripples) mean foreign rows leak by guessable id', 'GET-by-id without ownership checks'],
@@ -106,7 +113,7 @@ export default function Attacks() {
         <p className="field-report">
           Field-report from the target we trust least: our own code. This repo
           dogfoods itself in CI - runs we did on ourselves. The committed ledger
-          holds <span className="ok">23 REFUSED findings</span> on our own hardened demo
+          holds <span className="ok">25 REFUSED findings</span> on our own hardened demo
           app, and the self-site run paid for one real bug: the shipped version endpoint
           once answered a malformed registry payload with <span className="bad">200 and no
           version key</span>. Found, fixed, never regressing again - pinned by the

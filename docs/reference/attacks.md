@@ -7,7 +7,7 @@ description: Every shipped scenario module and attack, what it does, and what ve
 
 # The Attack Catalog
 
-Twenty-three attacks across nine modules ship in the core package. Each returns
+Twenty-five attacks across ten modules ship in the core package. Each returns
 exactly one verdict per run: 🛡 REFUSED, ⚡ EXPLOITED, or 🔒 BOUNDED
 (BOUNDED requires an owner + bound or it demotes to EXPLOITED - loudly).
 
@@ -97,6 +97,17 @@ Scope note: header CASE is a transport invariant here (the in-process WHATWG
 `Headers` normalizes names by construction), so the case axis pins the
 invariant rather than grading handler choices - differential control, exactly
 why the PRD filed it under cheap.
+
+## `recursion` - loops without a guard
+
+The agentic-work dimension: the two unbounded-work bugs agent-authored
+handlers write constantly - recursive JSON walkers and validation regexes
+written on the first attempt.
+
+| Attack | What it does |
+|---|---|
+| `deep-nest-stack-overflow` | A JSON structure nested thousands deep meets the handler: V8's `JSON.parse` is iterative and survives, so any RECURSIVE walk over the structure (merges, flatteners, normalizers) is where the call stack explodes - an uncaught `RangeError` = EXPLOITED; a depth guard answering 4xx = REFUSED. |
+| `redos-catastrophic-pattern` | Validation regexes behind attacker-controlled strings must backtrack linearly. The library's ONE timing-relative probe by design: evil-vs-benign pairs that differ only in their last character walk the SAME handler, and only a SELF-relative ratio (40x) plus a substantial absolute bucket decide - no host clock ever does. Shapes are verified against V8's irregexp: matching suffixes terminate fast, so the evil probe FAILS the regex, which is what detonates the backtrack. |
 
 ## Writing your own
 

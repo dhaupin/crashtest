@@ -1,6 +1,6 @@
 // packs/public/crashtest-site/attacks.js - the hardcore attacks.
 //
-// Fifteen attacks against crashtest's own shipped website. Every one is
+// Sixteen attacks against crashtest's own shipped website. Every one is
 // brutal-by-design: it names its fault class precisely, demands specific
 // wire behavior (not "nice to have"), and EXPLOITEDs with evidence when a
 // claim the site makes turns out to be false. Verdicts are honest - a wall
@@ -569,6 +569,49 @@ export default {
           return { verdict: 'EXPLOITED', detail: 'bare-shape battery broke the asset surface: ' + faults[0] + ` (+${faults.length - 1} more)` };
         }
         return { verdict: 'REFUSED', detail: routes.length + ' route(s): HEAD mirrors GET and ' + probes + ' bare-shape queries all served cleanly (or denied honestly) - asset monotony holds' };
+      },
+    },
+
+    {
+      // The library `recursion` discipline aimed at the site: deep-nested
+      // bodies and backtracking-shaped strings must not take a static asset
+      // surface down. Depth-capped, deterministic, and no timing oracle
+      // needed here - the site serves files; the floor is never-crash only.
+      name: 'recursion-depth-sweep',
+      description: 'deep-nested JSON bodies (depth-capped at 4000) and backtracking-shaped strings fired at every shipped route must never crash or 5xx an asset serve - a static site has NO recursive walker to overflow and no regex to backtrack, and if one answers 5xx the shape proves otherwise',
+      async run(harness) {
+        const routes = ['version', 'site-html', 'site-headers', 'site-manifest', 'site-sitemap', 'site-robotstxt'];
+        const probes = [];
+        let bodyText = '"leaf"';
+        for (let i = 0; i < 4000; i++) bodyText = `{"k":${bodyText}}`;
+        const evilStrings = ['a'.repeat(30) + '!', 'x'.repeat(30) + '!', 'a'.repeat(30) + 'b'];
+        const prevReply = registry.reply;
+        const faults = [];
+        try {
+          for (const route of routes) {
+            if (!harness.listRoutes().includes(route)) continue;
+            const deepRec = await harness.run(route, {
+              method: 'POST', body: bodyText, headers: { 'content-type': 'application/json' },
+            });
+            probes.push('deep');
+            if (deepRec.threw) { faults.push(`${route}: threw on the 4000-deep body - ${String(deepRec.error).slice(0, 70)}`); continue; }
+            if (deepRec.status >= 500) faults.push(`${route}: ${deepRec.status} on the 4000-deep body`);
+            for (const str of evilStrings) {
+              probes.push('evil');
+              const rec = await harness.run(route, {
+                method: 'POST', body: JSON.stringify({ value: str }), headers: { 'content-type': 'application/json' },
+              });
+              if (rec.threw) { faults.push(`${route}: threw on a backtracking-shaped string - ${String(rec.error).slice(0, 70)}`); continue; }
+              if (rec.status >= 500) faults.push(`${route}: ${rec.status} on a backtracking-shaped string`);
+            }
+          }
+        } finally {
+          registry.reply = prevReply;
+        }
+        if (faults.length) {
+          return { verdict: 'EXPLOITED', detail: 'depth sweep broke the asset surface: ' + faults[0] + ` (+${faults.length - 1} more)` };
+        }
+        return { verdict: 'REFUSED', detail: routes.length + ' route(s) under ' + probes.length + ' deep-nest/backtracking probes: zero throws, zero 5xx - a static surface has no walker to overflow and no regex to backtrack, and nothing shaped like either was reachable' };
       },
     },
   ],

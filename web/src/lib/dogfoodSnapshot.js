@@ -13,7 +13,7 @@
 export const dogfood = {
   "ledger": {
     "schemaVersion": 1,
-    "generatedAt": "2026-10-21T06:10:08.208Z",
+    "generatedAt": "2026-10-21T06:29:44.503Z",
     "findings": [
       {
         "id": "auth/identity-spoof-headers",
@@ -23,7 +23,7 @@ export const dogfood = {
       {
         "id": "auth/secret-watermark",
         "verdict": "REFUSED",
-        "detail": "8 routes x 3 error-path probes: no fake secret ever left the env"
+        "detail": "9 routes x 3 error-path probes: no fake secret ever left the env"
       },
       {
         "id": "auth/privilege-escalation",
@@ -73,12 +73,22 @@ export const dogfood = {
       {
         "id": "proto-hygiene/head-get-parity",
         "verdict": "REFUSED",
-        "detail": "8 route(s): HEAD mirrors GET (no throws, no status drift beyond honest 405) + 7 info note(s)"
+        "detail": "9 route(s): HEAD mirrors GET (no throws, no status drift beyond honest 405) + 8 info note(s)"
       },
       {
         "id": "proto-hygiene/request-shape-flood",
         "verdict": "REFUSED",
-        "detail": "8 route(s) x 18 bare shapes (query chaos, path shapes, header casings) all landed 4xx-or-cleaner with case-parity intact"
+        "detail": "9 route(s) x 18 bare shapes (query chaos, path shapes, header casings) all landed 4xx-or-cleaner with case-parity intact"
+      },
+      {
+        "id": "recursion/deep-nest-stack-overflow",
+        "verdict": "REFUSED",
+        "detail": "deep-nested body (12000 levels) answered honestly on \"enroll\" (400) - a depth guard or flat processing refused it"
+      },
+      {
+        "id": "recursion/redos-catastrophic-pattern",
+        "verdict": "REFUSED",
+        "detail": "2 evil/benign backtracking pairs walked linearly through \"validate\" - no self-relative ratio crossed the bucket"
       },
       {
         "id": "session/cookie-hygiene",
@@ -147,6 +157,8 @@ export const dogfood = {
       "input/oversized-field",
       "proto-hygiene/head-get-parity",
       "proto-hygiene/request-shape-flood",
+      "recursion/deep-nest-stack-overflow",
+      "recursion/redos-catastrophic-pattern",
       "session/cookie-hygiene",
       "session/session-fixation",
       "session/logout-invalidates",
@@ -161,9 +173,9 @@ export const dogfood = {
   },
   "cost": {
     "totals": {
-      "ops": 668,
-      "requests": 924,
-      "distinctAttacks": 23
+      "ops": 696,
+      "requests": 958,
+      "distinctAttacks": 25
     },
     "perAttack": [
       {
@@ -173,13 +185,13 @@ export const dogfood = {
       },
       {
         "id": "auth/secret-watermark",
-        "ops": 24,
-        "requests": 79
+        "ops": 27,
+        "requests": 82
       },
       {
         "id": "auth/privilege-escalation",
         "ops": 4,
-        "requests": 83
+        "requests": 86
       },
       {
         "id": "authz/method-matrix-privileged",
@@ -223,13 +235,23 @@ export const dogfood = {
       },
       {
         "id": "proto-hygiene/head-get-parity",
-        "ops": 16,
-        "requests": 16
+        "ops": 18,
+        "requests": 18
       },
       {
         "id": "proto-hygiene/request-shape-flood",
-        "ops": 144,
-        "requests": 160
+        "ops": 162,
+        "requests": 180
+      },
+      {
+        "id": "recursion/deep-nest-stack-overflow",
+        "ops": 1,
+        "requests": 1
+      },
+      {
+        "id": "recursion/redos-catastrophic-pattern",
+        "ops": 4,
+        "requests": 5
       },
       {
         "id": "session/cookie-hygiene",
@@ -285,7 +307,7 @@ export const dogfood = {
   },
   "meta": {
     "version": "1.0.0",
-    "startedAt": "2026-10-21T06:10:08.129Z",
+    "startedAt": "2026-10-21T06:29:44.409Z",
     "seed": 12648430
   }
 };

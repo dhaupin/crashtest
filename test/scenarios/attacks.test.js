@@ -373,3 +373,74 @@ test('proto-hygiene: EXPLOITED on the crashing draft + untested-HEAD, REFUSED on
   assert.equal(emptySkip.verdict, 'REFUSED');
   assert.ok(emptySkip.skipped === true, `empty sweep must skip, not fail: ${emptySkip.detail}`);
 });
+
+// ---- recursion (deep-nest stack / redos) -------------------------------
+
+function mergeVulnerableDeep(target, source) {
+  for (const key of Object.keys(source)) {
+    const value = source[key];
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      if (!target[key]) target[key] = {};
+      mergeVulnerableDeep(target[key], value);
+    } else {
+      target[key] = value;
+    }
+  }
+  return target;
+}
+
+test('recursion: EXPLOITED on the recursive walker + catastrophic regex, REFUSED on the depth-capped/linear pair', async () => {
+  const [module] = (await loadScenarios()).map(l => l.module).filter(m => m.name === 'recursion');
+  assert.ok(module, 'recursion library module must load');
+  const deep = module.attacks.find(a => a.name === 'deep-nest-stack-overflow');
+  const redos = module.attacks.find(a => a.name === 'redos-catastrophic-pattern');
+  for (const a of [deep, redos]) assert.ok(a);
+
+  const vuln = buildHarness({
+    enroll: async ({ request, env }) => {
+      const body = await request.json();
+      const record = mergeVulnerableDeep({}, body);
+      return Response.json({ got: typeof record.k === 'string' ? record.k : 'structured' });
+    },
+    validate: async ({ request }) => {
+      const body = await request.json();
+      // The verified-on-V8 catastrophic family: unanchored alternation +
+      // failing suffix (evil ~300ms at the probe's committed length).
+      if (/((a|aa)+)$/.test(String(body?.value ?? ''))) return new Response('ok');
+      return new Response('rejected', { status: 400 });
+    },
+  }, {});
+
+  const r1 = await deep.run(vuln, { deepRoute: 'enroll' });
+  assert.equal(r1.verdict, 'EXPLOITED', `the recursive walker must stack-overflow: ${r1.detail}`);
+  assert.match(r1.detail, /RangeError|call stack/i);
+  const r2 = await redos.run(vuln, { regexRoute: 'validate' });
+  assert.equal(r2.verdict, 'EXPLOITED', `the nested-quantifier regex must backtrack catastrophically: ${r2.detail}`);
+
+  const hard = buildHarness({
+    enroll: async ({ request }) => {
+      const body = await request.json();
+      // flat top-level read: never walks the structure recursively
+      const k = (body?.k ?? null);
+      return Response.json({ got: typeof k === 'string' ? k : 'structured' });
+    },
+    validate: async ({ request }) => {
+      const body = await request.json();
+      const value = body?.value;
+      if (typeof value !== 'string' || value.length > 64 || !/^[a-zA-Z0-9-]{0,64}$/.test(value)) {
+        return new Response('invalid value', { status: 400 });
+      }
+      return new Response('ok');
+    },
+  }, {});
+
+  const r3 = await deep.run(hard, { deepRoute: 'enroll', depth: 12000 });
+  assert.equal(r3.verdict, 'REFUSED', `the flat reader must hold: ${r3.detail}`);
+  const r4 = await redos.run(hard, { regexRoute: 'validate' });
+  assert.equal(r4.verdict, 'REFUSED', `the linear regex must hold: ${r4.detail}`);
+
+  // Contract pin: undeclared routes degrade to skipped-REFUSED.
+  const skip = await deep.run(buildHarness({}, {}), { deepRoute: 'enroll' });
+  assert.equal(skip.verdict, 'REFUSED');
+  assert.ok(skip.skipped === true, `undeclared routes must skip, not fail: ${skip.detail}`);
+});
