@@ -70,6 +70,17 @@
 
 ## Log
 
+- [2026-10-21 ~21Z] **vant pack proposal filed upstream: dhaupin/vant#231
+  ('vant-brain' pack - attacks the brain FILE layer in-process:
+  private-first-fallback, paths-cannot-escape-models, state-tamper-is-
+  loud; run-root shim shape; honest needs-validation caveat; lives in
+  VANT's repo per the animals-first precedent, crashtest-side zero
+  changes needed). Issue creation works, comments/edits are App-
+  permission gated (user-confirmed platform limitation); tracker edits
+  pending that. Tracker state: six crashtest-side issues filed total;
+  3 open (#226 #227 #228 #230 are 4), rest closed; none have upstream
+  replies yet.**
+
 - [2026-10-21 ~21Z] **vant tracker run-down + the stone re-sealed on
   the brain-selector fix. Checked the open vant issues against the
   crashtest flow: #227 (boot restores state but post-restore
