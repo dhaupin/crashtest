@@ -137,7 +137,7 @@ export default function Attacks() {
           same ledger, still zero sockets: run time reads only the committed
           snapshot file, so findings stay deterministic (same commit, same
           verdicts); refresh is a maintainer-side sync. The snapshot shape,
-          its 12-row/4200-byte budget, and the word-boundary grammar of its
+          its 27-row/8500-byte budget, and the word-boundary grammar of its
           match tokens (so <code>ws</code> never reads into <code>answer</code>) are all
           pinned in{' '}
           <a href="https://github.com/dhaupin/crashtest/blob/main/test/cve-feed.test.js" target="_blank" rel="noreferrer">test/cve-feed.test.js</a>.

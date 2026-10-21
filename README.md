@@ -104,7 +104,7 @@ A pack runs from any run root - point `packs:` at a directory on disk.
 
 Known-vulnerability awareness ships the same way, and just as offline:
 [`packs/public/cve-feed/`](./packs/public/cve-feed/pack.json) carries a
-curated KEV/NVD snapshot (12 entries, budget-capped) and sweeps the target
+curated KEV/NVD snapshot (27 entries, budget-capped) and sweeps the target
 for banner disclosure (`Server`, `X-Powered-By`, stack-tell bodies) and
 vulnerable-range matches against a hardcoded version line. Run time reads
 only the committed `snapshot.json` - no sockets, same commit -> same

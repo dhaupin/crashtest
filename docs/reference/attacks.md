@@ -150,7 +150,7 @@ contract, so their verdicts land in the same ledger:
   pays for itself in CI.
 - `cve-feed` (2 attacks: `kev-banner-audit`, `kev-version-range-audit`) -
   known-vulnerability awareness against a curated KEV/NVD snapshot of 12
-  entries, budget-capped (12 rows / 4200 bytes). Run time reads only the
+  entries, budget-capped (27 rows / 8500 bytes). Run time reads only the
   committed `snapshot.json` - no sockets, same commit -> same findings;
   refresh is a maintainer-side sync plus a CI-side byte-integrity join.
   `kev-banner-audit` sweeps every declared route for disclosure culture

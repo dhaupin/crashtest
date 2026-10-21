@@ -7,6 +7,13 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.0.0 (unreleased)
 
+- cve-feed snapshot refresh: 12 -> 27 verified KEV/NVD rows (pack 0.1.1 ->
+  0.2.0; one row corrected: CVE-2022-0235 is the node-fetch npm package,
+  not a Node.js runtime CVE) plus a boundary fix in
+  `kev-version-range-audit` (post-fix releases of a listed major.minor no
+  longer false-positive); roundtrip lens file (`test/cve-feed-roundtrip.test.js`)
+  pins every snapshot row end to end (snapshot -> token -> route -> verdict).
+
 The pre-1.0 lineage shipped the full QA surface; note this repo's docs
 narrated v0.2-v0.4 features (packs, plugins, presets, `--out-dir`) while
 `package.json` lagged at 0.1.1 - this release locks the version surfaces to

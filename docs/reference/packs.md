@@ -134,7 +134,7 @@ reality directly - tracked vs machine-private.
   dependency version floor itself. Run time reads ONLY the committed
   `snapshot.json` (zero sockets, same commit -> same findings); refresh
   is a maintainer-side sync of the slice + CI byte-integrity join; the
-  snapshot shape, the 12-row/4200-byte budget, and the word-boundary
+  snapshot shape, the 27-row/8500-byte budget, and the word-boundary
   safety of its match tokens (the `ws`/`answer` case) are all pinned in
   [`test/cve-feed.test.js`](../../test/cve-feed.test.js). Adapter-prefix
   rule applies: it speaks the generic HTTP dialect, so no `wp-`-style

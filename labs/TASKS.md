@@ -70,6 +70,47 @@
 
 ## Log
 
+- [2026-10-22 ~03Z] **cve-feed snapshot expansion: 12 -> 27 verified rows
+  (pack.json 0.1.1 -> 0.2.0; a pack-level DATA refresh, so the pack semver
+  moves, per the pack-own-semver rule). Two research verification passes
+  against NVD records only (no-fiction rule observed live): 15 new
+  banner-pinnable rows (apache 38475/25690/40438, php 4577, tomcat 24813,
+  jetty 26049, confluence x3, jenkins 23897, gitlab 7028, jira 26086,
+  grafana 43798, kibana 7609, duplicator plugin 20-11738, all KEV or
+  NVD-high with verified version sets) and ONE EXISTING ROW CORRECTED:
+  CVE-2022-0235 is the node-fetch npm package (package ranges), not a
+  Node.js runtime CVE - product/tokens/versions fixed. ~40 was the size
+  target; 27 is the honest verified ceiling - most KEV entries cannot pin
+  product+version from a banner (Exchange/MOVEit/ColdFusion/rapid-reset
+  all rejected), which is real-world truth, not a curation gap. Bonus fix
+  the expansion surfaced: kev-version-range-audit's major.minor shortcut
+  was substring-blind (an Apache/2.4.60 post-fix release matched the
+  2.4-family rows) - now boundary-gated (no digit/dot after maj.min);
+  boundary-law teeth test added (2.4.60 = disclosure-only REFUSED,
+  shortened nginx/1.19 still trips); roundtrip lens made collision-aware
+  (banner verdict names the first curated entry sharing a token - the
+  exact-CVE assertion moved to the version audit, whose per-entry version
+  sets stay unambiguous). Snapshot budget moved to 27 rows / 8500 bytes
+  (file at HEAD is 4677 bytes); byte-anchored claims updated across
+  README, docs/reference/packs.md, docs/reference/attacks.md, web FAQ +
+  Attacks; count-pin moved in test/cve-feed.test.js. Roundtrip lens
+  widens with the snapshot automatically. Gates at push: cve shards
+  green, full suite green, check + lint:docs green.**
+- [2026-10-22 ~02Z] **cve-feed gains the roundtrip lens: test/cve-feed-roundtrip.test.js,
+  5 tests, all fixtures DERIVED from the committed snapshot (zero sockets,
+  fake transport only). The pass is now provable end to end per row:
+  (1) leak roundtrip - every entry x token turns BOTH attacks EXPLOITED
+  naming that entry's own CVE; (2) disclosure-only twin - a auto-derived
+  clean version (minor bumped past the whole vulnerable set, safe against
+  the audit's major.minor matching) keeps version audit honestly REFUSED
+  while banner audit still trips on disclosure alone; (3) noise roundtrip
+  - mid-word embeddings refuse through the REAL harness grammar; (4)
+  body-tell roundtrip - token only in the body head trips the scanBody
+  path while header-only version audit stays quiet; (5) no-dead-rows
+  guard - every token provably compiled against the pack's tokenFound
+  grammar, so a future unmatchable token fails loudly. A snapshot refresh
+  widens every case automatically; a dead row is exposed, not silent.
+  Suite 176 -> 181, all pass; check chain gains the new file; lint:docs 0.**
 - [2026-10-22 ~01Z] **stegoframe spin-up: FOURTH upstream repo, second
   spin-up with live findings. The pack (stegoframe-worker, 6 shapes)
   attacks the whole wire surface - the Pages _worker.js - in-process

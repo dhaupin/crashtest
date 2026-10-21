@@ -56,7 +56,7 @@ const FAQS = [
   },
   {
     q: 'Does it know about known CVEs?',
-    a: <>Yes - through the shipped <strong>cve-feed</strong> pack. It cross-references a curated, committed KEV/NVD snapshot (currently 12 entries from the actively-exploited list and their NVD ranges) against what your surface actually discloses: <code>kev-banner-audit</code> sweeps every declared route for banner and stack-tell disclosure, and <code>kev-version-range-audit</code> checks any disclosed version against the snapshot&apos;s vulnerable ranges. It is deliberately offline: run time reads only the committed snapshot file - no sockets, no CVE feed subscriptions - so runs stay deterministic (same commit, same verdicts) and finding freshness is a maintainer-side sync you control. Match tokens are word-boundary-safe (the token <code>ws</code> never matches inside the word <code>answer</code>).</>,
+    a: <>Yes - through the shipped <strong>cve-feed</strong> pack. It cross-references a curated, committed KEV/NVD snapshot (currently 27 entries from the actively-exploited list and their NVD ranges) against what your surface actually discloses: <code>kev-banner-audit</code> sweeps every declared route for banner and stack-tell disclosure, and <code>kev-version-range-audit</code> checks any disclosed version against the snapshot&apos;s vulnerable ranges. It is deliberately offline: run time reads only the committed snapshot file - no sockets, no CVE feed subscriptions - so runs stay deterministic (same commit, same verdicts) and finding freshness is a maintainer-side sync you control. Match tokens are word-boundary-safe (the token <code>ws</code> never matches inside the word <code>answer</code>).</>,
   },
   {
     q: 'Who builds with this?',
