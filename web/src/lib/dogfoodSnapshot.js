@@ -13,7 +13,7 @@
 export const dogfood = {
   "ledger": {
     "schemaVersion": 1,
-    "generatedAt": "2026-10-21T06:29:44.503Z",
+    "generatedAt": "2026-10-21T07:01:10.238Z",
     "findings": [
       {
         "id": "auth/identity-spoof-headers",
@@ -23,7 +23,7 @@ export const dogfood = {
       {
         "id": "auth/secret-watermark",
         "verdict": "REFUSED",
-        "detail": "9 routes x 3 error-path probes: no fake secret ever left the env"
+        "detail": "10 routes x 3 error-path probes: no fake secret ever left the env"
       },
       {
         "id": "auth/privilege-escalation",
@@ -73,12 +73,12 @@ export const dogfood = {
       {
         "id": "proto-hygiene/head-get-parity",
         "verdict": "REFUSED",
-        "detail": "9 route(s): HEAD mirrors GET (no throws, no status drift beyond honest 405) + 8 info note(s)"
+        "detail": "10 route(s): HEAD mirrors GET (no throws, no status drift beyond honest 405) + 9 info note(s)"
       },
       {
         "id": "proto-hygiene/request-shape-flood",
         "verdict": "REFUSED",
-        "detail": "9 route(s) x 18 bare shapes (query chaos, path shapes, header casings) all landed 4xx-or-cleaner with case-parity intact"
+        "detail": "10 route(s) x 18 bare shapes (query chaos, path shapes, header casings) all landed 4xx-or-cleaner with case-parity intact"
       },
       {
         "id": "recursion/deep-nest-stack-overflow",
@@ -126,6 +126,16 @@ export const dogfood = {
         "detail": "10 abuse shapes answered impersonally on \"enroll\" - no canary echo, no stack frames"
       },
       {
+        "id": "upload/filename-traversal-family",
+        "verdict": "REFUSED",
+        "detail": "9 hostile filename shapes through \"upload\" left nothing but safe basenames (or honest 4xx refusals) in \"UPLOADS\""
+      },
+      {
+        "id": "upload/mime-polyglot-family",
+        "verdict": "REFUSED",
+        "detail": "2 polyglot shapes (svg+script, text/html) refused honestly through \"upload\" - an allow-list discipline holds"
+      },
+      {
         "id": "volume/credential-stuffing",
         "verdict": "REFUSED",
         "detail": "enroll held 60 stuffing attempts (1 admitted, 59 refused) / 121 ops total / ~2.02 ops/request"
@@ -166,6 +176,8 @@ export const dogfood = {
       "state/id-collision-alias",
       "taxonomy/abuse-not-5xx",
       "taxonomy/errors-stay-impersonal",
+      "upload/filename-traversal-family",
+      "upload/mime-polyglot-family",
       "volume/credential-stuffing",
       "volume/storage-fill",
       "volume/cost-amplification"
@@ -173,9 +185,9 @@ export const dogfood = {
   },
   "cost": {
     "totals": {
-      "ops": 696,
-      "requests": 958,
-      "distinctAttacks": 25
+      "ops": 739,
+      "requests": 1006,
+      "distinctAttacks": 27
     },
     "perAttack": [
       {
@@ -185,13 +197,13 @@ export const dogfood = {
       },
       {
         "id": "auth/secret-watermark",
-        "ops": 27,
-        "requests": 82
+        "ops": 30,
+        "requests": 85
       },
       {
         "id": "auth/privilege-escalation",
         "ops": 4,
-        "requests": 86
+        "requests": 89
       },
       {
         "id": "authz/method-matrix-privileged",
@@ -235,13 +247,13 @@ export const dogfood = {
       },
       {
         "id": "proto-hygiene/head-get-parity",
-        "ops": 18,
-        "requests": 18
+        "ops": 20,
+        "requests": 20
       },
       {
         "id": "proto-hygiene/request-shape-flood",
-        "ops": 162,
-        "requests": 180
+        "ops": 180,
+        "requests": 200
       },
       {
         "id": "recursion/deep-nest-stack-overflow",
@@ -289,6 +301,16 @@ export const dogfood = {
         "requests": 20
       },
       {
+        "id": "upload/filename-traversal-family",
+        "ops": 18,
+        "requests": 9
+      },
+      {
+        "id": "upload/mime-polyglot-family",
+        "ops": 2,
+        "requests": 11
+      },
+      {
         "id": "volume/credential-stuffing",
         "ops": 121,
         "requests": 60
@@ -307,7 +329,7 @@ export const dogfood = {
   },
   "meta": {
     "version": "1.0.0",
-    "startedAt": "2026-10-21T06:29:44.409Z",
+    "startedAt": "2026-10-21T07:01:10.143Z",
     "seed": 12648430
   }
 };

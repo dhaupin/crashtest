@@ -7,7 +7,7 @@ description: Every shipped scenario module and attack, what it does, and what ve
 
 # The Attack Catalog
 
-Twenty-five attacks across ten modules ship in the core package. Each returns
+Twenty-seven attacks across eleven modules ship in the core package. Each returns
 exactly one verdict per run: 🛡 REFUSED, ⚡ EXPLOITED, or 🔒 BOUNDED
 (BOUNDED requires an owner + bound or it demotes to EXPLOITED - loudly).
 
@@ -108,6 +108,20 @@ written on the first attempt.
 |---|---|
 | `deep-nest-stack-overflow` | A JSON structure nested thousands deep meets the handler: V8's `JSON.parse` is iterative and survives, so any RECURSIVE walk over the structure (merges, flatteners, normalizers) is where the call stack explodes - an uncaught `RangeError` = EXPLOITED; a depth guard answering 4xx = REFUSED. |
 | `redos-catastrophic-pattern` | Validation regexes behind attacker-controlled strings must backtrack linearly. The library's ONE timing-relative probe by design: evil-vs-benign pairs that differ only in their last character walk the SAME handler, and only a SELF-relative ratio (40x) plus a substantial absolute bucket decide - no host clock ever does. Shapes are verified against V8's irregexp: matching suffixes terminate fast, so the evil probe FAILS the regex, which is what detonates the backtrack. |
+
+## `upload` - multipart shapes
+
+Upload handlers are where agent-authored storage code trusts the client the
+hardest, because the filename and content type look like ordinary strings.
+Both attacks verdict off the STORE: what the handler derives and persists is
+the wire truth. ctx: `route` (default `upload`) and `store` (default
+`UPLOADS`, a fake-KV namespace mounted at `env.<store>`); undeclared routes
+or stores skip honestly.
+
+| Attack | What it does |
+|---|---|
+| `filename-traversal-family` | Attacker-shaped filenames (unix/windows traversal, percent-dots, null-byte splits, double extensions, absolute paths, dotfiles) ride a multipart POST. Any derived storage key that escapes the safe-name grammar = EXPLOITED with the key named - the measured wire truth, parsed from the storage layer after the write. |
+| `mime-polyglot-family` | Content types that lie: an SVG with a script inside and a text/html document are canonical XSS carriers. Stored verbatim = EXPLOITED; refused with an honest 4xx = REFUSED. The implied fix is an allow-list discipline on the content type, the same allow-list the demo fixture hardened the week it shipped. |
 
 ## Writing your own
 

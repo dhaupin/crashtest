@@ -1,6 +1,6 @@
 // packs/public/crashtest-site/attacks.js - the hardcore attacks.
 //
-// Sixteen attacks against crashtest's own shipped website. Every one is
+// Seventeen attacks against crashtest's own shipped website. Every one is
 // brutal-by-design: it names its fault class precisely, demands specific
 // wire behavior (not "nice to have"), and EXPLOITEDs with evidence when a
 // claim the site makes turns out to be false. Verdicts are honest - a wall
@@ -612,6 +612,47 @@ export default {
           return { verdict: 'EXPLOITED', detail: 'depth sweep broke the asset surface: ' + faults[0] + ` (+${faults.length - 1} more)` };
         }
         return { verdict: 'REFUSED', detail: routes.length + ' route(s) under ' + probes.length + ' deep-nest/backtracking probes: zero throws, zero 5xx - a static surface has no walker to overflow and no regex to backtrack, and nothing shaped like either was reachable' };
+      },
+    },
+
+    {
+      // The library `upload` discipline aimed at the site: the site ships
+      // NO upload surface, so multipart bodies may only be refused or
+      // served-through - never stored, and the hostile filename inside the
+      // multipart may never be reflected back into a 2xx body.
+      name: 'upload-multipart-hardening',
+      description: 'multipart POSTs (hostile filenames + an svg-with-script body) fired at every shipped route must never fault, never 5xx, and never reflect the hostile filename or script canary back into a 2xx body - a static site stores nothing, so nothing it serves may borrow wording from a hostile multipart',
+      async run(harness) {
+        const canary = 'crashtest-multipart-canary-9a2f';
+        const routes = ['version', 'site-html', 'site-headers', 'site-manifest', 'site-sitemap', 'site-robotstxt'];
+        const shapes = [
+          { name: 'traversal filename', fname: '../../etc/passwd', mime: 'application/octet-stream', body: canary },
+          { name: 'svg with script', fname: 'dropper.svg', mime: 'image/svg+xml', body: '<svg><script>' + canary + '</script></svg>' },
+          { name: 'html carrier', fname: 'dropper.html', mime: 'text/html', body: '<script>' + canary + '</script>' },
+        ];
+        const faults = [];
+        let probes = 0;
+        for (const route of routes) {
+          if (!harness.listRoutes().includes(route)) continue;
+          for (const shape of shapes) {
+            probes++;
+            const fd = new FormData();
+            fd.append('file', new File([shape.body], shape.fname, { type: shape.mime }));
+            const rec = await harness.run(route, { method: 'POST', body: fd });
+            if (rec.threw) { faults.push(`${route}/${shape.name}: threw - ${String(rec.error).slice(0, 70)}`); continue; }
+            if (rec.status >= 500) { faults.push(`${route}/${shape.name}: ${rec.status}`); continue; }
+            if (rec.status < 400) {
+              const text = await rec.response.text();
+              if (text.includes(shape.fname) || text.includes(canary)) {
+                faults.push(`${route}/${shape.name}: 2xx body reflects multipart hostility (${String(text).slice(0, 60)})`);
+              }
+            }
+          }
+        }
+        if (faults.length) {
+          return { verdict: 'EXPLOITED', detail: 'multipart battery broke the asset surface: ' + faults[0] + ` (+${faults.length - 1} more)` };
+        }
+        return { verdict: 'REFUSED', detail: routes.length + ' route(s) x ' + shapes.length + ' multipart shapes (' + probes + ' probes): zero throws, zero 5xx, zero reflection - nothing on this site borrows wording from a hostile multipart' };
       },
     },
   ],

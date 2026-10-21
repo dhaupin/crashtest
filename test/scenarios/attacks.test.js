@@ -444,3 +444,61 @@ test('recursion: EXPLOITED on the recursive walker + catastrophic regex, REFUSED
   assert.equal(skip.verdict, 'REFUSED');
   assert.ok(skip.skipped === true, `undeclared routes must skip, not fail: ${skip.detail}`);
 });
+
+// ---- upload (filename traversal + mime polyglots) -----------------------
+const UPLOAD_ENV = { d1: { DB: { tables: { devices: { rows: [{ id: 1, key: 'seed', owner: 'rook' }], uniques: { key_unique: ['key'] } }, sessions: { rows: [], uniques: { sid_unique: ['sid'] } } } } }, kv: { UPLOADS: {} } };
+
+function uploadRoutes({ safe }) {
+  const SAFE_NAME = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/;
+  return {
+    upload: safe
+      ? async ({ request, env }) => {
+          const data = await request.formData();
+          const file = data.get('file');
+          if (!file || typeof file.name !== 'string') return new Response('missing file', { status: 400 });
+          if (!SAFE_NAME.test(file.name) || file.name.includes('..') || file.name.startsWith('.')) {
+            return new Response('unsafe filename', { status: 400 });
+          }
+          const ext = file.name.slice(file.name.lastIndexOf('.') + 1).toLowerCase();
+          if (!['png', 'jpg', 'jpeg', 'txt', 'csv', 'pdf'].includes(ext)) return new Response('forbidden extension', { status: 400 });
+          if (!['image/png', 'image/jpeg', 'text/plain', 'text/csv', 'application/pdf'].includes(file.type ?? '')) {
+            return new Response('forbidden content type', { status: 400 });
+          }
+          await env.UPLOADS.put(file.name, await file.text());
+          return new Response('stored', { status: 201 });
+        }
+      : async ({ request, env }) => {
+          const data = await request.formData();
+          const file = data.get('file');
+          await env.UPLOADS.put(file.name, await file.text());
+          return Response.json({ stored: file.name, type: file.type });
+        },
+  };
+}
+
+test('upload: EXPLOITED on the trust-the-wire draft, REFUSED on the validated storage pair', async () => {
+  const [module] = (await loadScenarios()).map(l => l.module).filter(m => m.name === 'upload');
+  assert.ok(module, 'upload library module must load');
+  const traversal = module.attacks.find(a => a.name === 'filename-traversal-family');
+  const polyglot = module.attacks.find(a => a.name === 'mime-polyglot-family');
+  for (const a of [traversal, polyglot]) assert.ok(a);
+
+  const vuln = buildHarness(uploadRoutes({ safe: false }), { env: UPLOAD_ENV });
+  const r1 = await traversal.run(vuln, { route: 'upload' });
+  assert.equal(r1.verdict, 'EXPLOITED', `raw storage keys must trip: ${r1.detail}`);
+  assert.match(r1.detail, /stored \[/);
+  const r2 = await polyglot.run(vuln, { route: 'upload' });
+  assert.equal(r2.verdict, 'EXPLOITED', `stored polyglots must trip: ${r2.detail}`);
+  assert.match(r2.detail, /POLYGLOT stored/);
+
+  const hard = buildHarness(uploadRoutes({ safe: true }), { env: UPLOAD_ENV });
+  const r3 = await traversal.run(hard, { route: 'upload' });
+  assert.equal(r3.verdict, 'REFUSED', `validated names must hold: ${r3.detail}`);
+  const r4 = await polyglot.run(hard, { route: 'upload' });
+  assert.equal(r4.verdict, 'REFUSED', `the allow-list must hold: ${r4.detail}`);
+
+  // Contract pin: undeclared route or store degrades to skipped-REFUSED.
+  const skip = await traversal.run(buildHarness({}, { env: UPLOAD_ENV }), { route: 'upload' });
+  assert.equal(skip.verdict, 'REFUSED');
+  assert.ok(skip.skipped === true, `undeclared route must skip, not fail: ${skip.detail}`);
+});

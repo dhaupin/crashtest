@@ -49,6 +49,13 @@ const MODULES = [
     ],
   },
   {
+    mod: 'upload',
+    attacks: [
+      ['filename-traversal-family', 'Attacker-shaped filenames (traversal, percent-dots, null splits, double extensions, dotfiles) through multipart POST - the verdict reads the STORE; any derived key that escapes the safe-name grammar is a finding', 'storage code keyed by the raw client filename'],
+      ['mime-polyglot-family', 'Content types that lie - an SVG with a script and a text/html document are canonical XSS carriers; stored verbatim is a finding, refused with an honest 4xx holds', 'handlers without a content-type allow-list'],
+    ],
+  },
+  {
     mod: 'state',
     attacks: [
       ['enumeration-oracle', 'Arms mustDenyIds, probes each - 200s (or content ripples) mean foreign rows leak by guessable id', 'GET-by-id without ownership checks'],
@@ -113,7 +120,7 @@ export default function Attacks() {
         <p className="field-report">
           Field-report from the target we trust least: our own code. This repo
           dogfoods itself in CI - runs we did on ourselves. The committed ledger
-          holds <span className="ok">25 REFUSED findings</span> on our own hardened demo
+          holds <span className="ok">27 REFUSED findings</span> on our own hardened demo
           app, and the self-site run paid for one real bug: the shipped version endpoint
           once answered a malformed registry payload with <span className="bad">200 and no
           version key</span>. Found, fixed, never regressing again - pinned by the

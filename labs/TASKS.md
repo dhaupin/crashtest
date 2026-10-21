@@ -70,7 +70,38 @@
 
 ## Log
 
-- [2026-10-21 ~12Z] **recursion shipped - 25 attacks across 10 modules;
+- [2026-10-21 ~13Z] **upload shipped - 27 attacks across 11 modules.**
+  PRD planned row `upload` (multipart shapes) lands as
+  src/scenarios/library/upload.js (2 attacks), both verdicts read the
+  STORE - the handler's derived storage is the wire truth, not the
+  response wording: filename-traversal-family (attacker-shaped FormData
+  filenames - unix/windows traversal, percent-dot splits, the percent form
+  of the null-byte split (wire names cannot carry raw NULs - the percent
+  stand-in names the class), double extensions, absolute paths, dotfiles,
+  dot-fragments, semicolon traps; any derived key that escapes the
+  safe-name grammar = EXPLOITED with the key named) and
+  mime-polyglot-family (SVG with a script and text/html documents are
+  canonical XSS carriers - stored verbatim = EXPLOITED, honest 4xx =
+  REFUSED; the implied fix is the content-type allow-list). ctx: route
+  (default 'upload') + store (default 'UPLOADS' fake-KV namespace mounted
+  directly at env.<store>, the same read pattern volume/ uses for
+  DEVICE_CACHE). Demo grew the surface both ways: hardened upload (safe-name
+  grammar + extension allow-list + content-type allow-list + size cap,
+  413 for oversized) vs the trust-the-wire draft (raw client filename as
+  the storage key, echoed verbatim in the response body). Vuln bench:
+  9 REFUSED / 18 EXPLOITED, BOTH upload attacks tripping (raw 'etc/passwd'
+  key stored verbatim; dropper.svg with a script persisted). Dogfood
+  hardened: 27/27 REFUSED (739 ops / 1006 requests) - snapshot + every
+  count pin moved (25 -> 27 rows, 10 -> 11 groups, 696/958 -> 739/1006,
+  module-plan 26 -> 28, catalog/FAQ parity 25 -> 27). Site pack gains
+  upload-multipart-hardening (17 attacks now): multipart shapes across
+  every shipped route never fault, never 5xx, never reflect hostility
+  (18 probes, honest REFUSED). Full battery vs ourselves (demo + site,
+  all 11 modules + packs): 51/51 REFUSED, exit 0, 1095 ops / 2414
+  requests, 0 new / 0 regressed. Gates: suite 169/169, check 0,
+  lint:docs 0, web build 6/6. Remaining planned rows: race (harness
+  scheduling first), session/replay extension, wp-roles, and the
+  extended-sources CVE/KEV snapshot pack.
   extended-sources design (CVE/KEV packs) lands in the PRD.** Two PRD
   moves: a new planned row for `recursion` (loops without a guard - the
   user's suggestion, and honestly the agentic-class frontier) plus an

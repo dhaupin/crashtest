@@ -27,7 +27,13 @@ const ENV_SPEC = {
       },
     },
   },
-  kv: { DEVICE_CACHE: { seed: { last: 'seed' } } },
+  kv: {
+    DEVICE_CACHE: { seed: { last: 'seed' } },
+    // Upload store for the upload/ module surface - the hardened variant
+    // writes only safe basenames here; the vulnerable variant trusts the
+    // client filename verbatim.
+    UPLOADS: {},
+  },
   // Fake secrets - the auth/secret-watermark probe is armed by this key and
   // passes because NO route may echo env values. Keep placeholder-shaped.
   secrets: { CRASHTEST_SECRET: 'crashtest-fake-secret-do-not-echo' },
@@ -114,7 +120,48 @@ const logoutHard = async ({ request, env }) => {
       'cache-control': 'no-store',
     },
   });
-};  // Recursion round: the 'validate' surface. Hardened: length cap + a
+};  // Upload round: the 'upload' surface. Hardened: safe-name grammar +
+  // content-type allow-list + size cap, storage keyed by the DERIVED name.
+  // Vulnerable: the classic LLM draft - filename and content type straight
+  // from the wire, echoed back verbatim.
+  const SAFE_NAME = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/;
+  const ALLOWED_EXT = ['png', 'jpg', 'jpeg', 'txt', 'csv', 'pdf'];
+  const uploadHard = async ({ request, env }) => {
+    let data;
+    try { data = await request.formData(); } catch { return new Response('bad multipart', { status: 400 }); }
+    const file = data.get('file');
+    if (!file || typeof file.name !== 'string' || file.name === '') {
+      return new Response('missing file field', { status: 400 });
+    }
+    const name = file.name;
+    if (!SAFE_NAME.test(name) || name.includes('..') || name.startsWith('.')) {
+      return new Response('unsafe filename', { status: 400 });
+    }
+    const ext = name.slice(name.lastIndexOf('.') + 1).toLowerCase();
+    if (!ALLOWED_EXT.includes(ext)) return new Response('forbidden extension', { status: 400 });
+    const mime = file.type ?? '';
+    if (!['image/png', 'image/jpeg', 'text/plain', 'text/csv', 'application/pdf'].includes(mime)) {
+      return new Response('forbidden content type', { status: 400 });
+    }
+    const content = await file.text();
+    if (content.length > 64 * 1024) return new Response('too big', { status: 413 });
+    await env.UPLOADS.put(name, content);
+    return new Response('stored', {
+      status: 201,
+      headers: { 'cache-control': 'no-store' },
+    });
+  };
+
+  const uploadVuln = async ({ request, env }) => {
+    const data = await request.formData();
+    const file = data.get('file');
+    // The classic draft: filename and content type straight from the wire -
+    // storage key = raw client filename, response echoes it verbatim.
+    await env.UPLOADS.put(file.name, await file.text());
+    return Response.json({ stored: file.name, type: file.type });
+  };
+
+  // Recursion round: the 'validate' surface. Hardened: length cap + a
   // LINEAR pattern (bounded, anchored) - the class redos-catastrophic-
   // pattern refuses. Vulnerable: the classic nested-quantifier pattern
   // riding attacker-controlled strings - catastrophic backtracking.
@@ -286,6 +333,7 @@ function buildRoutes({ vulnerable = false } = {}) {
     me: vulnerable ? meVuln : meHard,
     logout: vulnerable ? logoutVuln : logoutHard,
     validate: vulnerable ? validateVuln : validateHard,
+    upload: vulnerable ? uploadVuln : uploadHard,
   };
 }
 
