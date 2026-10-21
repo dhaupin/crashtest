@@ -42,7 +42,7 @@ export default function Nav() {
           </button>
           <Link to="/" className="brand" onClick={() => setOpen(false)}>
             <span className="brand-crash">crash</span>test
-            <span className="brand-badge">v0.1</span>
+            <span className="brand-badge">v1.0</span>
           </Link>
           <div className="nav-links">
             {NAV_ITEMS.map(item => (

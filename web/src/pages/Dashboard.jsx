@@ -398,6 +398,14 @@ export default function Dashboard() {
               />
             </>
           )}
+        </div>
+      </section>
+
+      {/* Actions live BETWEEN the summary strip and the results: the eye path
+          is verdict -> numbers -> "point it at your own artifact" -> findings.
+          (2026-10-21: moved below the stat cards per field feedback.) */}
+      <section className="section" style={{ paddingTop: 8 }}>
+        <div className="wrap">
           <Loader
             onSnapshot={() => { setError(null); setModel(initialModel()) }}
             onParse={setParsed}

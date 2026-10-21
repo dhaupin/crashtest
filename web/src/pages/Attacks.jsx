@@ -101,7 +101,7 @@ export default function Attacks() {
   return (
     <section className="section" style={{ paddingTop: 56 }}>
       <div className="wrap">
-        <p className="eyebrow">Scenario catalog / v0.1</p>
+        <p className="eyebrow">Scenario catalog / v1.0</p>
         <h2>All shipped attacks</h2>
         <p className="sub">
           Drop extra modules into <code>labs/scenarios/</code> (or any dir via config

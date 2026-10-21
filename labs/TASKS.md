@@ -70,6 +70,22 @@
 
 ## Log
 
+- [2026-10-21 ~20Z] **v1.0.0 version walk + dashboard field feedback.
+  Dashboard: the loader/actions block (dogfood baseline / paste /
+  upload / fetch) moved OUT of the hero into its own section BETWEEN
+  the stat strip and the results - the eye path is now verdict ->
+  numbers -> point-it-at-your-artifact -> findings (mobile screenshot
+  drove this). Version walk: CLI VERSION 1.0.0 + package.json 1.0.0
+  already carried; brought the stragglers in - nav badge v0.1 -> v1.0,
+  scenario-catalog eyebrow v0.1 -> v1.0, web/package.json 0.1.0 ->
+  1.0.0, DEPLOY.md tagging example v0.2.0 -> v1.0.0. Deliberately NOT
+  touched: pack.json semvers (pack versions are their own line), the
+  historical first-release provenance link (0.1.0 is a fact of the
+  Sigstore log, not aUI label), v0.1-flavored comments in src (history
+  notes). Gates: suite 176/176, check 0, lint:docs 0, web build 6/6
+  with v1.0 confirmed in prerendered HTML, dogfood 0 new / 0
+  regressed.**
+
 - [2026-10-21 ~19Z] **pre-v1 deep scenario audit (the nitpick pass), three
   real catches, all fixed. (1) DETERMINISM fiction in shipped surface:
   guards/hygiene-no-store built its write key from Date.now() (house rule

@@ -230,7 +230,7 @@ switch ON or tag publishes fail with `E404 ... you do not have permission`
 # 1) bump the version (two places, keep them equal):
 #    package.json "version" + VERSION in src/cli.js
 # 2) commit, tag, push:
-git tag -a v0.2.0 -m "release notes ..."
+git tag -a v1.0.0 -m "release notes ..."
 git push origin main --follow-tags
 ```
 The workflow runs tests, then `npm publish` via OIDC - provenance is signed
