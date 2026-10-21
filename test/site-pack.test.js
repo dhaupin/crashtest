@@ -48,7 +48,7 @@ test('crashtest-site pack runs on itself from a foreign run root (exit 0, all re
 
     const ledger = JSON.parse(await readFile(LEDGER_PATH, 'utf8'));
     const siteRows = ledger.findings.filter((f) => f.id.startsWith('crashtest-site/'));
-    assert.equal(siteRows.length, 9, 'the site pack contributes all 9 attacks');
+    assert.equal(siteRows.length, 11, 'the site pack contributes all 11 attacks (9 original + 2 taxonomy probes)');
     assert.ok(siteRows.every((f) => f.verdict === 'REFUSED'), 'every shipped-site attack refused on the hardened repo');
     assert.ok(
       siteRows.some((f) => f.id === 'crashtest-site/version-grammar-hostile-shapes'),

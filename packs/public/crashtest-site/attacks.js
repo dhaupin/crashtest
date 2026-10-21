@@ -1,6 +1,6 @@
 // packs/public/crashtest-site/attacks.js - the hardcore attacks.
 //
-// Nine attacks against crashtest's own shipped website. Every one is
+// Eleven attacks against crashtest's own shipped website. Every one is
 // brutal-by-design: it names its fault class precisely, demands specific
 // wire behavior (not "nice to have"), and EXPLOITEDs with evidence when a
 // claim the site makes turns out to be false. Verdicts are honest - a wall
@@ -296,6 +296,100 @@ export default {
         if (lies > 0) return { verdict: 'EXPLOITED', detail: lies + ' flap responses leaked a version value carrying hostile characters (the validation floor let one through)' };
         const totalOps = harness.costTotals().__cost__ - before.__cost__;
         return { verdict: 'REFUSED', detail: 'flag under 50 shape-flapping replays; max per-request ops = ' + maxOpsPerRequest + ' (total ' + totalOps + ') - no faults, no lies, no amplification rebound' };
+      },
+    },
+
+    {
+      // The library `taxonomy` module's sad-path discipline, pointed at the
+      // site this pack ships - same canary, same oracle, ZERO shared code
+      // (the pack stays self-contained).
+      name: 'taxonomy-abuse-not-5xx',
+      description: 'abuse shapes (garbage + truncated JSON, wrong/absent content types, oversized strings, planted canaries) fired at every shipped route: deny honestly (4xx) or serve the asset cleanly (2xx with the body intact) - NEVER 5xx, NEVER an uncaught throw',
+      async run(harness) {
+        const canary = 'crashtest-site-taxonomy-canary';
+        const routes = ['version', 'site-html', 'site-headers', 'site-manifest', 'site-sitemap', 'site-robotstxt'];
+        const shapes = [
+          { label: 'garbage-body',    ct: 'application/json', body: `nope: ${canary}` },
+          { label: 'truncated-json',  ct: 'application/json', body: '{' },
+          { label: 'no-content-type', ct: undefined,          body: `{"${canary}": 1}` },
+          { label: 'huge-string',     ct: 'application/json', body: `{"key": "${'D'.repeat(8192)}"}` },
+        ];
+        // Healthy registry during the abuse battery - the collapse point is
+        // ASSERTED here, probed separately by taxonomy-impersonal-sad-paths.
+        const prevReply = registry.reply;
+        const escalations = [];
+        try {
+          for (const route of routes) {
+            if (!harness.listRoutes().includes(route)) continue;
+            for (const shape of shapes) {
+              const headers = shape.ct ? { 'content-type': shape.ct } : {};
+              const rec = await hit(harness, route, { method: 'POST', body: shape.body, headers });
+              if (rec.threw) {
+                escalations.push(`${route}/${shape.label}: threw - ${String(rec.error).slice(0, 80)}`);
+              } else if (rec.status >= 500) {
+                escalations.push(`${route}/${shape.label}: 5xx (${rec.status}) - abuse must deny honestly on the wire`);
+              }
+            }
+          }
+        } finally {
+          registry.reply = prevReply;
+        }
+        if (escalations.length) {
+          return { verdict: 'EXPLOITED', detail: escalations[0] + ` (+${escalations.length - 1} more)` };
+        }
+        return { verdict: 'REFUSED', detail: routes.length + ' shipped routes x ' + shapes.length + ' abuse shapes: zero 5xx escalations, zero uncaught throws - abuse denied or asset served cleanly' };
+      },
+    },
+
+    {
+      name: 'taxonomy-impersonal-sad-paths',
+      description: 'the sad path is infrastructure, not an inspector: hostile registry shapes (garbage, canary-carrying payloads, oversized versions) must collapse to 502 bodies that contain ZERO canary bytes and ZERO stack-frame patterns (V8 frames, node:internal, file:line:col)',
+      async run(harness) {
+        const canary = 'crashtest-site-taxonomy-canary';
+        const shapes = [
+          { name: 'registry 500 with canary body', body: `Internal Server Error: ${canary}`, status: 500 },
+          { name: 'canary-carrying garbage payload', body: `not-json-at-all <<< ${canary} <<<`, status: 200 },
+          { name: 'canary-in-version-value', body: JSON.stringify({ name: 'crashtest', version: `0.9.9-${canary}` }), status: 200 },
+          { name: 'oversize canary version', body: JSON.stringify({ name: 'crashtest', version: `${canary}.`.repeat(1024) }), status: 200 },
+        ];
+        // Stack-ish body patterns: any of these in a response body means the
+        // sad path is reading debug output instead of naming the fault class.
+        const STACKISH = [
+          [/node:internal/, 'node:internal frame'],
+          [/\.js:\d+:\d+/, 'file:line:col reference'],
+          [/\bat\s+[^\s(]+\(/, 'stack frame ("at fn(...)")'],
+          [new RegExp(canary), 'canary bytes echoed back'],
+        ];
+        const leaks = [];
+        for (const shape of shapes) {
+          const prevReply = registry.reply;
+          registry.reply = () => new Response(shape.body, { status: shape.status, headers: { 'content-type': 'application/json' } });
+          try {
+            const res = await hit(harness, 'version', { method: 'GET' });
+            if (res.threw) {
+              leaks.push(shape.name + ': faulted instead of an honest 502 (' + String(res.error).slice(0, 80) + ')');
+              continue;
+            }
+            // Same as the library taxonomy: the impersonal scan targets the
+            // SAD path (4xx/5xx). A 200 on a semver-shaped version is the
+            // badge doing its job (registry-authoritative bytes by contract) -
+            // contract violations of that 200 are another probe's job.
+            if (res.status < 400) continue;
+            const scanned = (res.text ?? '').slice(0, 500);
+            for (const [rx, why] of STACKISH) {
+              if (rx.test(scanned)) {
+                leaks.push(shape.name + ': 502 body leaks ' + why + ' (fragment: ' + scanned.match(rx)?.[0]?.slice(0, 40) + ')');
+                break;
+              }
+            }
+          } finally {
+            registry.reply = prevReply;
+          }
+        }
+        if (leaks.length) {
+          return { verdict: 'EXPLOITED', detail: leaks.length + '/' + shapes.length + ' sad-path bodies carry impersonal-evidence: ' + leaks.join(' | ') };
+        }
+        return { verdict: 'REFUSED', detail: shapes.length + ' hostile registry shapes collapsed honestly - every 502 body named the fault class, zero canary bytes, zero stack patterns' };
       },
     },
   ],

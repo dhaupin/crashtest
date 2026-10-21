@@ -47,7 +47,19 @@ export const onRequestGet = async () => {
       headers: { accept: 'application/json' },
     });
     if (!res.ok) throw new Error(`registry ${res.status}`);
-    const pkg = await res.json();
+    let pkg;
+    try {
+      pkg = await res.json();
+    } catch {
+      // taxonomy lesson (crashtest-site/taxonomy-impersonal-sad-paths, first
+      // run): the JSON.parse failure message ECHOES registry bytes - the
+      // parse error interpolates a slice of the hostile document. The public
+      // 502 body names the fault class, never the bytes.
+      return new Response(
+        JSON.stringify({ error: 'registry returned an unparsable document (bytes withheld)' }),
+        { status: 502, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } },
+      );
+    }
     // Never lie by omission: a registry response without an honest version
     // string is an outage in function, not a success - found by crashtest's
     // own self-dogfood (site/registry-hostile-statuses, then the site pack's

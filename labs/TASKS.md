@@ -70,6 +70,26 @@
 
 ## Log
 
+- [2026-10-21 ~07Z] **First taxonomy run vs ourselves: crashtest caught
+  crashtest.** The public site pack (crashtest-site) grew two taxonomy
+  probes - taxonomy-abuse-not-5xx (abuse battery over every shipped route;
+  must deny honestly or serve cleanly, never 5xx/throw) and
+  taxonomy-impersonal-sad-paths (hostile registry doubles must collapse to
+  502 bodies containing zero canary bytes and zero stack patterns).
+  First run found a REAL leak in the shipped badge function:
+  web/functions/api/version.js' catch-all interpolated err.message into
+  the public 502, and JSON.parse failure messages echo registry bytes (V8
+  interpolates a slice of the hostile document) - a broken registry could
+  route attacker-shaped markers into the public error body. Fixed at
+  cause: malformed documents collapse to 'registry returned an unparsable
+  document (bytes withheld)'. Second honest correction: the probe's first
+  pass flagged the registry-authoritative 200 (semver prerelease carrying
+  the canary) - that is the badge doing its job, not a leak; the scan now
+  targets only the sad path (status >= 400), matching the library
+  taxonomy semantics. Pack pins: 11 attacks (siteRows === 11), pack.json
+  description synced. Gates: site-pack 3/3, suite 164/164, check 0,
+  lint:docs 0. Pushed with the prior round (efa902d) + this round.
+
 - [2026-10-21 ~06Z] **taxonomy module shipped - 15 attacks across 6 modules.**
   New seed library src/scenarios/library/taxonomy.js (2 attacks):
   abuse-not-5xx (10 deterministic abuse shapes - garbage/truncated JSON,
