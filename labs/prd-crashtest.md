@@ -110,7 +110,7 @@ Planned expansions (v1.x - wording stays `planned` until each ships):
 | `session` (extension) | replay windows (token reuse past expiry-to-deletion gaps) | shipped 2026-10-21 - the in-process oracle is the ISSUER REGISTRY: four logins (account A, B, A again, C) must mint pairwise-distinct sids and the re-login must not resurrect its original sid; no clocks needed, same determinism as the base module |
 | `wp-roles` (pack scope) | role-callback bypass shapes on the WP envelope wire | shipped 2026-10-21, explicitly experimental (section 10 note) - the missing pieces landed: the stub-WP worker fixture (role/callback registration layer, seeded identity store, deterministic nonces) + the pack (3 attacks: nopriv refusal, low-privilege gate, body-declared role flip) + the armed CI exercise (`test/wp-roles.test.js`, skips loudly without PHP) |
 
-## Extended sources (designed, deliberately not built yet)
+## Extended sources (designed; the cve-feed snapshot-slice landed 2026-10-21)
 
 External vulnerability corpora (NVD, CISA KEV, GitHub Advisories) as packs.
 The design constraint is the one law: **no sockets at run time** - the
@@ -129,10 +129,38 @@ harness stays a drone that never dials out. Shape:
 - Status: landed 2026-10-21 as the `cve-feed` snapshot pack - the shipped
   pack carries the CURATED, budget-capped snapshot (its own integrity
   budget: <= 12 rows / <= 4200 bytes, two-way teeth pinned in
-  `test/cve-feed.test.js`) and attacks banner/version disclosure against
-  it on every declared route. The maintainer-side sync step + CI
-  last-modified join is the remaining runtime-freshness work (the stated
-  design unchanged); the full NVD corpus still never enters this repo.
+  `test/cve-feed.test.js`, exact-row pin included) and attacks
+  banner/version disclosure against it on every declared route. The
+  maintainer-side sync step + CI last-modified join remains the
+  runtime-freshness work, and it carries two named post-v1 gaps (see the
+  honest-gaps list at the end of this section): the refresh RUNBOOK is
+  unwritten, and refresh itself is MANUAL until the automation lands. The
+  full NVD corpus still never enters this repo.
+
+## Post-v1 honest gaps (tracked, non-blocking, so they don't quietly disappear)
+
+1. **Snapshot refresh runbook (cve-feed).** The sync is maintainer-side
+   by design, but the written step-by-step does not exist yet: which
+   files to touch (`packs/public/cve-feed/snapshot.json`, the exact-12
+   row pin in `test/cve-feed.test.js` - deliberately moved only by a
+   reviewed commit, not a cap - and the 12-count prose across README,
+   docs/reference/attacks.md, docs/reference/packs.md and the web
+   pages). Post-v1 doc, first consumer: whoever runs the first real
+   refresh.
+2. **WP packs have no in-repo REAL-WP e2e target.** Teeth tests exist
+   (`test/wp-roles.test.js` exercises the adapter against the stub WP
+   core), but the stub is a deterministic fake surface, not WordPress;
+   real-install e2e lives in external target run roots this repo does
+   not control. By design (bigger fixture = dep creep), but it stays
+   named: a real-install receipt is the khf-style lane's own proof, as
+   the WP lane section records.
+3. **No CVE feed refresh automation.** The CI byte-integrity join is
+   designed (last-modified pairing, per Extended sources above) but the
+   refresh step itself is a manual maintainer action today. Fine for v1
+   honesty (an automated refresh would want the runbook from item 1 to
+   exist first so the drift is reviewable); the automation candidate is
+   a scheduled CI job that opens a PR carrying the new snapshot for
+   review, never a silent runtime dial.
 
 ## The browser lane (designed, deliberately not built)
 
