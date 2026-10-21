@@ -119,8 +119,9 @@ reality directly - tracked vs machine-private.
 
 ## Natural extension points
 
-- **Public packs** (like the shipped [`wp-money-shapes`](https://github.com/dhaupin/crashtest/blob/main/packs/public/wp-money-shapes/pack.json)
-  and [`wp-stock-smoke`](https://github.com/dhaupin/crashtest/blob/main/packs/public/wp-stock-smoke/pack.json)
+- **Public packs** (like the shipped [`wp-money-shapes`](https://github.com/dhaupin/crashtest/blob/main/packs/public/wp-money-shapes/pack.json),
+  [`wp-stock-smoke`](https://github.com/dhaupin/crashtest/blob/main/packs/public/wp-stock-smoke/pack.json),
+  and the experimental [`wp-roles`](https://github.com/dhaupin/crashtest/blob/main/packs/public/wp-roles/pack.json)
   examples) live in the OSS repo and get versioned, reviewed, and shared.
   [`crashtest-site`](https://github.com/dhaupin/crashtest/blob/main/packs/public/crashtest-site/pack.json)
   is the OSS repo's own dogfood pack: it attacks the website crashtest

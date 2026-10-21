@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "name": "wp-roles",
+  "description": "WP role-callback discipline (experimental per PRD section 10): the nopriv hook never performs the privileged write, low-privilege users cannot flip a capability gate, and body-declared roles never reach current_user_can.",
+  "version": "0.1.0",
+  "entry": "index.js"
+}

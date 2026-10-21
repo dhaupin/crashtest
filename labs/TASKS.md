@@ -70,7 +70,42 @@
 
 ## Log
 
-- [2026-10-21 ~14Z] **race shipped - 29 attacks across 12 modules; two PRD
+- [2026-10-21 ~15Z] **the WP lane touched before v1: wp-roles shipped
+  (experimental) + the stub-WP worker fixture closes the PRD gap list.**
+  Per the browser-lane pacing call: puppeteer/playwright stays designed-
+  not-built (later version); the WP lane is the pre-v1 touch.
+  Three pieces landed per the gap list: (1) fixtures/wordpress/stub-wp/
+  wp-load.php - a deterministic in-memory WP API core (hooks with priority
+  + accepted_args, options, posts/meta, wp_die/redirect transfer capture,
+  wpdb query ticks for cost meters) CARRYING the role/callback registration
+  layer the worker fixture lacked: a seeded identity store
+t  (ct_create_user/ct_grant_role/ct_reset_users whitelist helpers),
+  capability maps keyed ONLY by that store (request input never reaches
+  current_user_can), deterministic nonces, and the gated callback
+  ct_role_probe (priv hook carries current_user_can('manage_options'),
+  nopriv hook refuses outright). Stub lesson: boot round one had
+  add_action delegating to add_filter, so do_action read an empty registry
+  - isolation via pure PHP pointed at the registry bags; fixed at cause.
+  (2) packs/public/wp-roles (3 attacks, explicitly experimental, ships in
+  the tarball): nopriv-callback-denied (logged-out hit on the gated action
+  must die 401/403 class; a 200 is the registration-bypass classic),
+  low-privilege-callback-blocked (seeded subscriber/editor must die 403 -
+  seeding crosses the CALL_ALLOW whitelist, honest skip without it),
+  capability-constants-hold (admin passes + body-declared role=admin on a
+  subscriber must STILL die). Honest skips on any run root without the
+  adapter (same noWpTarget gate as stockwp). (3) the armed exercise:
+  test/wp-roles.test.js boots the adapter against the stub (PHP available
+  on this box + GitHub runners; skips loudly otherwise) and pins 3/3
+  wp-roles REFUSED at exit 0 - it ALSO arms the stock smoke pack against
+  the stub, so the WP lane now grades honestly IN CI without any install.
+  The packaging audit earned its keep: the tarball files list never grew
+  for wp-roles (test caught it) AND the check chain had quietly missed the
+  four later-library modules (authz/protohygiene/recursion/upload/race) -
+  both fixed (files + chain), suite green after. Full battery vs ourselves:
+  57/57 REFUSED, exit 0 (wp-rows degrade to honest skips there by design;
+  the armed exercise is the wproles test itself). Gates: suite 172/172,
+  check 0, lint:docs 0, web build 6/6. PRD: wp-roles row -> shipped
+  (experimental); browser lane stays designed-not-built per your call;
   additions: the browser lane (designed) and the WordPress packs subsection
   (touched spot).** Three PRD moves first: a `browser` planned row + a full
   "browser lane" design section (two honest execution lanes - an in-process

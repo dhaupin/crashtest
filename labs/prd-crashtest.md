@@ -108,8 +108,7 @@ Planned expansions (v1.x - wording stays `planned` until each ships):
 | Planned library | Attacks designed for | Status |
 |---|---|---|
 | `session` (extension) | replay windows (token reuse past expiry-to-deletion gaps) | planned - the base module shipped 2026-10-21; this row covers only what did not |
-| `wp-roles` (pack scope) | role-callback bypass shapes on the WP envelope wire | planned - explicitly experimental (section 10 note) |
-| `browser` | scenarios that need a real DOM: DOM clobbering (name-attribute collisions), form-action/base hijack, postMessage origin confusion, storage fingerprinting, CSP proof-by-render | designed, not built - see the browser lane below |
+| `wp-roles` (pack scope) | role-callback bypass shapes on the WP envelope wire | shipped 2026-10-21, explicitly experimental (section 10 note) - the missing pieces landed: the stub-WP worker fixture (role/callback registration layer, seeded identity store, deterministic nonces) + the pack (3 attacks: nopriv refusal, low-privilege gate, body-declared role flip) + the armed CI exercise (`test/wp-roles.test.js`, skips loudly without PHP) |
 
 ## Extended sources (designed, deliberately not built yet)
 
@@ -190,13 +189,21 @@ round:
   (a wire format, NOT a transport; PRD section 10 note). The generic
   worker (`fixtures/wordpress/wp-worker.php`) is fixture-only: it exists
   so the adapter tests stay runnable without a live WP install.
-- **Missing before `wp-roles` can ship: (1) a worker fixture that
-  exercises the role/callback REGISTRATION layer (current_user_can
-  mapping, capability constants, callback authorization on the envelope
-  wire) - the current worker cannot host the role attack vocabulary; (2)
-  the wp-roles pack itself with the role-callback bypass shapes;
-  (3) an armed target exercise end to end. Status stays planned,
-  explicitly experimental per section 10 until all three land.
+- **Gap check (all three closed 2026-10-21):** (1) the worker fixture
+  role/callback registration layer landed as the stub WP core
+  (`fixtures/wordpress/stub-wp/wp-load.php`): a deterministic in-memory WP
+  API surface with a seeded identity store, capability maps keyed ONLY by
+  that store, deterministic nonces, and the gated callback
+  (`ct_role_probe`: the priv hook carries `current_user_can
+  ('manage_options')`, the nopriv hook refuses outright); (2) the
+  `wp-roles` pack ships with three role-callback attacks (nopriv refusal,
+  low-privilege gate, body-declared role flip) with honest off-target
+  skips; (3) the armed CI exercise (`test/wp-roles.test.js`) boots the
+  adapter against the stub and pins the verdicts - it also arms the stock
+  smoke pack against the stub. The REAL-WP e2e still lives where it always
+  did: target run roots. Status: shipped, explicitly experimental per
+  section 10; a real-install exercise remains the khf-style lane's own
+  receipt.
 
 Deliberate scope notes (kept out of the catalog, honest reasons):
 
