@@ -12,7 +12,7 @@ The exit contract is the CI interface. Three values, exactly:
 | Exit | Reads as | CI behavior |
 |---|---|---|
 | **0** | Nothing new weak, nothing old broke | Pass |
-| **1** | A NEW 🛡→⚡ change: either a fresh EXPLOITED finding, or a previously-REFUSED surface that regressed | Fail the PR |
+| **1** | A NEW 🛡->⚡ change: either a fresh EXPLOITED finding, or a previously-REFUSED surface that regressed | Fail the PR |
 | **2** | Configuration problem (missing/bad config, unreachable handlers table) | Fail loudly and visibly - it's a real gap in adoption, not a "skip" |
 
 ## The delta principle
@@ -61,7 +61,7 @@ from "the run could not be trusted."
 owner/bound pair, the runner demotes it to EXPLOITED and surfaces the reason -
 an accepted risk with no accountability matrix is a finding (PRD principle 6).
 
-## Same commit → same findings
+## Same commit -> same findings
 
 The seeded RNG and in-process transport make every run deterministic: gone
 is the flaky security suite. One surface cherry-ticks once, then holds its

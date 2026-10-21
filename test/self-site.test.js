@@ -1,11 +1,11 @@
 // Self-dogfood, CLI-level: crashtest attacks crashtest's own shipped site
-// function (web/functions/api/version.js) via a run root in a temp cwd — the
+// function (web/functions/api/version.js) via a run root in a temp cwd - the
 // same shape the run-roots playbook documents. The committed repo ledger
 // stays untouched: this target's baseline lives in the temp dir's labs/.
 //
 // The pack carries a REAL fixed bug as regression proof: the version function
 // used to return 200 with no version key on a malformed-but-OK registry
-// response ({"nope":true} @ 201 — res.ok true). Found by the self-dogfood's
+// response ({"nope":true} @ 201 - res.ok true). Found by the self-dogfood's
 // first run; fixed in web/functions/api/version.js; site/registry-hostile-
 // statuses guards it forever.
 
@@ -25,7 +25,7 @@ test('crashtest attacks its own shipped site function (self-dogfood PoC, exit 0)
   process.chdir(dir);
   try {
     // Run-root config: absolute imports of the REAL target + pack (same
-    // pattern as the run-roots playbook — config outside the target root).
+    // pattern as the run-roots playbook - config outside the target root).
     await writeFile('crashtest.config.js', [
       `const { siteRoutes } = await import(${JSON.stringify(join(REPO, 'fixtures', 'site', 'site-target.js'))});`,
       'export default {',

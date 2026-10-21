@@ -1,20 +1,20 @@
-// v0.3 spike — WordPress/PHP adapter (PRD §8 v0.3: "WP/PHP feasibility spike
-// (subprocess harness — explicitly experimental)"). PHP can't be imported
+// v0.3 spike - WordPress/PHP adapter (PRD section 8 v0.3: "WP/PHP feasibility spike
+// (subprocess harness - explicitly experimental)"). PHP can't be imported
 // into a Node process, so the harness's fake transport crosses ONE boundary
 // as NDJSON over stdio into a PHP worker that boots the target's wp-load
 // exactly once (fixtures/wordpress/wp-worker.php). No sockets, no live
 // server: on the WP side every attack dispatches in-process through WP's
-// own hook surface (admin_post / template_redirect) — the wire format is
+// own hook surface (admin_post / template_redirect) - the wire format is
 // not a transport.
 //
 // Config (crashtest.config.js):
 //   adapters: { wordpress: { wpRoot: '/srv/wordpress', phpBin: 'php' } }
-//   routes stay empty — the adapter registers itself as route 'app'.
+//   routes stay empty - the adapter registers itself as route 'app'.
 //
 // Scenario surface (same contract the JS libraries already speak):
-//   harness.run('app', { method, url, headers, body })  → one WP request
-//   harness.wpState({ kind:'state', op, prefix, id, key }) → fixture oracle
-//   harness.wpState({ kind:'call', fn, args })          → whitelisted seeder
+//   harness.run('app', { method, url, headers, body })  -> one WP request
+//   harness.wpState({ kind:'state', op, prefix, id, key }) -> fixture oracle
+//   harness.wpState({ kind:'call', fn, args })          -> whitelisted seeder
 //
 // Worker lifecycle: stateless between requests; on a non-transfer fault
 // (PHP fatal mid-handler) the worker flushes its envelope, exits non-zero,
@@ -31,7 +31,7 @@ const WORKER_DEFAULT = join(
 /** One WordPress attack process: NDJSON request/reply over its stdio. */
 class WPWorker {
   constructor({ wpRoot, phpBin = 'php', script = WORKER_DEFAULT, stderr = 'ignore' }) {
-    if (!wpRoot) throw new TypeError('wordpress adapter needs { wpRoot } — the wp root to bootstrap');
+    if (!wpRoot) throw new TypeError('wordpress adapter needs { wpRoot } - the wp root to bootstrap');
     this.argv = [phpBin, script, wpRoot];
     this.stderr = stderr;
     this._child = this._spawn();
@@ -102,7 +102,7 @@ export async function ctRequestToEnvelope(req, {
 } = {}) {
   const url = new URL(req.url);
   const path = url.pathname + (url.search || '');
-  // Cookie header → the cookies envelope (state library attacks ride this).
+  // Cookie header -> the cookies envelope (state library attacks ride this).
   const cookies = {};
   const cookieHeader = req.headers.get('cookie');
   if (cookieHeader) {
@@ -113,10 +113,10 @@ export async function ctRequestToEnvelope(req, {
   }
   Object.assign(cookies, data?.cookies ?? {});
   // Dispatch inference, in order:
-  //   · x-ct-dispatch header (explicit escape hatch for exotic surfaces)
-  //   · the admin-post.php URL (and its ?action=) => admin_post
-  //   · everything else => template_redirect (front-end surfaces: IPN
-//     receiver, gate view, portal, sitemap…)
+  //   / x-ct-dispatch header (explicit escape hatch for exotic surfaces)
+  //   / the admin-post.php URL (and its ?action=) => admin_post
+  //   / everything else => template_redirect (front-end surfaces: IPN
+//     receiver, gate view, portal, sitemap...)
   const explicit = req.headers.get('x-ct-dispatch');
   const isAdmin = /admin-post\.php$/.test(url.pathname) || url.pathname === '/wp-admin/admin-post.php'
     || url.pathname === '/admin-post.php';
@@ -163,8 +163,8 @@ export function registerWordPress(harness, opts = {}) {
   const fix = (opts.app && typeof opts.app === 'object') ? opts.app : opts;
   const name = opts.name ?? 'app';
   const worker = new WPWorker({ wpRoot: fix.wpRoot, phpBin: fix.phpBin, script: fix.script });
-  // Generic-adapter rule: the worker knows NO plugin. This run's specifics —
-  // seeder functions (callAllow) and option rows (allowOptions) — arrive from
+  // Generic-adapter rule: the worker knows NO plugin. This run's specifics -
+  // seeder functions (callAllow) and option rows (allowOptions) - arrive from
   // the run-root config and cross the boundary ONCE as the first 'cfg'
   // envelope. Packs declare what they need; the target config owns it.
   const callAllow = fix.callAllow ?? { wp_create_nonce: 1 };
@@ -175,17 +175,17 @@ export function registerWordPress(harness, opts = {}) {
       return true;
     } catch {
       // An older worker (pre-cfg) will fatal on the unknown kind and respawn
-      // per request — surface it as a loud config error rather than silent skip.
+      // per request - surface it as a loud config error rather than silent skip.
       throw new Error('wordpress adapter: worker rejected the cfg envelope (stale wp-worker.php next to an older adapter?)');
     }
   })();
-  // Cost hooks (PRD §13): real-SQL ops tick the same ledger as fake backends.
+  // Cost hooks (PRD section 13): real-SQL ops tick the same ledger as fake backends.
   for (const [opName, unit] of [['wp.query', 2], ['wp.redirect', 1], ['wp.die', 1], ['wp.fatal', 4]]) {
     try { harness._counter.declare(opName, unit); } catch { /* harness without counters */ }
   }
 
   harness.registerRoute(name, async (ctx) => {
-    await cfgSent; // cfg crosses first, once — every later envelope is scoped by it
+    await cfgSent; // cfg crosses first, once - every later envelope is scoped by it
     const envelope = await ctRequestToEnvelope(ctx.request, { data: ctx.data });
     const reply = await worker.exchange(envelope);
     const ops = reply.ops ?? { queries: 0 };
@@ -197,7 +197,7 @@ export function registerWordPress(harness, opts = {}) {
   });
 
   // Fixture-oracle surface for scenario modules (packs read state after the
-  // attack: counts, money metas, whitelisted seeder calls — all through the
+  // attack: counts, money metas, whitelisted seeder calls - all through the
   // generic ops + this run's cfg whitelist).
   harness.wpState = async (payload) => {
     await cfgSent;

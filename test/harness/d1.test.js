@@ -1,7 +1,7 @@
-// S1.1 — FakeD1 suite. Rook's lesson baked in: validate against the real
+// S1.1 - FakeD1 suite. Rook's lesson baked in: validate against the real
 // validators' semantics (a 3-char id that the app's own regex rejects is the
 // app rejecting it, not a shim bug), and never let JSON.stringify eat
-// prototype keys — hostile payloads are stored raw as strings.
+// prototype keys - hostile payloads are stored raw as strings.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { FakeD1, parseStatement } from '../../src/harness/d1.js';
@@ -35,7 +35,7 @@ test('select specific columns + WHERE param binding', async () => {
   assert.deepEqual(res.results, [{ name: 'rook', role: 'admin' }]);
 });
 
-test('first(col) — null IS NULL honored', async () => {
+test('first(col) - null IS NULL honored', async () => {
   const { db } = mkdb(USERS);
   assert.equal(await db.prepare('SELECT name FROM users WHERE email IS NULL').first('name'), 'cormorant');
   assert.equal(await db.prepare('SELECT name FROM users WHERE email IS NOT NULL AND id = ?').bind(2).first('name'), 'dhaupin');
@@ -78,7 +78,7 @@ test('UPDATE uniqueness guard fires on moved email (row-move/aliasing checks)', 
     db.prepare('UPDATE users SET email = ? WHERE id = ?').bind('dh@example.com', 1).run(),
     /UNIQUE constraint failed: users\.email/
   );
-  // …and the failed update must not have mutated the row.
+  // ...and the failed update must not have mutated the row.
   assert.equal(await db.prepare('SELECT email FROM users WHERE id = 1').first('email'), 'rook@example.com');
 });
 
@@ -100,7 +100,7 @@ test('op counters tick: query + materialized rows', async () => {
   await db.prepare('SELECT * FROM users').all();
   await db.prepare('SELECT * FROM users').all();
   assert.equal(counter.count('d1.query'), 2);
-  assert.equal(counter.count('d1.rows'), 6); // 3 rows × 2 queries
+  assert.equal(counter.count('d1.rows'), 6); // 3 rows x 2 queries
   assert.ok(counter.cost() > 0);
 });
 

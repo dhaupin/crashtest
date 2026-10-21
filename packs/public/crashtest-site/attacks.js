@@ -1,9 +1,9 @@
-// packs/public/crashtest-site/attacks.js — the hardcore attacks.
+// packs/public/crashtest-site/attacks.js - the hardcore attacks.
 //
 // Nine attacks against crashtest's own shipped website. Every one is
 // brutal-by-design: it names its fault class precisely, demands specific
 // wire behavior (not "nice to have"), and EXPLOITEDs with evidence when a
-// claim the site makes turns out to be false. Verdicts are honest — a wall
+// claim the site makes turns out to be false. Verdicts are honest - a wall
 // that holds is REFUSED with numbers, and the accepted-risk floor needs
 // owner+bound or it is a finding, never a shrug.
 
@@ -43,7 +43,7 @@ export default {
         for (const [name, matcher, why] of required) {
           const value = res.headers?.get(name) ?? hdr.text?.match(new RegExp(name.replace(/-/g, '-') + ':\\s*(.+)', 'i'))?.[1];
           // String matchers compare a matched wire value (often mixed-case,
-          // e.g. "DENY") — compare on both sides lowercased.
+          // e.g. "DENY") - compare on both sides lowercased.
           const ok = value !== undefined && value !== null && (typeof matcher === 'string' ? String(value).toLowerCase().includes(String(matcher).toLowerCase()) : matcher.test(String(value)));
           if (!ok) missing.push(`${name} (${why})`);
         }
@@ -84,7 +84,7 @@ export default {
       async run(harness) {
         const hdr = await hit(harness, 'site-headers', { method: 'GET' });
         // _headers pins directives on lines indented under their path
-        // stanza — search the line, not the column.
+        // stanza - search the line, not the column.
         const cspLine = (hdr.text ?? '').split('\n').find((l) => /^\s*Content-Security-Policy:/i.test(l));
         if (!cspLine) return { verdict: 'EXPLOITED', detail: 'no Content-Security-Policy directive found in shipped _headers (default-src absent)' };
         const csp = cspLine.replace(/^Content-Security-Policy:\s*/i, '');
@@ -106,8 +106,8 @@ export default {
       description: 'The version function must NEVER trust a registry-shaped lie: proto-polluting documents, an oversize version, a control-char version, and a whitespace-only version each collapse to the honest 502 with zero echo of the hostile bytes; a healthy semver shape with dist=null passes but provenance must stay accurate',
       async run(harness) {
         // Hostile registry doubles. Each carries an `expect` oracle:
-        //   'reject' — a 502, and the hostile bytes never echo back
-        //   { version } — a 200 is honest iff version matches and provenance is accurate
+        //   'reject' - a 502, and the hostile bytes never echo back
+        //   { version } - a 200 is honest iff version matches and provenance is accurate
         const shapes = [
           {
             name: 'proto-polluting document',

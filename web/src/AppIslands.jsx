@@ -38,7 +38,7 @@ export const islands = {
   // 'recently-viewed': RecentlyViewed,
   // 'cart-widget':     CartWidget,
   // 'promo-banner':    PromoBanner,
-  // Live npm version badge — static `<a>` fallback prerenders in HTML;
-  // upgrades to `v0.1.1 · provenance ✓` once /api/version is reachable.
+  // Live npm version badge - static `<a>` fallback prerenders in HTML;
+  // upgrades to `v0.1.1 / provenance [ok]` once /api/version is reachable.
   'version-badge': VersionBadge,
 }

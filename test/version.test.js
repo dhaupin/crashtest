@@ -1,6 +1,6 @@
 // Version-drift pin: package.json and VERSION in src/cli.js are the two
 // release surfaces the publish flow requires to be bumped "in one commit"
-// (DEPLOY.md §III). Nothing else enforced that - this test does: the two
+// (DEPLOY.md section III). Nothing else enforced that - this test does: the two
 // surfaces must name the same version, and it must be a real x.y.z.
 //
 // Both files also must not have drifted from each OTHER fiction gates:

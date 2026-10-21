@@ -1,5 +1,5 @@
 /**
- * src/main.jsx — hydrate if prerendered SSR exists, fresh-mount otherwise.
+ * src/main.jsx - hydrate if prerendered SSR exists, fresh-mount otherwise.
  * (Engine logic per prestruct template; crashtest only adds the CSS import.)
  */
 import React from 'react'

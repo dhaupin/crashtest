@@ -1,7 +1,7 @@
 // Packaging probe (audit item #2): the npm tarball must ship the reusable
 // shape packs so the documented `packs: ['node_modules/crashtest/packs']`
 // adoption shape is real, and must NOT ship the repo-bound crashtest-site
-// self-dogfood pack (it attacks the OSS repo's own checkout — shipping it
+// self-dogfood pack (it attacks the OSS repo's own checkout - shipping it
 // vendored would be a footgun). Also pins the minimal publish surface.
 //
 // Zero-runtime-deps rule untouched: this probe shells the LOCAL npm (a
@@ -39,7 +39,7 @@ test('tarball ships the reusable shape packs (adoption shapes stay real)', () =>
 
 test('tarball does NOT ship repo-bound packs (crashtest-site is self-dogfood only)', () => {
   const leaked = files.filter((f) => f.startsWith('packs/public/crashtest-site'));
-  assert.deepEqual(leaked, [], 'crashtest-site reads web/ from the OSS repo checkout — vendoring it blinds the pack');
+  assert.deepEqual(leaked, [], 'crashtest-site reads web/ from the OSS repo checkout - vendoring it blinds the pack');
 });
 
 test('tarball carries the publish surface: bin, full CLI src, harness, libraries', () => {

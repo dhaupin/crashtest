@@ -6,9 +6,9 @@
  * Checks every markdown page under docs/:
  * - all 4 required fields present and non-empty: permalink, layout, title,
  *   description (vant's 5-field rule carries `version` + `nav_order`; here
- *   the sidebar is docs/_data/nav.yml-driven — nav_order is deliberately
+ *   the sidebar is docs/_data/nav.yml-driven - nav_order is deliberately
  *   NOT used, and `version:` is optional, not required)
- * - permalink is baseurl-relative (plain path, no leading /) — the site
+ * - permalink is baseurl-relative (plain path, no leading /) - the site
  *   composes it as /crashtest/<permalink>; a leading slash (or a baked-in
  *   /crashtest) is how the doubled-prefix fiction starts
  *

@@ -1,4 +1,4 @@
-/* crashtest site theme — dark lab: crash-amber accents on near-black,
+/* crashtest site theme - dark lab: crash-amber accents on near-black,
    evidence/code as the star. Token structure borrowed from the vant
    dashboard's Bolete palette (paper/surface/ink/line), re-tuned dark-first
    because this product lives in terminals. */
@@ -21,7 +21,7 @@ html {
   background: var(--paper);
   /* Dark-page color-scheme: native controls (scroll bars, form UI, mobile
      URL bar via theme-color meta) adopt the lab palette instead of fighting
-     it — and 'light initial painting then reskin' stays theme-coherent. */
+     it - and 'light initial painting then reskin' stays theme-coherent. */
   color-scheme: dark;
 }
 body {
@@ -282,7 +282,7 @@ table.attacks td .why { color: var(--ink-soft); font-size: 12.5px; }
   .dash-urlform { flex-wrap: wrap; }
 }
 
-/* Coverage-plan chips (module-plan view, v2) — same token vocabulary as the
+/* Coverage-plan chips (module-plan view, v2) - same token vocabulary as the
    gate banner: moss = healthy, err = action needed, ink-soft = neutral. */
 .dash-plan-chip {
   font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em;

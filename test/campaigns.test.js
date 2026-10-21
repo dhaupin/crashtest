@@ -1,6 +1,6 @@
-// S1.3 — campaign runner + verdict aggregation, on fixture apps shaped like
+// S1.3 - campaign runner + verdict aggregation, on fixture apps shaped like
 // real agent-built Cloudflare Pages handlers. Two-way invariant runs through
-// EVERY seed library: vulnerable app → EXPLOITED rows, hardened app → REFUSED.
+// EVERY seed library: vulnerable app -> EXPLOITED rows, hardened app -> REFUSED.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildHarness } from '../src/harness/harness.js';
@@ -61,7 +61,7 @@ const hardenedRoutes = {
     try { body = await request.json(); } catch { return new Response('bad json', { status: 400 }); }
     if (typeof body !== 'object' || body === null) return new Response('bad', { status: 400 });
     for (const k of Object.keys(body)) {
-      if (!['key', 'owner'].includes(k)) return new Response(`unknown field: ${k}`, { status: 400 });
+      if (!['key', 'owner'].includes(k)) return new Response('unknown field (allowed: key, owner)', { status: 400 });
     }
     if (typeof body.key !== 'string' || !/^[a-zA-Z0-9-]{1,64}$/.test(body.key)) {
       return new Response('invalid key', { status: 400 });
@@ -90,7 +90,7 @@ const hardenedRoutes = {
     let body;
     try { body = await request.json(); } catch { return new Response('bad json', { status: 400 }); }
     for (const k of Object.keys(body ?? {})) {
-      if (!['key', 'owner'].includes(k)) return new Response(`unknown field: ${k}`, { status: 400 });
+      if (!['key', 'owner'].includes(k)) return new Response('unknown field (allowed: key, owner)', { status: 400 });
     }
     if (typeof body?.owner !== 'string' || !/^[a-zA-Z0-9-]{1,32}$/.test(body.owner)) {
       return new Response('invalid owner', { status: 400 });
@@ -110,7 +110,7 @@ const hardHarness = () => buildHarness(hardenedRoutes, { env: envSpec });
 test('campaign: every scenario attack produces a verdict row with cost', async () => {
   const scenarios = await loadScenarios();
   const run = await runCampaign(hardHarness(), scenarios, { seed: 123 });
-  assert.ok(run.rows.length >= 8, `expected ≥8 attacks, got ${run.rows.length}`);
+  assert.ok(run.rows.length >= 8, `expected >=8 attacks, got ${run.rows.length}`);
   for (const row of run.rows) {
     assert.ok(['REFUSED', 'EXPLOITED', 'BOUNDED'].includes(row.verdict), `${row.id}: ${row.verdict}`);
     assert.equal(typeof row.costDelta.ops, 'number', `${row.id} cost`);
@@ -131,12 +131,12 @@ test('campaign: vulnerable fixture tripwires (auth bypass, leak, hygiene missing
   const scenarios = await loadScenarios();
   const run = await runCampaign(vulnHarness(), scenarios, { seed: 123 });
   const ids = new Set(run.exploited.map(r => r.id));
-  assert.ok(ids.has('auth/identity-spoof-headers'), `x-is-admin spoof must flip 403→200 on admin (${[...ids]})`);
+  assert.ok(ids.has('auth/identity-spoof-headers'), `x-is-admin spoof must flip 403->200 on admin (${[...ids]})`);
   assert.ok(ids.has('guards/hygiene-no-store'), 'bare 2xx write without Cache-Control must be a finding');
   assert.ok(ids.has('input/proto-pollution-body'), 'unvalidated merge surfaces the canary');
 });
 
-test('campaign: deterministic — same seed + same app → identical rows, twice', async () => {
+test('campaign: deterministic - same seed + same app -> identical rows, twice', async () => {
   const scenarios = await loadScenarios();
   const a = await runCampaign(hardHarness(), scenarios, { seed: 777 });
   const b = await runCampaign(hardHarness(), scenarios, { seed: 777 });

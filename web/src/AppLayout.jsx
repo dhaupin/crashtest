@@ -1,4 +1,4 @@
-/** AppLayout — styled after prestruct's engine layout (no BrowserRouter ever). */
+/** AppLayout - styled after prestruct's engine layout (no BrowserRouter ever). */
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
 import { mountIslands } from './islands.js'

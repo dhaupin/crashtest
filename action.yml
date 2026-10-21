@@ -1,7 +1,7 @@
 name: 'crashtest'
 description: >-
   In-process adversarial QA gate: runs crashtest against your target config
-  and fails on a NEW EXPLOITED finding or a REFUSED→EXPLOITED regression
+  and fails on a NEW EXPLOITED finding or a REFUSED->EXPLOITED regression
   against your committed labs/crashledger.json baseline.
 branding:
   icon: 'shield'

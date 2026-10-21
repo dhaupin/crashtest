@@ -12,7 +12,7 @@
 const POLLUTION_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 // The version floor: a String but not every String is a version. Bounded,
-// semver-shaped, no control chars — anything else is an outage, not a badge.
+// semver-shaped, no control chars - anything else is an outage, not a badge.
 const VERSION_FLOOR = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 
 function rejectWhy(pkg) {
@@ -37,10 +37,10 @@ function rejectWhy(pkg) {
 export const onRequestGet = async () => {
   try {
     // Plain fetch only: the `cf` cache-hint option is not portable across
-    // Pages runtime versions (502s at the platform layer when it's present) —
+    // Pages runtime versions (502s at the platform layer when it's present) -
     // edge caching is left to the response's cache-control header.
     // Accept header: npm's registry 406s the /latest document route when
-    // asked for the packument content-type (install-v1) — it serves plain
+    // asked for the packument content-type (install-v1) - it serves plain
     // application/json there (found live: the badge 502d site-wide while the
     // registry itself was healthy).
     const res = await fetch('https://registry.npmjs.org/crashtest/latest', {
@@ -49,7 +49,7 @@ export const onRequestGet = async () => {
     if (!res.ok) throw new Error(`registry ${res.status}`);
     const pkg = await res.json();
     // Never lie by omission: a registry response without an honest version
-    // string is an outage in function, not a success — found by crashtest's
+    // string is an outage in function, not a success - found by crashtest's
     // own self-dogfood (site/registry-hostile-statuses, then the site pack's
     // version-grammar-hostile-shapes: oversize / control-char / whitespace
     // versions echoed straight through). The badge contract is "200 means a

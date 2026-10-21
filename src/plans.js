@@ -1,19 +1,19 @@
-// src/plans.js — PRD §14: the coverage dry-run (`crashtest run --module-plan`).
+// src/plans.js - PRD section 14: the coverage dry-run (`crashtest run --module-plan`).
 //
 // A plan answers ONE question before any request fires: which attack ids
 // WOULD this target's run carry, and which of those are not actually
 // armed yet. Three statuses per module (and per attack id, inherited):
 //
-//   WILL-FIRE       — loads, and its config vocabulary is in place
-//   NEEDS-ARMING    — the module declares an arming key (module-level
+//   WILL-FIRE       - loads, and its config vocabulary is in place
+//   NEEDS-ARMING    - the module declares an arming key (module-level
 //                     `armedByKey`, or the pack manifest's `armedByKey`)
 //                     and the target's moduleCtx lacks it. These attacks
 //                     hold a REFUSED skip at run time (skip-parity), so
 //                     the plan surfaces them BEFORE you trust a green gate.
-//   SKIPPED-FILTER  — the module name is not in the config `modules` filter
+//   SKIPPED-FILTER  - the module name is not in the config `modules` filter
 //                     (exactly the Set(opts.modules) rule the runner applies).
 //
-// Pure module: no harness, no campaign, no requests, no imports — the CLI
+// Pure module: no harness, no campaign, no requests, no imports - the CLI
 // resolves scenarios/packs through the SAME loaders cmdRun uses, so a plan
 // cannot drift from a real run. `--json` prints this object as the last
 // stdout line (same discipline as `run --json`).
@@ -26,7 +26,7 @@ function statusFor({ name, armedKey }, { filter, moduleCtx }) {
   if (armedKey != null && moduleCtx[armedKey] == null) {
     return {
       status: 'NEEDS-ARMING',
-      reason: `vocabulary rides moduleCtx['${armedKey}'] — set it in crashtest.config.js to arm (at run time these attacks REFUSE-skip, never false-positive)`,
+      reason: `vocabulary rides moduleCtx['${armedKey}'] - set it in crashtest.config.js to arm (at run time these attacks REFUSE-skip, never false-positive)`,
     };
   }
   return { status: 'WILL-FIRE', reason: null };

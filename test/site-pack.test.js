@@ -1,12 +1,12 @@
 // Site self-pack, pack-surface level: crashtest attacks its own SHIPPED
-// WEBSITE through the one extension surface — packs/public/crashtest-site
+// WEBSITE through the one extension surface - packs/public/crashtest-site
 // (pack.json entry = the attack module; the run root wires the routes by
 // importing buildSiteRoutes() from the pack). Two proofs live here:
 //
-//   1. CLI-level run-root honesty — 9 site attacks all REFUSED at HEAD, and
+//   1. CLI-level run-root honesty - 9 site attacks all REFUSED at HEAD, and
 //      the WP packs on board degrade to skipped-REFUSED on a non-WP run root
-//      (never fake EXPLOITEDs — the §12 zero-false-positive rule).
-//   2. Teeth, two ways — version-grammar-hostile-shapes EXPLOITEDs a
+//      (never fake EXPLOITEDs - the section 12 zero-false-positive rule).
+//   2. Teeth, two ways - version-grammar-hostile-shapes EXPLOITEDs a
 //      deliberately porous version route (the pre-fix shape: "200 means any
 //      truthy string is a version") and rests at REFUSED against the real
 //      hardened web/functions/api/version.js. The real repo carried exactly
@@ -30,7 +30,7 @@ test('crashtest-site pack runs on itself from a foreign run root (exit 0, all re
   const prev = process.cwd();
   process.chdir(dir);
   try {
-    // Run root OUTSIDE the repo; pack stays in the repo — the cross-repo
+    // Run root OUTSIDE the repo; pack stays in the repo - the cross-repo
     // packs: shape the docs promise, with the run root importing the site
     // routes from the pack's own target module.
     await writeFile('crashtest.config.js', [
@@ -55,8 +55,8 @@ test('crashtest-site pack runs on itself from a foreign run root (exit 0, all re
       'the probe that caught the real through-the-floor version bug must exist',
     );
 
-    // The OTHER shipped packs degrade honestly on this non-WP run root —
-    // skipped-REFUSED, never fake EXPLOITEDs (PRD §12 regression pin).
+    // The OTHER shipped packs degrade honestly on this non-WP run root -
+    // skipped-REFUSED, never fake EXPLOITEDs (PRD section 12 regression pin).
     const stockwp = ledger.findings.filter((f) => f.id.startsWith('stockwp/'));
     assert.ok(stockwp.length >= 4, 'stockwp rows exist');
     assert.ok(stockwp.every((f) => f.verdict === 'REFUSED' && /attack skipped|check skipped/.test(f.detail)), 'stockwp degrades to honest skipped-REFUSED off-target');
@@ -110,7 +110,7 @@ test('teeth: version-grammar-hostile-shapes EXPLOITEDs a porous version route, R
 test('dist-absent is a config gap, never a finding: HTML/sitemap attacks skip honestly', async () => {
   // The CI-fresh-checkout shape: web/dist is gitignored, so the artifact
   // routes answer the honest 404 marker. The routes must not throws and the
-  // attacks must degrade to skipped-REFUSED (PRD §12) until the build runs.
+  // attacks must degrade to skipped-REFUSED (PRD section 12) until the build runs.
   const attacks = (await import(new URL('../packs/public/crashtest-site/attacks.js', import.meta.url))).default.attacks;
   const harness = new Harness();
   for (const route of ['site-html', 'site-sitemap']) {

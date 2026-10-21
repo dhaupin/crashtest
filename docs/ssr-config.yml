@@ -1,18 +1,18 @@
-# freestruct config — crashtest docs (docs.creadev.org/crashtest)
+# freestruct config - crashtest docs (docs.creadev.org/crashtest)
 # Runs post-Jekyll: npx freestruct (contract: this file + _freestruct
 # template relative to the repo root; output = Jekyll's _site).
 site:
   name: Crashtest
-  # Origin only — page paths carry /crashtest/ via Jekyll's baseurl, and
+  # Origin only - page paths carry /crashtest/ via Jekyll's baseurl, and
   # freestruct joins siteUrl + pageUrl for canonical/sitemap/OG.
   url: https://docs.creadev.org
-  description: Seeded, in-process adversarial QA for agent-built apps — quick starts, playbooks per framework, the attack catalog, and the ledger CI gates on.
+  description: Seeded, in-process adversarial QA for agent-built apps - quick starts, playbooks per framework, the attack catalog, and the ledger CI gates on.
 
-# Jekyll's own output directory (build runs npx freestruct with no arg —
+# Jekyll's own output directory (build runs npx freestruct with no arg -
 # this default keeps the CI step honest and overridable).
 outputDir: docs/_site
 
-# Page URLs are emitted under /crashtest/ — strip the prefix when freestruct
+# Page URLs are emitted under /crashtest/ - strip the prefix when freestruct
 # computes per-page paths.
 basePath: /crashtest
 
@@ -24,7 +24,7 @@ readingTime: true
 lastModified: true
 
 # Sitemap/robots/404: freestruct generates all three; Jekyll also emits a
-# sitemap.xml in docs/ root — freestruct's covers _site, which is what
+# sitemap.xml in docs/ root - freestruct's covers _site, which is what
 # ships. Keep both, harmless.
 generateSitemap: true
 generateRobots: true

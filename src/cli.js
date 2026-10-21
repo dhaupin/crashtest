@@ -1,6 +1,6 @@
-// crashtest CLI — zero runtime dependencies, Node >=18.17, ESM.
+// crashtest CLI - zero runtime dependencies, Node >=18.17, ESM.
 // Verbs: init | run | --version | --help
-// Exit rules (PRD §7, binding from 0.1): non-zero ONLY on a new EXPLOITED
+// Exit rules (PRD section 7, binding from 0.1): non-zero ONLY on a new EXPLOITED
 // finding or a regression of a previously REFUSED check.
 
 import { mkdir, writeFile, readFile, access } from 'node:fs/promises';
@@ -52,7 +52,7 @@ COMMANDS
   crashtest preset <name> [--root <dir>]
                               Generate a starter config for an agent-builder
                               export (lovable | bolt | replit) from what is
-                              ACTUALLY in the repo — never a guess
+                              ACTUALLY in the repo - never a guess
   crashtest --version
   crashtest --help
 
@@ -100,7 +100,7 @@ const EMPTY_LEDGER = () => ({
   generatedAt: new Date().toISOString(),
   // Findings are keyed by attack id; verdicts: REFUSED | EXPLOITED | BOUNDED.
   findings: [],
-  // Accepted risks live here with owners and bounds — an accepted risk
+  // Accepted risks live here with owners and bounds - an accepted risk
   // without a bound is a finding (PRD principle 6).
   acceptedRisks: [],
   // Baseline of previously-REFUSED check results for CI regression gates.
@@ -116,19 +116,19 @@ const REPORT_STUB = () => `# Hardening report
 
 ## Findings
 
-_Run pending — campaigns ship in 0.1._
+_Run pending - campaigns ship in 0.1._
 
 ## Accepted risks
 
-_None — the ledger is empty._
+_None - the ledger is empty._
 
 ## Cost economics
 
-_Pending — op counters ship in 0.1._
+_Pending - op counters ship in 0.1._
 
 ## Baseline diff
 
-- NEW: unknown · REGRESSED: unknown (no campaign run yet)
+- NEW: unknown / REGRESSED: unknown (no campaign run yet)
 `;
 
 async function cmdInit({ force }) {
@@ -149,7 +149,7 @@ async function cmdInit({ force }) {
   await writeFile(reportAbs, REPORT_STUB());
   // Pack scaffold (the extension surface): public = tracked/sharable,
   // local = machine-private (gitignored). crashtest never writes your
-  // private pack's contents — just the empty directories + a stub manifest.
+  // private pack's contents - just the empty directories + a stub manifest.
   const publicPack = join(root, 'packs', 'public', 'my-pack');
   const localPack = join(root, 'packs', 'local', 'my-private-pack');
   await mkdir(publicPack, { recursive: true });
@@ -162,7 +162,7 @@ async function cmdInit({ force }) {
     _notes: 'Set entry to your scenario-module file; every export must satisfy the scenario contract (see docs/reference/packs).',
   }, null, 2) + '\n';
   await writeFile(join(publicPack, 'pack.json'), PACK_STUB('my-pack', 'A public pack: share it, track it, version it'));
-  await writeFile(join(localPack, 'pack.json'), PACK_STUB('my-private-pack', 'A private pack: packs/local/ is gitignored by default — stays on your machine'));
+  await writeFile(join(localPack, 'pack.json'), PACK_STUB('my-private-pack', 'A private pack: packs/local/ is gitignored by default - stays on your machine'));
   // Root .gitignore owns the local-pack privacy (created or appended once).
   const dotIgnore = join(root, '.gitignore');
   const ignoreEntry = 'packs/local/\n';
@@ -172,13 +172,13 @@ async function cmdInit({ force }) {
   }
   console.log(`crashtest init: wrote ${LEDGER_PATH}`);
   console.log(`crashtest init: wrote ${REPORT_PATH}`);
-  console.log('crashtest init: packs/ scaffold — packs/public/ (tracked) + packs/local/ (gitignored) with stub manifests');
+  console.log('crashtest init: packs/ scaffold - packs/public/ (tracked) + packs/local/ (gitignored) with stub manifests');
   console.log('Next: commit labs/ so CI has a baseline, then `crashtest run` (0.1).');
 }
 
 async function cmdRun(opts = {}) {
-  // PRD §14 alignment: `run --json` appends the machine run blob (tally,
-  // verdict rows, cost economics) as the LAST stdout line — the exact shape
+  // PRD section 14 alignment: `run --json` appends the machine run blob (tally,
+  // verdict rows, cost economics) as the LAST stdout line - the exact shape
   // the dashboard bridge (/dashboard and web/src/lib/ledgerModel.js) and any
   // future hosted runner read. Human output is unchanged.
   const root = repoRoot();
@@ -186,7 +186,7 @@ async function cmdRun(opts = {}) {
   if (!(await exists(configPath))) {
     console.error(`crashtest run: no ${configPath.split('/').pop()} in ${root}`);
     console.error('A target needs a config declaring its routes + env, e.g.:');
-    console.error('  export default { routes: { enroll: handler }, env: { d1: {…}, secrets: {…} } }');
+    console.error('  export default { routes: { enroll: handler }, env: { d1: {...}, secrets: {...} } }');
     console.error('Directories: labs/scenarios/ is auto-scanned for extra scenario modules.');
     process.exitCode = 2;
     return;
@@ -199,7 +199,7 @@ async function cmdRun(opts = {}) {
     baseUrl: target.baseUrl,
   });
   if (target.adapters) registerAdapters(harness, target.adapters);
-  // routeAliases: name => { route: baseName, path, method } — maps the
+  // routeAliases: name => { route: baseName, path, method } - maps the
   // scenario vocabulary (enroll/device/admin/kvwrite/burst) onto real paths
   // of ONE dispatching app (raw Node or framework adapter). Read the docs:
   // DEPLOY.md "routeAliases".
@@ -215,7 +215,7 @@ async function cmdRun(opts = {}) {
     ...(target.scenarioDirs ?? []),
     join(root, 'labs', 'scenarios'),
   ]);
-  // Packs (PRD §14 extension surface): `packs` config knob = true (default:
+  // Packs (PRD section 14 extension surface): `packs` config knob = true (default:
   // discover packs/public + packs/local), false (dogfooded targets opt out),
   // or an explicit list of pack roots. Loaded modules join the same campaign.
   const packsOpt = target.packs ?? true;
@@ -225,7 +225,7 @@ async function cmdRun(opts = {}) {
     const packRoots = Array.isArray(packsOpt) ? packsOpt : [join(root, 'packs')];
     loadedPacks = await loadPacks(packRoots);
     packScenarios = loadedPacks.map((p) => ({ origin: p.origin, module: p.module }));
-    // Bundled plugin imports (pack.json "plugins"): the unified surface — a
+    // Bundled plugin imports (pack.json "plugins"): the unified surface - a
     // pack ships BOTH its own entry module and imported scenario modules,
     // with the plan labels naming the packing pack honestly.
     for (const p of loadedPacks) {
@@ -243,7 +243,7 @@ async function cmdRun(opts = {}) {
   }
   // Plugins (PRD v0.3 "the ecosystem"): config `plugins` = an array of
   // importable ESM specifiers (npm package names / local paths relative to
-  // the config file). Same contract as packs and libraries — the plan's
+  // the config file). Same contract as packs and libraries - the plan's
   // source labels distinguish the surfaces honestly. This stays as the
   // top-level escape hatch; the UNIFIED surface is pack.json "plugins"
   // (packs can bundle their own imports), so a pack is fully self-contained.
@@ -259,17 +259,17 @@ async function cmdRun(opts = {}) {
     .sort((a, b) => a.module.name.localeCompare(b.module.name));
   if (!allScenarios.length) throw new Error('no scenario modules found (built-ins missing?)');
 
-  // PRD §14: `run --module-plan` — the coverage dry-run. Same loaders, same
+  // PRD section 14: `run --module-plan` - the coverage dry-run. Same loaders, same
   // filters, same arming rules as the real run; NO harness, NO requests,
   // nothing written. Exit 0 always (informational, not a gate).
   if (opts.modulePlan) {
     const plan = buildModulePlan(target, loadedPacks, allScenarios);
     for (const m of plan.modules) {
-      const mark = { 'WILL-FIRE': '▶', 'NEEDS-ARMING': '⚑', 'SKIPPED-FILTER': '·' }[m.status] ?? '?';
-      console.log(`${mark} ${m.name} [${m.source}${m.version ? ` @${m.version}` : ''}] ${m.attacks.length} attack(s) — ${m.status}${m.reason ? `: ${m.reason}` : ''}`);
-      for (const a of m.attacks) console.log(`    ${a.id} — ${a.status}`);
+      const mark = { 'WILL-FIRE': '▶', 'NEEDS-ARMING': '⚑', 'SKIPPED-FILTER': '-' }[m.status] ?? '?';
+      console.log(`${mark} ${m.name} [${m.source}${m.version ? ` @${m.version}` : ''}] ${m.attacks.length} attack(s) - ${m.status}${m.reason ? `: ${m.reason}` : ''}`);
+      for (const a of m.attacks) console.log(`    ${a.id} - ${a.status}`);
     }
-    console.log(`plan: ${plan.totals.attacks} attack ids — ${plan.totals.willFire} WILL-FIRE · ${plan.totals.needsArming} NEEDS-ARMING · ${plan.totals.skippedFilter} SKIPPED-FILTER`);
+    console.log(`plan: ${plan.totals.attacks} attack ids - ${plan.totals.willFire} WILL-FIRE / ${plan.totals.needsArming} NEEDS-ARMING / ${plan.totals.skippedFilter} SKIPPED-FILTER`);
     if (opts.json) console.log(JSON.stringify(plan));
     return;
   }
@@ -284,10 +284,10 @@ async function cmdRun(opts = {}) {
   const ledgerPath = join(root, LEDGER_PATH);
   let prior = null;
   if (opts.expectBaseline) {
-    // PRD §14: `run --expect-baseline <path>` — diff against a ledger the
+    // PRD section 14: `run --expect-baseline <path>` - diff against a ledger the
     // caller hands in, WITHOUT touching labs/. The hosted/CI read-only mode:
     // the service (or a PR run against the target's committed ledger) must
-    // not write into the repo it attacks. Exit rules (§7) are unchanged.
+    // not write into the repo it attacks. Exit rules (section 7) are unchanged.
     const baselinePath = join(root, opts.expectBaseline);
     if (!(await exists(baselinePath))) {
       console.error(`crashtest run: --expect-baseline: no ledger at ${opts.expectBaseline}`);
@@ -315,20 +315,20 @@ async function cmdRun(opts = {}) {
   const diff = diffAgainstBaseline(run, prior);
 
   if (opts.expectBaseline) {
-    // Read-only: no labs/ writes at all — the caller owns the baseline.
-    console.log(`baseline: read-only diff against ${opts.expectBaseline} · labs/ untouched`);
+    // Read-only: no labs/ writes at all - the caller owns the baseline.
+    console.log(`baseline: read-only diff against ${opts.expectBaseline} / labs/ untouched`);
   } else {
     await mkdir(join(root, 'labs'), { recursive: true });
     await writeFile(ledgerPath, JSON.stringify(ledger, null, 2) + '\n');
     await writeFile(join(root, REPORT_PATH), renderMarkdown(run, ledger, diff, { version: VERSION, seed: target.seed }));
   }
 
-  // PRD §14/§15: `run --out-dir <dir>` — artifact fan-out for the CI/service
+  // PRD section 14/section 15: `run --out-dir <dir>` - artifact fan-out for the CI/service
   // thread. Writes COPIES of the run blob, ledger, and report into the given
   // directory (created if needed) WITHOUT touching the repo's labs/ rules:
   // the gate artifacts stay where the contract says they live; --out-dir is
-  // a rendering surface, never authoritative (§15.3's hosted-copies rule).
-  // Deterministic filenames, no timestamps — same run, same bytes.
+  // a rendering surface, never authoritative (section 15.3's hosted-copies rule).
+  // Deterministic filenames, no timestamps - same run, same bytes.
   let outDirStat = null;
   if (opts.outDir) {
     const outDir = resolve(root, opts.outDir);
@@ -355,19 +355,19 @@ async function cmdRun(opts = {}) {
     const mark = { REFUSED: '🛡', EXPLOITED: '⚡', BOUNDED: '🔒' }[row.verdict] ?? '?';
     console.log(`${mark} ${row.id}: ${row.detail}`);
   }
-  console.log(`\ntally: ${JSON.stringify(run.tally)} · cost: ${run.cost.totals.ops} ops / ${run.cost.totals.requests} requests`);
+  console.log(`\ntally: ${JSON.stringify(run.tally)} / cost: ${run.cost.totals.ops} ops / ${run.cost.totals.requests} requests`);
   if (opts.expectBaseline) {
-    console.log(`target: ${opts.expectBaseline} (read-only diff — no ledger/report written)`);
+    console.log(`target: ${opts.expectBaseline} (read-only diff - no ledger/report written)`);
   } else {
-    console.log(`ledger: ${LEDGER_PATH} · report: ${REPORT_PATH}`);
+    console.log(`ledger: ${LEDGER_PATH} / report: ${REPORT_PATH}`);
   }
-  console.log(`baseline: ${diff.newExploited.length} new · ${diff.regressed.length} regressed · ${diff.acceptedHits.length} accepted hits`);
+  console.log(`baseline: ${diff.newExploited.length} new / ${diff.regressed.length} regressed / ${diff.acceptedHits.length} accepted hits`);
   if (opts.json) console.log(JSON.stringify(outDirStat ? { ...run, artifacts: outDirStat } : run));
   process.exitCode = exitCode(diff);
 }
 
 /**
- * `crashtest preset <name> [--root <dir>]` — the v0.3 one-line preset verb.
+ * `crashtest preset <name> [--root <dir>]` - the v0.3 one-line preset verb.
  * Detects what is actually in an exported repo and prints the config source
  * plus honest notes/warnings. Never guesses a handler shape from the
  * builder's name (rule 7: no fiction).
@@ -375,34 +375,34 @@ async function cmdRun(opts = {}) {
 async function cmdPreset(name, opts = {}) {
   if (!name || name === 'list') {
     console.log('presets: one-line configs generated from what detect() finds in a repo');
-    for (const p of listPresets()) console.log(`  ${p.name} — ${p.oneLine}`);
+    for (const p of listPresets()) console.log(`  ${p.name} - ${p.oneLine}`);
     if (!name) console.log('usage: crashtest preset <lovable|bolt|replit> [--root <dir>]');
     return;
   }
   const out = await scaffoldPreset(name, opts.repoRoot);
-  console.log(`preset ${name} — detection against ${opts.repoRoot}`);
-  for (const n of out.notes) console.log(`  · ${n}`);
+  console.log(`preset ${name} - detection against ${opts.repoRoot}`);
+  for (const n of out.notes) console.log(`  / ${n}`);
   for (const w of out.warnings) console.log(`  ! ${w}`);
   const probes = await probeDetectedHandlers(name, opts.repoRoot, out);
   for (const [fn, p] of probes) {
     if (p.probed) {
-      console.log(`  ✓ probe ${fn}: GET -> ${p.status} (ok=${p.ok}, ${p.bodyBytes}B, ${p.ms}ms) — in-process dispatch PROVEN, no socket opened`);
+      console.log(`  [ok] probe ${fn}: GET -> ${p.status} (ok=${p.ok}, ${p.bodyBytes}B, ${p.ms}ms) - in-process dispatch PROVEN, no socket opened`);
     } else if (p.reason) {
-      console.log(`  − probe ${fn}: not executed — ${p.reason}`);
+      console.log(`  - probe ${fn}: not executed - ${p.reason}`);
     }
   }
   if (!out.notes.length && !out.warnings.length) console.log('  (nothing notable)');
   console.log('\n--- crashtest.config.js ---');
   console.log(out.configSource);
   if (out.warnings.length) {
-    console.log('warnings above name exactly what detect() could not resolve — wire the handler by hand; nothing was guessed.');
+    console.log('warnings above name exactly what detect() could not resolve - wire the handler by hand; nothing was guessed.');
   }
 }
 
 /**
  * Probe every JS-eligible handler the preset found (v0.3.1 probe): the
  * preset's notes carry the per-function detail; this renders the one-line
- * proof/not-executed statement per handler. Evidence, never a throw — a
+ * proof/not-executed statement per handler. Evidence, never a throw - a
  * failed probe is reported as the finding it is.
  */
 async function probeDetectedHandlers(name, repoRoot, presetOutput) {
@@ -433,18 +433,18 @@ async function cmdPacks(opts = {}) {
   }
   const packs = await loadPacks(roots);
   if (!packs.length) {
-    console.log('packs: none found — `crashtest init` scaffolds packs/public/ (tracked) + packs/local/ (gitignored)');
+    console.log('packs: none found - `crashtest init` scaffolds packs/public/ (tracked) + packs/local/ (gitignored)');
     return;
   }
   for (const p of packs) {
     const pkg = p.manifest.package ? ` (npm: ${p.manifest.package})` : '';
-    const arm = p.manifest.armedByKey ? ` · armedBy moduleCtx['${p.manifest.armedByKey}']` : '';
-    console.log(`${p.visibility}${p.manifest.version ? ` @${p.manifest.version}` : ''} — ${p.manifest.name}: ${p.module.attacks.length} attacks from ${p.origin}${pkg}${arm}`);
+    const arm = p.manifest.armedByKey ? ` / armedBy moduleCtx['${p.manifest.armedByKey}']` : '';
+    console.log(`${p.visibility}${p.manifest.version ? ` @${p.manifest.version}` : ''} - ${p.manifest.name}: ${p.module.attacks.length} attacks from ${p.origin}${pkg}${arm}`);
     console.log(`         ${p.manifest.description}`);
   }
   if (opts.json) {
-    // Machine inventory (PRD §14 artifact): the registry VERSION JOIN stays
-    // outside the CLI on purpose — a CI step pairs this with `npm view <pkg>
+    // Machine inventory (PRD section 14 artifact): the registry VERSION JOIN stays
+    // outside the CLI on purpose - a CI step pairs this with `npm view <pkg>
     // version` and diffs, keeping the drone fully offline.
     console.log(JSON.stringify({
       packs: packs.map((p) => ({
@@ -463,7 +463,7 @@ async function cmdPacks(opts = {}) {
 }
 
 /**
- * `crashtest packs add <name> [--public]` — scaffold a fresh pack.
+ * `crashtest packs add <name> [--public]` - scaffold a fresh pack.
  * local (gitignored) by default; --public means tracked/sharable. Writes a
  * schema-v1 manifest + a contract-valid scenario-module stub so `packs` and
  * `run` pick it up immediately; target vocabulary rides moduleCtx[<name>].
@@ -483,7 +483,7 @@ async function cmdPackAdd(name, opts = {}) {
   const visibility = opts.public ? 'public' : 'local';
   const dir = join(root, 'packs', visibility, name);
   if (await exists(dir)) {
-    console.error(`crashtest packs add: packs/${visibility}/${name} already exists — refusing to overwrite`);
+    console.error(`crashtest packs add: packs/${visibility}/${name} already exists - refusing to overwrite`);
     process.exitCode = 1;
     return;
   }
@@ -494,11 +494,11 @@ async function cmdPackAdd(name, opts = {}) {
     version: '0.0.1',
     entry: 'index.js',
   }, null, 2) + '\n';
-  const stub = `// packs/${visibility}/${name}/index.js — scaffolded by \`crashtest packs add ${name}\`.
-// Scenario contract: { name, description, attacks: [{ name, run(harness, ctx) → ONE record }] }.
-// Record verdicts: 'REFUSED' (defense held) · 'EXPLOITED' · 'BOUNDED' (needs owner + bound).
-// Target vocabulary (route names, CPTs, meta keys…) goes in crashtest.config.js as
-//   moduleCtx: { ${name}: { … } } — missing keys degrade to a REFUSED skip, never a false positive.
+  const stub = `// packs/${visibility}/${name}/index.js - scaffolded by \`crashtest packs add ${name}\`.
+// Scenario contract: { name, description, attacks: [{ name, run(harness, ctx) -> ONE record }] }.
+// Record verdicts: 'REFUSED' (defense held) / 'EXPLOITED' / 'BOUNDED' (needs owner + bound).
+// Target vocabulary (route names, CPTs, meta keys...) goes in crashtest.config.js as
+//   moduleCtx: { ${name}: { ... } } - missing keys degrade to a REFUSED skip, never a false positive.
 export default {
   name: '${name}',
   description: 'TODO: one line',
@@ -511,11 +511,11 @@ export default {
     async run(harness, ctx) {
       const cfg = ctx?.config?.['${name}'] ?? null;
       if (!cfg) {
-        return { verdict: 'REFUSED', skip: true, detail: "not armed — set moduleCtx['${name}'] in crashtest.config.js" };
+        return { verdict: 'REFUSED', skip: true, detail: "not armed - set moduleCtx['${name}'] in crashtest.config.js" };
       }
       // TODO: fire requests with harness.run(...) (or harness.wpState on the WP
       // adapter) and return EXACTLY one record. See docs/reference/packs.md.
-      return { verdict: 'REFUSED', detail: 'scaffold attack — replace with a real probe' };
+      return { verdict: 'REFUSED', detail: 'scaffold attack - replace with a real probe' };
     },
   }],
 };
@@ -525,9 +525,9 @@ export default {
   await writeFile(join(dir, 'index.js'), stub);
   console.log(`crashtest packs add: wrote packs/${visibility}/${name}/ (pack.json + index.js stub)`);
   if (visibility === 'public') {
-    console.log('next: it is tracked content — list it in the check inventory / docs if this repo ships it');
+    console.log('next: it is tracked content - list it in the check inventory / docs if this repo ships it');
   } else {
-    // Local privacy: same rule `init` applies — root .gitignore owns it.
+    // Local privacy: same rule `init` applies - root .gitignore owns it.
     const dotIgnore = join(root, '.gitignore');
     const ignoreEntry = 'packs/local/\n';
     const existing = (await exists(dotIgnore)) ? await readFile(dotIgnore, 'utf8') : '';

@@ -1,10 +1,10 @@
 <?php
 /**
- * crashtest WP adapter — in-process WordPress attack runner (v0.3 spike).
+ * crashtest WP adapter - in-process WordPress attack runner (v0.3 spike).
  *
  * The invariant (PRD principle 2) translated to PHP: this worker opens NO
- * socket. A Node parent feeds NDJSON attack envelopes on STDIN — one JSON
- * line per request — and reads one NDJSON response per line on STDOUT. The
+ * socket. A Node parent feeds NDJSON attack envelopes on STDIN - one JSON
+ * line per request - and reads one NDJSON response per line on STDOUT. The
  * worker boots a real WordPress load exactly once (wp-load.php), so every
  * attack request afterward dispatches through WP's own hook surface
  * (admin_post / template_redirect) in-process, at wp-load speed instead of
@@ -13,20 +13,20 @@
  * Request envelope (one JSON line in):
  *   { "id":"r1", "kind":"request",
  *     "method":"POST", "url":"/wp-admin/admin-post.php?action=fm_x&q=1",
- *     "headers":{"host":"example.test", …},
+ *     "headers":{"host":"example.test", ...},
  *     "body":"a=1&b=2",            // urlencoded; parsed into $_POST + $_REQUEST
  *     "remoteAddr":"203.0.113.7",  // pins the rate-limiter bucket
- *     "cookies":{"fm_portal":"…"}, // replaces $_COOKIE wholesale
+ *     "cookies":{"fm_portal":"..."}, // replaces $_COOKIE wholesale
  *     "userId":1 | null,           // null/0 = the visit is logged out
  *     "dispatch":"admin_post" | "template_redirect",
  *     "action":"fm_ticket_purchase" }
  *
- *   { "id":"s1", "kind":"state",   "op":"…", … }  // fixed whitelist below
- *   { "id":"c1", "kind":"call",    "fn":"…", "args":[…] } // fn must be in CALL_ALLOW
+ *   { "id":"s1", "kind":"state",   "op":"...", ... }  // fixed whitelist below
+ *   { "id":"c1", "kind":"call",    "fn":"...", "args":[...] } // fn must be in CALL_ALLOW
  *
  * Response envelope (one JSON line out):
- *   { "id":"r1", "status":200|302|null, "headers":{…}, "body":"…",
- *     "redirect":"…|null", "wp_die":0|1, "fatal":"…", "ops":{"queries":N} }
+ *   { "id":"r1", "status":200|302|null, "headers":{...}, "body":"...",
+ *     "redirect":"...|null", "wp_die":0|1, "fatal":"...", "ops":{"queries":N} }
  *
  * Fatal handling: a PHP fatal mid-request can't unwind into this loop, so
  * the worker flushes the envelope with `fatal` set and exits non-zero; the
@@ -106,13 +106,13 @@ function ct_emit( $id, array $fields ) {
 	fwrite( STDOUT, json_encode( $fields, JSON_UNESCAPED_SLASHES ) . "\n" );
 }
 
-/** A non-transfer Throwable means the handler faulted — flush + die. The parent respawns. */
+/** A non-transfer Throwable means the handler faulted - flush + die. The parent respawns. */
 
 /* --- run-config: whitelists arrive on the FIRST 'cfg' envelope (one JSON
- line) from the JS adapter — fn => max-args pairs, plus the option names the
+ line) from the JS adapter - fn => max-args pairs, plus the option names the
  caller's pack may read/write. Defaults = stock-safe: nothing plugin-specific
  is known here, because the worker is GENERIC (targets teach it their own
- specifics; PRD §10 note + the wp adapter docs 'who owns specifics'). --- */
+ specifics; PRD section 10 note + the wp adapter docs 'who owns specifics'). --- */
 $CT_CFG = array(
 	'callAllow'    => array( 'wp_create_nonce' => 1 ),
 	'allowOptions' => array(),
@@ -161,9 +161,9 @@ function ct_run_cfg( $req ) {
 
 function ct_run_state( $req ) {
 	/* --- generic state ops over WP primitives (posts, meta, options). The
-	 plugin's OWN names — CPTs, meta keys, option rows, seeder functions —
+	 plugin's OWN names - CPTs, meta keys, option rows, seeder functions -
 	 arrive via the caller's pack and the cfg envelope; the worker knows none
-	 of them (generic-adapter rule from the WP playbook + PRD §10 note). --- */
+	 of them (generic-adapter rule from the WP playbook + PRD section 10 note). --- */
 	$prefix = (string) ( $req['prefix'] ?? '' );
 	switch ( (string) ( $req['op'] ?? '' ) ) {
 		case 'posts-query': // ids matching postType + optional meta key/value (fixture scoping or counts)
@@ -183,7 +183,7 @@ function ct_run_state( $req ) {
 				) );
 			}
 			return ct_simple( $hit );
-		case 'post-meta': // one meta value on one post — the money/txn/paid oracle
+		case 'post-meta': // one meta value on one post - the money/txn/paid oracle
 			return ct_simple( get_post_meta( (int) ( $req['id'] ?? 0 ), (string) ( $req['key'] ?? '' ), true ) );
 		case 'delete-posts': // fixture teardown, hard-delete, scoped by the caller's own query
 			$found = (array) get_posts( array(
@@ -198,7 +198,7 @@ function ct_run_state( $req ) {
 			$n = 0;
 			foreach ( $found as $pid ) { wp_delete_post( (int) $pid, true ); $n++; }
 			return ct_simple( $n );
-		case 'option': // read/write ONE option row — the config/fixture oracle (gated)
+		case 'option': // read/write ONE option row - the config/fixture oracle (gated)
 			$name = (string) ( $req['name'] ?? '' );
 			if ( '' === $name || ! isset( ct_options_allowed()[ $name ] ) ) {
 				$f = ct_simple( null );
@@ -207,7 +207,7 @@ function ct_run_state( $req ) {
 			}
 			$row = get_option( $name, null );
 			if ( ! array_key_exists( 'key', $req ) ) {
-				// Whole-option read without slicing — scalars stay scalars, arrays
+				// Whole-option read without slicing - scalars stay scalars, arrays
 				// stay arrays (the pack narrows what it wants). The khf-style
 				// settings rows are arrays; stock rows like blogname are strings.
 				return ct_simple( $row );
@@ -375,7 +375,7 @@ while ( true ) {
 			'body'     => '',
 			'fatal'    => get_class( $t ) . ': ' . $t->getMessage() . ' @ ' . basename( $t->getFile() ) . ':' . $t->getLine(),
 		) );
-		fwrite( STDERR, "ct-worker: request fault — exiting for respawn\n" );
+		fwrite( STDERR, "ct-worker: request fault - exiting for respawn\n" );
 		exit( 1 );
 	}
 }

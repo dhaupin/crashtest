@@ -1,6 +1,6 @@
-// Packs — the extension surface (PRD §14). Tests pin the loader contract:
+// Packs - the extension surface (PRD section 14). Tests pin the loader contract:
 // schema validation fails loudly, name collisions across surfaces fail, and
-// private (local) packs load exactly like public ones — nothing about
+// private (local) packs load exactly like public ones - nothing about
 // visibility changes semantics, only where files live.
 
 import { test } from 'node:test';
@@ -51,7 +51,7 @@ test('loadPacks: public and local packs load identically through the scenario co
 
 test('loadPacks: broken pack.json fails LOUDLY (rule 3), missing manifest skips quietly', async () => {
   const root = await mkdtemp(join(tmpdir(), 'packs-'));
-  await mkdir(join(root, 'public', 'wip-stuff'), { recursive: true }); // no manifest — WIP, skip
+  await mkdir(join(root, 'public', 'wip-stuff'), { recursive: true }); // no manifest - WIP, skip
   await mkPack(root, 'public', 'broken', { name: 'broken', description: 'no schema' }); // missing schemaVersion
   await assert.rejects(() => loadPacks([root]), /missing "schemaVersion"/);
   await writeFile(join(root, 'public', 'broken', 'pack.json'), '{ oh no');
@@ -119,8 +119,8 @@ test('CLI: crashtest packs lists discovered packs with visibility + counts', asy
     process.chdir(prev);
   }
   const text = out.join('\n');
-  assert.match(text, /public — probe-pack/);
-  assert.match(text, /local — loose-pack/);
+  assert.match(text, /public - probe-pack/);
+  assert.match(text, /local - loose-pack/);
   assert.match(text, /1 attacks/);
   assert.equal(process.exitCode, undefined);
 });

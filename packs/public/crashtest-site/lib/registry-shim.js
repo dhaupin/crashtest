@@ -1,8 +1,8 @@
-// packs/public/crashtest-site/lib/registry-shim.js — the in-process registry
+// packs/public/crashtest-site/lib/registry-shim.js - the in-process registry
 // double, carried by the pack so the pack is self-contained (the fixtures/
 // copy stays for that run root; this is the pack's own lifeline).
 //
-// Rule: attack code, not people. Nothing dials out — fetch is replaced with
+// Rule: attack code, not people. Nothing dials out - fetch is replaced with
 // a hostile-reply hook scenarios can rewrite per-attack (and MUST restore:
 // restore-what-you-touch). Any other URL gets an honest 418 marker.
 

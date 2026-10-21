@@ -1,9 +1,9 @@
-// Scenario library: 'site' — crashtest attacking its OWN shipped Pages
+// Scenario library: 'site' - crashtest attacking its OWN shipped Pages
 // Function (`web/functions/api/version.js`). The self-dogfood proof of
-// concept, PRD §12 style: an agent-built surface declared, attacked, and led
+// concept, PRD section 12 style: an agent-built surface declared, attacked, and led
 // into the ledger like any other target. Every attack here installs a
 // hostile registry shape and RESTORES it in its own teardown (restore-what-
-// you-touch — the WP spike's rule, in-repo edition).
+// you-touch - the WP spike's rule, in-repo edition).
 import { refused, exploited } from '../../../src/scenarios/contract.js';
 import { registry, restoreFetch } from '../site-target.js';
 
@@ -21,7 +21,7 @@ async function safeJson(record) {
 
 export default {
   name: 'site',
-  description: 'crashtest attacks its own /api/version Pages Function — the self-dogfood',
+  description: 'crashtest attacks its own /api/version Pages Function - the self-dogfood',
   attacks: [
     {
       name: 'registry-hostile-statuses',
@@ -121,14 +121,14 @@ export default {
         // Can't easily compare across harness runs inside one attack (the
         // harness config owns the shim for its whole life). Instead: hostile
         // install + immediate undo + a real call must behave like the healthy
-        // registry again — the contract the OTHER attacks already honor.
+        // registry again - the contract the OTHER attacks already honor.
         const before = registry.reply;
         registry.reply = async () => new Response('{"boom": true}', { status: 503 });
         registry.reply = before;
         const rec = await harness.run('version', { method: 'GET' });
         const body = await safeJson(rec);
         if (body?.error) return exploited('restore-what-you-touch violated: registry shim stayed hostile after undo');
-        return refused('shim restore parity holds — undo() immediately reverts the surface for the next attack');
+        return refused('shim restore parity holds - undo() immediately reverts the surface for the next attack');
       },
     },
   ],

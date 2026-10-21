@@ -41,4 +41,4 @@ The gate only bites on **delta**, so a legacy repo can adopt safely:
 1. Run locally, review the found weaknesses, fix the cheap ones
 2. Where a risk is deliberate, bound it in scenario ctx (BOUNDED needs an
    owner + bound - without both it's a finding)
-3. Commit the ledger → CI is now the memory that forgets nothing
+3. Commit the ledger -> CI is now the memory that forgets nothing

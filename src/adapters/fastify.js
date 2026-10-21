@@ -1,11 +1,11 @@
-// v0.2 — fastify adapter. Fastify ships an in-process injection surface
+// v0.2 - fastify adapter. Fastify ships an in-process injection surface
 // (`app.inject()`, powered by light-my-request inside fastify itself), so a
-// fastify app dispatches without listening. Map WHATWG Request → inject
-// options → Response.
+// fastify app dispatches without listening. Map WHATWG Request -> inject
+// options -> Response.
 //
 // NOTES for fastify targets:
-//   • fastify must be `await app.ready()` in the target config BEFORE
-//     crashtest run — routes only exist after ready resolves.
+//   - fastify must be `await app.ready()` in the target config BEFORE
+//     crashtest run - routes only exist after ready resolves.
 
 export function registerFastify(harness, { app, name = 'app' } = {}) {
   if (!app || typeof app.inject !== 'function') {

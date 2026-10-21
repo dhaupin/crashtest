@@ -7,7 +7,7 @@ description: From npx to a hardening report in about two minutes.
 
 # Quick Start
 
-## 1 · Init
+## 1 / Init
 
 ```console
 $ npx crashtest init
@@ -16,7 +16,7 @@ $ npx crashtest init
 This writes a `crashtest.config.js` skeleton plus `labs/` for the ledger and
 reports.
 
-## 2 · Point it at your handlers
+## 2 / Point it at your handlers
 
 Plain handlers - the Cloudflare Pages Functions shape
 (`ctx => Response`, receiving `{ request, env, params, data }`) is the
@@ -54,7 +54,7 @@ export default {
 };
 ```
 
-## 3 · Run
+## 3 / Run
 
 ```console
 $ npx crashtest run
@@ -65,12 +65,36 @@ $ npx crashtest run
   held before. CI treats this as failure.
 - Exit `2` - config problem (say, missing config file). Fix the config.
 
-## 4 · Adopt the baseline
+## 4 / Adopt the baseline
 
 The first green run commits `labs/crashledger.json`. From then on, CI compares
 every run against it: new weak spots show up as findings, old strong spots
 can't quietly rot. [`hardening.md`](/crashtest/reference/ledger) attaches to
 the PR - reviewers see exactly what was probed and what the responses said.
+
+## 5 / Bench-check the gate itself (repo demo, optional)
+
+The crashtest repo ships a built-in demonstration that the gate is not a
+rubber stamp: the dogfood fixture has a vulnerable variant behind one flag.
+Inside a checkout of this repo, flip it and run the read-only diff (writes
+nothing, compares only):
+
+```console
+$ $EDITOR crashtest.config.js        # buildRoutes({ vulnerable: true })
+$ node bin/crashtest.js run --expect-baseline labs/crashledger.json
+⚡ taxonomy/abuse-not-5xx: 7/10 abuse shapes escalated on "enroll" - first: truncated-object (5xx: 500)
+⚡ taxonomy/errors-stay-impersonal: 1/10 error paths leak on "enroll" - first: not-json (canary echo (handler parroting attacker-controlled data))
+
+tally: {"TOTAL":15,"REFUSED":6,"EXPLOITED":9,"BOUNDED":0}
+baseline: 0 new / 9 regressed / 0 accepted hits
+... exit 1
+$ git checkout -- crashtest.config.js   # revert the flag, rerun -> exit 0
+```
+
+Same handlers, same attack suite - only the app changed, and the ledger
+prints the rot as receipts. That is the exact contract your CI inherits:
+`--expect-baseline` is how CI runs it (read-only), so adopting the baseline
+into this demo's shape costs you zero extra plumbing.
 
 ## What "run" does to your code
 

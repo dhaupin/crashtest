@@ -1,21 +1,21 @@
 /**
- * src/lib/ledgerModel.js — the dashboard's headless ledger bridge.
+ * src/lib/ledgerModel.js - the dashboard's headless ledger bridge.
  *
  * Zero-dependency: shape-detects a crashtest artifact (a committed
  * `labs/crashledger.json` file or a full run blob from a CI artifact), normalizes
- * it into a small view model, and computes the §7 CI gate verdict.
+ * it into a small view model, and computes the section 7 CI gate verdict.
  *
  * The gate verdict is NOT re-derived here: it imports `diffAgainstBaseline` +
  * `exitCode` straight from the CLI's own `src/report.js`, the exact functions
  * `src/cli.js` calls when a run completes. The dashboard therefore renders
- * exactly what CI would decide — one copy of the rule, no drift.
+ * exactly what CI would decide - one copy of the rule, no drift.
  *
  * Nothing in this file touches the network. Fetching a user-supplied URL is
  * done by the page; this module stays a pure, testable transformer.
  */
 
 // These two functions are pure ESM with no imports of their own, so bundling
-// them into the web build is trivial — and the parity is pinned by test.
+// them into the web build is trivial - and the parity is pinned by test.
 import { diffAgainstBaseline, exitCode } from '../../../src/report.js';
 
 export const VERDICTS = {
@@ -43,7 +43,7 @@ function normalizeFinding(id, verdict, detail, extra = {}) {
   };
 }
 
-/** Gate verdict for a run + prior ledger — mirrors src/cli.js's cmdRun exactly. */
+/** Gate verdict for a run + prior ledger - mirrors src/cli.js's cmdRun exactly. */
 function computeGate(runLike, priorLedger) {
   const diff = diffAgainstBaseline(runLike, priorLedger);
   return {
@@ -74,23 +74,23 @@ function groupByModule(findings) {
 }
 
 /**
- * parseArtifact(obj, opts) — pure transformer, throws an honest Error on any
+ * parseArtifact(obj, opts) - pure transformer, throws an honest Error on any
  * shape it does not recognize (the page surfaces that message verbatim):
  *
  *   ledger shape: { schemaVersion, findings[], acceptedRisks?, baseline?, generatedAt? }
- *                 — the committed `labs/crashledger.json`
- *   run shape:    { rows[], tally?, cost?, startedAt? }   — a full campaign run
+ *                 - the committed `labs/crashledger.json`
+ *   run shape:    { rows[], tally?, cost?, startedAt? }   - a full campaign run
  *                 of the kind a CI artifact could carry.
  */
 export function parseArtifact(obj, opts = {}) {
   const sourceLabel = opts.sourceLabel ?? 'inline data';
-  // A ledger file carries no cost numbers — they live in hardening.md. The
+  // A ledger file carries no cost numbers - they live in hardening.md. The
   // bundled dogfood snapshot therefore ships its cost summary as a sidecar;
   // any user-pasted ledger simply gets cost: null (an honest empty state).
   const sidecarCost = opts.cost ?? null;
 
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
-    throw new Error('Not a JSON object — expected a run or ledger blob.');
+    throw new Error('Not a JSON object - expected a run or ledger blob.');
   }
 
   if (Array.isArray(obj.findings)) {
@@ -100,7 +100,7 @@ export function parseArtifact(obj, opts = {}) {
     const acceptedRisks = (obj.acceptedRisks ?? []).filter((a) => a && a.id);
     const baseline = (obj.baseline ?? []).map(String);
     // Mirror the CLI: diff the current verdicts against this ledger's own
-    // baseline + acceptedRisks — exactly what cmdRun does before writing.
+    // baseline + acceptedRisks - exactly what cmdRun does before writing.
     const runLike = {
       rows: findings,
       exploited: findings.filter((f) => f.verdict === 'EXPLOITED').map((f) => ({ id: f.id })),
@@ -149,10 +149,10 @@ export function parseArtifact(obj, opts = {}) {
       acceptedRisks: (obj.acceptedRisks ?? []).filter((a) => a && a.id),
       baseline: [],
       groupings: groupByModule(findings),
-      // A run blob has no committed prior ledger with it — say so honestly.
+      // A run blob has no committed prior ledger with it - say so honestly.
       gate: {
         status: theCounts.exploited > 0 ? 'fail' : 'pass',
-        note: 'single-run view — no committed ledger supplied, so no §7 baseline diff',
+        note: 'single-run view - no committed ledger supplied, so no section 7 baseline diff',
         newExploited: [],
         regressed: [],
         acceptedHits: [],
@@ -165,7 +165,7 @@ export function parseArtifact(obj, opts = {}) {
   }
 
   throw new Error(
-    'Unrecognized artifact shape — expected { findings[] } (crashledger.json) ' +
+    'Unrecognized artifact shape - expected { findings[] } (crashledger.json) ' +
     'or { rows[] } (full run). Did you paste the markdown report by mistake?',
   );
 }
@@ -173,7 +173,7 @@ export function parseArtifact(obj, opts = {}) {
 const PLAN_STATUSES = ['WILL-FIRE', 'NEEDS-ARMING', 'SKIPPED-FILTER'];
 
 /**
- * parsePlan(obj, opts) — the coverage-plan surface (v2).
+ * parsePlan(obj, opts) - the coverage-plan surface (v2).
  * Accepts the LAST stdout line of `npx crashtest run --module-plan --json`
  * (src/plans.js output: { schemaVersion, modules[], packs[], totals } and
  * normalizes it for the page. Unknown statuses are flagged loudly, never
@@ -181,11 +181,11 @@ const PLAN_STATUSES = ['WILL-FIRE', 'NEEDS-ARMING', 'SKIPPED-FILTER'];
  */
 export function parsePlan(obj, opts = {}) {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
-    throw new Error('Not a JSON object — expected a module-plan blob.');
+    throw new Error('Not a JSON object - expected a module-plan blob.');
   }
   if (!Array.isArray(obj.modules) || !obj.totals) {
     throw new Error(
-      'Unrecognized artifact shape — expected a coverage plan ({ modules[], totals }) ' +
+      'Unrecognized artifact shape - expected a coverage plan ({ modules[], totals }) ' +
       'from `crashtest run --module-plan --json`. This is neither a ledger, a run blob, nor a plan.',
     );
   }

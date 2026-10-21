@@ -1,12 +1,12 @@
-// S1.5 — dogfood fixture: crashtest attacks its own fixture app.
+// S1.5 - dogfood fixture: crashtest attacks its own fixture app.
 // `fixtures/demo` models the smallest real agent-built API: a device
 // registration surface with an admin panel. TWO variants:
-//   buildRoutes({ vulnerable: false }) — hardened: allow-lists, validation,
+//   buildRoutes({ vulnerable: false }) - hardened: allow-lists, validation,
 //     hygiene headers, header-blind admin gate. The committed baseline
 //     (labs/crashledger.json) is cut against THIS variant.
-//   buildRoutes({ vulnerable: true })  — the pre-hardening draft: trusts
+//   buildRoutes({ vulnerable: true })  - the pre-hardening draft: trusts
 //     fields/headers, bare 2xx writes. CI-material: proves the pipeline
-//     TRIPS on it (fresh run → exit 1).
+//     TRIPS on it (fresh run -> exit 1).
 
 const ENV_SPEC = {
   d1: {
@@ -20,7 +20,7 @@ const ENV_SPEC = {
     },
   },
   kv: { DEVICE_CACHE: { seed: { last: 'seed' } } },
-  // Fake secrets — the auth/secret-watermark probe is armed by this key and
+  // Fake secrets - the auth/secret-watermark probe is armed by this key and
   // passes because NO route may echo env values. Keep placeholder-shaped.
   secrets: { CRASHTEST_SECRET: 'crashtest-fake-secret-do-not-echo' },
 };
@@ -49,7 +49,9 @@ function buildRoutes({ vulnerable = false } = {}) {
     try { body = await request.json(); } catch { return new Response('bad json', { status: 400 }); }
     if (typeof body !== 'object' || body === null) return new Response('bad json', { status: 400 });
     for (const k of Object.keys(body)) {
-      if (!['key', 'owner'].includes(k)) return new Response(`unknown field: ${k}`, { status: 400 });
+      // Errors stay impersonal: never parrot attacker-controlled field names
+      // back (a body field echoing its own name is the classic leak shape).
+      if (!['key', 'owner'].includes(k)) return new Response('unknown field (allowed: key, owner)', { status: 400 });
     }
     if (typeof body.key !== 'string' || !/^[a-zA-Z0-9-]{1,64}$/.test(body.key)) {
       return new Response('invalid key', { status: 400 });
@@ -64,7 +66,7 @@ function buildRoutes({ vulnerable = false } = {}) {
     });
   });
 
-  // Vulnerable enroll: trusts everything, no hygiene (the LLM draft —
+  // Vulnerable enroll: trusts everything, no hygiene (the LLM draft -
   // including the classic recursive merge that follows __proto__ keys).
   const mergeVulnerable = (target, sourceObj) => {
     for (const key of Object.keys(sourceObj)) {
@@ -78,9 +80,17 @@ function buildRoutes({ vulnerable = false } = {}) {
     }
     return target;
   };
+  // Vulnerable enroll: trusts everything AND talks back - the error path
+  // parrots the raw request text back (the classic LLM-draft leak shape that
+  // taxonomy/errors-stay-impersonal pins), and malformed bodies escalate to
+  // 500-shaped responses instead of honest 400s.
   const enrollVuln = async ({ request, env }) => {
-    const body = await request.json();
-    if (typeof body !== 'object' || body === null) return new Response('bad', { status: 400 });
+    const text = await request.text();
+    let body;
+    try { body = JSON.parse(text); } catch {
+      return new Response(`bad json: ${text.slice(0, 300)}`, { status: 500 });
+    }
+    if (typeof body !== 'object' || body === null) return new Response(`bad: ${text.slice(0, 300)}`, { status: 500 });
     const record = mergeVulnerable({}, body);
     const res = await insert(env, String(record.key), String(record.owner));
     return Response.json({ ok: true, id: res.meta.last_row_id });
@@ -90,7 +100,7 @@ function buildRoutes({ vulnerable = false } = {}) {
     let body;
     try { body = await request.json(); } catch { return new Response('bad json', { status: 400 }); }
     for (const k of Object.keys(body ?? {})) {
-      if (!['key', 'owner'].includes(k)) return new Response(`unknown field: ${k}`, { status: 400 });
+      if (!['key', 'owner'].includes(k)) return new Response('unknown field (allowed: key, owner)', { status: 400 });
     }
     if (typeof body?.owner !== 'string' || !/^[a-zA-Z0-9-]{1,32}$/.test(body.owner)) {
       return new Response('invalid owner', { status: 400 });

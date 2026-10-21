@@ -1,7 +1,7 @@
-// S1.1 — op counters + cost meters.
+// S1.1 - op counters + cost meters.
 // Every fake backend op (D1 query, KV read/write, route invocation) ticks a
 // named counter. Campaigns read the per-request delta to compute cost
-// accounting: "backend ops per admitted vs refused request" (PRD §1.3).
+// accounting: "backend ops per admitted vs refused request" (PRD section 1.3).
 
 export class OpsCounter {
   constructor() {
@@ -66,7 +66,7 @@ export class OpsCounter {
 export function newBackendCounter(extra = {}) {
   const c = new OpsCounter();
   c.declare('d1.query');       // one D1 statement (prepare+execute)
-  c.declare('d1.rows');        // rows materialized (writes/reads) — granularity signal
+  c.declare('d1.rows');        // rows materialized (writes/reads) - granularity signal
   c.declare('kv.get');
   c.declare('kv.put');
   c.declare('kv.delete');

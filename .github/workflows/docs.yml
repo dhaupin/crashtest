@@ -3,7 +3,7 @@ name: Deploy Docs
 # Builds docs/ (Jekyll) then runs the freestruct post-build SEO layer on
 # _site (canonical/description, og:image + twitter, JSON-LD, sitemap, robots,
 # 404, cache-bust hash, last-modified, internal-link check). Same shape as
-# vant's docs deploy — structure shared so docs.creadev.org projects build
+# vant's docs deploy - structure shared so docs.creadev.org projects build
 # one another learn from.
 
 on:
@@ -48,7 +48,7 @@ jobs:
       # built into _site or search reports unavailable. Token-authenticated
       # release scrape: unauthenticated api.github.com calls from shared
       # runner IPs get rate-limited, an empty VERSION yields a malformed
-      # asset URL, and tar then fails on the 404 HTML body — refuse loudly
+      # asset URL, and tar then fails on the 404 HTML body - refuse loudly
       # on an unparseable tag instead of downloading garbage (vant lesson).
       - name: Download Pagefind
         working-directory: docs
@@ -60,7 +60,7 @@ jobs:
             | grep '"tag_name"' | sed 's/.*"v\([^"]*\)".*/\1/')
           case "$VERSION" in
             [0-9]*.[0-9]*.[0-9]*) ;;
-            *) echo "::error::Could not resolve the latest pagefind tag (got '$VERSION') — likely an API failure."; exit 1 ;;
+            *) echo "::error::Could not resolve the latest pagefind tag (got '$VERSION') - likely an API failure."; exit 1 ;;
           esac
           echo "pagefind version: v${VERSION}"
           curl -sL --retry 3 --retry-delay 5 \
@@ -75,9 +75,9 @@ jobs:
         run: ./pagefind --site _site
 
       # freestruct consumes, relative to the REPO ROOT:
-      #   docs/ssr-config.yml (config) · docs/_freestruct/inject-brand.html
-      #   (template) · docs/_site (output; default arg)
-      # Install from the GitHub source tarball — the npm registry name is
+      #   docs/ssr-config.yml (config) / docs/_freestruct/inject-brand.html
+      #   (template) / docs/_site (output; default arg)
+      # Install from the GitHub source tarball - the npm registry name is
       # not published yet, and the package bin lacks a shebang, so invoke
       # inject.js with node directly (works everywhere; revisit once
       # freestruct is npm-published with a proper bin).

@@ -1,4 +1,4 @@
-// S1.3 — campaign runner. Drives every (module, attack) from the loaded
+// S1.3 - campaign runner. Drives every (module, attack) from the loaded
 // scenario set against one harness, wraps each attack with cost accounting
 // (harness op delta for exactly its requests), and aggregates campaign
 // verdicts. Deterministic by construction: seeded ctx + sorted modules.
@@ -36,10 +36,10 @@ export async function runCampaign(harness, scenarios, opts = {}) {
         findResult = await attack.run(harness, ctx);
         if (findResult?.verdict === 'BOUNDED' && (!findResult.owner || !findResult.bound)) {
           // An accepted risk without a bound is a finding (principle 6).
-          findResult = { ...findResult, verdict: 'EXPLOITED', detail: `${findResult.detail || 'BOUNDED'} — owner/bound missing (finding per PRD principle 6)` };
+          findResult = { ...findResult, verdict: 'EXPLOITED', detail: `${findResult.detail || 'BOUNDED'} - owner/bound missing (finding per PRD principle 6)` };
         }
       } catch (err) {
-        findResult = { verdict: 'EXPLOITED', detail: `attack itself threw — harness-wide fault: ${err?.name}: ${err?.message}` };
+        findResult = { verdict: 'EXPLOITED', detail: `attack itself threw - harness-wide fault: ${err?.name}: ${err?.message}` };
       }
 
       const record = {
@@ -89,7 +89,7 @@ function delta(after, before) {
 }
 
 /**
- * Cost economics (PRD §7): backend ops per refused vs admitted request folded
+ * Cost economics (PRD section 7): backend ops per refused vs admitted request folded
  * into one line. Uses the harness cost counter's deltas per attack.
  */
 function summarizeCost(rows) {
@@ -100,9 +100,4 @@ function summarizeCost(rows) {
     distinctAttacks: perAttack.length,
   };
   return { perAttack, totals };
-}
-
-/** True when a campaign run has no new EXPLOITED findings and no regressions. */
-export function isClean(run) {
-  return run.exploited.length === 0;
 }

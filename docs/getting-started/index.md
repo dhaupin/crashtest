@@ -21,7 +21,7 @@ enforcement.
 
 ## Which path describes your app?
 
-| Your app looks like… | Playbook |
+| Your app looks like... | Playbook |
 |---|---|
 | Plain handler functions (`({ request, env }) => Response`) | [Plain Handlers](/crashtest/playbooks/plain-handlers) |
 | An Express app | [Express](/crashtest/playbooks/express) |
@@ -32,16 +32,19 @@ enforcement.
 ## What a run looks like
 
 ```console
-$ npx crashtest run
-🛡 auth/secret-watermark: 5 routes × 3 error-path probes: no fake secret ever left the env
+$ node bin/crashtest.js run --expect-baseline labs/crashledger.json   # against the vulnerable fixture variant
 ⚡ guards/hygiene-no-store: 2xx write from "enroll" has NO Cache-Control - shared caches may replay the write
-🛡 state/enumeration-oracle: all 3 foreign ids denied on "device" (no ripple, no oracle)
+⚡ input/proto-pollution-body: canary planted on Object.prototype via payload to "enroll" (status 200)
+🛡 input/oversized-field: oversized body handled on "enroll" (status 200)
+⚡ taxonomy/abuse-not-5xx: 7/10 abuse shapes escalated on "enroll" - first: truncated-object (5xx: 500)
+⚡ taxonomy/errors-stay-impersonal: 1/10 error paths leak on "enroll" - first: not-json (canary echo (handler parroting attacker-controlled data))
+🛡 volume/storage-fill: route "kvwrite" not declared on this target - fill check skipped (declare a KV-writing route)
 
-tally: {"TOTAL":13,"REFUSED":12,"EXPLOITED":1,"BOUNDED":0}
-ledger: labs/crashledger.json · report: labs/hardening.md
-exit: 1  (a NEW exploited finding - fix it or bound it, then re-run)
+tally: {"TOTAL":15,"REFUSED":6,"EXPLOITED":9,"BOUNDED":0} / cost: 368 ops / 431 requests
+baseline: 0 new / 9 regressed / 0 accepted hits
+exit: 1  (REFUSED->EXPLOITED regressions - fix it or bound it, then re-run)
 ```
 
-Nothing about these lines is aspirational - they are from real runs, including
-one against an external, unaudited repo. The full attack surface each line
-summarizes is in the [attack catalog](/crashtest/reference/attacks).
+Nothing about these lines is aspirational - they are the real output of this
+repo's own vulnerable fixture variant (the bench-check in the quick start).
+The full attack surface each line summarizes is in the [attack catalog](/crashtest/reference/attacks).

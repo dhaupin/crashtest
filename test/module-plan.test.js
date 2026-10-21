@@ -1,4 +1,4 @@
-// Coverage plan (PRD §14 `run --module-plan`) — the dry-run inventory tests.
+// Coverage plan (PRD section 14 `run --module-plan`) - the dry-run inventory tests.
 // Pins the three statuses, the arming-key duality (module export > pack
 // manifest), filter parity with the runner's Set(opts.modules), and the
 // `--json` last-line discipline shared with `run --json`.
@@ -43,7 +43,7 @@ test('buildModulePlan: a target moduleCtx with the key arms the pack; module-lev
   const pack = [{ origin: 'public/p', visibility: 'public', manifest: { name: 'p', armedByKey: 'p' }, module: { name: 'p', attacks: [{ name: 'a' }] } }];
   const armed = buildModulePlan({ moduleCtx: { p: { route: 'enroll' } } }, pack, [{ origin: 'public/p/index.js', module: { name: 'p', attacks: [{ name: 'a' }] } }]);
   assert.equal(armed.modules[0].status, 'WILL-FIRE');
-  // A module that carries its own armedByKey overrides the manifest — and an
+  // A module that carries its own armedByKey overrides the manifest - and an
   // explicit null disables arming detection entirely.
   const overridden = buildModulePlan({}, pack, [{ origin: 'public/p/index.js', module: { name: 'p', armedByKey: null, attacks: [{ name: 'a' }] } }]);
   assert.equal(overridden.modules[0].status, 'WILL-FIRE');
@@ -82,7 +82,7 @@ async function tmpRoot() {
   return root;
 }
 
-test('CLI: run --module-plan is a true dry-run — verdicts print, nothing executes, exit 0', async () => {
+test('CLI: run --module-plan is a true dry-run - verdicts print, nothing executes, exit 0', async () => {
   const root = await tmpRoot();
   await writeFile(join(root, 'crashtest.config.js'), "export default { modules: ['loose-attacks', 'armed-pack'], moduleCtx: { 'armed-pack': { vocab: true } } };\n");
   const prev = process.cwd();
@@ -101,8 +101,8 @@ test('CLI: run --module-plan is a true dry-run — verdicts print, nothing execu
   assert.match(text, /loose-attacks.*WILL-FIRE/);
   assert.match(text, /armed-pack.*WILL-FIRE/);
   // Built-in library modules always load (the loader ships them) and land
-  // SKIPPED-FILTER under this config — the totals must count them honestly.
-  assert.match(text, /2 WILL-FIRE · 0 NEEDS-ARMING · \d+ SKIPPED-FILTER/);
+  // SKIPPED-FILTER under this config - the totals must count them honestly.
+  assert.match(text, /2 WILL-FIRE \/ 0 NEEDS-ARMING \/ \d+ SKIPPED-FILTER/);
 });
 
 test('CLI: run --module-plan --json prints the plan blob as the LAST line', async () => {
@@ -122,9 +122,9 @@ test('CLI: run --module-plan --json prints the plan blob as the LAST line', asyn
   const lastLine = out[out.length - 1];
   const plan = JSON.parse(lastLine);
   assert.equal(plan.schemaVersion, 1);
-  assert.equal(plan.totals.skippedFilter, 14); // 13 built-in library attacks + loose-attacks, all outside the filter
+  assert.equal(plan.totals.skippedFilter, 16); // 15 built-in library attacks + loose-attacks, all outside the filter
   const armed = plan.modules.find((m) => m.name === 'armed-pack');
-  // The filter keeps the pack in the inventory, but nothing arms it — the
+  // The filter keeps the pack in the inventory, but nothing arms it - the
   // JSON view must say NEEDS-ARMING just like the human lines (test below).
   assert.equal(armed.status, 'NEEDS-ARMING');
 });

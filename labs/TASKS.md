@@ -1,4 +1,4 @@
-# Crashtest — TASKS
+# Crashtest - TASKS
 
 > Rolling log. Companion to labs/prd-crashtest.md (the product contract).
 > Reconstructed 2026-10-19 from the rook horcrux (crashtest brain goals.md +
@@ -8,67 +8,107 @@
 
 ## Open decisions (resolve before S1 lands in git)
 
-- [x] **D1 · Scenario library contract**: port gistory's suites as-is into
+- [x] **D1 / Scenario library contract**: port gistory's suites as-is into
   `src/scenarios/` (Rook lesson: "Do not fork the ideas; port the code") vs.
   re-derive a fresher neutral `{ name, attacks: [{ name, run(harness) }] }`.
-  **Resolved contract-first** — gistory source stays unreachable from this
-  workspace, so the seed libraries derive from the PRD §6 catalog
+  **Resolved contract-first** - gistory source stays unreachable from this
+  workspace, so the seed libraries derive from the PRD section 6 catalog
   (gistory-ideas, no gistory-specific fixtures). The gistory suites can port
   onto the same contract once access exists.
-- [x] **D2 · Zero-dependency scope**: PRD principle 5 ("the attacker ships
+- [x] **D2 / Zero-dependency scope**: PRD principle 5 ("the attacker ships
   light"). **Resolution: zero *runtime* deps, plain Node ESM + `node:test`;
   dev-only `tsc`/ESLint allowed in `devDependencies`.** Harness implements its
   own fake-transport + in-memory D1/KV rather than pulling
   supertest/better-sqlite3 (matches the proven gistory harness shape: fake D1
   + op counters).
-- [x] **D3 · Language: JS runtime, typed with JSDoc.** No build step to run,
+- [x] **D3 / Language: JS runtime, typed with JSDoc.** No build step to run,
   test, or publish. `tsc` allowed in devDependencies only for `checkJs` CI
-  and `--allowJs --declaration` `.d.ts` generation for consumers — decide at
+  and `--allowJs --declaration` `.d.ts` generation for consumers - decide at
   0.2 when the plugin API needs typed shelves. Rationale: harness speaks
   Request/Response at runtime; target apps' TS is irrelevant; the D1-parser
   bugs this week were semantics bugs that tests caught, not type bugs.
 
-## Sprint S1 — v0.1 "the gistory extraction" (order matters)
+## Sprint S1 - v0.1 "the gistory extraction" (order matters)
 
 - [x] **S1.0** Repo skeleton: package.json (bin: `crashtest`), `src/`,
   LICENSE/README, publish workflow (tag-driven, Trusted Publishing OIDC),
   runbook. (tsconfig intentionally deferred with D3: JS + JSDoc, no build.)
 - [x] **S1.1** `src/harness/`: explicit route table (PRD open question: static
-  import analysis is v0.2/v0.3 — no convention sniffing yet), fake transport
+  import analysis is v0.2/v0.3 - no convention sniffing yet), fake transport
   (Request/Response objects, never sockets), in-memory D1 shim + KV/env
   bindings, op counters + cost meters per request.
-  — DONE 2026-10-20 counters.js / d1.js (SQL subset, uniques throw D1-shaped
+  - DONE 2026-10-20 counters.js / d1.js (SQL subset, uniques throw D1-shaped
   messages, textual-order param binding) / kv.js / env.js / harness.js
   (threw-first, never a fake 500).
-- [x] **S1.2** `src/scenarios/` — DONE (contract-first, seed libraries from
-  the PRD §6 catalog since gistory source stays unreachable): `input`
+- [x] **S1.2** `src/scenarios/` - DONE (contract-first, seed libraries from
+  the PRD section 6 catalog since gistory source stays unreachable): `input`
   (proto-pollution / never-fail-mutations / oversized-field), `auth`
   (identity-spoof-headers / secret-watermark / privilege-escalation), `guards`
-  (hygiene-no-store / burst-wall). Loader supports user dirs — labs/scenarios/
+  (hygiene-no-store / burst-wall). Loader supports user dirs - labs/scenarios/
   is scanned automatically by `crashtest run`. Two-way proof tests: vulnerable
   fixtures EXPLOITED, hardened fixtures REFUSED, for every library.
-- [x] **S1.3** `src/campaigns/runner.js` — DONE: runs every (module, attack)
+- [x] **S1.3** `src/campaigns/runner.js` - DONE: runs every (module, attack)
   with per-attack cost deltas, ownerless-BOUNDED demoted to finding,
   deterministic ordering + seeded ctx.
-- [x] **S1.4** `src/report.js` — DONE: buildLedger / diffAgainstBaseline /
-  exitCode (fail ONLY on new EXPLOITED or REFUSED→EXPLOITED regressions;
+- [x] **S1.4** `src/report.js` - DONE: buildLedger / diffAgainstBaseline /
+  exitCode (fail ONLY on new EXPLOITED or REFUSED->EXPLOITED regressions;
   accepted risks with owner+bound never re-alarm; boundless accepted risks
-  count as findings) + renderMarkdown (PRD §7 shape: Findings → Cost
-  economics → Baseline diff).
+  count as findings) + renderMarkdown (PRD section 7 shape: Findings -> Cost
+  economics -> Baseline diff).
 - [x] **S1.5** Fixtures demo app (Pages Functions + D1) and dogfood:
-  `crashtest run` attacks crashtest's own fixtures. DONE 2026-10-20 —
+  `crashtest run` attacks crashtest's own fixtures. DONE 2026-10-20 -
   `fixtures/demo/app.js` (hardened baseline variant + vulnerable draft
   variant incl. the classic recursive merge), root `crashtest.config.js`,
   CLI-level dogfood tests (hardened green / vulnerable exit 1 / regression
   gate), `.github/workflows/ci.yml` (check + tests + self-dogfood against the
   committed ledger baseline), README status refreshed.
 - [x] **S1.6 (partial)** CLI glue: `crashtest run [--config path]` executes
-  the real pipeline — crashtest.config.js target (routes+env+ctx) → harness →
-  loadScenarios (+ labs/scenarios auto-scan) → runCampaign → ledger diff →
-  writes labs/hardening.md + labs/crashledger.json → exit per §7 rules.
-  Missing config → honest exit 2 with a shape hint.
+  the real pipeline - crashtest.config.js target (routes+env+ctx) -> harness ->
+  loadScenarios (+ labs/scenarios auto-scan) -> runCampaign -> ledger diff ->
+  writes labs/hardening.md + labs/crashledger.json -> exit per section 7 rules.
+  Missing config -> honest exit 2 with a shape hint.
 
 ## Log
+
+- [2026-10-21 ~06Z] **taxonomy module shipped - 15 attacks across 6 modules.**
+  New seed library src/scenarios/library/taxonomy.js (2 attacks):
+  abuse-not-5xx (10 deterministic abuse shapes - garbage/truncated JSON,
+  wrong/absent content types, oversized strings - all must land 4xx-class,
+  same fuzzFloorViolation oracle as input, distinct payload family) and
+  errors-stay-impersonal (sad-path bodies must not echo attacker canaries -
+  values OR field names - nor leak stack frames). Two-way proofs in
+  attacks.test.js (echo + 500 loll handler EXPLOITED both; impersonal
+  hardener REFUSED both; skip-pin for undeclared routes). Paid rent
+  immediately: the taxonomy probe flagged the echoed-field-name error
+  shape in our own demo + campaigns fixtures (unknown field: ${k}) -
+  hardened both to 'unknown field (allowed: key, owner)', and the demo's
+  vulnerable enroll got the classic echo-raw-request-text draft. PRD
+  section 6 now carries the shipped taxonomy row + a planned-expansion
+  table (session/authz/upload/race/proto-hygiene/wp-roles, status planned,
+  plus deliberate scope notes: oauth/cache/webhooks stay out with honest
+  reasons). Count pins synced everywhere: attacks.md header, FAQ '15
+  across 6 modules', consistency/parity/dashboard/s15 tests, check-chain.
+  Live artifacts regenerated: dogfood 15/15 REFUSED (420 ops/629 requests),
+  vulnerable bench exit 1 (6 REFUSED / 9 EXPLOITED, 0 new / 9 regressed);
+  quick-start bench + getting-started index blocks now carry the real
+  output,Snapshot generator regex widened to [a-z0-9-]+ (abuse-not-5xx's
+  digits broke the [a-z-]+ matcher - the row silently vanished). Suite
+  164/164, check 0, lint:docs 0, dogfood gate 0.
+
+- [2026-10-21 ~05Z] **Docs/site story round: receipts become our own, minors
+  tidied.** Attacks-page field report rebranded from the borrowed external
+  story to the honest self-dogfood one (committed ledger 13 REFUSED on our
+  own hardened demo + the real version-endpoint bug the self-site run caught
+  and pinned via site/registry-hostile-statuses; verified facts only). The
+  dashboard got an explicit notice that its default view is the committed
+  CI ledger baked at build time (not sample data), and the baked snapshot
+  regenerated at v1.0.0. Quick-start gains the bench-check demo: flip the
+  fixture to vulnerable: true, run the read-only --expect-baseline diff,
+  watch exit 1 with 7 regressed (verified live before shipping the copy).
+  ledger.md now documents run --json; run --out-dir paragraph landed in
+  run-roots previously. Sweep collateral repaired: make-ledger-snapshot.mjs
+  regexes rebuilt for the ASCII report separators. Gates + suite green
+  (web build 0, lint:docs 0, suite 163/163).
 
 - [2026-10-21 ~05Z] **Tag also cuts the GitHub Release (publish.yml second
   job).** Mirrors prestruct's release.yml mechanism: a `github-release` job
@@ -88,12 +128,12 @@
   v1.0.0 tag-time release marker stays (unreleased) until the tag exists
   (test/version.test.js), so the CHANGELOG flip rides the tag commit.
 
-- [2026-10-21 ~04Z] **Post-migration dead-code sweep — port is now total.**
+- [2026-10-21 ~04Z] **Post-migration dead-code sweep - port is now total.**
   Follow-up to the first migration entry's "proxies stay" call, reversed on
   evidence: the npm package's own init/ template ships proxy.js,
   proxy.worker.js, and proxy.package.json, so crashtest's web/ copies were
   pure template-era dead weight (site prerenders all 6 routes, never sets
-  config.proxy.url, nothing in CI/docs deploys them) — deleted, along with
+  config.proxy.url, nothing in CI/docs deploys them) - deleted, along with
   web/ssr.config.example.js (upstream init/ ships the updated template doc;
   the local copy still documented the vendored-file era) and
   web/incremental.js (a pre-signature cache draft stub referencing the
@@ -101,7 +141,7 @@
   touches: web/index.html and web/ssr.config.js now name the prestruct
   engine via `prestruct build` instead of the deleted script files; the
   usePageMeta.js hook comment de-staled with them. Kept: web/scripts/
-  make-ledger-snapshot.mjs (live — feeds lib/dogfoodSnapshot.js). Repo-wide
+  make-ledger-snapshot.mjs (live - feeds lib/dogfoodSnapshot.js). Repo-wide
   ghost grep for the six deleted paths: only historical TASKS references
   remain. Fresh build + suite + dogfood through the sweep: build exit 0
   (6/6), check 0, suite 163/163, dogfood exit 0 (artifact set already
@@ -110,17 +150,17 @@
 - [2026-10-21 ~03Z] **Cache story corrected + status.json filed upstream (#23).**
   Follow-up to the migration entry: the stale-`(cached)`-HTML incident was a
   VENDORED-copy bug (pre-signature cache), and prestruct v1.0.0 already
-  shipped the fix — every cache entry carries a sha256 signature over the
+  shipped the fix - every cache entry carries a sha256 signature over the
   fresh shell (dist/index.html after vite build), siteUrl, and route meta,
   and a hit only counts when it matches; legacy sig-less entries render
   once and upgrade. Verified live on crashtest: warm cache + a src/ edit ->
   the whole route set re-rendered ("ok", never "cached"), and the repro edit
   was revoked and rebuilt pristine. So NO workarounds (no forced --clean)
-  go on the site build — `prestruct build` as-is is correct, and the day-one
+  go on the site build - `prestruct build` as-is is correct, and the day-one
   word of the npm engine stands: cache matches stale-shell era.
-  Also verified ×2 fresh-build determinism: dist differs ONLY in
+  Also verified x2 fresh-build determinism: dist differs ONLY in
   dist/.prestruct/status.json's generatedAt (the build manifest the engine
-  writes into dist) — filed upstream as dhaupin/prestruct#23 with the ask:
+  writes into dist) - filed upstream as dhaupin/prestruct#23 with the ask:
   move the manifest out of dist (or gate it behind config) + a
   deterministic stamp option; gitignore can't help (dist is post-checkout
   generated). Checked prestruct's open issues before filing: none.
@@ -134,16 +174,16 @@
   `web/scripts/{prerender,inject-brand}.js`; `web` now devDependencies
   `prestruct ^1.0.0` and its build is the one-liner `prestruct build`
   (validate -> vite build -> inject-brand -> prerender, all workdir-anchored;
-  route render failures exit nonzero — the vendored copy let them ride
+  route render failures exit nonzero - the vendored copy let them ride
   green). The npm engine CANONICAL: upstream already absorbed the JSON-LD
   bare-object check; A/B gate on a fresh cache: every prerendered HTML page,
   sitemap, _headers, and assets/ byte-identical to the vendored build
   (deploy-id format already matched at HEAD). Vendored prerender cache
   lesson confirmed live: stale `(cached)` HTML from three commits back
-  invalidated a first A/B — always clear `.prestruct` before comparing.
+  invalidated a first A/B - always clear `.prestruct` before comparing.
   New engine behavior (accepted): `dist/.prestruct/status.json` build
   manifest ships with dist; cache lives in `web/.prestruct` (gitignored);
-  proxies (scripts/proxy{,.worker}.js + proxy.package.json) stay — they are
+  proxies (scripts/proxy{,.worker}.js + proxy.package.json) stay - they are
   self-contained deploy alternatives, engine only touches proxy files when
   `config.proxy.url` is set (crashtest never sets it). CI unchanged:
   `npm install --prefix web && npm run build --prefix web` picks prestruct
@@ -187,13 +227,13 @@
   bounded 64, pollution-key guard (__proto__/constructor/prototype), and the
   502 names the fault class but never echoes the hostile bytes. WP packs
   (wp-stock-smoke) degrading off-target: 4 fake EXPLOITEDs (harness.wpState
-  TypeError / route "app" fault) on any non-WP run root — real
+  TypeError / route "app" fault) on any non-WP run root - real
   false-positive generator, fixed with the config-gap skip (skipped
   REFUSED, declare adapters.wordpress). Two-way teeth pinned in
   test/site-pack.test.js: porous route EXPLOITED, hardened real one
   REFUSED; CLI-level run-root ledger has 9/9 site rows REFUSED at exit 0.
 - [2026-10-20 ~24Z] **Docs/web round for the unified packs surface.**
-  reference/packs.md: "Packs from other repos" section — packs: accepts any
+  reference/packs.md: "Packs from other repos" section - packs: accepts any
   directory on disk (another repo's checkout, npm-vendored pack, single pack
   dir); end-to-end proof run before writing: a run root in repo A pointed
   packs: at repo B, a self-contained pack (entry + bundled import) fired 2
@@ -204,25 +244,25 @@
   card now mentions bundled imports/zero wiring; FAQ answers the new
   "Do packs have to live in the repo under attack?" question; ssr FAQ meta
   updated. Fresh-cache build verified all of it in dist (6/6, JSON-LD,
-  og:image intact). Suite 154/154, gates green, consistency probes 7/7. **v0.4 early flag: `run --out-dir <dir>` (§14/§15 close
-  out).** The one remaining §14 service-thread flag is shipped: artifact
+  og:image intact). Suite 154/154, gates green, consistency probes 7/7. **v0.4 early flag: `run --out-dir <dir>` (section 14/section 15 close
+  out).** The one remaining section 14 service-thread flag is shipped: artifact
   fan-out COPIES of run-blob.json + crashledger.json + hardening.md land in
-  a distinct dir the caller owns — deterministic filenames, no timestamps;
+  a distinct dir the caller owns - deterministic filenames, no timestamps;
   the repo's labs/ contract stays authoritative (fan-out is a rendering
-  surface, §15.3's hosted-copies rule). Fan-out into the repo root is
+  surface, section 15.3's hosted-copies rule). Fan-out into the repo root is
   refused at exit 2 (must be a distinct dir). Flag in --help; 2 new CLI
   tests; suite 150/150, gates green. Successor-hygiene note: the --json
-  blob now carries { ...run, artifacts } when fan-out is requested — last
+  blob now carries { ...run, artifacts } when fan-out is requested - last
   stdout line remains a single parseable object. **Docs/web for v0.3 + the preset probe (v0.3.1).** Docs:
   reference/plugins.md + reference/presets.md (24 pages, nav, all four gates
   green). Web: FAQ grew two Q&As (community attacks via plugins; builder
   presets with the never-guess stance), FAQ meta in ssr.config updated,
   consistency + parity probes green, clean 6/6 prerender with JSON-LD.
-  Preset probe: detect-then-prove — scaffoldPreset now EXECUTES every found
+  Preset probe: detect-then-prove - scaffoldPreset now EXECUTES every found
   JS-eligible handler once in-process (plain ESM import() + WHATWG Request,
   no sockets, no transpile) and reports status/ok/bodyBytes/ms as a note,
   or honest not-executed reasons for .ts/.deno (no-transpile), missing
-  default-{fetch} interface, and throwing handlers — probes are evidence,
+  default-{fetch} interface, and throwing handlers - probes are evidence,
   never a throw. 5 new tests; 148/148. **v0.3 "the ecosystem": plugins API + builder presets.**
   Both PRD lines closed. Plugins (`config plugins: [npm-name | './file.js']`):
   importable ESM scenario modules through the SAME contract as packs/libraries
@@ -231,7 +271,7 @@
   cross-surface name collisions carry the earlier origin; wired into cmdRun
   and merged into the same sorted campaign + module-plan blob. Presets
   (`crashtest preset lovable|bolt|replit [--root dir]`): detect-first, NO
-  builder-name fiction — researched the actual export shapes first (primary
+  builder-name fiction - researched the actual export shapes first (primary
   docs; Lovable = Supabase Edge Functions with TWO documented module
   interfaces, Bolt = managed edge functions with no portable source doc,
   Replit = project-specific server named by .replit), so presets detect the
@@ -245,14 +285,14 @@
   line) + web round shipped.** Web/docs detour closed out first: sidebar nav
   shell, consistency + parity probes (28 new tests), live-audit fixes
   (version-function registry 406, pagefind import.meta, WCAG contrast,
-  JSON-LD bare-object drop) — committed f181045, upstream prestruct #21 +
+  JSON-LD bare-object drop) - committed f181045, upstream prestruct #21 +
   freestruct #15/#16. Then v0.2: freezeTo()/restoreTo()/runFresh() on the
-  harness (memory reuse for sub-second repeat runs, PRD line 136) — deep
+  harness (memory reuse for sub-second repeat runs, PRD line 136) - deep
   snapshot of every KV store, D1 table row set + nextId + uniques, and op
   counters; restore mutates bindings IN PLACE because the fake backends hold
   a counter identity from buildEnv (a naive clone swap silently orphaned
   every backend op tick, caught by the smoke test's op-shape assertion).
-  runFresh = freeze at call time, replay, restore after — success OR throw,
+  runFresh = freeze at call time, replay, restore after - success OR throw,
   per the restore-what-you-touch rule. 4 harness tests: replay-ops identity,
   throw-path health, no-trace no-explicit-at default, junk-snapshot loud
   TypeError. 127/127 green.
@@ -261,7 +301,7 @@
   data block when ssr.config buildJsonLd() returned a bare object (only the
   array shape was handled) - fixed to accept object / array / complete
   payload, unusable shapes still fail loudly. New test/web-ui-parity.test.js
-  (7 passing): dogfood snapshot ⇄ ledger-model parity, gate exit-code
+  (7 passing): dogfood snapshot <-> ledger-model parity, gate exit-code
   agreement with the CLI rule, garbage/markdown shape rejection, unknown-
   verdict flagging, glyph/CSS-class sync. Existing dashboard-ledger tests
   confirmed current (14/14) after the state/enumeration-oracle skip fix.
@@ -298,201 +338,201 @@
   all PASS at hard settings. 109/109 tests, check exit 0.
 - [2026-10-20 ~16Z] **Vant's docs-audit suite ported (scripts/ + CI).** Four
   gates adopted from vant main, each adapted to this repo's rules:
-  check-docs-frontmatter (4 required fields; baseurl-relative permalinks —
+  check-docs-frontmatter (4 required fields; baseurl-relative permalinks -
   leading-slash or baked-in /crashtest is the doubled-prefix fiction class,
   `/` reserved for the docs home), check-docs-links (fence/inline-code
   aware link graph vs frontmatter permalinks incl. doubled-prefix
   signatures), check-docs-style (fence language tags, heading skips,
   whitespace, pipe-table shape as HARD fails; em-dash/emoji as WARNs only
-  — vant's hyphen-voice is a corpus pass we have not made; verdict marks
+  - vant's hyphen-voice is a corpus pass we have not made; verdict marks
   are content), check-fiction-signatures (forward-dated release claims,
   global-install fiction, sockets-allowed claims, web-deps conflation;
   debunk-negation aware; ledger/PRD quote-fiction by design so they're
   allow-listed). Wired as `npm run lint:docs` + a ci.yml step. First run's
-  hard findings: 2 missing fence language tags (run-roots, packs) — fixed;
+  hard findings: 2 missing fence language tags (run-roots, packs) - fixed;
   links gate would have caught last session's dead module-plan link
   mechanically. All four PASS (20 pages, 113 files, 138 voice warnings
-  tracked). package.json stays `files: [bin, src]` — scripts are dev
+  tracked). package.json stays `files: [bin, src]` - scripts are dev
   tooling, not shipped surface.
 - [2026-10-20 ~15Z] **Docs audit: the doubled-prefix fix + full link/frontmatter
-  sweep.** Live site served nav as /crashtest/crashtest/* (404s) — the layout
+  sweep.** Live site served nav as /crashtest/crashtest/* (404s) - the layout
   piped nav URLs (already absolute, /crashtest-prefixed) through Jekyll's
   `relative_url`, which prepends baseurl a second time. Fix: emit item.url
   raw (vant never filters its nav either). Full audit script (frontmatter
-  required keys × all pages, nav.yml↔permalink reachability, internal-link
-  graph incl. doubled prefixes + raw .md links) over 20 pages: 3 findings —
+  required keys x all pages, nav.yml<->permalink reachability, internal-link
+  graph incl. doubled prefixes + raw .md links) over 20 pages: 3 findings -
   the layout bug itself, docs/publish.md having no frontmatter (gained one,
-  noindex'd — maintainer content, not user docs), packs.md linking a
+  noindex'd - maintainer content, not user docs), packs.md linking a
   module-plan page that doesn't exist (demoted to a code span). Dead
   `nav_order: 0` on docs/index.md removed (sidebar order is nav.yml-driven).
   Audit re-run: CLEAN. **Docs parity with vant: burger nav + pagefind search.**
-  docs.creadev.org/crashtest was rendering the nav inline with no search —
+  docs.creadev.org/crashtest was rendering the nav inline with no search -
   gap: the layout shipped "same shape as vant, minus pagefind/prism extras"
   and the extras were the UX. Ported vant's shape onto the crashtest
   theme: fixed header (search trigger w/ Ctrl-K chip + GitHub CTA +
-  hamburger), burger-toggled slide-out sidebar w/ overlay (mobile ≤768px,
+  hamburger), burger-toggled slide-out sidebar w/ overlay (mobile <=768px,
   desktop keeps the fixed rail), pagefind modal search (Cmd/Ctrl+K, Esc,
   5-result cap) with an HONEST downgrade message when the index isn't
   deployed. Workflow got vant's hardened pagefind steps verbatim:
   token-authenticated release scrape (rate-limit lesson), validate the
   tag before download (404-HTML-as-tarball lesson), index built into
   _site BEFORE freestruct runs. Layout JS parse-verified; workflow YAML
-  parse-verified. Push → docs.yml path-filter fires the build.
+  parse-verified. Push -> docs.yml path-filter fires the build.
 - [2026-10-20 ~13Z] **Repo hygiene button-up (pre-v0.4 pause sweep).** Full
   git history scanned for secret-shaped strings (token/PK/AKIA xox"); zero
-  hits — no secret ever landed. .gitignore hardened: `.env`/`.env.*` with
-  `!.env.example` defense (CLI reads no env secrets — maintainer sandboxes
+  hits - no secret ever landed. .gitignore hardened: `.env`/`.env.*` with
+  `!.env.example` defense (CLI reads no env secrets - maintainer sandboxes
   only), web build artifacts (dist/, .prestruct/, web/node_modules/) folded
   into the root ignore. New `.ignore` (ripgrep-shaped): keeps node_modules,
   dist, cache, tarballs, and lockfiles OUT of code_search/grep so the
   search tool reads the product, not the vendor tree. Docs stayed
   truth-checked instead of example-filed: crashtest.config.js (fake env,
-  .local URL), ssr.config.js (public site identity — its .example twin
+  .local URL), ssr.config.js (public site identity - its .example twin
   exists and the tracked-with-reason note is in web/.gitignore). wrangler:
-  none in repo — Pages config is public _headers/_redirects. PRD §14
-  sequencing updated (v0.3 shipped, v0.4-early flag set shipped, §15 = the
-  v0.5 lane); §15 verified end-to-end as the next-stage contract. 109/109
+  none in repo - Pages config is public _headers/_redirects. PRD section 14
+  sequencing updated (v0.3 shipped, v0.4-early flag set shipped, section 15 = the
+  v0.5 lane); section 15 verified end-to-end as the next-stage contract. 109/109
   tests still green after the hygiene pass.
-- [2026-10-20 ~12Z] **§14 flag set complete + the hosted lane gated (PRD
-  §15).** Thread A: `run --expect-baseline <path>` — read-only ledger diff,
-  no `labs/` writes at all, §7 exit rules unchanged, missing/non-schema-1
+- [2026-10-20 ~12Z] **section 14 flag set complete + the hosted lane gated (PRD
+  section 15).** Thread A: `run --expect-baseline <path>` - read-only ledger diff,
+  no `labs/` writes at all, section 7 exit rules unchanged, missing/non-schema-1
   baseline = honest exit 2. Tests: green read-only diff (labs/ provably
   absent + baseline byte-identical across two runs), regression gate fires
-  (exit 1 on a REFUSED→EXPLOITED flip via an unhydrated leaking route),
+  (exit 1 on a REFUSED->EXPLOITED flip via an unhydrated leaking route),
   bad-ledger exit 2. 12/12 cli tests. Docs: DEPLOY.md (read-only gates
-  recipe), docs/reference/exit-rules.md (§RA read-only diffs). Also prepped
+  recipe), docs/reference/exit-rules.md (section RA read-only diffs). Also prepped
   the GH Marketplace shape without publishing: `action.yml` gained a
   `version` input pinning the installed crashtest (`crashtest${{ '@' }}ver`,
-  empty = latest), DEPLOY.md documents it — listing itself deferred until
-  v1.0.0 per maintainer call. Thread C: PRD §15 sketch locked as the design
+  empty = latest), DEPLOY.md documents it - listing itself deferred until
+  v1.0.0 per maintainer call. Thread C: PRD section 15 sketch locked as the design
   gate (webhook surface table, the four-invocation runner command set,
   ledger-hosting read-only-first, `/crashtest accept` opens a ledger PR
-  instead of hosting service-side state, §13 replay-prove before any hosted
-  accepted-risks). Nothing hosted ships yet — this log + §15 is the contract.
-- [2026-10-20 ~11Z] **Docs sweep — README rewritten, AGENTS.md + DEPLOY.md
+  instead of hosting service-side state, section 13 replay-prove before any hosted
+  accepted-risks). Nothing hosted ships yet - this log + section 15 is the contract.
+- [2026-10-20 ~11Z] **Docs sweep - README rewritten, AGENTS.md + DEPLOY.md
   born, all crosslinked.** Polished against the real CLI (no-fiction pass):
   README now leads with the 60-second usage, real module names with their
   shipped oracles, docs map; AGENTS.md carries the one law, layout, seven
   paid-for house rules, scenario contract summary, release procedure,
   vant/rook memory conventions, gistory port backlog; DEPLOY.md is the user
-  path (init → config → run → baseline → CI action) plus maintainer OIDC
+  path (init -> config -> run -> baseline -> CI action) plus maintainer OIDC
   release flow and a troubleshooting table built from today's real run logs
   (E404 stage-only default, tag re-push retry, must-end express rule,
   timestamp churn, shallow-copy proto note). Every documented command
   verified before landing (init artifacts, exit 2 on missing/bad config,
   dogfood exit 0). Code touch: config `modules` filter now flows through
   cmdRun (runner's opts.modules was CLI-dark).
-- [2026-10-20 ~10Z] **v0.1.0 SHIPPED via OIDC — the loop is closed.** First
+- [2026-10-20 ~10Z] **v0.1.0 SHIPPED via OIDC - the loop is closed.** First
   attempt failed (E404 = stage-only default on the fresh TP config); after
   dhaupin flipped allow-direct-publish, re-pushed the tag (integration can't
-  rerun someone else's failed run — `Resource not accessible by integration`
-  — but a tag re-push retriggers cleanly) and run 39359193986 went green in
+  rerun someone else's failed run - `Resource not accessible by integration`
+  - but a tag re-push retriggers cleanly) and run 39359193986 went green in
   19s: tests inside the workflow, tarball assembled, `npm publish` completed
-  with provenance — **signed statement published to the transparency log**
+  with provenance - **signed statement published to the transparency log**
   (search.sigstore.dev logIndex 3329750463). Registry now: versions
   0.0.0-stage / 0.0.1 / **0.1.0 (latest)**, author dhaupin, MIT. Zero tokens
   anywhere in CI. Remaining cleanup: dhaupin revokes the Termux granular
   token (never needed again); milestone deleted-tag note: tag re-push needed
   because rerun permissions are integration-limited.
-- [2026-10-20 ~09Z] **Name claimed on npm — crashtest@0.0.0-stage is live.**
+- [2026-10-20 ~09Z] **Name claimed on npm - crashtest@0.0.0-stage is live.**
   dhaupin published from Termux via a granular access token (Route B,
   staged): package title/public name are on the registry as of
   2026-10-20T01:57Z, contents pending stage approval with 2FA. Version bumped
-  0.0.1 → 0.1.0 in package.json + src/cli.js (single VERSION const) and the
-  report header's stale 0.0.1 fallback removed — the first REAL version to
+  0.0.1 -> 0.1.0 in package.json + src/cli.js (single VERSION const) and the
+  report header's stale 0.0.1 fallback removed - the first REAL version to
   ship over the staged placeholder is 0.1.0, riding the OIDC workflow once
   Trusted Publisher is configured (dhaupin/crashtest, publish.yml, direct
   publish). v0.2 modules land inside the 0.1.0 tarball as clearly-labeled
   ahead-of-0.2.0 features (README documents them as v0.2). Tarball now
   31.1 kB / version-verified. Next: dhaupin approves stage + configures TP,
   then v0.1.0 tag.
-- [2026-10-20 ~08Z] **v0.2 landed — everyone's backend + the Action wrapper.**
+- [2026-10-20 ~08Z] **v0.2 landed - everyone's backend + the Action wrapper.**
   `src/adapters/` (hono via `.request`, express via `app.handle` + Node-style
-  req/res with Buffer-normalized bodies and MUST-END dispatch — a route that
+  req/res with Buffer-normalized bodies and MUST-END dispatch - a route that
   never ends is a finding past the drain window, fastify via `app.inject`;
   config `adapters: { hono, express, fastify }` wired through the CLI, options
   vs bare-app shapes detected by own-key heuristic). Seed `state`:
-  enumeration-oracle (foreign ids must deny; id always carried — body/params
+  enumeration-oracle (foreign ids must deny; id always carried - body/params
   or querystyle), id-collision-alias (second-owner same-key write must
   conflict or fork; overwrite detected by DB snapshot diff, not response
-  text; default key derived from ctx.seed — determinism). Seed `volume`:
-  credential-stuffing, storage-fill, cost-amplification — every run reports
+  text; default key derived from ctx.seed - determinism). Seed `volume`:
+  credential-stuffing, storage-fill, cost-amplification - every run reports
   ops/request; EXPLOITED only on breaks or bound violations (bound via
   ctx, default 12 ops/request). Runner gets `opts.modules` filter.
   `action.yml` composite GitHub Action (setup-node + install crashtest +
   optional target tests + `npx crashtest run --config` with artifact upload
   of the hardening run). Full suite 59/59; dogfood now 13/13 REFUSED
-  (snapshot regenerated — attack count grew from 8 to 13); check script
+  (snapshot regenerated - attack count grew from 8 to 13); check script
   covers all v0.2 files. v0.2 PRD scope code-complete except: adoption wave
   against real framework apps (gistory adapter honors hono/express),
   harness memory-reuse for sub-second reruns.
-- [2026-10-20 ~07Z] **S1.5 landed — crashtest dogfoods itself.** In-repo
+- [2026-10-20 ~07Z] **S1.5 landed - crashtest dogfoods itself.** In-repo
   fixture (fixtures/demo/app.js: hardened + vulnerable drafts incl. the
   classic recursive merge), root crashtest.config.js, CLI-level dogfood
-  tests (hardened → exit 0 with 8/8 REFUSED; vulnerable → exit 1 with
+  tests (hardened -> exit 0 with 8/8 REFUSED; vulnerable -> exit 1 with
   proto-pollution + header bypass + hygiene findings; regression gate:
-  hardened baseline flipped to vulnerable draft fails on REFUSED→EXPLOITED),
+  hardened baseline flipped to vulnerable draft fails on REFUSED->EXPLOITED),
   and .github/workflows/ci.yml making the self-run the CI gate against the
-  committed crashledger.json. v0.1 scope from PRD §8 is code-complete:
+  committed crashledger.json. v0.1 scope from PRD section 8 is code-complete:
   harness, seed libraries (auth/input/guards), campaigns, report+ledger,
   CLI, dogfood. 52/52 node:test green, check green, in-repo dogfood exit 0
   (labs/crashledger.json + labs/hardening.md snapshot committed). Next
   candidates for this sprint or 0.2: npm first publish (pending dhaupin's
   Termux), `crashtest init` route-table discovery helpers, 0.2 adapters.
-- [2026-10-20 ~06Z] **S1.2+S1.3+S1.4 landed — the pipeline now finds things.**
-  Seed `auth`: identity-spoof-headers (403→2xx flip oracle over 9 header ×
+- [2026-10-20 ~06Z] **S1.2+S1.3+S1.4 landed - the pipeline now finds things.**
+  Seed `auth`: identity-spoof-headers (403->2xx flip oracle over 9 header x
   6 privilege matrix, baseline-throw and stable-open branches), secret-watermark
-  (fake env secrets must never appear in any response across all routes ×
+  (fake env secrets must never appear in any response across all routes x
   error-path probes), privilege-escalation (denied baseline + identity-field
   mutations must not flip). Seed `guards`: hygiene-no-store (surviving 2xx
   writes need explicit cache-control), burst-wall (sequential burst; 429/503
   must carry usable Retry-After; any break is a finding; undeclared routes
-  degrade to a skipped REFUSED — zero false-positive CI per PRD §12).
-  `runner.js` (cost deltas per attack, ownerless-BOUNDED→finding) and
-  `report.js` (ledger diff + §7 CI matrix + markdown) wired into the CLI's
+  degrade to a skipped REFUSED - zero false-positive CI per PRD section 12).
+  `runner.js` (cost deltas per attack, ownerless-BOUNDED->finding) and
+  `report.js` (ledger diff + section 7 CI matrix + markdown) wired into the CLI's
   run verb. Two-way proofs extended to auth/guards; exit-rule matrix tested
   (fresh/regression/accepted/boundless/no-baseline). 49/49 node:test green.
   Remaining from S1.5: an in-repo `crashtest.config.js` + fixture app dogfood
   + CI snapshot of the report.
 - [2026-10-20 ~05Z] **S1.2 scenario system + seed input library landed (partial,
-  first built-in module).** `src/rng.js` (xorshift*, seeded — same seed → same
-  findings, platform-stable), `src/scenarios/contract.js` (the §6 module
-  contract: validateScenario fails loudly on bad shapes; verdict helpers —
+  first built-in module).** `src/rng.js` (xorshift*, seeded - same seed -> same
+  findings, platform-stable), `src/scenarios/contract.js` (the section 6 module
+  contract: validateScenario fails loudly on bad shapes; verdict helpers -
   BOUNDED without owner+bound refuses to construct; `fuzzFloorViolation` oracle:
   threw-or-5xx), `src/scenarios/loader.js` (built-in `library/` + user dirs,
   name-collision detection, deterministic ordering), and the seed
   `src/scenarios/library/input.js`: proto-pollution-body (canary via hostile
-  own-key JSON — hostileSerialize keeps `__proto__` keys where stringify
+  own-key JSON - hostileSerialize keeps `__proto__` keys where stringify
   drops them), never-fail-mutations (seeded hostile bodies, floor = never 500
   / never uncaught), oversized-field (1 MiB). **Two-way proof in
-  test/scenarios/attacks.test.js:** vulnerable recursive-merge fixture →
-  EXPLOITED with canary evidence; allow-listed hardened fixture → REFUSED;
-  brittle handler → EXPLOITED, validated → REFUSED.
+  test/scenarios/attacks.test.js:** vulnerable recursive-merge fixture ->
+  EXPLOITED with canary evidence; allow-listed hardened fixture -> REFUSED;
+  brittle handler -> EXPLOITED, validated -> REFUSED.
 - [2026-10-20 ~04Z] **S1.1 harness core landed.** `src/harness/` complete:
   counters (declared op set + weighted cost + deltas), FakeD1 (SELECT/
   INSERT/UPDATE/DELETE subset against seeded tables; UNIQUE constraints throw
-  D1-shaped `UNIQUE constraint failed: t.col` — takeover/row-move campaigns
+  D1-shaped `UNIQUE constraint failed: t.col` - takeover/row-move campaigns
   depend on it; params bind in textual order incl. SET-before-WHERE; `COUNT(*)`;
   gaps throw with gap-naming messages so DISCOVER surfaces them), FakeKV
   (get/put/delete/list, TTL accepted-ignored for determinism), fake env
   factory (kv seed + d1 tables + secrets), Harness (explicit route table,
-  in-process WHATWG Request → handler → Response; uncaught handler errors
-  surface as `threw:` records — NEVER converted into fake 500s; per-run op
+  in-process WHATWG Request -> handler -> Response; uncaught handler errors
+  surface as `threw:` records - NEVER converted into fake 500s; per-run op
   deltas + whole-campaign cost totals).
 - [2026-10-20 ~03Z] **Name-stake release staged (S1.0 partial, done).** Repo now
   carries a publishable 0.0.1: package.json (exact name `crashtest`, zero
   runtime deps, node >=18.17, MIT), bin + src/cli.js (`init` scaffolds
-  labs/crashledger.json schema v1 + hardening.md stub — run is an honest
+  labs/crashledger.json schema v1 + hardening.md stub - run is an honest
   exit-2 placeholder), 7 passing node:test cases (TAP, TEST_EXIT=0), chmod +x
   on the bin, and tag-driven publish via npm Trusted Publishing (OIDC, no
   NPM_TOKEN) in .github/workflows/publish.yml. Publish runbook in
-  docs/publish.md — first publish is a one-command bootstrap (direct or
+  docs/publish.md - first publish is a one-command bootstrap (direct or
   staged, docs updated 2026-10-20); after that v* tags publish+test
   automatically. Waiting on: dhaupin first publish (Termux attempt), then
   npmjs.com Trusted Publisher config (dhaupin/crashtest, workflow publish.yml).
 - [2026-10-20 ~02Z] Name re-check (rook lesson: always check npm + gh): bare
-  `crashtest` still FREE on npm — but the block is filling in: `agent-crashtest`
-  (published 2026-10-16, prompt-injection tests for Claude Code/Cursor/MCP —
+  `crashtest` still FREE on npm - but the block is filling in: `agent-crashtest`
+  (published 2026-10-16, prompt-injection tests for Claude Code/Cursor/MCP -
   agent-adjacent niche) and `@crashtest-ai/*` 0.1.x family ("CrashTest AI",
   stress/security SDK for AI apps, Sept 2026). PyPI `crashtest` is
   python-poetry's error-handling lib (different domain). Rec: publish npm
@@ -502,14 +542,14 @@
 - [2026-10-19T23:59Z] Rooster session: rook horcrux pulled from the now-public
   weisync/rookworks stone; brain-unlock + horcrux restore clean on vant
   0.8.6-from-main (6 private brains restored). Found + filed vant#212
-  (memory learn prose false-positive on `~/`, `../` — "Path blocked" eats
+  (memory learn prose false-positive on `~/`, `../` - "Path blocked" eats
   valid note content, error names no reason). Brain stack switched to rook.
 - [2026-10-19T23:59Z] Prior scaffold (f8b4b7e, never pushed) is gone with the
-  old workspace; repo on disk = README + PRD only. S1 restarts fresh —
+  old workspace; repo on disk = README + PRD only. S1 restarts fresh -
   tasks above are the full plan, nothing is secretly "already done".
 - [2026-10-19T23:59Z] Still watching vant #119/#120/#121 (org-grant boot
   hydration, dept/team name=parent-id, health CWD false-negatives) per rook
-  goals — re-test org-grant hydration when a fix lands.
+  goals - re-test org-grant hydration when a fix lands.
 - [2026-10-20T04:10Z] First real external adoption test done: crashtest 0.1.0
   (tarball, real `npm install`) driven against a test install of vant's raw
   `http.createServer` server (`_handleRequest`), authRequired ON, real `/call`
@@ -517,19 +557,19 @@
   Crashtest bugs found + fixed at cause, all regression-tested (61/61 green,
   `check`+dogfood exit 0):
 
-  - bare `./adapters` subpath `ERR_PACKAGE_PATH_NOT_EXPORTED` → explicit export
+  - bare `./adapters` subpath `ERR_PACKAGE_PATH_NOT_EXPORTED` -> explicit export
     alias; registry re-exports registerExpress/registerFastify/registerHono/
     registerNodeDispatch/dispatchNodeRequest.
   - fake req missed the event-style raw-server surface vant touches
-    (`req.setTimeout`, `req.on('data'/'end')`, `req.destroy`) → toNodeReq is now
+    (`req.setTimeout`, `req.on('data'/'end')`, `req.destroy`) -> toNodeReq is now
     a real mini-Node req (EventEmitter, nextTick body events, record-and-forget
     idle guard, listener-dropping destroy). Fixed the vant-pass phantom
     `Unhandled Rejection: req.destroy is not a function` too.
   - `dispatchNodeRequest` (new export) lost the drain-to-res.end semantics on
-    first cut and read the res before event handlers ended it → bounded drain
+    first cut and read the res before event handlers ended it -> bounded drain
     restored, races the WHOLE settle against the timeout cap.
   - `state/id-collision-alias` crashed (`harness.env.DB.snapshot` undefined) on
-    targets with no DB binding instead of refusing gracefully → skips with a
+    targets with no DB binding instead of refusing gracefully -> skips with a
     "declare env.DB" hint like its siblings.
 
   VANT findings (filed from the labs/hardening.md report of the fixed-wire run;
@@ -538,9 +578,9 @@
   - guard/hygiene: 2xx writes over POST /call ship NO Cache-Control (shared
     caches may replay writes).
   - burst abuse: 11/50 handled requests 500'd mid-burst (5xx at request 39)
-    instead of shedding with 429 — vant's own QoS limiter logged
+    instead of shedding with 429 - vant's own QoS limiter logged
     "Global rate exceeded: 60/60" but requests still failed as 500.
-  - never-fail-mutations: 64/64 hostile bodies → 500 (first: {"id":2147483648})
+  - never-fail-mutations: 64/64 hostile bodies -> 500 (first: {"id":2147483648})
     instead of 400-class rejection.
   - credential-stuffing (60/60) and storage-fill (30/30) under load likewise
     land as 500s, not honest refusals.
@@ -557,7 +597,7 @@
   learned against REAL frameworks + the vant box, regression-tested 61/61):
   - `routeAliases` config knob + `harness.aliasRoute()` + `rewriteRequest`
     (path/query-pass-through/method, `duplex:'half'` for streamed bodies):
-    maps the scenario vocabulary onto the real paths of ONE dispatching app —
+    maps the scenario vocabulary onto the real paths of ONE dispatching app -
     the exact friction that made the first framework smoke report
     harness-faults-as-EXPLOITED.
   - `registerRoute` now throws on duplicate names (silent overwrite =
@@ -572,25 +612,25 @@
   - express path: winner timer is cleared (no unhandled rejections).
   - Real-framework smokes (tarball install): express 13/13 REFUSED, fastify
     13/13 REFUSED, hono 12/13 (the 1 EXPLOITED = the test app's own
-    500-on-hostile-shape — scanner working).
+    500-on-hostile-shape - scanner working).
 - [2026-10-20T05:05Z] Site shipped: `web/` (prestruct scaffold copied from
-  dhaupin/prestruct init, identity-retuned) — React+Vite, prerendered SEO
+  dhaupin/prestruct init, identity-retuned) - React+Vite, prerendered SEO
   (/, /attacks, 404, sitemap), Bolete-inspired dark lab theme, Pages
   Function `web/functions/api/version.js` (live npm version + provenance,
-  edge-cached 5m). Build: `cd web && npm run build` → `web/dist` for
+  edge-cached 5m). Build: `cd web && npm run build` -> `web/dist` for
   crashtest.creadev.org. Site is a separate workspace: npm package
   `files` must stay /web-free (checked). Notes: prestruct's init template
-  lacks example/vite.config.js — without plugin-react the classic JSX
+  lacks example/vite.config.js - without plugin-react the classic JSX
   runtime breaks prerender with "React is not defined" (copied the config).
 - [2026-10-20T05:05Z] vant issues filed: #214 (Cache-Control missing on
   /call writes), #215 (500-instead-of-429/400 under burst/hostile/stuffing/
-  fill — throw-based chain lands guard outcomes as server faults). gh app
+  fill - throw-based chain lands guard outcomes as server faults). gh app
   auth can create but not edit issues (403 "not accessible by integration")
-  — edit #214's one garbled sentence manually when convenient.
-- [2026-10-20T05:05Z] Version bumped 0.1.0 → 0.1.1 (package.json +
+  - edit #214's one garbled sentence manually when convenient.
+- [2026-10-20T05:05Z] Version bumped 0.1.0 -> 0.1.1 (package.json +
   src/cli.js VERSION) for the next tag when the user wants to ship.
 - [2026-10-20T06:30Z] Site theme bug found + fixed live (crashtest.creadev.org
-  / crashtest.pages.dev): prerendered pages shipped WITHOUT theme — root
+  / crashtest.pages.dev): prerendered pages shipped WITHOUT theme - root
   cause is a SECOND init-vs-example gap in prestruct: `init/index.html`
   lacks the example's module entry script
   `<script type="module" src="/src/main.jsx">`, so vite build emitted
@@ -602,12 +642,12 @@
   stripped there by prerender design). Committed c7811ee + pushed; CF
   redeploy picks it up. Upstream note intended for prestruct#20 (same
   issues-write-but-no-edit/comment integration limits as vant #214):
-  suggested there too — build-time check in inject-brand/prerender that
+  suggested there too - build-time check in inject-brand/prerender that
   dist/assets holds an index-*.js + .css pair, else fail loudly.
 - [2026-10-20T07:15Z] Black-screen bug on the live site fixed (reproduced in
   headless Chromium on crashtest.creadev.org, mobile viewport, iPhone UA):
   first paint = prerendered SSR + stylesheet (the "flash of theme"), then the
-  client bundle threw React error #321 (invalid hook call) —
+  client bundle threw React error #321 (invalid hook call) -
   usePageMeta (a hook) was being called INSIDE useEffect in both
   web/src/pages/Home.jsx and Attacks.jsx. Hooks may only run in the
   component body; with no error boundary React 18 unmounts the entire tree,
@@ -619,10 +659,10 @@
   "error code: 502", not our JSON): dropped the `cf` fetch option from
   web/functions/api/version.js as the likely cause; edge cache now comes
   from the response cache-control. Zone-level noise noted: Zaraz injects a
-  GA tag (G-C454VG9F3M → doubleclick/ads) that the site CSP correctly
-  blocks — user-side Zaraz/CSP tweak if they want GA live.
+  GA tag (G-C454VG9F3M -> doubleclick/ads) that the site CSP correctly
+  blocks - user-side Zaraz/CSP tweak if they want GA live.
 - [2026-10-20T05:30Z] Web presence hardening pass (user: "we need web to be
-  solid" — dashboard-able): icon set generated with the same Chromium that
+  solid" - dashboard-able): icon set generated with the same Chromium that
   verified the site (icon.svg hand-drawn crash-shield glyph -> favicon-32,
   apple-touch, icon-192/512 PNGs); og-image.png (1200x630 lab card, real
   headings + verdict chips) baked via Playwright; ssr.config ogImage wires
@@ -631,9 +671,9 @@
   CF's synthesized one); <meta name="theme-color"> + CSS color-scheme:
   dark so mobile chrome matches the lab palette. Layout QA programmatic
   (Chromium): zero horizontal overflow on mobile (390px) and desktop its
-  (1280px) on / and /attacks — scroll containers behave, nav on one line,
+  (1280px) on / and /attacks - scroll containers behave, nav on one line,
   zero page errors. All a11y-relevant details leave in styles.css.
-  Icons/manifest/og artifacts live in web/public — graft naturally into
+  Icons/manifest/og artifacts live in web/public - graft naturally into
   future dashboard (PWA-grade identity ready).
 - [2026-10-20T06:05Z] Site content wave + real docs system shipped:
   - /terms + /privacy pages (Routes+ssr routes, plain-language OSS legal:
@@ -641,7 +681,7 @@
     to the user, host/third parties named, CLI collects nothing), crosslinked
     from the footer on every content page.
   - Footer carries the do-follow made-by link (Made by Rook @ Creadev.org,
-    target _blank rel=noopener — no nofollow), plus Docs link to
+    target _blank rel=noopener - no nofollow), plus Docs link to
     docs.creadev.org/crashtest in footer AND nav.
   - Copy/truth pass: CLI help no longer sells the fictional v0.1 "redteam/
     fuzz/barrage" campaign list (now the real module set + docs/site URLs);
@@ -661,11 +701,11 @@
     routes footer-complete with the made-by link, zero overflow at
     390px/1280px, zero page errors; 64/64 tests + cli.test 7/7 with the
     new help text.
-  - Known limitation: docs/ not built locally (no ruby/jekyll in sandbox) —
+  - Known limitation: docs/ not built locally (no ruby/jekyll in sandbox) -
     structure mirrors vant's proven layout; GH Pages (or freestruct layer)
     builds it at docs.creadev.org/crashtest on push.
 - [2026-10-20T06:55Z] freestruct wired into the Jekyll docs build (vant's
-  docs.yml as the template — ruby 3.2 + bundler-cache + jekyll build +
+  docs.yml as the template - ruby 3.2 + bundler-cache + jekyll build +
   GH Pages artifact deploy, pagefind dropped until the layout earns a
   search UI). Two upstream findings handled en route: freestruct's npm
   name is not published and its bin shim has no shebang (both filed to
@@ -684,95 +724,95 @@
   garbled word in a permalink cell (integration cannot edit; manual fix
   worth 10 seconds). docs/_site gitignored; GH Pages build lands
   docs.creadev.org/crashtest on push.
-- [2026-10-20 ~07Z] **Dashboard shipped — /dashboard renders the ledger with the
-  CLI's own §7 rule.** Headless bridge, zero backend:
+- [2026-10-20 ~07Z] **Dashboard shipped - /dashboard renders the ledger with the
+  CLI's own section 7 rule.** Headless bridge, zero backend:
   `web/src/lib/ledgerModel.js` imports `diffAgainstBaseline` + `exitCode`
-  straight from `src/report.js` — the page shows exactly what CI exits with,
+  straight from `src/report.js` - the page shows exactly what CI exits with,
   one copy of the rule (parity pinned by `test/dashboard-ledger.test.js`,
   12 tests: new exploited flips gate, regression detected via baseline,
   accepted risk with owner+bound never re-alarms, run-blob shape, unsupported
   shapes fail loudly). Default view = committed dogfood baseline generated
   from the REAL artifacts by `web/scripts/make-ledger-snapshot.mjs`
-  (crashledger.json + hardening.md cost economics → `dogfoodSnapshot.js`;
+  (crashledger.json + hardening.md cost economics -> `dogfoodSnapshot.js`;
   regen after dogfood runs change labs/). Users load their own ledger by
-  paste / file upload / CORS raw GitHub URL — nothing server-side, matching
+  paste / file upload / CORS raw GitHub URL - nothing server-side, matching
   the CLI-collects-nothing privacy story. Page: gate banner (exit 0/1),
   stat strip, findings grouped by module with verdict glyphs, per-attack
   op-economics bars, accepted-risks table. Prerendered as route #5;
   paid-for bug: prestruct's incremental cache served three asset
-  generations at once after the first dashboard build — full clean rebuild
+  generations at once after the first dashboard build - full clean rebuild
   fixed; `rm -rf .prestruct dist` is the restore ritual if assets go stale.
-- [2026-10-20 ~09Z] **v0.3 WP spike LANDED + §14 platform thread opened + the
+- [2026-10-20 ~09Z] **v0.3 WP spike LANDED + section 14 platform thread opened + the
   CLI went service-shaped.** Colleague issues #1/#2 adopted from a real
-  patch: wordpress adapter (NDJSON-over-stdio worker — wire format, not a
+  patch: wordpress adapter (NDJSON-over-stdio worker - wire format, not a
   transport; no sockets kept honest), skip-parity for undeclared routes in
   volume/input/guards (proto of it: no harness-wide bombs), 6 envelope
   contract tests. Paid-for lesson repeated: the pack first landed in
   labs/scenarios and nearly tripped the self-dogfood CI gate (workerAbsent
-  → attack-threw EXPLOITED rows) — target packs live in fixtures/ beside
+  -> attack-threw EXPLOITED rows) - target packs live in fixtures/ beside
   examples, labs/scenarios stays the dogfood scan dir. CLI: `run --json`
   prints the machine run blob as the LAST stdout line (dashboard-compatible
-  run shape) with a live sanity run (13 rows, exit 0). PRD §14 codifies the
+  run shape) with a live sanity run (13 rows, exit 0). PRD section 14 codifies the
   greptile-style CI-runner platform thread: drone CLI, ledger-as-artifact
   contract, headless dashboard alignment, sequencing to v0.5. Docs:
   playbooks/wordpress + playbooks/run-roots (the #2 runbook, generalized).
   Issues #1/#2 closed with adoption notes; 83/83 tests; pushed as 0710c84.
 - [2026-10-20 ~10Z] **SELF-DOGFOOD PROOF OF CONCEPT + the first stock-WP e2e.**
-  The question arrived mid-thread: "ran crashtest on itself?" Honest split —
+  The question arrived mid-thread: "ran crashtest on itself?" Honest split -
   the demo fixture yes, the product's OWN surfaces no. Fixed in three moves:
   (1) committed dogfood re-run: 13/13 REFUSED, exit 0 (timestamps-only
   artifacts restored). (2) NEW self-target `fixtures/site/`: crashtest
   attacks its own shipped Pages Function (`web/functions/api/version.js`)
-  with the registry dependency doubled — same rule the fake d1 rides
+  with the registry dependency doubled - same rule the fake d1 rides
   (deps get doubles, sockets die). Pack = 5 attacks incl. hostile registry
   statuses, proto-pollution canary, burst, cache-hygiene gates,
   restore-what-you-touch parity. **The self-run caught a REAL shipped bug:
-  `{"nope":true}` @ 201 registry → 200 with NO version** (the badge
-  contract "200 means a version, 502 says why" was broken at the seam) —
+  `{"nope":true}` @ 201 registry -> 200 with NO version** (the badge
+  contract "200 means a version, 502 says why" was broken at the seam) -
   fixed in version.js, guarded by `site/registry-hostile-statuses`.
   CLI-level pin: `test/self-site.test.js` (temp run-root, config
   imports the real function; committed ledger untouched). 85/85 green.
   (3) STOCK-WP e2e per dhaupin's ok: PHP 8.1 + wp core + official SQLite
   drop-in; headless install cost 3 paid-for lessons: WP_INSTALLING is a
-  CONSTANT (latched static — set-after-load does nothing; global trick
+  CONSTANT (latched static - set-after-load does nothing; global trick
   also dead); wp-settings kill-point located with per-require stderr
-  markers (β: wp_not_installed die() at M32 zone); install via
-  wp_install() in-process, §wp-tools never needed. wp-stock-smoke (3
+  markers (beta: wp_not_installed die() at M32 zone); install via
+  wp_install() in-process, section wp-tools never needed. wp-stock-smoke (3
   attacks: hostile nopriv volley / real-SQL metering / CALL_ALLOW breach
-  probe) → 16/16 REFUSED, 0 found, ops ride wp.query @2 from the real
+  probe) -> 16/16 REFUSED, 0 found, ops ride wp.query @2 from the real
   database. Pack landed as fixtures/wordpress/wp-stock-smoke.js + the
-  headless-install recipe on the WP playbook. The §12 metric is now
-  self-paying: crashtest found ≥1 real bug on the first unaudited repo —
+  headless-install recipe on the WP playbook. The section 12 metric is now
+  self-paying: crashtest found >=1 real bug on the first unaudited repo -
   and that repo was OURS.
 - [2026-10-20 ~11Z] **THE WP STORY WENT GENERIC + crashtest-vs-vant PoC RAN.**
   Codified the who-owns-specifics split the product demanded: worker is
   GENERIC (fields a first 'cfg' envelope: callAllow fn=>maxArgs +
-  allowOptions list; state ops are plain WP primitives — posts-query /
+  allowOptions list; state ops are plain WP primitives - posts-query /
   post-meta / option / delete-posts / insert-post / postmeta alias; khf
   names gone from plumbing, alive in the pack's own vocabulary). Adapter
   delivers the run-root's specifics once per worker; config shape gains
   callAllow/allowOptions. Class-of-1 paid-for bug caught by the e2e itself:
-  callAllow referenced `fix` before init (TDZ) — the PoC run tripped first.
+  callAllow referenced `fix` before init (TDZ) - the PoC run tripped first.
   Stock-WP smoke grew the option-gates attack (allowOptions deny + declared
-  row whole-read — worker now returns scalars unchanged for string rows):
+  row whole-read - worker now returns scalars unchanged for string rows):
   17/17 REFUSED, real data read (blogname) from the real SQLite.
   WordPress-money pack rides the generic ops (khf flow e2e still needs the
-  khf plugin runtime — honest limitation, unchanged).
+  khf plugin runtime - honest limitation, unchanged).
   And the van PoC the user asked about: adapters + recipes existed; running
-  against vant did NOT — now proven: a run root mounts vant's real
+  against vant did NOT - now proven: a run root mounts vant's real
   Server._handleRequest via the raw-node adapter (no listen, no vant
   changes, routeAliases map the seeded vocabulary onto /call + /tools);
-  full built-in suite → 13/13 REFUSED · 633 requests · exit 0. Real
+  full built-in suite -> 13/13 REFUSED / 633 requests / exit 0. Real
   receipts: Retry-After on 50/50 throttles, honest 413 on oversized, 60/60
   stuffing refused, amplification held at 1 ops/request. Two probes
   correctly ask for declarations (CRASHTEST_SECRET to arm, env.DB.snapshot
-  for alias coverage) — run roots get to be smarter next thread.
+  for alias coverage) - run roots get to be smarter next thread.
   Run-roots playbook gained the van-style raw-node recipe with the PoC
   numbers; WP playbook rewrote "who owns specifics". 85/85 green.
 - [2026-10-20 ~12Z] **THE EXTENSION SURFACE: scenario packs (packs/public +
   packs/local).** The ask: user-owned defs/recipes/scenarios, private when
   wanted. Schema decision: NOT vant's models/public-private (models is
-  AI/ML-adjacent vocabulary; packs is crashtest's own word) — pack.json v1
+  AI/ML-adjacent vocabulary; packs is crashtest's own word) - pack.json v1
   (schemaVersion/name/description/entry) living under packs/public/<name>/
   (tracked, shipped examples) or packs/local/<name>/ (gitignored,
   machine-private). Loader src/packs/loader.js: loud manifests (rule 3),
@@ -783,7 +823,7 @@
   `crashtest init` scaffolds packs/ stubs + root .gitignore entry;
   `crashtest packs` inventories with visibility@version/counts. The khf
   "money-path e2e" question is now answered structurally: khf flows are a
-  PRIVATE PACK on khf's own run root — no e2e for them in this repo by
+  PRIVATE PACK on khf's own run root - no e2e for them in this repo by
   design, and the extra e2e limitation line is retired with the old
   fixtures/wordpress/wordpress-money.js (promoted to packs/public as THE
   example pack alongside wp-stock-smoke; worker/adapter untouched). Docs:
@@ -791,25 +831,25 @@
   green; dogfood gate stays 13/13 with packs:false; WP stock run-root e2e
   unaffected (17/17).
 
-### 2026-10-20 — wp-money-shapes: the shipped money pack is now plugin-agnostic
+### 2026-10-20 - wp-money-shapes: the shipped money pack is now plugin-agnostic
 - Question that drove it: "is wordpress-money general, or khf/fm lore?" Honest
-  answer: attack SHAPES were general, vocabulary was khf-specific — wrong
+  answer: attack SHAPES were general, vocabulary was khf-specific - wrong
   bucket for a public pack.
-- Rework: `packs/public/wordpress-money/` → `packs/public/wp-money-shapes/`
+- Rework: `packs/public/wordpress-money/` -> `packs/public/wp-money-shapes/`
   (@0.3.0). Zero plugin names in the pack; every vocabulary item (postType,
   metaPaid, metaEmail, optionKey, action, nonceAction, pacedHints) comes from
   `moduleCtx['wp-money-shapes']` in the target's run-root config. Missing keys
   degrade to a REFUSED skip (skip-parity, never a false positive).
 - The khf/fm instantiations are these engines rebinding their own vocabulary in
-  their run root's `packs/local/` — private pack, by design, never in repo.
+  their run root's `packs/local/` - private pack, by design, never in repo.
 - Fixed along the way: JS comments inside pack.json (JSON forbids them) caught
-  by the loader's own loud manifest check — exactly the failure mode it exists for.
+  by the loader's own loud manifest check - exactly the failure mode it exists for.
 - Verified: 91/91 tests, check exit 0, packs verb lists both packs, dogfood 13/13
   with packs:false (gate decoupled), no stale references outside TASKS history.
 
-### 2026-10-20 — `packs add`: the first-user path is one command
+### 2026-10-20 - `packs add`: the first-user path is one command
 - User question answered with receipts: "why wp-money-shapes / what's the
-  money?" — naming convention now documented (prefix = the surface the pack
+  money?" - naming convention now documented (prefix = the surface the pack
   SPEAKS, wp- rides harness.wpState), and "money" = the dollar-shaped abuse
   family the volume library alreadyowns (credential-stuffing /
   cost-amplification): write-with-value must not stick, one receipt must not
@@ -820,17 +860,17 @@
   guards) is instance lore = packs/local in vant's run root. Decision rule
   documented in docs/reference/packs.md.
 - Delivered the general mechanism instead: `crashtest packs add <name>
-  [--public]` — schema-v1 manifest + contract-valid stub module + gitignore
+  [--public]` - schema-v1 manifest + contract-valid stub module + gitignore
   append (local), loud refusals on collisions/bad names. vant's first
   private pack is now literally one command on the vant run root.
-- Fixed at cause along the way: process.exitCode delete→assign in tests,
+- Fixed at cause along the way: process.exitCode delete->assign in tests,
   strict-assert has no assert.exists, the runtime's leftover refuse-exit
   leaking into the test runner's status.
 - Verified: 94/94 tests (3 new packs-add tests), check exit 0, live packs add
   local+public from a tmp cwd, dogfood gate decoupled 13/13.
 
-### 2026-10-20 — `run --module-plan`: the coverage dry-run (PRD §14 service flag)
-- Which attack ids WOULD fire against this target, before any request — same
+### 2026-10-20 - `run --module-plan`: the coverage dry-run (PRD section 14 service flag)
+- Which attack ids WOULD fire against this target, before any request - same
   loaders, same filters, same arming rules as the real run (shared code, no
   drift possible). Three statuses: WILL-FIRE / NEEDS-ARMING / SKIPPED-FILTER.
 - Arming keys travel with the pack: module-level `armedByKey` export or pack
@@ -838,33 +878,33 @@
   wp-money-shapes + the packs-add stub declare theirs; a module's explicit
   `armedByKey: null` disables detection (precedence = module wins when present).
 - NEEDS-ARMING rows are the honest gate: un-armed packs REFUSE-skip at run
-  time (skip-parity, never false positives) — the plan surfaces them BEFORE
+  time (skip-parity, never false positives) - the plan surfaces them BEFORE
   you trust a green tally, which is the whole point of the flag.
 - `--json` prints the plan blob as the LAST stdout line (same discipline as
-  `run --json`) — the CI artifact the dashboard ate in the same session.
+  `run --json`) - the CI artifact the dashboard ate in the same session.
 - Verified: 101/101 tests (7 new), check exit 0 with src/plans.js +
   test/module-plan.test.js in the inventory, live dry-run vs the dogfood config
   (13/13 WILL-FIRE, packs correctly absent via packs:false), exit 0 informational.
 
-### 2026-10-20 — packs npm metadata (offline-first) + `packs --json`
+### 2026-10-20 - packs npm metadata (offline-first) + `packs --json`
 - npm metadata now travels WITH the pack: optional `"package"` field in
   pack.json (string-validated, loud on wrong type) shown in the packs verb
   inline and inventoried by `crashtest packs --json` (LAST stdout line, same
   discipline as `run --json`) alongside version/entry/armedByKey.
-- Deliberate boundary: the REGISTRY LOOKUP stays in npm's own tools — the CLI
-  is a drone that never dials (PRD §14 binding line). The docs carry the CI
+- Deliberate boundary: the REGISTRY LOOKUP stays in npm's own tools - the CLI
+  is a drone that never dials (PRD section 14 binding line). The docs carry the CI
   recipe: pair `packs --json` with `npm view <pkg> version` and fail on drift.
 - Two real bugs fixed at cause on the way: my main() route dropped the
   closing brace of the packs branch (parse broke at the file's trailing
-  export — caught by --check) and a ternary that silently discarded the
+  export - caught by --check) and a ternary that silently discarded the
   --json flag when no --config was passed (caught by the new test).
 - Verified: 103/103 tests, check exit 0, live verb shows armedBy hints +
   JSON inventory for both shipped packs.
 
-### 2026-10-20 — dashboard v2: the coverage-plan surface
+### 2026-10-20 - dashboard v2: the coverage-plan surface
 - The dashboard now accepts all three artifact kinds a run root can emit:
-  ledger (findings + §7 gate), run blob (single-run), and NEW the
-  `run --module-plan --json` coverage plan — shape-detected, one adapter
+  ledger (findings + section 7 gate), run blob (single-run), and NEW the
+  `run --module-plan --json` coverage plan - shape-detected, one adapter
   each, loud errors when a shape fits none.
 - Plan view: WILL-FIRE / NEEDS-ARMING / SKIPPED-FILTER totals strip, per-
   module cards with the arming reason inline, and a packs inventory table
@@ -873,7 +913,7 @@
 - Same honesty rules as findings: unknown statuses are FLAGGED, never
   silently relabeled; the plan bridge refuses ledgers and vice versa.
 - Ledger bridge stays pure/testable (parsePlan in ledgerModel.js); pinned by
-  3 new node-test cases + a live crosscheck: real CLI plan blob → parsePlan
+  3 new node-test cases + a live crosscheck: real CLI plan blob -> parsePlan
   (13/13 will-fire) while the ledger still parses with gate pass, and the
   plan bridge loudly rejects a ledger.
 - CSS: chip vocabulary reuses the existing moss/err/ink-soft tokens; page

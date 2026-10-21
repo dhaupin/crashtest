@@ -1,6 +1,6 @@
-// S1.5 — dogfood at the CLI level. Spawns the real `crashtest run` against
+// S1.5 - dogfood at the CLI level. Spawns the real `crashtest run` against
 // the repo fixture (via a generated temp config that imports the fixture by
-// absolute file URL) — the same interface a user/agent runs.
+// absolute file URL) - the same interface a user/agent runs.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -41,23 +41,23 @@ function runCli(dir) {
   }
 }
 
-test('dogfood: hardened fixture — all attacks REFUSED, exit 0, artifacts written', () => {
+test('dogfood: hardened fixture - all attacks REFUSED, exit 0, artifacts written', () => {
   const dir = tempTarget(false, configFor(false));
   assert.equal(runCli(dir), 0);
   const ledger = JSON.parse(readFileSync(join(dir, 'labs/crashledger.json'), 'utf8'));
   assert.equal(ledger.schemaVersion, 1);
-  // 8 seed attacks + 5 state/volume attacks = 13 total as of v0.2.
-  assert.equal(ledger.findings.length, 13, 'every seed attack ran');
+  // 8 seed attacks + 5 state/volume attacks = 13 (v0.2); + 2 taxonomy = 15 as of this round.
+  assert.equal(ledger.findings.length, 15, 'every seed attack ran');
   const bad = ledger.findings.filter(f => f.verdict !== 'REFUSED');
   assert.deepEqual(bad, [], bad.map(f => `${f.id}: ${f.detail}`).join(' | '));
-  assert.equal(ledger.baseline.length, 13);
+  assert.equal(ledger.baseline.length, 15);
   const report = readFileSync(join(dir, 'labs/hardening.md'), 'utf8');
   assert.match(report, /# Hardening report/);
-  assert.match(report, /REFUSED \(13\)/);
+  assert.match(report, /REFUSED \(15\)/);
   assert.match(report, /EXPLOITED \(0\)/);
 });
 
-test('dogfood: vulnerable fixture — fresh run trips EXPLOITED, exit 1', () => {
+test('dogfood: vulnerable fixture - fresh run trips EXPLOITED, exit 1', () => {
   const dir = tempTarget(true, configFor(true));
   assert.equal(runCli(dir), 1, 'vulnerable app must fail the CI rule');
   const ledger = JSON.parse(readFileSync(join(dir, 'labs/crashledger.json'), 'utf8'));
@@ -67,11 +67,11 @@ test('dogfood: vulnerable fixture — fresh run trips EXPLOITED, exit 1', () => 
   }
 });
 
-test('dogfood: regression gate — hardened baseline catches the vulnerable flip', () => {
+test('dogfood: regression gate - hardened baseline catches the vulnerable flip', () => {
   const dir = tempTarget(false, configFor(false));
   assert.equal(runCli(dir), 0);                 // cut baseline against hardened app
   writeFileSync(join(dir, 'crashtest.config.js'), configFor(true));
-  assert.equal(runCli(dir), 1, 'REFUSED→EXPLOITED regressions must fail CI');
+  assert.equal(runCli(dir), 1, 'REFUSED->EXPLOITED regressions must fail CI');
   const report = readFileSync(join(dir, 'labs/hardening.md'), 'utf8');
   assert.match(report, /REGRESSED: /);
 });

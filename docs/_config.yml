@@ -1,8 +1,8 @@
-# Jekyll config for Crashtest docs — sibling of vant's docs.creadev.org/vant.
+# Jekyll config for Crashtest docs - sibling of vant's docs.creadev.org/vant.
 title: Crashtest
 baseurl: "/crashtest"
 url: "https://docs.creadev.org"
-description: Seeded, in-process adversarial QA for agent-built apps — CI is the wall.
+description: Seeded, in-process adversarial QA for agent-built apps - CI is the wall.
 
 markdown: kramdown
 highlighter: rouge

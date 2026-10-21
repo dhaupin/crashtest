@@ -1,7 +1,7 @@
 {
   "name": "Crashtest",
   "short_name": "crashtest",
-  "description": "Adversarial QA for agent-built apps — seeded, in-process attacks, hardening ledger for CI.",
+  "description": "Adversarial QA for agent-built apps - seeded, in-process attacks, hardening ledger for CI.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#100d0a",

@@ -2,7 +2,7 @@ name: ci
 
 # The dogfood run IS the CI gate: the committed labs/crashledger.json is the
 # baseline; a fresh run fails this workflow iff a previously-REFUSED check
-# regressed or a NEW EXPLOITED finding appears (PRD §7). Accepted risks
+# regressed or a NEW EXPLOITED finding appears (PRD section 7). Accepted risks
 # (owner+bound on file) never re-alarm.
 on:
   push:
@@ -41,7 +41,7 @@ jobs:
       - name: Test suite
         run: npm test
 
-      - name: Dogfood — attack our own fixture against the baseline
+      - name: Dogfood - attack our own fixture against the baseline
         run: node bin/crashtest.js run
 
       - name: Snapshot report (on failure, shows what changed)

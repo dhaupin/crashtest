@@ -1,6 +1,6 @@
-// S1.2 — the two-way proof. The same seed scenario library must EXPLOIT a
-// vulnerable fixture and be REFUSED by a hardened one — exactly the finding
-// semantics the report will surface (PRD §7).
+// S1.2 - the two-way proof. The same seed scenario library must EXPLOIT a
+// vulnerable fixture and be REFUSED by a hardened one - exactly the finding
+// semantics the report will surface (PRD section 7).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildHarness } from '../../src/harness/harness.js';
@@ -97,7 +97,7 @@ test('never-fail-mutations: EXPLOITED on brittle handler, REFUSED on validated o
   const brittle = {
     enroll: async ({ request, env }) => {
       const body = await request.json();
-      // no validation at all — string coercion on hostile values
+      // no validation at all - string coercion on hostile values
       const key = body.key;
       return Response.json({ got: key.toUpperCase(), len: String(key).length });
     },
@@ -121,7 +121,7 @@ test('oversized-field: REFUSED on validated handler, EXPLOITED on storage-crashi
   assert.equal(r2.verdict, 'REFUSED', r2.detail);
 
   // one whose storage layer genuinely breaks on giant strings (the classic
-  // agent-authored bug: trust the client, size-limit at the wrong layer —
+  // agent-authored bug: trust the client, size-limit at the wrong layer -
   // here the "driver" throws above 255 chars)
   const crashy = {
     enroll: async ({ request }) => {
@@ -133,6 +133,47 @@ test('oversized-field: REFUSED on validated handler, EXPLOITED on storage-crashi
   const cv = buildHarness(crashy, { env: envSpec });
   const r1 = await attack.run(cv, { route: 'enroll' });
   assert.equal(r1.verdict, 'EXPLOITED', r1.detail);
+});
+
+test('taxonomy: escalate-and-leak handler EXPLOITED, impersonal hardener REFUSED, skips politely', async () => {
+  const [module] = (await loadScenarios()).map(l => l.module).filter(m => m.name === 'taxonomy');
+  assert.ok(module);
+  const not5xx = module.attacks.find(a => a.name === 'abuse-not-5xx');
+  const impersonal = module.attacks.find(a => a.name === 'errors-stay-impersonal');
+  for (const a of [not5xx, impersonal]) assert.ok(a);
+
+  // The LLM-draft sad path: echo the raw request text back on error AND
+  // escalate to 500 status (both bugs in one handler - the classic draft).
+  const echoVuln = {
+    enroll: async ({ request }) => {
+      const text = await request.text();
+      let body;
+      try { body = JSON.parse(text); } catch {
+        return new Response(`bad json: ${text} at Object.<anonymous> (node:internal/enroll:12:5)`, { status: 500 });
+      }
+      if (typeof body !== 'object' || body === null) {
+        return new Response(`bad: ${text}`, { status: 500 });
+      }
+      return Response.json({ ok: body.key });
+    },
+  };
+  const hb = buildHarness(echoVuln, { env: envSpec });
+  const r1 = await not5xx.run(hb, { route: 'enroll' });
+  assert.equal(r1.verdict, 'EXPLOITED', `expected 5xx escalations on the echo handler: ${r1.detail}`);
+  const r2 = await impersonal.run(hb, { route: 'enroll' });
+  assert.equal(r2.verdict, 'EXPLOITED', `expected leaks on the echo handler: ${r2.detail}`);
+  assert.ok(/canary echo|node:internal|stack frame|file:line:col/.test(r2.detail), `leak reason should be named: ${r2.detail}`);
+
+  const hard = buildHarness(makeRoutes({ merge: mergeHardened }), { env: envSpec });
+  const r3 = await not5xx.run(hard, { route: 'enroll' });
+  assert.equal(r3.verdict, 'REFUSED', `hardened handler must answer abuse honestly: ${r3.detail}`);
+  const r4 = await impersonal.run(hard, { route: 'enroll' });
+  assert.equal(r4.verdict, 'REFUSED', `hardened error paths must stay impersonal: ${r4.detail}`);
+
+  // Contract pin: undeclared probe routes degrade to skipped-REFUSED.
+  const skip = await not5xx.run(hb, { route: 'no-such-route' });
+  assert.equal(skip.verdict, 'REFUSED');
+  assert.ok(skip.skipped === true, `undeclared route must skip, not fail: ${skip.detail}`);
 });
 
 test('seeded determinism: same seed angle produces identical verdict details', async () => {

@@ -22,7 +22,7 @@ description: The seven rules crashtest is built on - they explain every design d
    hung routes - every gap names itself and explains. Symptoms get fixed at
    their cause, never papered over.
 
-5. **Determinism is a feature.** Same commit → same findings. Anything
+5. **Determinism is a feature.** Same commit -> same findings. Anything
    time-derived breaks it, so keys and ids derive from the seed instead.
 
 6. **Accepted risk has an owner and a bound.** BOUNDED without both is a

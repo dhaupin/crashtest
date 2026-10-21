@@ -1,7 +1,7 @@
-// Dashboard ledger bridge — parity + shape tests.
+// Dashboard ledger bridge - parity + shape tests.
 // The gate status the web dashboard shows MUST equal what the CLI exits with.
 // These tests import the same bridge module the page uses (web/src/lib),
-// including its import of src/report.js — one copy of the §7 rule.
+// including its import of src/report.js - one copy of the section 7 rule.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -12,18 +12,18 @@ import { dogfood } from '../web/src/lib/dogfoodSnapshot.js';
 test('dogfood snapshot parses as a ledger and reports a clean gate (exit 0)', () => {
   const vm = parseArtifact(dogfood.ledger, { sourceLabel: 'test' });
   assert.equal(vm.kind, 'ledger');
-  assert.equal(vm.counts.total, 13);
-  assert.equal(vm.counts.refused, 13);
+  assert.equal(vm.counts.total, 15);
+  assert.equal(vm.counts.refused, 15);
   assert.equal(vm.counts.exploited, 0);
   assert.equal(vm.gate.status, 'pass');
   assert.equal(vm.gate.exitCode, 0);
-  assert.equal(vm.groupings.length, 5); // auth, guards, input, state, volume
+  assert.equal(vm.groupings.length, 6); // auth, guards, input, state, taxonomy, volume
 });
 
 test('snapshot cost economics survived generation (totals + per-attack rows)', () => {
-  assert.equal(dogfood.cost.totals.ops, 397);
-  assert.equal(dogfood.cost.totals.requests, 599);
-  assert.ok(dogfood.cost.perAttack.length >= 13);
+  assert.equal(dogfood.cost.totals.ops, 420);
+  assert.equal(dogfood.cost.totals.requests, 629);
+  assert.ok(dogfood.cost.perAttack.length >= 15);
   const amp = dogfood.cost.perAttack.find((p) => p.id === 'volume/cost-amplification');
   assert.deepEqual({ ops: amp.ops, requests: amp.requests }, { ops: 81, requests: 100 });
 });
@@ -43,7 +43,7 @@ test('new EXPLOITED finding flips the gate to fail with the offending ids', () =
   assert.equal(vm.gate.regressed.length, 0);
 });
 
-test('REFUSED→EXPLOITED regression is detected via the ledger baseline', () => {
+test('REFUSED->EXPLOITED regression is detected via the ledger baseline', () => {
   const vm = parseArtifact({
     schemaVersion: 1,
     baseline: ['auth/secret-watermark'],
@@ -56,7 +56,7 @@ test('REFUSED→EXPLOITED regression is detected via the ledger baseline', () =>
   assert.deepEqual(vm.gate.regressed.map((r) => r.id), ['auth/secret-watermark']);
 });
 
-test('accepted risk (owner+bound on file) never re-alarms — reported, not failed', () => {
+test('accepted risk (owner+bound on file) never re-alarms - reported, not failed', () => {
   const vm = parseArtifact({
     schemaVersion: 1,
     baseline: [],
@@ -138,7 +138,7 @@ test('parsePlan: accepts the module-plan blob, normalizes all three statuses, ca
       { name: 'auth', origin: 'library/auth.js', source: 'library', status: 'WILL-FIRE', reason: null,
         attacks: [{ id: 'auth/a', status: 'WILL-FIRE', reason: null }] },
       { name: 'wp-money-shapes', origin: 'public/wp-money-shapes/index.js', source: 'pack:public', version: '0.3.0',
-        status: 'NEEDS-ARMING', reason: "vocabulary rides moduleCtx['wp-money-shapes']…",
+        status: 'NEEDS-ARMING', reason: "vocabulary rides moduleCtx['wp-money-shapes']...",
         attacks: [{ id: 'wp-money-shapes/a', status: 'NEEDS-ARMING', reason: 'x' }] },
       { name: 'guards', origin: 'library/guards.js', source: 'library', status: 'SKIPPED-FILTER',
         attacks: [{ id: 'guards/hygiene-no-store', status: 'SKIPPED-FILTER' }] },
@@ -146,7 +146,7 @@ test('parsePlan: accepts the module-plan blob, normalizes all three statuses, ca
     packs: [{ name: 'wp-money-shapes', visibility: 'public', version: '0.3.0', origin: 'public/wp-money-shapes',
       attacks: 3, armedByKey: 'wp-money-shapes', package: null }],
     totals: { attacks: 3, willFire: 1, needsArming: 1, skippedFilter: 1 },
-  }, { sourceLabel: 'coverage plan · CI artifact' });
+  }, { sourceLabel: 'coverage plan / CI artifact' });
   assert.equal(vm.kind, 'plan');
   assert.equal(vm.totals.needsArming, 1);
   assert.deepEqual(vm.modules.map((m) => m.status), ['WILL-FIRE', 'NEEDS-ARMING', 'SKIPPED-FILTER']);

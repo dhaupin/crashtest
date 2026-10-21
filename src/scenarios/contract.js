@@ -1,11 +1,11 @@
-// S1.2 — the scenario module contract (PRD §6):
+// S1.2 - the scenario module contract (PRD section 6):
 //
 //   export default {
 //     name: 'input',                        // unique within a campaign
 //     description: 'one line',              // shown in the report
 //     attacks: [{
 //       name: 'never-fail-mutations',       // unique within the module
-//       async run(harness, ctx) → record    // verifies + returns a RunRecord
+//       async run(harness, ctx) -> record    // verifies + returns a RunRecord
 //     }],
 //   }
 //
@@ -19,7 +19,7 @@
 
 export const VERDICTS = ['REFUSED', 'EXPLOITED', 'BOUNDED'];
 
-/** Validate a scenario module. Throws with the gap named — never sloppy. */
+/** Validate a scenario module. Throws with the gap named - never sloppy. */
 export function validateScenario(mod, origin = 'unknown') {
   const fail = (why) => {
     throw new TypeError(`invalid scenario module (${origin}): ${why}`);
@@ -63,7 +63,7 @@ export const refused = (detail, extra = {}) => ({ verdict: 'REFUSED', detail, ..
 /** EXPLOITED record helper. */
 export const exploited = (detail, extra = {}) => ({ verdict: 'EXPLOITED', detail, ...extra });
 
-/** BOUNDED record helper — a bound without owner is a finding (principle 6). */
+/** BOUNDED record helper - a bound without owner is a finding (principle 6). */
 export function bounded(owner, bound, detail, extra = {}) {
   if (!owner || !bound) {
     throw new TypeError(`BOUNDED risk needs owner + bound (an accepted risk without a bound is a finding)`);
@@ -72,9 +72,9 @@ export function bounded(owner, bound, detail, extra = {}) {
 }
 
 /**
- * The fuzz floor (PRD §1.2): never 500, never uncaught throws.
+ * The fuzz floor (PRD section 1.2): never 500, never uncaught throws.
  * Maps a harness run record to one of those two outcomes, else null.
- * null means "the record was fine" (2xx–4xx, no throw) — callers decide
+ * null means "the record was fine" (2xx-4xx, no throw) - callers decide
  * what verdict that represents for their attack.
  */
 export function fuzzFloorViolation(record) {
@@ -85,12 +85,6 @@ export function fuzzFloorViolation(record) {
   return null;
 }
 
-/**
- * Quick oracle for prototypes/state leaks: an in-process canary object
- * must stay empty. Returns the leaked key list (empty = clean).
- * NOTE: reads ONLY indicator properties we planted; never enumerates
- * the whole Object.prototype (keeps runs cheap).
- */
-export function canaryLeaks(canaryObj, expectedKeys) {
-  return Object.keys(canaryObj).filter(k => !expectedKeys.includes(k));
-}
+// (canary-leak oracle removed 2026-10-21: exported but referenced by nothing
+// in 1.0.0 - the scenario library codes its leak checks inline instead. Trim
+// for real when a consumer asks for it.)

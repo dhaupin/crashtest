@@ -1,7 +1,7 @@
 name: npm-publish
 
 # Publish on version tags: `git tag v1.0.0 && git push origin v1.0.0`
-# (or create a GitHub release from a tag — set one trigger, not both,
+# (or create a GitHub release from a tag - set one trigger, not both,
 # to avoid double-publishing.)
 #
 # npm Trusted Publishing (OIDC): no NPM_TOKEN secret needed, provenance
@@ -33,7 +33,7 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           package-manager-cache: false
 
-      - name: Install (no runtime deps — lockfile-light install)
+      - name: Install (no runtime deps - lockfile-light install)
         run: npm install --no-audit --no-fund
 
       - name: Test
@@ -53,10 +53,10 @@ jobs:
       - name: Extract version from the tag
         run: echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_ENV
 
-      # npm pack needs no node_modules — it packages exactly the `files`
+      # npm pack needs no node_modules - it packages exactly the `files`
       # entries. This pack is built from the SAME commit npm published from,
       # so the asset mirrors the registry artifact (not byte-identical:
-      # tar stores mtimes — same tree, other clock).
+      # tar stores mtimes - same tree, other clock).
       - name: Pack the npm tarball as the release asset
         run: |
           set -euo pipefail
@@ -66,7 +66,7 @@ jobs:
 
           # Guardrail (same spirit as test/packaging.test.js): the release
           # asset must contain the reusable surfaces (bin/ + src/ + the two
-          # self-contained packs) and never repo-bound internals — web/,
+          # self-contained packs) and never repo-bound internals - web/,
           # packs/public/crashtest-site/, labs/, test/.
           tar -tzf "$TARBALL" | grep -q "^package/bin/crashtest.js$"
           if tar -tzf "$TARBALL" | grep -Eq "^package/(web/|labs/|test/|packs/public/crashtest-site/)"; then
@@ -82,7 +82,7 @@ jobs:
           name: "Crashtest ${{ env.VERSION }}"
           body: |
             In-process adversarial QA for agent-built apps: the harness drives seeded
-            redteam/fuzz/guard campaigns against your real handlers (WHATWG Requests —
+            redteam/fuzz/guard campaigns against your real handlers (WHATWG Requests -
             no sockets), produces a hardening ledger whose CI gate fails on regressions.
 
             ```bash
@@ -92,7 +92,7 @@ jobs:
 
             Zero runtime dependencies. The `crashtest-${{ env.VERSION }}.tgz` asset is
             the same tarball shape npm published for this tag. Full runbook:
-            [docs](https://docs.creadev.org/crashtest) · [README](https://github.com/dhaupin/crashtest#crashtest)
+            [docs](https://docs.creadev.org/crashtest) / [README](https://github.com/dhaupin/crashtest#crashtest)
           files: ${{ env.TARBALL }}
           fail_on_unmatched_files: true
           generate_release_notes: true

@@ -7,7 +7,7 @@ description: Every shipped scenario module and attack, what it does, and what ve
 
 # The Attack Catalog
 
-Thirteen attacks across five modules ship in the core package. Each returns
+Fifteen attacks across six modules ship in the core package. Each returns
 exactly one verdict per run: 🛡 REFUSED, ⚡ EXPLOITED, or 🔒 BOUNDED
 (BOUNDED requires an owner + bound or it demotes to EXPLOITED - loudly).
 
@@ -15,9 +15,9 @@ exactly one verdict per run: 🛡 REFUSED, ⚡ EXPLOITED, or 🔒 BOUNDED
 
 | Attack | What it does |
 |---|---|
-| `identity-spoof-headers` | Fires a 54-header identity matrix (`x-is-admin`, `x-user-role`, `x-forwarded-for`, …) at your privileged route. A spoof that flips an authorized action = EXPLOITED; all denied/ignored = REFUSED. |
+| `identity-spoof-headers` | Fires a 54-header identity matrix (`x-is-admin`, `x-user-role`, `x-forwarded-for`, ...) at your privileged route. A spoof that flips an authorized action = EXPLOITED; all denied/ignored = REFUSED. |
 | `secret-watermark` | Plants fake secrets in the fake env, then walks error paths. A probe that echoes one back = EXPLOITED. |
-| `privilege-escalation` | Replays writes where `owner` names someone else (victim pairs: attacker→victim, attacker→admin). An accepted write = EXPLOITED. |
+| `privilege-escalation` | Replays writes where `owner` names someone else (victim pairs: attacker->victim, attacker->admin). An accepted write = EXPLOITED. |
 
 ## `guards` - hygiene and load
 
@@ -48,6 +48,13 @@ exactly one verdict per run: 🛡 REFUSED, ⚡ EXPLOITED, or 🔒 BOUNDED
 | `credential-stuffing` | 60 credential shapes in sequence. Crashing = EXPLOITED; shaped 4xx = REFUSED. |
 | `storage-fill` | 30 rounds of 8KB unique writes through a kv-backed route. Tracks ops AND storage growth per round. |
 | `cost-amplification` | 40 identical replays against a cost ceiling (`maxOpsPerRequest`). Over the bound with measurable per-request economics = EXPLOITED with numbers. |
+
+## `taxonomy` - honest refusal
+
+| Attack | What it does |
+|---|---|
+| `abuse-not-5xx` | Fires abuse shapes (garbage + truncated JSON, wrong/absent content types, oversized strings) at your route. Every one must come back as an honest 4xx-class refusal - a 5xx or an uncaught throw = EXPLOITED. Same fuzz-floor oracle the input module uses, on the raw-garbage payload family. |
+| `errors-stay-impersonal` | The sad path is infrastructure, not an inspector: error bodies must not parrot attacker-planted canaries (fields echoed back with their own values or names) or stack fragments (V8 frames, `node:internal`, file:line:col). A leak = EXPLOITED with the fleeing named. |
 
 ## Writing your own
 

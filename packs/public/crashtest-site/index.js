@@ -1,18 +1,18 @@
-// packs/public/crashtest-site — crashtest attacking ITS OWN SHIPPED WEBSITE.
+// packs/public/crashtest-site - crashtest attacking ITS OWN SHIPPED WEBSITE.
 //
 // The self-dogfood, expanded and hardcore. The target is everything the repo
 // actually ships to crashtest.creadev.org:
 //   - the real Pages Function behind the npm badge (web/functions/api/version.js)
-//   - the real deployed headers (web/public/_headers — CSP/HSTS/COOP/COEP)
-//   - the real prerendered HTML (web/dist/index.html — the wire truth)
+//   - the real deployed headers (web/public/_headers - CSP/HSTS/COOP/COEP)
+//   - the real prerendered HTML (web/dist/index.html - the wire truth)
 //   - the real site manifest (web/public/site.webmanifest, robots.txt)
 //
-// House rule restored here too: attack code, not people — the pack carries
+// House rule restored here too: attack code, not people - the pack carries
 // its own registry double (lib/registry-shim.js) so nothing dials out:
 // scenarios probe hostile statuses against a DOUBLE of the npm registry;
 // the Pages Function code itself stays real.
 //
-// Deliverability: pack.json entry = the attack module (attacks.js) — the run
+// Deliverability: pack.json entry = the attack module (attacks.js) - the run
 // root imports buildSiteRoutes() from HERE and lists the pack root or this
 // pack dir in packs:. One line of config per run root.
 
@@ -26,7 +26,7 @@ const WEB_ROOT = resolve(PACK_ROOT, '../../..', 'web');
 const DIST = join(WEB_ROOT, 'dist');
 
 /**
- * Cached read of a committed asset (web/public/*) — undefined when absent.
+ * Cached read of a committed asset (web/public/*) - undefined when absent.
  * Committed artifacts (headers, manifest, robots) are always present in a
  * checkout; only web/dist/* is build-dependent.
  */
@@ -36,7 +36,7 @@ async function asset(relPath) {
 }
 
 /**
- * Undo installRegistryShim() — the config's own cleanup hook.
+ * Undo installRegistryShim() - the config's own cleanup hook.
  */
 export function teardownSite() {
   restoreFetch();
@@ -44,12 +44,12 @@ export function teardownSite() {
 
 /**
  * The wire surface, lazily prepared. Routes registered here:
- *   version         → the REAL Pages Function
- *   site-headers    → returns _headers contents parsed into a Response with the directives as headers
- *   site-html       → dist/index.html bytes (the prerendered homepage truth)
- *   site-manifest   → site.webmanifest bytes
- *   site-sitemap    → sitemap.xml from dist (or synthesized 404 marker)
- *   site-robotstxt  → robots.txt bytes
+ *   version         -> the REAL Pages Function
+ *   site-headers    -> returns _headers contents parsed into a Response with the directives as headers
+ *   site-html       -> dist/index.html bytes (the prerendered homepage truth)
+ *   site-manifest   -> site.webmanifest bytes
+ *   site-sitemap    -> sitemap.xml from dist (or synthesized 404 marker)
+ *   site-robotstxt  -> robots.txt bytes
  */
 export function buildSiteRoutes() {
   installRegistryShim();
@@ -80,7 +80,7 @@ export function buildSiteRoutes() {
       let html;
       try { html = await readFile(join(DIST, 'index.html'), 'utf8'); } catch { html = undefined; }
       // Honest marker, never a throw: web/dist is a build artifact, not a
-      // committed file — a checkout that has not built the site yet is a
+      // committed file - a checkout that has not built the site yet is a
       // config gap, and the attacks skip it (declare the build for coverage).
       if (html === undefined) {
         return new Response('crashtest-site: web/dist/index.html missing (run the web build for HTML coverage)', {

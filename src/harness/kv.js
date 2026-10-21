@@ -1,6 +1,6 @@
-// S1.1 — fake KV namespace (Workers KV surface subset used by handlers):
+// S1.1 - fake KV namespace (Workers KV surface subset used by handlers):
 //   kv.get(key) / kv.put(key, value, {expirationTtl?}) / kv.delete(key) /
-//   kv.list({prefix}) — TTLs are accepted and ignored (wall-clock leaks into
+//   kv.list({prefix}) - TTLs are accepted and ignored (wall-clock leaks into
 //   campaigns otherwise; determinism beats fidelity here, documented gap).
 
 export class FakeKV {

@@ -5,26 +5,26 @@
  *
  * Checks every docs/*.md file:
  * - every opening code fence carries a language tag (closing fences exempt)
- *   — HARD FAIL
- * - no heading level skips (h1 -> h3) — HARD FAIL
- * - no trailing whitespace, no tabs in prose — HARD FAIL
+ *   - HARD FAIL
+ * - no heading level skips (h1 -> h3) - HARD FAIL
+ * - no trailing whitespace, no tabs in prose - HARD FAIL
  * - pipe-table shape: lines starting with | must end with |; no pipes
- *   in headings; no bullets ending with | (broken-table residue) — HARD FAIL
+ *   in headings; no bullets ending with | (broken-table residue) - HARD FAIL
  * - no em/en dashes in prose (hyphen-only voice; corpus converted 2026-10-20,
  *   150 dashes). CHANGELOG exempt.
- * - no emoji/dingbat glyphs in prose — HARD FAIL, with two carve-outs that
- *   are content, not decoration: verdict marks (🛡 ⚡ 🔒 — product
- *   vocabulary on any page) and the technical arrow → (flow notation,
+ * - no emoji/dingbat glyphs in prose - HARD FAIL, with two carve-outs that
+ *   are content, not decoration: verdict marks (🛡 ⚡ 🔒 - product
+ *   vocabulary on any page) and the technical arrow -> (flow notation,
  *   same class as >= or infinity). Everything else (dingbats, emoji
  *   blocks, variation selectors) fails. Glyphs inside inline-code spans
  *   are literal data.
  * - AI cliches banned (delve/leverage/unlock/seamless/empower/journey/
  *   realm/game-changer/cutting-edge/revolutionary + "we're excited to",
- *   "click here" link text, "this section covers" placeholders) — HARD
+ *   "click here" link text, "this section covers" placeholders) - HARD
  *   FAIL. The list lives above and in docs/about/style.md; add a phrase
  *   here when it surfaces twice.
  * Exit 1 on any hard finding; the voice corpus pass landed, so warnings
- * no longer apply — a violation is a regression.
+ * no longer apply - a violation is a regression.
  */
 const fs = require('fs');
 const path = require('path');

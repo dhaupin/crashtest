@@ -1,4 +1,4 @@
-# crashtest site — crawler policy (all the way open, it's a library site)
+# crashtest site - crawler policy (all the way open, it's a library site)
 User-agent: *
 Allow: /
 

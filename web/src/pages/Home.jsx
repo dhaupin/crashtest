@@ -21,20 +21,20 @@ export default function Home() {
           <p className="lede">
             Crashtest drives a seeded adversarial suite against your real handlers -
             routing, guards, state, volume - through a fake transport. The output is a
-            hardening ledger your CI fails on new EXPLOITED findings or REFUSED→EXPLOITED
+            hardening ledger your CI fails on new EXPLOITED findings or REFUSED->EXPLOITED
             regressions. Same commit, same findings, forever.
           </p>
           <div className="cta-row">
-            <a className="btn btn-primary" href="https://docs.creadev.org/crashtest/getting-started/quick-start">Read the quick start →</a>
+            <a className="btn btn-primary" href="https://docs.creadev.org/crashtest/getting-started/quick-start">Read the quick start -></a>
             <a className="btn btn-ghost" href="/dashboard">See the ledger dashboard</a>
             <pre-island data-pre-island="version-badge" data-pre-load="visible">
-              <a className="btn btn-ghost" href="https://www.npmjs.com/package/crashtest" target="_blank" rel="noreferrer">npm · crashtest</a>
+              <a className="btn btn-ghost" href="https://www.npmjs.com/package/crashtest" target="_blank" rel="noreferrer">npm / crashtest</a>
             </pre-island>
             <a className="btn btn-ghost" href="/faq">FAQ</a>
             <a className="btn btn-ghost" href="https://github.com/dhaupin/crashtest" target="_blank" rel="noreferrer">View on GitHub</a>
             <a className="btn btn-ghost" href="https://docs.creadev.org/crashtest/">Full docs</a>
           </div>
-          <pre className="code"><span className="dim"># 60 seconds - point it at your handlers</span>{'\n'}npx crashtest init{'\n'}<span className="dim"># edit crashtest.config.js - routes list your handlers, env the fake d1/kv/secrets</span>{'\n'}npx crashtest run{'\n'}<span className="dim"># → labs/hardening.md · labs/crashledger.json · exit 0 = hold, exit 1 = a finding regressed</span>{'\n\n'}<span className="ok">🛡 EFF.</span> auth/secret-watermark  <span className="ok">🛡</span> guards/burst-wall      <span className="ok">🛡</span> state/enumeration-oracle{'\n'}<span className="bad">⚡</span> guards/hygiene-no-store <span className="dim">(2xx write with no Cache-Control - real findings look like this)</span></pre>
+          <pre className="code"><span className="dim"># 60 seconds - point it at your handlers</span>{'\n'}npx crashtest init{'\n'}<span className="dim"># edit crashtest.config.js - routes list your handlers, env the fake d1/kv/secrets</span>{'\n'}npx crashtest run{'\n'}<span className="dim"># -> labs/hardening.md / labs/crashledger.json / exit 0 = hold, exit 1 = a finding regressed</span>{'\n\n'}<span className="ok">🛡 EFF.</span> auth/secret-watermark  <span className="ok">🛡</span> guards/burst-wall      <span className="ok">🛡</span> state/enumeration-oracle{'\n'}<span className="bad">⚡</span> guards/hygiene-no-store <span className="dim">(2xx write with no Cache-Control - real findings look like this)</span></pre>
         </div>
       </section>
 
@@ -57,10 +57,10 @@ export default function Home() {
           <h2>Why it exists</h2>
           <p className="sub">LLMs write programs fast. Programs that route, store, and spend budget need their own fire drill.</p>
           <div className="grid">
-            <div className="card"><h3><span className="glyph">§</span>Fail at cause, loudly</h3><p>No swallowed errors, no phantom 200s - a handler that never ends its response is surfaced as a finding, not papered over.</p></div>
-            <div className="card"><h3><span className="glyph">§</span>Deterministic attacks</h3><p>Seeded RNG from commit to commit. A scratch-run today reproduces bit-for-bit in CI tomorrow.</p></div>
-            <div className="card"><h3><span className="glyph">§</span>Cost-aware from day one</h3><p>Every request is accounted in ops - amplification attacks get named per-request and bounded, not vibes.</p></div>
-            <div className="card"><h3><span className="glyph">§</span>Fits CI, not just dev</h3><p>Zero runtime deps, plain Node, one command. Plus a composite GitHub Action to gate other repos.</p></div>
+            <div className="card"><h3><span className="glyph">section </span>Fail at cause, loudly</h3><p>No swallowed errors, no phantom 200s - a handler that never ends its response is surfaced as a finding, not papered over.</p></div>
+            <div className="card"><h3><span className="glyph">section </span>Deterministic attacks</h3><p>Seeded RNG from commit to commit. A scratch-run today reproduces bit-for-bit in CI tomorrow.</p></div>
+            <div className="card"><h3><span className="glyph">section </span>Cost-aware from day one</h3><p>Every request is accounted in ops - amplification attacks get named per-request and bounded, not vibes.</p></div>
+            <div className="card"><h3><span className="glyph">section </span>Fits CI, not just dev</h3><p>Zero runtime deps, plain Node, one command. Plus a composite GitHub Action to gate other repos.</p></div>
           </div>
         </div>
       </section>

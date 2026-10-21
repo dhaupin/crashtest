@@ -1,5 +1,5 @@
-// S1.1 — fake env factory. What a Pages Function reads from `ctx.env` —
-// KV namespaces, D1 databases, secrets — gets a deterministic fake here.
+// S1.1 - fake env factory. What a Pages Function reads from `ctx.env` -
+// KV namespaces, D1 databases, secrets - gets a deterministic fake here.
 // Secrets are fake-but-typed: the real values must never be needed, since
 // the harness never leaves the process.
 

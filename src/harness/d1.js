@@ -1,32 +1,32 @@
-// S1.1 — in-memory D1 shim ("the proven path" from the gistory hardening
+// S1.1 - in-memory D1 shim ("the proven path" from the gistory hardening
 // passes). Mirrors the D1 API surface apps actually use:
 //
 //   db.prepare(sql).bind(...params).run() / .first(col) / .all()
 //
-// Supported SQL subset (v0.1, deliberately small — covers what tapping route
+// Supported SQL subset (v0.1, deliberately small - covers what tapping route
 // handlers needs for auth/input/state campaigns; document every gap):
-//   SELECT [DISTINCT] *|cols|COUNT(*) FROM t [WHERE …] [ORDER BY col [ASC|DESC],…] [LIMIT n [OFFSET m]]
-//     WHERE: col = | != | <> | < | > | <= | >=  ?|literal   ·  AND / OR (left-assoc, AND binds first)
-//            col IS NULL / IS NOT NULL           ·  col IN (?, ?, …)
+//   SELECT [DISTINCT] *|cols|COUNT(*) FROM t [WHERE ...] [ORDER BY col [ASC|DESC],...] [LIMIT n [OFFSET m]]
+//     WHERE: col = | != | <> | < | > | <= | >=  ?|literal   /  AND / OR (left-assoc, AND binds first)
+//            col IS NULL / IS NOT NULL           /  col IN (?, ?, ...)
 //     literals: 'singlequoted' (single quotes doubled to escape), bare numbers, true/false, NULL
-//   INSERT INTO t (col, …) VALUES (?, …), (?, …)
-//   UPDATE t SET col = ?, col = ? WHERE …
-//   DELETE FROM t WHERE …
+//   INSERT INTO t (col, ...) VALUES (?, ...), (?, ...)
+//   UPDATE t SET col = ?, col = ? WHERE ...
+//   DELETE FROM t WHERE ...
 //   BEGIN | COMMIT | ROLLBACK      (tx via db.batch semantics below)
 //
 // NOT supported (throw with a clear message so gaps surface in DISCOVER, not
 // in a muffled campaign): JOINs, subqueries, aggregates other than COUNT(*),
-// GROUP BY/HAVING, functions (unixepoch(), datetime(), json_extract, …),
+// GROUP BY/HAVING, functions (unixepoch(), datetime(), json_extract, ...),
 // TRIGGERs, foreign keys, ON CONFLICT clauses, CREATE/ALTER TABLE.
 //
 // Behaviors that campaigns COUNT on:
-//   • declared UNIQUE constraints throw `UNIQUE constraint failed: t.col` on
+//   - declared UNIQUE constraints throw `UNIQUE constraint failed: t.col` on
 //     INSERT/UPDATE (row-move/aliasing + takeover checks depend on this)
-//   • numeric `id` integer autoincrement; seed rows keep explicit ids
-//   • .run() resolves { meta: { changes, last_row_id } }
-//   • params are bound by position `?`; JSON-ish objects/arrays stored as
+//   - numeric `id` integer autoincrement; seed rows keep explicit ids
+//   - .run() resolves { meta: { changes, last_row_id } }
+//   - params are bound by position `?`; JSON-ish objects/arrays stored as
 //     serialized strings (D1 does the same via TEXT columns)
-//   • every statement ticks the counter's d1.query (+ d1.rows on materialize)
+//   - every statement ticks the counter's d1.query (+ d1.rows on materialize)
 
 import { randomUUID } from 'node:crypto';
 
@@ -114,7 +114,7 @@ function parsePredicate(pred, params, consumed) {
   const isNull = pred.match(/^(.+?)\s+IS\s+(NOT\s+)?NULL$/i);
   if (isNull) {
     const col = isNull[1].trim();
-    const wantNull = !isNull[2]; // IS NULL → want null
+    const wantNull = !isNull[2]; // IS NULL -> want null
     return row => (row[col] === null || row[col] === undefined) === wantNull;
   }
 
@@ -231,7 +231,7 @@ function execInsert(db, ast, params) {
 function execUpdate(db, ast, params) {
   const table = db._table(ast.table);
   const consumed = { v: 0 };
-  // Bind SET params FIRST — D1 binds positionally in textual order, so
+  // Bind SET params FIRST - D1 binds positionally in textual order, so
   // `UPDATE t SET a=? WHERE b=?` must read params[0] for a, params[1] for b.
   const setValues = ast.set.map(s => {
     let v = s.value.trim() === '?' ? params[consumed.v++] : parseLiteral(s.value, params, consumed);
@@ -321,7 +321,7 @@ export function parseStatement(sql) {
   }
 
   throw new D1Error(
-    `crashtest-fake-d1: unsupported statement: ${s.slice(0, 60)}… (v0.1 subset: SELECT/INSERT/UPDATE/DELETE; no JOIN/agg/fn)`,
+    `crashtest-fake-d1: unsupported statement: ${s.slice(0, 60)}... (v0.1 subset: SELECT/INSERT/UPDATE/DELETE; no JOIN/agg/fn)`,
     { code: 'UNSUPPORTED' });
 }
 
@@ -330,7 +330,7 @@ export function parseStatement(sql) {
 export class FakeD1 {
   /**
    * @param {object} opts
-   * @param {object} [opts.tables]  { name: { rows:[…], uniques?: [[name,[col,…]]] } }
+   * @param {object} [opts.tables]  { name: { rows:[...], uniques?: [[name,[col,...]]] } }
    *   Rows are plain objects; keep `id` as a number for autoincrement.
    * @param {import('./counters.js').OpsCounter} [opts.counter]
    */
@@ -357,7 +357,7 @@ export class FakeD1 {
     return t;
   }
 
-  /** Deep clone of current table state — used for deterministic snapshots. */
+  /** Deep clone of current table state - used for deterministic snapshots. */
   snapshot() {
     const out = {};
     for (const [name, t] of this._t) {
@@ -430,9 +430,4 @@ class FakeStatement {
     if (!(col in row)) throw new D1Error(`crashtest-fake-d1: no such column: ${col}`, { code: 'NO_COLUMN' });
     return row[col];
   }
-}
-
-/** Convenience: fresh instance per campaign run for determinism. */
-export function newD1({ tables, counter }) {
-  return new FakeD1({ tables, counter });
 }

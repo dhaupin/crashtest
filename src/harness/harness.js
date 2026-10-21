@@ -1,4 +1,4 @@
-// S1.1 — the Harness: explicit route table + in-process transport.
+// S1.1 - the Harness: explicit route table + in-process transport.
 //
 // The invariant (PRD principle 2): never a socket. run() builds a WHATWG
 // Request the way the Edge runtime would, hands it to the target's handler
@@ -6,7 +6,7 @@
 //
 //   { status, ok, response?, threw?, error?, ops, durationMs }
 //
-// Uncaught handler errors are NOT converted into fake 500s — fuzz/guard
+// Uncaught handler errors are NOT converted into fake 500s - fuzz/guard
 // campaigns must see the throw itself ("never uncaught throws"), so threw is
 // a first-class field.
 
@@ -19,7 +19,7 @@ export class Harness {
   /**
    * @param {object} opts
    * @param {object} opts.env       env spec: { kv, d1, secrets, var } (see env.js)
-   * @param {object} [opts.cost]    { opName: costPerOp } — extra/cheaper ops for cost accounting
+   * @param {object} [opts.cost]    { opName: costPerOp } - extra/cheaper ops for cost accounting
    * @param {string} [opts.baseUrl] base URL for synthesized requests (default https://crashtest.local)
    */
   constructor({ env: envSpec = {}, cost = {}, baseUrl = 'https://crashtest.local' } = {}) {
@@ -32,7 +32,7 @@ export class Harness {
 
   /**
    * Explicit route registration (v0.1 DISCOVER contract; sniffing comes in 0.2).
-   * Duplicate names fail loudly — a silent overwrite would make a two-adapter
+   * Duplicate names fail loudly - a silent overwrite would make a two-adapter
    * or double-aliased config leak requests to the wrong handler with no error.
    */
   registerRoute(name, handler) {
@@ -40,7 +40,7 @@ export class Harness {
       throw new TypeError(`harness: route "${name}" needs a (ctx) => Response handler`);
     }
     if (this._routes.has(name)) {
-      throw new TypeError(`harness: route "${name}" already registered${this._routes.get(name) === handler ? ' (same handler)' : ''} — names must be unique; rename one or register an alias instead`);
+      throw new TypeError(`harness: route "${name}" already registered${this._routes.get(name) === handler ? ' (same handler)' : ''} - names must be unique; rename one or register an alias instead`);
     }
     this._routes.set(name, handler);
     return this;
@@ -48,11 +48,11 @@ export class Harness {
 
   /**
    * Alias one registered route under a scenario-facing name, rewriting only
-   * the URL path (query string passes through) and optionally the method —
+   * the URL path (query string passes through) and optionally the method -
    * the body stream survives (deep copy not needed; a Request body is not
    * consumed by the rewrite). The early adopters (vant box, framework smoke
    * configs) proved the friction: one raw/framework app registers ONE route
-   * while scenarios call enroll/device/admin/kvwrite/burst — aliases map the
+   * while scenarios call enroll/device/admin/kvwrite/burst - aliases map the
    * scenario vocabulary onto real paths without touching the app.
    */
   aliasRoute(name, source, { path, method } = {}) {
@@ -152,14 +152,14 @@ export class Harness {
   }
 
   /**
-   * freezeTo() — deep-copy snapshot of the whole fake backend (PRD v0.2
+   * freezeTo() - deep-copy snapshot of the whole fake backend (PRD v0.2
    * "memory reuse for sub-second repeat runs").
    *
    * Captures everything stateful the harness owns: every KV namespace's
    * store, every D1 database's tables (rows, nextId counters, unique
    * constraints), and the op/cost counters. Returns an opaque snapshot
    * object for restoreTo(); nothing about it is useful outside this
-   * instance. Handlers and route tables are NOT copied — they are the
+   * instance. Handlers and route tables are NOT copied - they are the
    * target's real code and never mutate during a campaign.
    */
   freezeTo() {
@@ -180,7 +180,7 @@ export class Harness {
         }
         d1.set(name, { tables, drained: binding._drained });
       }
-      // vars/secrets are plain strings — buildEnv copies them by value, so
+      // vars/secrets are plain strings - buildEnv copies them by value, so
       // nothing to freeze. A non-fake binding (user-supplied adapter object)
       // is out of scope: document vs freeze-and-heal is a v0.3 call.
     }
@@ -188,7 +188,7 @@ export class Harness {
   }
 
   /**
-   * restoreTo(snapshot) — return the fake backend to a freezeTo() state.
+   * restoreTo(snapshot) - return the fake backend to a freezeTo() state.
    * Mutations earlier requests made (KV writes, D1 inserts, counter ticks)
    * disappear; the next run() behaves exactly like the first did on a
    * fresh in-memory backend. Restores registers in place (same FakeKV /
@@ -225,7 +225,7 @@ export class Harness {
     return this;
   }
 
-  /**   *   runFresh(name, reqInit) — one request against the state as it stood when
+  /**   *   runFresh(name, reqInit) - one request against the state as it stood when
    *   the call STARTED (default: freeze at call time, restore after, so each
    *   default call is a no-trace replay); pass an explicit `at` to share one
    *   state across a multi-step flow. Backend state is restored EXACTLY
@@ -250,7 +250,7 @@ export class Harness {
 
 /**
  * Rewrite only what an alias needs: the path (query string preserved) and
- * optionally the method. Body/headers pass through untouched — a prefix-path
+ * optionally the method. Body/headers pass through untouched - a prefix-path
  * alias is a routing redirect, not a content transform.
  */
 export function rewriteRequest(request, path, method) {
@@ -261,7 +261,7 @@ export function rewriteRequest(request, path, method) {
     method: method ?? request.method,
     headers: request.headers,
     // `duplex: 'half'` is mandatory in WHATWG fetch whenever a request body is
-    // a stream (strict in Node/undici, optional elsewhere) — harmless when the
+    // a stream (strict in Node/undici, optional elsewhere) - harmless when the
     // body is a string, required for alias-rewritten streamed bodies.
     body: request.method === 'GET' || request.method === 'HEAD' ? undefined : request.body,
     duplex: request.method === 'GET' || request.method === 'HEAD'

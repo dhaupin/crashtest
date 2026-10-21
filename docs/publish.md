@@ -31,7 +31,7 @@ new-package creation):
    The name + title are visible immediately; contents release after approval
    (staged publishing requires npm >= 11.15.0).
 
-3. Then configure Trusted Publisher: npmjs.com → package `crashtest` → **Settings → Trusted Publisher**:
+3. Then configure Trusted Publisher: npmjs.com -> package `crashtest` -> **Settings -> Trusted Publisher**:
    - Provider: **GitHub Actions**
    - Organization/user: `dhaupin`
    - Repository: `crashtest`

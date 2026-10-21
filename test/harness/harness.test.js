@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { Harness, buildHarness } from '../../src/harness/harness.js';
 import { FakeKV } from '../../src/harness/kv.js';
 
-// A tiny target app fixture — Pages-Functions-shaped handler. This is what
+// A tiny target app fixture - Pages-Functions-shaped handler. This is what
 // scenarios will attack in v0.1 dogfooding.
 function makeRoutes() {
   return {
@@ -107,9 +107,9 @@ test('harness: env seeding lets secret-variant campaigns compare states', async 
   assert.equal(snap.devices[0].key, 'seed');
 });
 
-// v0.2 — memory reuse: freezeTo/restoreTo/runFresh. The PRD's "sub-second
+// v0.2 - memory reuse: freezeTo/restoreTo/runFresh. The PRD's "sub-second
 // repeat runs": replay a request like the FIRST run without re-importing or
-// re-instantiating the backend — and restore-what-you-touch exactly.
+// re-instantiating the backend - and restore-what-you-touch exactly.
 
 test('harness: runFresh replays with identical op shapes and restores state exactly', async () => {
   const h = buildHarness(makeRoutes(), { env: envSpec });

@@ -1,15 +1,15 @@
-// src/packs/loader.js — the extension surface (packs).
+// src/packs/loader.js - the extension surface (packs).
 //
 // A pack is a bundle of crashtest artifacts a user (or the project itself)
 // authors ONCE and reuses across run roots: scenario modules, recipes, and
-// eventually their own targets. Private packs stay private by directory —
+// eventually their own targets. Private packs stay private by directory -
 // packs/local/ is gitignored-by-default, public packs are tracked. There is
 // no "models/" wording here on purpose: packs are crashtest's own vocabulary.
 //
 // Layout (created by `crashtest init`, discovered by `crashtest run/packs`):
 //
-//   packs/public/<name>/pack.json + files   → shipped / shared, tracked
-//   packs/local/<name>/pack.json + files    → machine-private, gitignored
+//   packs/public/<name>/pack.json + files   -> shipped / shared, tracked
+//   packs/local/<name>/pack.json + files    -> machine-private, gitignored
 //
 // Every pack.json (schemaVersion 1):
 //   {
@@ -19,12 +19,12 @@
 //     "entry": "index.js",            // optional; ESM file(s) under this pack,
 //                                     // validated with the scenario contract
 //     "plugins": ["npm-pkg"|"./rel.js"] // optional; import specifiers the pack
-//                                     // BUNDLES — resolved like config
+//                                     // BUNDLES - resolved like config
 //                                     // `plugins`, relative to the pack dir
 //   }
 //
 // Rule 3 applies: a pack.json that exists but is unreadable/invalid FAILS
-// THE RUN loudly — a broken pack is a config error, never a silent gap.
+// THE RUN loudly - a broken pack is a config error, never a silent gap.
 
 import { readdir, readFile } from 'node:fs/promises';
 import { join, basename } from 'node:path';
@@ -34,7 +34,7 @@ import { validateScenario } from '../scenarios/contract.js';
 const REQUIRED_KEYS = ['schemaVersion', 'name', 'description'];
 const ENTRY_DEFAULT = 'index.js';
 
-/** Validate one pack manifest — throws (loudly) on anything wrong. */
+/** Validate one pack manifest - throws (loudly) on anything wrong. */
 export function validatePackManifest(manifest, origin) {
   if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
     throw new Error(`pack manifest at ${origin} is not a JSON object`);
@@ -52,12 +52,12 @@ export function validatePackManifest(manifest, origin) {
   }
   // Optional npm metadata: the package name this pack ships as, for registry
   // version joins (`crashtest packs --json` inventories it; the actual
-  // registry LOOKUP stays in npm's own tools — the CLI never dials out).
+  // registry LOOKUP stays in npm's own tools - the CLI never dials out).
   if (manifest.package !== undefined && typeof manifest.package !== 'string') {
     throw new Error(`pack manifest at ${origin}: "package" must be a string (npm package name)`);
   }
   // Optional bundled-plugin imports (PRD v0.3 unified-surfaces): the pack
-  // BUNDLES scenario modules by import specifier — npm packages or ESM files
+  // BUNDLES scenario modules by import specifier - npm packages or ESM files
   // inside the pack. They load through the same plugin validator, resolved
   // relative to the PACK dir, and join the same campaign with honest
   // `pack:<origin>` plan labels. A broken listing fails the run loudly, the
@@ -75,7 +75,7 @@ export function validatePackManifest(manifest, origin) {
 
 /**
  * Discover and load packs from visibility dirs under the given roots.
- * Each root carries `public/` and `local/` — two roots may share a name
+ * Each root carries `public/` and `local/` - two roots may share a name
  * ONLY if they are the same pack triple-checked by origin (see below);
  * a real name collision throws.
  *
@@ -88,7 +88,7 @@ export async function loadPacks(packsRoots = [], seen = new Map()) {
   const out = [];
   for (const root of packsRoots) {
     // Pointing at ONE pack dir (its pack.json directly inside) loads exactly
-    // that pack — the documented "one pack dir only" shape. Visibility is
+    // that pack - the documented "one pack dir only" shape. Visibility is
     // inherited from the path when it came from a visibility dir, else "inline".
     let selfManifest;
     try {
@@ -105,7 +105,7 @@ export async function loadPacks(packsRoots = [], seen = new Map()) {
       await loadPackDir(root, basename(root), visibility, seen, out);
       continue;
     }
-    // Otherwise: a packs ROOT — scan its public/ + local/ visibility dirs.
+    // Otherwise: a packs ROOT - scan its public/ + local/ visibility dirs.
     for (const dir of [join(root, 'public'), join(root, 'local')]) {
       let entries;
       try {
@@ -125,12 +125,12 @@ export async function loadPacks(packsRoots = [], seen = new Map()) {
 
 /**
  * Load ONE pack dir (manifest must exist inside; a loose WIP dir without
- * pack.json skips quietly — that is the local/ contract). Shared `seen`
+ * pack.json skips quietly - that is the local/ contract). Shared `seen`
  * keeps one name one origin across every load shape.
  */
 async function loadPackDir(packDir, name, visibility, seen, out) {
   const origin = `${visibility}/${name}`;
-  // dir without pack.json = not a pack (local dirs may carry loose WIP) — skip quietly
+  // dir without pack.json = not a pack (local dirs may carry loose WIP) - skip quietly
   let manifest;
   try {
     manifest = JSON.parse(await readFile(join(packDir, 'pack.json'), 'utf8'));
@@ -166,16 +166,4 @@ async function loadPackDir(packDir, name, visibility, seen, out) {
     visibility,
     module: validateScenario(mod.default, `${origin}/${spec.entry}`),
   });
-}
-
-/** Human-facing inventory for the `crashtest packs` verb. */
-export function describePacks(packs, extras = { library: 0, scenarioDirs: 0 }) {
-  return packs.map((p) => ({
-    name: p.manifest.name,
-    visibility: p.visibility,
-    version: p.manifest.version ?? null,
-    attacks: p.module?.attacks?.length ?? 0,
-    origin: p.origin,
-    description: p.manifest.description,
-  }));
 }

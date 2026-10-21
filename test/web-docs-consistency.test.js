@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 
-// The web/docs consistency probe (PRD §14 spirit: one truth, many surfaces).
+// The web/docs consistency probe (PRD section 14 spirit: one truth, many surfaces).
 // Guarantees the site (/web) and the docs (docs/) never drift apart on nav
 // labels, hrefs, verdict vocabulary, or voice rules. If this fails, fix the
 // SOURCE (navItems.js / nav.yml), never the test.
@@ -57,11 +57,11 @@ test('tone: site never claims a shipped-only CLI fact the docs refute (verdict v
     assert.ok(attacks.includes(v), `docs attacks missing verdict ${v}`);
     assert.ok(faq.includes(v), `web FAQ missing verdict ${v}`);
   }
-  // attack-count claim must match: FAQ says 13 attacks across 5 modules,
+  // attack-count claim must match: FAQ says 15 attacks across 6 modules,
   // docs' attack catalog is the source of truth
   const catalogRows = (attacks.match(/^\| `/gm) || []).length;
-  assert.equal(catalogRows, 13, 'attack catalog row count drifted - update FAQ copy or the catalog');
-  assert.ok(faq.includes('13 across 5 modules'), 'FAQ attack-count claim drifted from catalog');
+  assert.equal(catalogRows, 15, 'attack catalog row count drifted - update FAQ copy or the catalog');
+  assert.ok(faq.includes('15 across 6 modules'), 'FAQ attack-count claim drifted from catalog');
 });
 
 test('tone: both surfaces use the same exit-code contract (0 held / 1 finding / 2 config)', async () => {

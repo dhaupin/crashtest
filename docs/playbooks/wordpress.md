@@ -16,9 +16,9 @@ WordPress's own hook surface - `admin_post` / `admin_post_nopriv` /
 structured transfers.
 
 **No sockets, no live server, ever; the NDJSON stream is a wire format, not
-a transport** (PRD §10 + §14 still hold: the drone never dials anything).
+a transport** (PRD section 10 + section 14 still hold: the drone never dials anything).
 
-> The spike is **explicitly experimental** (PRD §8 v0.3). It was proven on a
+> The spike is **explicitly experimental** (PRD section 8 v0.3). It was proven on a
 > live production WordPress plugin target in October 2026: 16/16 REFUSED,
 > 0 false positives, and one real target bug on the first run - a shipping
 > email template whose double-quoted heredoc interpolated away its own
@@ -92,7 +92,7 @@ action, nonceAction, pacedHints.
 The registry already treats `wordpress` like any JS framework adapter, and
 the WP run is also the template for the run-root pattern - see
 [Run Roots & Recipes](/crashtest/playbooks/run-roots), which is the same
-story generalized to any target, and where the §14 service thread lives.
+story generalized to any target, and where the section 14 service thread lives.
 
 ## Stock-WordPress smoke (headless install recipe)
 

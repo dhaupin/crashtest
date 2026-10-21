@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "crashtest site — seeded, in-process adversarial QA for agent-built apps (prestruct prerender + CF Pages)",
+  "description": "crashtest site - seeded, in-process adversarial QA for agent-built apps (prestruct prerender + CF Pages)",
   "scripts": {
     "dev": "vite",
     "build": "prestruct build",

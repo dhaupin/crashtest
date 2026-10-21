@@ -6,7 +6,7 @@ const MODULES = [
   {
     mod: 'auth',
     attacks: [
-      ['identity-spoof-headers', 'Spoofs the whole 54-header identity matrix (x-is-admin, x-user-role, x-forwarded-for…) at a privileged route', 'any handler that reads identity straight from wire headers'],
+      ['identity-spoof-headers', 'Spoofs the whole 54-header identity matrix (x-is-admin, x-user-role, x-forwarded-for...) at a privileged route', 'any handler that reads identity straight from wire headers'],
       ['secret-watermark', 'Plants fake secrets in env, probes error paths - a leaked secret means some error string echoed it', 'handlers that template raw error text'],
       ['privilege-escalation', 'Replays owner-b claims over owner-a writes (writer/victim pairs)', 'routes that accept an owner field without checking the caller'],
     ],
@@ -49,7 +49,7 @@ export default function Attacks() {
   return (
     <section className="section" style={{ paddingTop: 56 }}>
       <div className="wrap">
-        <p className="eyebrow">Scenario catalog · v0.1</p>
+        <p className="eyebrow">Scenario catalog / v0.1</p>
         <h2>All shipped attacks</h2>
         <p className="sub">
           Drop extra modules into <code>labs/scenarios/</code> (or any dir via config
@@ -74,13 +74,16 @@ export default function Attacks() {
           </table>
         </div>
         <p className="field-report">
-          Field-report from the first external target (a real, unaudited repo -{' '}
-          <a href="https://github.com/dhaupin/vant" target="_blank" rel="noreferrer">vant&apos;s raw http server</a>):
-          the suite produced <span className="bad">five real findings</span> - 2xx writes shipping with{' '}
-          <span className="bad">no Cache-Control</span> (<a href="https://github.com/dhaupin/vant/issues/214" target="_blank" rel="noreferrer">vant #214</a>),{' '}
-          abuse landing as <span className="bad">500s instead of honest refusals</span> ({' '}
-          <a href="https://github.com/dhaupin/vant/issues/215" target="_blank" rel="noreferrer">vant #215</a>: burst, hostile bodies, stuffing, sustained fills){' '}
-          - while every foreign-id oracle, oversized-body (413), and secret-watermark probe held. <span className="ok">That&apos;s the product working:</span> your handlers paying for their own bugs with hardening receipts.
+          Field-report from the target we trust least: our own code. This repo
+          dogfoods itself in CI - runs we did on ourselves. The committed ledger
+          holds <span className="ok">13 REFUSED findings</span> on our own hardened demo
+          app, and the self-site run paid for one real bug: the shipped version endpoint
+          once answered a malformed registry payload with <span className="bad">200 and no
+          version key</span>. Found, fixed, never regressing again - pinned by the
+          site/registry-hostile-statuses probe in{' '}
+          <a href="https://github.com/dhaupin/crashtest/blob/main/test/self-site.test.js" target="_blank" rel="noreferrer">test/self-site.test.js</a>.{' '}
+          <span className="ok">That&apos;s the product working:</span> your handlers - ours -
+          paying for their own bugs with hardening receipts.
         </p>
       </div>
     </section>

@@ -16,7 +16,7 @@ const SITE_URL = 'https://crashtest.creadev.org'
 
 function initialModel() {
   return parseArtifact(dogfood.ledger, {
-    sourceLabel: `crashtest dogfood baseline · v${dogfood.meta.version} · seed ${dogfood.meta.seed}`,
+    sourceLabel: `crashtest dogfood baseline / v${dogfood.meta.version} / seed ${dogfood.meta.seed}`,
     // the ledger file has no cost numbers - they live in hardening.md,
     // so the snapshot generator ships them as a sidecar blob.
     cost: dogfood.cost,
@@ -34,7 +34,7 @@ function PlanTotals({ totals, sourceLabel, filter }) {
     { label: 'attack ids', value: totals.attacks },
     { label: '▶ will-fire', value: totals.willFire },
     { label: '⚑ needs-arming', value: totals.needsArming },
-    { label: '· filtered', value: totals.skippedFilter },
+    { label: '- filtered', value: totals.skippedFilter },
   ]
   return (
     <div className="dash-stats">
@@ -46,7 +46,7 @@ function PlanTotals({ totals, sourceLabel, filter }) {
       ))}
       <div className="dash-stat dash-stat-meta">
         <b>coverage plan</b>
-        <span>{sourceLabel}{filter ? ` · filter: ${filter.join(', ')}` : ''}</span>
+        <span>{sourceLabel}{filter ? ` / filter: ${filter.join(', ')}` : ''}</span>
       </div>
     </div>
   )
@@ -57,7 +57,7 @@ function PlanModuleCard({ m }) {
   return (
     <div className="card" key={m.name}>
       <h3>
-        <span className="glyph">§</span>
+        <span className="glyph">section </span>
         {m.name}
         <span className={`dash-plan-chip ${st.chip}`}>{st.label}</span>
       </h3>
@@ -115,7 +115,7 @@ function GateBanner({ gate }) {
           <span className="dash-gate-chip">{pass ? 'PASS' : 'FAIL'}</span>
         </div>
         <div className="dash-gate-sub">
-          {pieces.length > 0 ? pieces.join(' · ') : (gate.note ?? 'No new EXPLOITED findings, no REFUSED→EXPLOITED regressions.')}
+          {pieces.length > 0 ? pieces.join(' / ') : (gate.note ?? 'No new EXPLOITED findings, no REFUSED->EXPLOITED regressions.')}
           {' '}- same rule the CLI applies via <code>exit(diff)</code>.
         </div>
       </div>
@@ -161,7 +161,7 @@ function FindingRow({ f, acceptedById }) {
       <div className="dash-row-body">
         <span className="dash-row-id">{f.id}</span>
         {f.unknownVerdict && <span className="dash-row-flag">unknown verdict</span>}
-        {accepted && <span className="dash-row-flag dash-row-flag-owner">accepted · owner {accepted.owner}{accepted.bound != null ? `, bound ${accepted.bound}` : ''}</span>}
+        {accepted && <span className="dash-row-flag dash-row-flag-owner">accepted / owner {accepted.owner}{accepted.bound != null ? `, bound ${accepted.bound}` : ''}</span>}
         {f.detail && <span className="dash-row-detail">{f.detail}</span>}
       </div>
     </div>
@@ -175,7 +175,7 @@ function ModuleCards({ groupings, acceptedRisks }) {
       {groupings.map((g) => (
         <div className="card" key={g.module}>
           <h3>
-            <span className="glyph">§</span>
+            <span className="glyph">section </span>
             {g.module}
             <span className="dash-module-count">{g.items.length}</span>
           </h3>
@@ -203,7 +203,7 @@ function CostBars({ cost }) {
             <span className="dash-bar" role="img" aria-label={`${p.ops} of ${max} ops`}>
               <i style={{ width: `${Math.max((p.ops / max) * 100, p.ops > 0 ? 2 : 0)}%` }} />
             </span>
-            <span className="dash-cost-num">{p.ops} ops · {p.requests} req</span>
+            <span className="dash-cost-num">{p.ops} ops / {p.requests} req</span>
           </div>
         ))}
       </div>
@@ -301,7 +301,7 @@ function Loader({ onSnapshot, onParse, onError }) {
           <textarea
             value={pasteText}
             onChange={(e) => setPasteText(e.target.value)}
-            placeholder={'Paste the contents of labs/crashledger.json (or a run blob) here…'}
+            placeholder={'Paste the contents of labs/crashledger.json (or a run blob) here...'}
             rows={8}
             spellCheck="false"
           />
@@ -319,7 +319,7 @@ function Loader({ onSnapshot, onParse, onError }) {
           spellCheck="false"
         />
         <button type="submit" className="btn btn-ghost" disabled={busy}>
-          {busy ? 'Fetching…' : 'Fetch URL'}
+          {busy ? 'Fetching...' : 'Fetch URL'}
         </button>
       </form>
     </div>
@@ -331,7 +331,7 @@ export default function Dashboard() {
     siteUrl: SITE_URL,
     path: '/dashboard',
     title: 'Ledger dashboard | Crashtest',
-    description: 'Render any crashtest ledger or run: the §7 CI gate verdict, findings by module, cost economics - in your browser, against real JSON, no backend.',
+    description: 'Render any crashtest ledger or run: the section 7 CI gate verdict, findings by module, cost economics - in your browser, against real JSON, no backend.',
   })
 
   const [model, setModel] = useState(initialModel)
@@ -366,11 +366,19 @@ export default function Dashboard() {
           </h1>
           <p className="lede">
             Point this dashboard at any <code>labs/crashledger.json</code> (or a run blob from a CI
-            artifact): it normalizes the artifact, computes the §7 gate with the exact functions the CLI
+            artifact): it normalizes the artifact, computes the section 7 gate with the exact functions the CLI
             uses, breaks findings down by module, and draws the cost-economics bars. All of it runs in
             your browser against a JSON the CLI wrote - the CLI collects nothing and makes no calls,
             and neither does the dashboard.
           </p>
+          {model.sourceLabel.startsWith('crashtest dogfood baseline') && (
+            <p className="sub">
+              What you see is not sample data - it is crashtest eating its own cooking: the
+              committed CI ledger of our own hardened demo app, baked into this page at
+              build time. Point the loader below at your own labs/crashledger.json or a CI
+              run blob to see yours instead.
+            </p>
+          )}
           {model.kind === 'plan' ? (
             <>
               <PlanTotals totals={model.totals} sourceLabel={model.sourceLabel} filter={model.filter} />

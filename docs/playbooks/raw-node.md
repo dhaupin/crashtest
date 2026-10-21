@@ -47,7 +47,7 @@ export default {
   both consumer archetypes: `req.on('data'/'end')` listeners **and** async
   iteration - plus `req.setTimeout(ms, cb)` and a working `req.destroy()`.
 - A **`FakeRes`** carrying the Node response verbs your server touches
-  (`writeHead`, `setHeader`, `write`, `end`, `json`, `send`, …).
+  (`writeHead`, `setHeader`, `write`, `end`, `json`, `send`, ...).
 - A bounded settle: the returned Response is collected when the handler
   actually ends (or throws loudly past the timeout - never a phantom 200).
 

@@ -76,7 +76,7 @@ test('run is an honest pending placeholder (exit 2), never silently succeeds', a
   });
 });
 
-test('run --json appends the machine run blob as the LAST stdout line (PRD §14)', async () => {
+test('run --json appends the machine run blob as the LAST stdout line (PRD section 14)', async () => {
   await inRepo('run-json', async () => {
     // Minimal in-process target: one burst route the guards library can hit;
     // every other library's routes stay undeclared (skip-parity rows).
@@ -103,7 +103,7 @@ test('run --json appends the machine run blob as the LAST stdout line (PRD §14)
   });
 });
 
-// --- thread A2: `run --out-dir <dir>` (PRD §14/§15 artifact fan-out) -------
+// --- thread A2: `run --out-dir <dir>` (PRD section 14/section 15 artifact fan-out) -------
 
 test('run --out-dir writes run-blob/ledger/report copies into a distinct dir without touching labs/ rules', async () => {
   await inRepo('outdir', async (dir) => {
@@ -128,7 +128,7 @@ test('run --out-dir writes run-blob/ledger/report copies into a distinct dir wit
     const copiedBlob = JSON.parse(await readFile(join(fanout, 'run-blob.json'), 'utf8'));
     assert.ok(Array.isArray(copiedBlob.rows) && copiedBlob.rows.length > 0);
     // The repo's own labs/ contract files still exist (or, when absent in a
-    // fresh temp repo, remain the sole authoritative path) — out-dir is a
+    // fresh temp repo, remain the sole authoritative path) - out-dir is a
     // COPY surface, never a redirect.
     assert.ok(out.some((l) => l.includes(`artifacts:`)));
     assert.ok(out.some((l) => l.includes(fanout)));
@@ -169,9 +169,9 @@ test('no exceptions escape main() for empty argv (prints help)', async () => {
   });
 });
 
-// --- thread A: `run --expect-baseline <path>` (PRD §14 read-only mode) ------
+// --- thread A: `run --expect-baseline <path>` (PRD section 14 read-only mode) ------
 
-test('run --expect-baseline diffs a given ledger without touching labs/ (missing → exit 2)', async () => {
+test('run --expect-baseline diffs a given ledger without touching labs/ (missing -> exit 2)', async () => {
   await inRepo('expect-missing', async () => {
     await writeFile('crashtest.config.js',
       "export default { routes: { burst: async () => new Response('accepted', { headers: { 'cache-control': 'no-store' } }) }, seed: 7 };\n");
@@ -212,8 +212,8 @@ test('run --expect-baseline: read-only diff, exit rules unchanged, labs/ untouch
       console.log = orig;
     }
     const consoleOut = out.join('\n');
-    assert.match(consoleOut, /read-only diff against external\/ledger\.json · labs\/ untouched/);
-    // Exit rule (§7) unchanged: clean diff → exit 0.
+    assert.match(consoleOut, /read-only diff against external\/ledger\.json \/ labs\/ untouched/);
+    // Exit rule (section 7) unchanged: clean diff -> exit 0.
     assert.equal(process.exitCode, 0);
     // labs/ untouched: no ledger, no report, no labs dir at all.
     let labsExists = false;
@@ -228,7 +228,7 @@ test('run --expect-baseline: read-only diff, exit rules unchanged, labs/ untouch
   });
 });
 
-test('run --expect-baseline enforces the §7 gate: a REFUSED→EXPLOITED regression fails', async () => {
+test('run --expect-baseline enforces the section 7 gate: a REFUSED->EXPLOITED regression fails', async () => {
   await inRepo('expect-regression', async () => {
     // The vulnerable-route draft of the demo target deliberately regresses
     // guards/hygiene-no-store (a surviving 2xx write rows EXPLOITED).
@@ -237,7 +237,7 @@ test('run --expect-baseline enforces the §7 gate: a REFUSED→EXPLOITED regress
       "\n" +
       "export default { routes: { burst: async () => new Response('raw', { status: 200 }) }, seed: 7 };\n");
     // Simpler, deterministic regression: an unconstrained 200-er on a named
-    // burst route flips guards/hygiene-no-store only when it is a *write* —
+    // burst route flips guards/hygiene-no-store only when it is a *write* -
     // so instead drive the EXPLOITED branch directly via the lite target:
     // a leaky-secrets route! Define a route echoing a planted secret; the
     // auth/secret-watermark attack must then EXPLOIT it against any baseline
@@ -255,8 +255,8 @@ test('run --expect-baseline enforces the §7 gate: a REFUSED→EXPLOITED regress
       "  routes: {" +
       "\n" +
       "    // leaky + unhydrated on purpose: a surviving 2xx write with NO explicit" +
-      "\n" + "    // Cache-Control — guards/hygiene-no-store EXPLOITS this deterministically," +
-      "\n" + "    // and the baseline carries its id as previously-REFUSED → §7 gate trips." +
+      "\n" + "    // Cache-Control - guards/hygiene-no-store EXPLOITS this deterministically," +
+      "\n" + "    // and the baseline carries its id as previously-REFUSED -> section 7 gate trips." +
       "\n" + "    enroll: async (ctx) => new Response(JSON.stringify({ secret: ctx.env?.secrets?.CRASHTEST_SECRET ?? null }))," +
       "\n  }," +
       "\n" +
@@ -271,7 +271,7 @@ test('run --expect-baseline enforces the §7 gate: a REFUSED→EXPLOITED regress
     } finally {
       console.log = orig;
     }
-    // The gate MUST fail on a REFUSED→EXPLOITED regression even in read-only mode.
+    // The gate MUST fail on a REFUSED->EXPLOITED regression even in read-only mode.
     assert.equal(process.exitCode, 1, out.join('\n'));
     process.exitCode = 0;
   });

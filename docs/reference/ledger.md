@@ -30,21 +30,21 @@ on every run after:
 }
 ```
 
-`verdict` is one of `REFUSED` · `EXPLOITED` · `BOUNDED`. Bounded records carry
+`verdict` is one of `REFUSED` / `EXPLOITED` / `BOUNDED`. Bounded records carry
 `owner` and `bound` - the named owner of a deliberate, explicit risk. A
 verdict without its owner/bound pair is a finding by definition.
 
 ## hardening.md
 
 The report joins every verdict with its evidence and the run's cost
-economics (`total: 271 backend ops across 510 in-process requests …`) plus a
+economics (`total: 271 backend ops across 510 in-process requests ...`) plus a
 **baseline diff** - `NEW: n` and `REGRESSED: m` lines that are exactly what
 CI reads to gate.
 
 ## How CI reads the frame
 
 The gate is delta-only: `exit 1` on a NEW exploited finding, or on a
-REFUSED→EXPLOITED regression of anything previously held. Old wins can't
+REFUSED->EXPLOITED regression of anything previously held. Old wins can't
 quietly rot; new weakness can't slip in labeled "pre-existing."
 
 ## Reviewing by verdict, not by count
@@ -52,3 +52,9 @@ quietly rot; new weakness can't slip in labeled "pre-existing."
 A tall REFUSED column is good, but the number to care about is 0 next to
 EXPLOITED and 0 next to REGRESSED. [Exit rules](/crashtest/reference/exit-rules)
 spell out exactly how the process encodes that.
+
+For machine eyes, `crashtest run --json` prints the full run blob (`rows[]`,
+`tally`, `cost`) as the last stdout line, and `run --out-dir <dir>` writes that
+blob plus ledger and report copies to a directory instead. The
+[dashboard](https://crashtest.creadev.org/dashboard) renders either shape -
+the gate it shows is the exact function the CLI calls.

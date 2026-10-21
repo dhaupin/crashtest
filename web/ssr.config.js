@@ -1,5 +1,5 @@
 /**
- * ssr.config.js — crashtest site identity + route map.
+ * ssr.config.js - crashtest site identity + route map.
  * Fills the prestruct engine (inject-brand + prerender, via `prestruct build`)
  * with the site's SEO tags and route list.
  */
@@ -17,8 +17,8 @@ export default {
       priority: '1.0',
       changefreq: 'monthly',
       meta: {
-        title: 'Crashtest — adversarial QA for agent-built apps',
-        description: 'Crashtest drives a seeded, in-process attack suite against real server handlers and produces a hardening ledger that CI fails on regressions — no sockets, no redeploy loop.',
+        title: 'Crashtest - adversarial QA for agent-built apps',
+        description: 'Crashtest drives a seeded, in-process attack suite against real server handlers and produces a hardening ledger that CI fails on regressions - no sockets, no redeploy loop.',
       },
     },
     {
@@ -27,7 +27,7 @@ export default {
       changefreq: 'monthly',
       meta: {
         title: 'Attack catalog | Crashtest',
-        description: 'Every shipped crashtest scenario module and attack: auth spoof matrices, prototype pollution, burst walls, id-collision aliasing, volume economics — and real findings they produced.',
+        description: 'Every shipped crashtest scenario module and attack: auth spoof matrices, prototype pollution, burst walls, id-collision aliasing, volume economics - and real findings they produced.',
       },
     },
     {
@@ -36,7 +36,7 @@ export default {
       changefreq: 'weekly',
       meta: {
         title: 'Ledger dashboard | Crashtest',
-        description: 'Render any crashtest ledger or run: the §7 CI gate verdict, findings by module, cost economics — computed in your browser with the CLI\'s own rule, no backend.',
+        description: 'Render any crashtest ledger or run: the section 7 CI gate verdict, findings by module, cost economics - computed in your browser with the CLI\'s own rule, no backend.',
       },
     },
     {

@@ -4,7 +4,7 @@ import usePageMeta from '../hooks/usePageMeta.js'
 const FAQS = [
   {
     q: 'What does crashtest actually do?',
-    a: <>It fires seeded attacks (identity spoofing, prototype pollution, burst floods, credential stuffing, cost-amplification probes - 13 across 5 modules) at your <strong>real</strong> route handlers inside your own Node process. Each attack returns one verdict: REFUSED (your defense held), EXPLOITED (you got hit), or BOUNDED (a known risk with an owner and a bound). Everything lands in a machine ledger your CI diffs against.</>,
+    a: <>It fires seeded attacks (identity spoofing, prototype pollution, burst floods, credential stuffing, error-taxonomy probes - 15 across 6 modules) at your <strong>real</strong> route handlers inside your own Node process. Each attack returns one verdict: REFUSED (your defense held), EXPLOITED (you got hit), or BOUNDED (a known risk with an owner and a bound). Everything lands in a machine ledger your CI diffs against.</>,
   },
   {
     q: 'Is it safe to run on my real codebase?',

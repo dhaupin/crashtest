@@ -7,7 +7,7 @@ docs/_site/
 packs/local/
 
 # Environment files never travel with the repo (defense-in-depth: the CLI
-# itself reads no .env secrets — they only exist in maintainer sandboxes).
+# itself reads no .env secrets - they only exist in maintainer sandboxes).
 .env
 .env.*
 !.env.example

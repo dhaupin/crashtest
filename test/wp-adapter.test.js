@@ -1,4 +1,4 @@
-// WP adapter unit tests — the pure envelope functions; no WP install needed
+// WP adapter unit tests - the pure envelope functions; no WP install needed
 // (the subprocess path needs a real WordPress root, so the e2e split lives
 // in the khf-wp run root).
 
@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { ctRequestToEnvelope, ctReplyToResponse } from '../src/adapters/wordpress.js';
 
 const req = (method, url, { headers = {}, body = '' } = {}) =>
-  // WHATWG Requests: GET/HEAD may never carry a body — omit it entirely.
+  // WHATWG Requests: GET/HEAD may never carry a body - omit it entirely.
   method === 'GET' || method === 'HEAD'
     ? new Request(url, { method, headers })
     : new Request(url, { method, headers, body });

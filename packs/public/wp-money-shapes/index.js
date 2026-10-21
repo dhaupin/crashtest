@@ -1,29 +1,29 @@
-// packs/public/wp-money-shapes/index.js — plugin-agnostic money-flow
+// packs/public/wp-money-shapes/index.js - plugin-agnostic money-flow
 // shapes for WordPress targets: every vocabulary item (post type, meta
 // keys, action names, paced-redirect hints) comes from the TARGET's own
 // config, never from one plugin's lore. The three shapes are the
 // fundamental patterns any payment/registration surface can be attacked
 // with:
 //
-//   wp-write-volley  — anonymous writes with payment intent; must not stick
-//   wp-txn-replay    — one paid receipt must not buy a SECOND registration
-//   wp-gate-burst    — 15 rapid flooder posts; the pacing wall must trip
+//   wp-write-volley  - anonymous writes with payment intent; must not stick
+//   wp-txn-replay    - one paid receipt must not buy a SECOND registration
+//   wp-gate-burst    - 15 rapid flooder posts; the pacing wall must trip
 //
 // Host run roots rebind these shapes to their own vocabulary in
 // `packs/local/` (see docs/playbooks/wordpress.md): they import this
 // module, pass the target's vocab as `ctx.config['wp-money-shapes']` via
-// a thin wrapper scenario — the khf/fm packs are these engines, renamed
+// a thin wrapper scenario - the khf/fm packs are these engines, renamed
 // and pinned. Missing config keys degrade to a REFUSED skip (parity with
 // declared skip rows), never a false positive (AGENTS.md rule 5).
 //
-// Uses only harness.wpState (WP adapter speak — see docs/playbooks/
+// Uses only harness.wpState (WP adapter speak - see docs/playbooks/
 // wordpress.md for the per-shape allowlist).
 export default {
   name: 'wp-money-shapes',
   description: 'Plugin-agnostic WP payment-flow shapes (write-volley / txn-replay / gate-burst) for any install exposing a payment or registration flow',
   attacks: [{
     name: 'wp-write-volley',
-    description: 'six anonymous writes with payment intent — surface must refuse them all',
+    description: 'six anonymous writes with payment intent - surface must refuse them all',
     async run(harness, ctx) {
       const k = vocab(ctx);
       if (!k) return refusedSkip();
@@ -48,21 +48,21 @@ export default {
     },
   }, {
     name: 'wp-txn-replay',
-    description: 'one planted paid receipt — the SAME payment callback must not mint a second paid registration',
+    description: 'one planted paid receipt - the SAME payment callback must not mint a second paid registration',
     async run(harness, ctx) {
       const k = vocab(ctx);
       if (!k) return refusedSkip();
       const mark = 'ctreplay' + (ctx.seed % 10000);
       // Plant one paid receipt under a fixture receiver email (restore
-      // whatever option we take — standing rule: restore what you touch).
+      // whatever option we take - standing rule: restore what you touch).
       const savedEmail = await harness.wpState({ kind: 'state', op: 'option', key: k.optionKey });
       await harness.wpState({ kind: 'state', op: 'option', key: k.optionKey, value: `${mark}@ct-fixture.example.org` });
       const seed1 = await harness.wpState({ kind: 'call', op: 'insert-post', postType: k.postType, payload: { title: `ct-fixture ${mark}` } });
       const rid = seedId(seed1);
-      if (!rid) return refusedSkip('seed insert failed — arm the seeder allowlist');
+      if (!rid) return refusedSkip('seed insert failed - arm the seeder allowlist');
       await harness.wpState({ kind: 'state', op: 'post-meta', id: rid, key: k.metaPaid, value: 'paid' });
       await harness.wpState({ kind: 'state', op: 'post-meta', id: rid, key: k.metaEmail, value: `${mark}@ct-fixture.example.org` });
-      // Replay: SAME receipt id, second run — a second paid-like record is a double.
+      // Replay: SAME receipt id, second run - a second paid-like record is a double.
       let doubled = 0;
       for (let i = 0; i < 4; i++) {
         const rec = await harness.wpState({ kind: 'post', payload: writeBody(k, `${mark}#${i}`) });
@@ -78,7 +78,7 @@ export default {
     },
   }, {
     name: 'wp-gate-burst',
-    description: '15 rapid flooder posts with a REAL nonce — the pacing wall must trip at least once with a clean denial',
+    description: '15 rapid flooder posts with a REAL nonce - the pacing wall must trip at least once with a clean denial',
     async run(harness, ctx) {
       const k = vocab(ctx);
       if (!k) return refusedSkip();
@@ -87,7 +87,7 @@ export default {
       // REAL nonce is minted through the allowlisted seeder first.
       const nonce = await harness.wpState({ kind: 'call', fn: 'wp_create_nonce', args: [k.nonceAction] });
       const realNonce = String(nonce.body ?? '');
-      if (!realNonce) return refusedSkip('nonce seeder failed — arm the wp_create_nonce allowlist');
+      if (!realNonce) return refusedSkip('nonce seeder failed - arm the wp_create_nonce allowlist');
       let fatals = 0; let paced = 0; let other = 0;
       for (let i = 0; i < 15; i++) {
         const rec = await harness.wpState({
@@ -107,7 +107,7 @@ export default {
   }],
 };
 
-// — helpers —
+// - helpers -
 function vocab(ctx) {
   const cfg = ctx?.config?.['wp-money-shapes'] ?? ctx?.config?.moduleCtx?.['wp-money-shapes'] ?? null;
   if (typeof cfg !== 'object' || cfg === null) return null;
@@ -118,7 +118,7 @@ function vocab(ctx) {
 }
 
 function refusedSkip(why) {
-  return { verdict: 'REFUSED', skip: true, detail: `wp-money-shapes not armed on this target${why ? ' — ' + why : '. Declare the moduleCtx vocabulary (postType, metaPaid, metaEmail, optionKey, action, nonceAction, pacedHints) to arm'}` };
+  return { verdict: 'REFUSED', skip: true, detail: `wp-money-shapes not armed on this target${why ? ' - ' + why : '. Declare the moduleCtx vocabulary (postType, metaPaid, metaEmail, optionKey, action, nonceAction, pacedHints) to arm'}` };
 }
 
 function writeBody(k, marker) {

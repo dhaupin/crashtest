@@ -1,4 +1,4 @@
-// v0.3 — the ecosystem: plugins (importable scenario modules) + presets.
+// v0.3 - the ecosystem: plugins (importable scenario modules) + presets.
 // Every surface here obeys the same two rules as packs:
 //   house rule 3: broken plugins/presets fail loudly, never silently
 //   house rule 7: detection names repo EVIDENCE, never builder-name fiction
@@ -78,7 +78,7 @@ test('plugins: junk shapes fail loudly (string entry, non-string array item)', a
   await assert.rejects(loadPlugins(['./shims/canary.js', ''], dir), /non-empty strings/);
 });
 
-test('plugins: configDir points at the config file’s dir (resolution root)', (t) => {
+test('plugins: configDir points at the config file\'s dir (resolution root)', (t) => {
   assert.equal(configDir('/a/b/crashtest.config.js'), '/a/b');
 });
 
@@ -91,7 +91,7 @@ test('plugins: cmdRun honors the plugins knob end-to-end (canary lands in the le
   try {
     await writeFile(join(work, 'crashtest.config.js'), [
       "import { buildRoutes, ENV_SPEC } from 'dummy-does-not-exist';",
-    ].join('\n')); // placeholder — replaced below with real fixture imports
+    ].join('\n')); // placeholder - replaced below with real fixture imports
   } finally {
     process.chdir(prevCwd);
   }
@@ -110,8 +110,8 @@ test('plugins: cmdRun honors the plugins knob end-to-end (canary lands in the le
     `};`,
     ``,
   ].join('\n'));
-  // The plugin module must ALSO fail the baseline gate silently — its REFUSED
-  // verdict adds an attack the ledger's baseline doesn't know; per §7 a NEW
+  // The plugin module must ALSO fail the baseline gate silently - its REFUSED
+  // verdict adds an attack the ledger's baseline doesn't know; per section 7 a NEW
   // REFUSED row is not a failure (only new EXPLOITED / regressed REFUSED are).
   process.chdir(work);
   const { main, LEDGER_PATH } = await import('../src/cli.js');
@@ -178,7 +178,7 @@ test('presets: lovable TanStack Start marker detected, wired-not-automatable war
   assert.ok(out.warnings.some((w) => w.includes('not-yet-automatable') || w.includes('TanStack')));
 });
 
-test('presets: replit reads .replit run command; no markers → clean refusal', async () => {
+test('presets: replit reads .replit run command; no markers -> clean refusal', async () => {
   const withFile = await tempRepo({ '.replit': 'run = "npm run dev"\nentrypoint = "index.jsx"\n' });
   const out = await scaffoldPreset('replit', withFile);
   assert.equal(out.detection.replit.runCommand, 'npm run dev');
@@ -327,7 +327,7 @@ test('pack: bundles resolve relative to the PACK dir (self-contained pack ships 
   const repo = await mkdtemp(join(tmpdir(), 'ct-packselfcontained-'));
   const packDir = join(repo, 'packs', 'local', 'self-contained');
   await mkdir(join(packDir), { recursive: true });
-  // NOTE: file lives in the pack, NOT at repo/plugins/ — pass proves pack-dir
+  // NOTE: file lives in the pack, NOT at repo/plugins/ - pass proves pack-dir
   // resolution (not repo-root/cwd resolution).
   await writeFile(join(packDir, 'pack.json'), JSON.stringify({
     schemaVersion: 1,

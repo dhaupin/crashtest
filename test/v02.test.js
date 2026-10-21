@@ -1,6 +1,6 @@
-// v0.2 — adapters + state/volume libraries.
+// v0.2 - adapters + state/volume libraries.
 // Adapter double strategy: the adapters wrap *dispatch surfaces* (.request /
-// .handle / .inject), not framework internals — so we ship exact-shape mini
+// .handle / .inject), not framework internals - so we ship exact-shape mini
 // doubles here (like supertest does) and validate against REAL apps in the
 // 0.2 adoption wave (gistory adapter, hono playground).
 import { test } from 'node:test';
@@ -19,7 +19,7 @@ const envSpec = {
 };
 
 // ---- mini doubles ---------------------------------------------------------
-// mini hono: store(path, handler) → request(input, init) dispatches by path
+// mini hono: store(path, handler) -> request(input, init) dispatches by path
 function miniHono() {
   const routes = new Map();
   return {
@@ -28,7 +28,7 @@ function miniHono() {
       const url = new URL(req.url);
       const handler = routes.get(`${req.method} ${url.pathname}`);
       if (!handler) return new Response('not found', { status: 404 });
-      // hono handlers: (c) => Response — c.request / c.env styled; our doubles
+      // hono handlers: (c) => Response - c.request / c.env styled; our doubles
       // only need the request surface for these tests.
       return Promise.resolve(handler({ req, url })).then(r => r ?? new Response(null, { status: 500 }));
     },
@@ -36,7 +36,7 @@ function miniHono() {
   };
 }
 
-// mini express: route(method, path, handler) → handle(nodeReq, res) dispatches
+// mini express: route(method, path, handler) -> handle(nodeReq, res) dispatches
 function miniExpress() {
   const routes = new Map();
   return {
@@ -52,7 +52,7 @@ function miniExpress() {
   };
 }
 
-// mini fastify: inject({method,url,payload,headers}) → {statusCode, body, headers}
+// mini fastify: inject({method,url,payload,headers}) -> {statusCode, body, headers}
 function miniFastify() {
   const routes = new Map();
   return {
@@ -178,7 +178,7 @@ test('state/id-collision-alias: second owner conflicts (hardened), silent overwr
   const [state] = (await loadScenarios()).map(l => l.module).filter(m => m.name === 'state');
   const attack = state.attacks.find(a => a.name === 'id-collision-alias');
 
-  const hardened = makeDeviceRoutes({ hardened: true }); // both owners can still enroll → 409 on second
+  const hardened = makeDeviceRoutes({ hardened: true }); // both owners can still enroll -> 409 on second
   const r1 = await attack.run(hardened, { key: 'coll-1' });
   assert.equal(r1.verdict, 'REFUSED', r1.detail);
 
@@ -201,7 +201,7 @@ test('volume: stuffing refrains on walls, amplification flags uneconomical handl
   const cheap = buildHarness({
     enroll: async ({ request, env }) => {
       const body = await request.json();
-      // 2 ops/request (1 statement, 1 row) → well under amplification bound
+      // 2 ops/request (1 statement, 1 row) -> well under amplification bound
       try {
         await env.DB.prepare('INSERT OR IGNORE INTO devices (key, owner) VALUES (?, ?)').bind(body.key, body.owner).run();
         return Response.json({ ok: true }, { headers: { 'cache-control': 'no-store' } });
@@ -220,7 +220,7 @@ test('volume: stuffing refrains on walls, amplification flags uneconomical handl
     enroll: async ({ request, env }) => {
       const body = await request.json();
       await env.DB.prepare('SELECT * FROM devices WHERE owner = ?').bind(body.owner).all(); // scan = 1, rows = N
-      await env.DB.prepare('SELECT * FROM devices').all();        // more scan rows → amplifies
+      await env.DB.prepare('SELECT * FROM devices').all();        // more scan rows -> amplifies
       return Response.json({ ok: true }, { headers: { 'cache-control': 'no-store' } });
     },
   }, { env: { d1: { DB: { tables: { devices: { rows: Array.from({ length: 30 }, (_, i) => ({ id: i + 1, key: `k${i}`, owner: 'rook' })) } } } } } });
@@ -254,7 +254,7 @@ test('volume/storage-fill: fills without breaks are REFUSED with growth numbers;
   assert.equal(skip.skipped, true);
 });
 
-test('adapters/dispatchNodeRequest: raw server gets the event surface (on data/end, setTimeout, destroy) — vant-shape', async () => {
+test('adapters/dispatchNodeRequest: raw server gets the event surface (on data/end, setTimeout, destroy) - vant-shape', async () => {
   const { dispatchNodeRequest } = await import('../src/adapters/express.js');
   // Event-style raw handler: collects via req.on, guards via req.setTimeout,
   // cleans up via req.destroy() (the old surface threw on all three).
@@ -284,7 +284,7 @@ test('adapters/dispatchNodeRequest: raw server gets the event surface (on data/e
 test('scenarios/state id-collision-alias: missing DB binding REFUSES instead of crashing', async () => {
   const [state] = (await loadScenarios()).map(l => l.module).filter(m => m.name === 'state');
   const alias = state.attacks.find(a => a.name === 'id-collision-alias');
-  // Harness WITHOUT any d1 binding — the crash case the fix closes.
+  // Harness WITHOUT any d1 binding - the crash case the fix closes.
   const h = buildHarness({ enroll: async () => Response.json({ ok: true }) }, { env: {} });
   const r = await alias.run(h, { route: 'enroll' });
   assert.equal(r.verdict, 'REFUSED', r.detail);

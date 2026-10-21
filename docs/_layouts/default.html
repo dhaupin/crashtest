@@ -1,5 +1,5 @@
 ---
-# Jekyll layout for Crashtest docs — same shape as vant's docs.creadev.org/vant:
+# Jekyll layout for Crashtest docs - same shape as vant's docs.creadev.org/vant:
 # fixed header (search trigger + hamburger), slide-out mobile sidebar, and a
 # pagefind modal search (Cmd+K). Search requires the pagefind index the docs
 # workflow builds (see .github/workflows/docs.yml); without it the modal
@@ -10,7 +10,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ page.title | default: "Crashtest Docs" }} · Crashtest</title>
+    <title>{{ page.title | default: "Crashtest Docs" }} / Crashtest</title>
     <meta name="description" content="{{ page.description | default: 'Crashtest: seeded, in-process adversarial QA for agent-built apps.' }}">
     <link rel="canonical" href="{{ page.url | absolute_url | replace: '.html', '' }}">
     {% if page.noindex %}<meta name="robots" content="noindex">{% endif %}
@@ -24,7 +24,7 @@
     <style>
         :root {
             --paper: #16130f; --surface: #100d0a; --raised: #201912;
-            --ink: #ece3d4; --ink-soft: #a3968a; --ink-light: #94867a; /* was #7a6f63: 3.78:1 on the footer bg fails WCAG AA (4.5:1 needed) — #94867a clears it at 5.25:1 (Lighthouse color-contrast) */
+            --ink: #ece3d4; --ink-soft: #a3968a; --ink-light: #94867a; /* was #7a6f63: 3.78:1 on the footer bg fails WCAG AA (4.5:1 needed) - #94867a clears it at 5.25:1 (Lighthouse color-contrast) */
             --accent: #dfa14f; --moss: #7db691; --err: #e07752;
             --line: #3a2e21; --code-bg: #14100c;
             --header-height: 54px; --sidebar-width: 240px;
@@ -177,10 +177,10 @@
     <main class="main">
         {{ content }}
         <div class="doc-footer">
-            Crashtest is <a href="https://github.com/dhaupin/crashtest">open source</a> ·
-            site <a href="https://crashtest.creadev.org/">crashtest.creadev.org</a> ·
-            <a href="https://crashtest.creadev.org/terms">terms</a> ·
-            <a href="https://crashtest.creadev.org/privacy">privacy</a> ·
+            Crashtest is <a href="https://github.com/dhaupin/crashtest">open source</a> -
+            site <a href="https://crashtest.creadev.org/">crashtest.creadev.org</a> -
+            <a href="https://crashtest.creadev.org/terms">terms</a> -
+            <a href="https://crashtest.creadev.org/privacy">privacy</a> -
             made by <a href="https://creadev.org" target="_blank">Rook @ Creadev.org</a>
         </div>
     </main>
@@ -190,10 +190,10 @@
             <input type="text" class="search-input" id="searchInput" placeholder="Search docs..." autocomplete="off">
             <div class="search-results" id="searchResults"></div>
         </div>
-        <button class="search-close" id="searchClose" aria-label="Close search">×</button>
+        <button class="search-close" id="searchClose" aria-label="Close search">x</button>
     </div>
 
-    <!-- pagefind loads via the dynamic await import() in doSearch() below — a
+    <!-- pagefind loads via the dynamic await import() in doSearch() below - a
          static <script src> classic tag throws "Cannot use 'import.meta' outside
          a module" (pagefind 1.5.x contains import.meta) on every page. -->
     <script>
@@ -236,7 +236,7 @@
             }
             searchResults.innerHTML = html;
         } catch (e) {
-            searchResults.innerHTML = '<div class="search-empty">Search index not available on this URL — run the docs deploy.</div>';
+            searchResults.innerHTML = '<div class="search-empty">Search index not available on this URL - run the docs deploy.</div>';
         }
     }
 

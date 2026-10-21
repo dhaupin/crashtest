@@ -56,10 +56,10 @@ the same rule as every other surface.
 
 ```text
 packs/
-├── public/          ← tracked: shipped examples + shared packs
-│   └── my-pack/
-└── local/           ← gitignored: machine-private packs
-    └── my-private-pack/
++-- public/          <- tracked: shipped examples + shared packs
+|   `-- my-pack/
+`-- local/           <- gitignored: machine-private packs
+    `-- my-private-pack/
 ```
 
 `crashtest run` discovers BOTH visibility dirs under `packs/` at the run
@@ -83,7 +83,7 @@ discovers `packs/` at the **run root** - the repo whose
 any directory on disk. The natural shapes:
 
 ```js
-// crashtest.config.js — in the run root, attacking ANOTHER repo's handlers
+// crashtest.config.js - in the run root, attacking ANOTHER repo's handlers
 import { buildRoutes, ENV_SPEC } from '../target-repo/src/app.js';
 
 export default {
@@ -141,7 +141,7 @@ reality directly - tracked vs machine-private.
   `"version"`; `npx crashtest packs` shows both inline and
   `npx crashtest packs --json` emits the machine inventory (last stdout
   line) with them. The REGISTRY LOOKUP stays in npm's own tools on purpose -
-  the CLI is a drone that never dials out (PRD §14): do the join in your CI
+  the CLI is a drone that never dials out (PRD section 14): do the join in your CI
   script, e.g.
   `npx crashtest packs --json` paired with
   `npm view @you/crashtest-pack version`, and fail the step on drift.
@@ -212,10 +212,10 @@ Inventory any run root with:
 
 ```bash
 npx crashtest packs
-# local @0.0.1 - vant-core: 1 attacks from local/vant-core · armedBy moduleCtx['vant-core']
+# local @0.0.1 - vant-core: 1 attacks from local/vant-core / armedBy moduleCtx['vant-core']
 #         TODO: one line on what vant-core attacks
 
-npx crashtest packs add vant-core          # → packs/local/vant-core/ (gitignored)
-npx crashtest packs add my-shapes --public # → packs/public/my-shapes/ (tracked)
+npx crashtest packs add vant-core          # -> packs/local/vant-core/ (gitignored)
+npx crashtest packs add my-shapes --public # -> packs/public/my-shapes/ (tracked)
 npx crashtest packs --json                 # machine inventory (LAST stdout line) - pair with `npm view <pkg> version` in CI for version joins
 ```

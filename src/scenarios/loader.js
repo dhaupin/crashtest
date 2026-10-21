@@ -1,7 +1,7 @@
-// S1.2 — scenario loader. Discovers scenario modules from
+// S1.2 - scenario loader. Discovers scenario modules from
 //   1. built-ins: src/scenarios/library (ships with crashtest)
 //   2. user dirs: any directory passed in (a "module" is just a dir of ESM files)
-// Each "*.js" default-export is validated via the contract — a broken module
+// Each "*.js" default-export is validated via the contract - a broken module
 // blocks the whole run loudly (PRD principle 4: FAILING LOUD beats silent gaps).
 
 import { readdir } from 'node:fs/promises';
@@ -48,15 +48,3 @@ export async function loadScenarios(userDirs = []) {
 }
 
 export { attackIds };
-
-/** Convenience: { module/attack: async ctx → record } flat key for campaigns. */
-export async function flatAttackIndex(userDirs) {
-  const scenarios = await loadScenarios(userDirs);
-  const index = new Map();
-  for (const { module } of scenarios) {
-    for (const attack of module.attacks) {
-      index.set(`${module.name}/${attack.name}`, { module, attack });
-    }
-  }
-  return index;
-}

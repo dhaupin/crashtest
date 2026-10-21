@@ -1,6 +1,6 @@
-// S1.2 — interleaved additive lagged Fibonacci RNG (Node internal-style).
-// Deterministic: same seed → same sequence on any platform (PRD principle 3).
-// No deps; pure `Math.imul` math. Not crypto — campaign fuzz never needs
+// S1.2 - interleaved additive lagged Fibonacci RNG (Node internal-style).
+// Deterministic: same seed -> same sequence on any platform (PRD principle 3).
+// No deps; pure `Math.imul` math. Not crypto - campaign fuzz never needs
 // unpredictability, it needs reproducibility.
 
 export class Rng {
@@ -35,7 +35,7 @@ export class Rng {
     return list[this.next() % list.length];
   }
 
-  /** Fisher–Yates shuffle (returns a copy; deterministic). */
+  /** Fisher-Yates shuffle (returns a copy; deterministic). */
   shuffle(list) {
     const out = [...list];
     for (let i = out.length - 1; i > 0; i--) {
@@ -50,7 +50,7 @@ export class Rng {
   }
 }
 
-/** Compound seed helper: derive per-attack sub-seeds (name → uint mix). */
+/** Compound seed helper: derive per-attack sub-seeds (name -> uint mix). */
 export function mixSpreadSeeds(baseSeed, name) {
   let h = (baseSeed >>> 0) ^ 0x9e3779b9;
   for (let i = 0; i < name.length; i++) {

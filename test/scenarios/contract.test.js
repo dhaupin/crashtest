@@ -1,4 +1,4 @@
-// S1.2 — contract + loader + RNG tests.
+// S1.2 - contract + loader + RNG tests.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -59,7 +59,7 @@ test('built-in scenario library loads and validates', async () => {
   assert.ok(names.includes('input'));
   const input = loaded.find(l => l.module.name === 'input').module;
   assert.ok(input.attacks.length >= 3);
-  // Every loaded module already passed validation inside the loader — belt
+  // Every loaded module already passed validation inside the loader - belt
   // and braces: assert ids well-formed.
   for (const l of loaded) {
     for (const id of attackIds(l.module)) assert.match(id, /\/[a-z0-9-]+$/);
@@ -67,12 +67,12 @@ test('built-in scenario library loads and validates', async () => {
 });
 
 test('rng determinism: same seed, same sequence; mixed seeds differ per name', () => {
-  // Draw independent sequences per seed, compare whole sequences — no
+  // Draw independent sequences per seed, compare whole sequences - no
   // double-advance aliasing between the two compared generators.
   const draws = (seed, n) => { const r = new Rng(seed); return Array.from({ length: n }, () => r.next()); };
   const seqA = draws(42, 100);
-  assert.deepEqual(seqA, draws(42, 100)); // same seed → identical stream
-  assert.notDeepEqual(seqA, draws(43, 100)); // different seed → diverges (overwhelming odds)
+  assert.deepEqual(seqA, draws(42, 100)); // same seed -> identical stream
+  assert.notDeepEqual(seqA, draws(43, 100)); // different seed -> diverges (overwhelming odds)
 
   const r1 = new Rng(mixSpreadSeeds(7, 'input/never-fail-mutations'));
   const r2 = new Rng(mixSpreadSeeds(7, 'input/never-fail-mutations'));

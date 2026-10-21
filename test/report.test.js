@@ -1,4 +1,4 @@
-// S1.4 — the CI contract matrix. Exit non-zero ONLY on new EXPLOITED or
+// S1.4 - the CI contract matrix. Exit non-zero ONLY on new EXPLOITED or
 // regressions of previously-REFUSED attacks; accepted risks never re-alarm.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -36,7 +36,7 @@ const boundedRun = mkRun([
   { id: 'a/x', verdict: 'REFUSED', detail: 'held' },
 ]);
 
-test('exit rules: fresh → fail on new EXPLOITED', () => {
+test('exit rules: fresh -> fail on new EXPLOITED', () => {
   const ledger = buildLedger(cleanRun);
   const diff = diffAgainstBaseline(newExploitRun, ledger);
   assert.equal(diff.newExploited.map(r => r.id).join(','), 'c/z');
@@ -74,7 +74,7 @@ test('exit rules: an accepted risk WITHOUT a bound is a finding', () => {
   assert.throws(() => bounded('dhaupin', '', 'no bound'), /owner \+ bound/);
   const acceptedLedger = {
     schemaVersion: 1, generatedAt: 'x', findings: [],
-    acceptedRisks: [{ id: 'c/z', owner: 'dhaupin' }], // no bound → not counted as accepted
+    acceptedRisks: [{ id: 'c/z', owner: 'dhaupin' }], // no bound -> not counted as accepted
     baseline: ['a/x'],
   };
   const diff = diffAgainstBaseline(newExploitRun, acceptedLedger);
@@ -97,7 +97,7 @@ test('markdown report carries findings, cost economics, baseline diff', () => {
   assert.match(md, /NEW: 1/);
 });
 
-test('end-to-end dogfood: fresh run of the HARDENED fixture → exitCode 0', async () => {
+test('end-to-end dogfood: fresh run of the HARDENED fixture -> exitCode 0', async () => {
   const scenarios = await loadScenarios();
   const harness = buildHarness({
     enroll: async ({ request, env }) => {

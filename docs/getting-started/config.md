@@ -16,13 +16,13 @@ modules - they are your code, loaded from your repo.
 export default {
   baseUrl: 'https://dogfood.myapp.local', // base for synthesized requests
 
-  // EITHER handlers (name => fn)…
+  // EITHER handlers (name => fn)...
   routes: {
     enroll: async ({ request, env, params, data }) => Response,
     device: deviceHandler,
   },
 
-  // …OR a framework/raw app via adapters (default route name: 'app')
+  // ...OR a framework/raw app via adapters (default route name: 'app')
   adapters: {
     hono:    honoApp,                  // via app.request()
     express: expressApp,               // via app.handle(); real ServerResponse

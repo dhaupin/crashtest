@@ -17,10 +17,13 @@ formalized (see the [WordPress playbook](/crashtest/playbooks/wordpress))
 
 ```text
 ~/mytarget-crashrun/
-├── crashtest.config.js   # the target declaration (points AT the target)
-├── scenarios/            # your attack packs for this target (optional)
-└── labs/                 # THIS run's ledger + report land here
++-- crashtest.config.js   # the target declaration (points AT the target)
++-- scenarios/            # your attack packs for this target (optional)
+`-- labs/                 # THIS run's ledger + report land here
 ```
+
+The config that runs the whole run root (nothing installs into the target
+repo - the config lives in the run root and imports the target by path):
 
 ```js
 // crashtest.config.js - nothing installs into the target repo
@@ -32,16 +35,18 @@ export default {
 };
 ```
 
+Then run the attack from the run root itself:
+
 ```bash
 cd ~/mytarget-crashrun
 npx crashtest run
-# → prints verdicts live; writes labs/hardening.md + labs/crashledger.json
-# → exit 0 unless a NEW EXPLOITED finding or a REFUSED→EXPLOITED regression
+# -> prints verdicts live; writes labs/hardening.md + labs/crashledger.json
+# -> exit 0 unless a NEW EXPLOITED finding or a REFUSED->EXPLOITED regression
 ```
 
 The target repo stays untouched - commit `labs/` from the run root (or a
 dedicated baseline repo) instead. Route names the scenario vocabulary needs
-(`enroll`, `burst`, …) map onto real paths with `routeAliases` - see
+(`enroll`, `burst`, ...) map onto real paths with `routeAliases` - see
 [Configuration](/crashtest/getting-started/config).
 
 ## 2. Framework adapter recipe: raw-node servers (van-style)
@@ -65,7 +70,7 @@ export default {
 };
 ```
 
-A real run of exactly this shape against the vant Server (its VAF → QoS →
+A real run of exactly this shape against the vant Server (its VAF -> QoS ->
 auth chain in-process) held 13/13 REFUSED - burst walls carried
 `Retry-After` on all 50 throttles, oversized bodies got honest 413s, and
 credential stuffing was refused 60/60. Note: `name` in the node spec is
@@ -98,13 +103,21 @@ Then paste `run.json` into the dashboard (or host it and let the dashboard
 fetch the raw URL) - the gate banner, module cards, and cost bars render
 from the same artifact CI tripped on. One artifact, one truth.
 
+For service-style targets the artifact capture is built into the runner:
+`crashtest run --out-dir <dir>` writes `run-blob.json`, `crashledger.json`,
+and `hardening.md` copies into a distinct directory (the target repo's
+`labs/` stays untouched at the repo root; the flag refuses the repo root
+itself). Same gate artifacts, no `tee`/`tail` plumbing - pick the one that
+fits the job: `--json` when stdout is the transport, `--out-dir` when a
+directory of artifacts is.
+
 ## 4. Where the platform thread lives
 
-The run root + artifact contract is the seed of PRD **§14 - crashtest as a
+The run root + artifact contract is the seed of PRD **section 14 - crashtest as a
 CI runner** (a greptile-style review lane: hosted run roots, org dashboards,
 ledger-bound sign-off UX). The CLI stays the zero-dep drone engine; the
 service reads the artifacts, it never becomes a runtime. Read the full
-thread in [`labs/prd-crashtest.md`](https://github.com/dhaupin/crashtest/blob/main/labs/prd-crashtest.md) §14.
+thread in [`labs/prd-crashtest.md`](https://github.com/dhaupin/crashtest/blob/main/labs/prd-crashtest.md) section 14.
 
 ## Rules that keep run roots honest
 
