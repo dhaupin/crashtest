@@ -70,6 +70,23 @@
 
 ## Log
 
+- [2026-10-21 ~20Z] **the project brain goes portable: `horcrux/` lands
+  (folder + README + the sealed crashtest brain stone). A vant install
+  exists outside the repo (~/vant) and holds the crashtest dev-brain:
+  12 public files (identity / goals / structure / state + command
+  receipts / lessons / errors / terms / workflow / pins inventory /
+  boot / onboarding) + private working notes - OSS-readable by design,
+  zero secrets. Sealed with `vant horcrux create` into
+  `horcrux/crashtest-p_quillstone-9fold.svg` (~866KB steganography
+  stone; password lives in the filename per vant's <agent>-p_<pw>
+  convention, deliberately - the brain carries no secrets). RESTORE
+  PROVEN end-to-end: a virgin vant clone restored '13 files to
+  crashtest (both scopes)' byte-identical to the live brain (diff = 0;
+  the vant default brain 0-restored as already-identical). Repo README
+  in /horcrux covers the folder, vant (with links), the brain's
+  content, the restore recipe, and maintenance. lint:docs 0 (139 files
+  scanned, stone included), check 0.**
+
 - [2026-10-21 ~20Z] **v1.0.0 version walk + dashboard field feedback.
   Dashboard: the loader/actions block (dogfood baseline / paste /
   upload / fetch) moved OUT of the hero into its own section BETWEEN
