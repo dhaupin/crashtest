@@ -91,12 +91,13 @@ export default function Attacks() {
         <p className="field-report">
           Field-report from the target we trust least: our own code. This repo
           dogfoods itself in CI - runs we did on ourselves. The committed ledger
-          holds <span className="ok">13 REFUSED findings</span> on our own hardened demo
+          holds <span className="ok">18 REFUSED findings</span> on our own hardened demo
           app, and the self-site run paid for one real bug: the shipped version endpoint
           once answered a malformed registry payload with <span className="bad">200 and no
           version key</span>. Found, fixed, never regressing again - pinned by the
-          site/registry-hostile-statuses probe in{' '}
-          <a href="https://github.com/dhaupin/crashtest/blob/main/test/self-site.test.js" target="_blank" rel="noreferrer">test/self-site.test.js</a>.{' '}
+          version-grammar probe (plus the session probes: a cookie-less site
+          must mint zero cookies, and a forged cookie is never adopted) pinned in{' '}
+          <a href="https://github.com/dhaupin/crashtest/blob/main/test/site-pack.test.js" target="_blank" rel="noreferrer">test/site-pack.test.js</a>.{' '}
           <span className="ok">That&apos;s the product working:</span> your handlers - ours -
           paying for their own bugs with hardening receipts.
         </p>

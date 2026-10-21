@@ -13,7 +13,7 @@
 export const dogfood = {
   "ledger": {
     "schemaVersion": 1,
-    "generatedAt": "2026-10-21T04:35:37.930Z",
+    "generatedAt": "2026-10-21T05:17:45.697Z",
     "findings": [
       {
         "id": "auth/identity-spoof-headers",
@@ -23,7 +23,7 @@ export const dogfood = {
       {
         "id": "auth/secret-watermark",
         "verdict": "REFUSED",
-        "detail": "4 routes x 3 error-path probes: no fake secret ever left the env"
+        "detail": "7 routes x 3 error-path probes: no fake secret ever left the env"
       },
       {
         "id": "auth/privilege-escalation",
@@ -54,6 +54,21 @@ export const dogfood = {
         "id": "input/oversized-field",
         "verdict": "REFUSED",
         "detail": "oversized body handled on \"enroll\" (status 400)"
+      },
+      {
+        "id": "session/cookie-hygiene",
+        "verdict": "REFUSED",
+        "detail": "login cookie on \"login\" carries the full hygiene set: Secure + HttpOnly + SameSite policy"
+      },
+      {
+        "id": "session/session-fixation",
+        "verdict": "REFUSED",
+        "detail": "session rotation + forged-id rejection hold on \"login\"/\"me\" (two distinct sids, forged sid denied with 401)"
+      },
+      {
+        "id": "session/logout-invalidates",
+        "verdict": "REFUSED",
+        "detail": "logout invalidation holds on \"logout\" - me() with the logged-out sid denies (status 401)"
       },
       {
         "id": "state/enumeration-oracle",
@@ -102,6 +117,9 @@ export const dogfood = {
       "input/proto-pollution-body",
       "input/never-fail-mutations",
       "input/oversized-field",
+      "session/cookie-hygiene",
+      "session/session-fixation",
+      "session/logout-invalidates",
       "state/enumeration-oracle",
       "state/id-collision-alias",
       "taxonomy/abuse-not-5xx",
@@ -113,9 +131,9 @@ export const dogfood = {
   },
   "cost": {
     "totals": {
-      "ops": 420,
-      "requests": 629,
-      "distinctAttacks": 15
+      "ops": 464,
+      "requests": 659,
+      "distinctAttacks": 18
     },
     "perAttack": [
       {
@@ -125,13 +143,13 @@ export const dogfood = {
       },
       {
         "id": "auth/secret-watermark",
-        "ops": 12,
-        "requests": 67
+        "ops": 21,
+        "requests": 76
       },
       {
         "id": "auth/privilege-escalation",
         "ops": 4,
-        "requests": 71
+        "requests": 80
       },
       {
         "id": "guards/hygiene-no-store",
@@ -157,6 +175,21 @@ export const dogfood = {
         "id": "input/oversized-field",
         "ops": 1,
         "requests": 66
+      },
+      {
+        "id": "session/cookie-hygiene",
+        "ops": 7,
+        "requests": 1
+      },
+      {
+        "id": "session/session-fixation",
+        "ops": 16,
+        "requests": 4
+      },
+      {
+        "id": "session/logout-invalidates",
+        "ops": 12,
+        "requests": 7
       },
       {
         "id": "state/enumeration-oracle",
@@ -197,7 +230,7 @@ export const dogfood = {
   },
   "meta": {
     "version": "1.0.0",
-    "startedAt": "2026-10-21T04:35:37.863Z",
+    "startedAt": "2026-10-21T05:17:45.630Z",
     "seed": 12648430
   }
 };

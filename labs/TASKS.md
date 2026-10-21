@@ -70,7 +70,29 @@
 
 ## Log
 
-- [2026-10-21 ~08Z] **session module shipped - 18 attacks across 7 modules.**
+- [2026-10-21 ~09Z] **crashtest-site pack grows session probes; full-battery
+  run vs ourselves: 38/38 held.** The public self-dogfood pack now carries the
+  session discipline as two self-contained probes (same spirit as the
+  taxonomy pair last round):
+  session-no-minted-cookies (a static/docs site with NO auth surface must
+  mint ZERO cookies - every shipped route swept GET+POST with an anonymous
+  jar; any cookie that appears must carry the full Secure/HttpOnly/_SameSite
+  family or it is a finding) and session-forged-cookie-never-adopted
+  (a canary-carrying forged sid fired at every route must be ignored: no
+  set-cookie adoption, no byte reflection in bodies or paths, no 5xx or
+  throw). First vs-ourselves run of both: 0 cookies minted across 12
+  probes, forged double ignored on all 6 routes - honestly REFUSED. Full
+  hard battery on the combined run root (demo fixture routes + all six site
+  routes + moduleCtx-armed state/enumeration-oracle): 38/38 REFUSED, exit
+  0, 593 ops / 1223 requests, 0 new / 0 regressed. New teeth needed nothing
+  fixed this round - unlike the taxonomy round, which caught the 502
+  byte-echo. Honest gap notes remain on file: stockwp + wp-money-shapes
+  skip (no WP harness on this run root), volume/storage-fill skips (no
+  kvwrite route), by design. Pins synced: siteRows 11 -> 13, snapshot
+  regenerated to the 18-row session ledger (dashboard pins 15 -> 18,
+  groupings 6 -> 7, cost 420/629 -> 464/659), pack.json description
+  carries the session probes, Attacks page field-report ledger count
+  13 -> 18 and now cites the right pin location (site-pack.test.js).
   New seed library src/scenarios/library/session.js (3 attacks): cookie-hygiene
   (the login transition must mint Secure + HttpOnly + a SameSite policy; a
   missing flag names itself; a cookie-less login honestly skips - bearer

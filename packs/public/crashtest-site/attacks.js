@@ -1,6 +1,6 @@
 // packs/public/crashtest-site/attacks.js - the hardcore attacks.
 //
-// Eleven attacks against crashtest's own shipped website. Every one is
+// Thirteen attacks against crashtest's own shipped website. Every one is
 // brutal-by-design: it names its fault class precisely, demands specific
 // wire behavior (not "nice to have"), and EXPLOITEDs with evidence when a
 // claim the site makes turns out to be false. Verdicts are honest - a wall
@@ -390,6 +390,82 @@ export default {
           return { verdict: 'EXPLOITED', detail: leaks.length + '/' + shapes.length + ' sad-path bodies carry impersonal-evidence: ' + leaks.join(' | ') };
         }
         return { verdict: 'REFUSED', detail: shapes.length + ' hostile registry shapes collapsed honestly - every 502 body named the fault class, zero canary bytes, zero stack patterns' };
+      },
+    },
+
+    {
+      // The library `session` module's wire discipline, pointed at the site
+      // this pack ships - but the site is NOT a login surface, so the honest
+      // oracle flips: a static/docs site must mint NOTHING. Zero set-cookie
+      // anywhere is the strongest hygiene; any cookie that DOES appear must
+      // carry the full flag family or it is a finding.
+      name: 'session-no-minted-cookies',
+      description: 'a static/docs site with no auth surface must mint zero cookies: every shipped route swept (GET + POST) with an anonymous jar - ANY set-cookie that appears must carry Secure + HttpOnly + SameSite, and none may appear at all without one',
+      async run(harness) {
+        const routes = ['version', 'site-html', 'site-headers', 'site-manifest', 'site-sitemap', 'site-robotstxt'];
+        const minted = [];
+        const swept = [];
+        for (const route of routes) {
+          if (!harness.listRoutes().includes(route)) continue;
+          for (const method of ['GET', 'POST']) {
+            swept.push(`${route}#${method.toLowerCase()}`);
+            const res = await hit(harness, route, {
+              method,
+              headers: method === 'POST' ? { 'content-type': 'application/json' } : {},
+              body: method === 'POST' ? '{"user":"rook"}' : undefined,
+            });
+            const setCookie = res.headers?.get('set-cookie');
+            if (setCookie) minted.push(`${route}#${method.toLowerCase()}: ${String(setCookie).slice(0, 120)}`);
+          }
+        }
+        if (!swept.length) {
+          return { verdict: 'REFUSED', detail: 'no shipped routes swept - run-root gap, skip', skipped: true };
+        }
+        if (minted.length) {
+          // The site claims no auth surface. A minted cookie is a finding
+          // unless it carries the full hygiene family.
+          const bad = minted.filter((m) => {
+            const v = m.slice(m.indexOf(': ') + 2);
+            return !/\bsecure\b/i.test(v) || !/\bhttponly\b/i.test(v) || !/\bsamesite=(lax|strict)\b/i.test(v);
+          });
+          if (bad.length) {
+            return { verdict: 'EXPLOITED', detail: bad.length + ' response(s) minted a cookie missing the hygiene family (Secure/HttpOnly/SameSite): ' + bad[0] + ' - a static site should mint ZERO cookies' };
+          }
+          return { verdict: 'REFUSED', detail: minted.length + ' minted cookie(s) across ' + swept.length + ' probes all carry the full hygiene family - probably one surface too many for a static site, but flagged INFO not EXPLOITED: ' + minted[0] };
+        }
+        return { verdict: 'REFUSED', detail: 'zero cookies minted across ' + swept.length + ' probes over every shipped route - the strongest possible hygiene: the site holds no session surface and mints nothing' };
+      },
+    },
+
+    {
+      // The adoption half of the session discipline: a forged session id sent
+      // BY THE ATTACKER must be ignored, never adopted, never reflected. A
+      // response that set-cookies the forged value back (or echoes its bytes)
+      // is the session-hijack display class.
+      name: 'session-forged-cookie-never-adopted',
+      description: 'a forged cookie id (canary-carrying sid) fired at every shipped route must be IGNORED: no response may adopt it (set-cookie) or echo its bytes (body or paths), and none may fault or 5xx over it - the visitor-not-here rule',
+      async run(harness) {
+        const canary = 'crashtest-forgedCanary-f4c1e2';
+        const forgedCookie = `sid=${canary}.65c3; prev=https%3A%2F%2Fgone.example`;
+        const routes = ['version', 'site-html', 'site-headers', 'site-manifest', 'site-sitemap', 'site-robotstxt'];
+        const faults = [];
+        for (const route of routes) {
+          if (!harness.listRoutes().includes(route)) continue;
+          const res = await hit(harness, route, {
+            method: 'GET',
+            headers: { cookie: forgedCookie, referer: 'https://gone.example/one/two/three%2F..%2Fadmin' },
+          });
+          if (res.threw) { faults.push(`${route}: threw on the forged cookie (${String(res.error).slice(0, 80)})`); continue; }
+          if (res.status >= 500) { faults.push(`${route}: ${res.status} over a forged cookie - sad path must stay impersonal`); continue; }
+          const adopted = res.headers?.get('set-cookie');
+          if (adopted && String(adopted).includes(canary)) { faults.push(`${route}: set-cookie ADOPTED the forged sid (${String(adopted).slice(0, 80)})`); continue; }
+          const echoed = String(res.text ?? '').slice(0, 2000).includes(canary);
+          if (echoed) { faults.push(`${route}: response body reflects the forged cookie's canary bytes`); continue; }
+        }
+        if (faults.length) {
+          return { verdict: 'EXPLOITED', detail: faults[0] + ` (+${faults.length - 1} more)` };
+        }
+        return { verdict: 'REFUSED', detail: routes.length + ' shipped routes: the forged double was ignored everywhere - no adoption, no byte reflection, no faults' };
       },
     },
   ],
