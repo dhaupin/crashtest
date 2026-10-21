@@ -16,8 +16,9 @@ Core:
 - In-process adversarial QA harness: explicit route table, fake
   transport (WHATWG Request/Response, no sockets), fake D1/KV/env, op
   counters and cost meters, seeded RNG determinism.
-- Scenario libraries: auth, input, guards, state, volume; two-way
-  vulnerable/hardened proof tests for each verdict.
+- Scenario libraries: 30 attacks across 12 modules (auth, authz, guards,
+  input, proto-hygiene, recursion, upload, race, state, volume, taxonomy,
+  session); two-way vulnerable/hardened proof tests for each verdict.
 - Ledger + report pipeline: `labs/crashledger.json` (schema v1) +
   `labs/hardening.md`; exit 1 ONLY on a new EXPLOITED finding or a
   REFUSED-to-EXPLOITED regression; declared-gap rows degrade to
@@ -33,7 +34,10 @@ Surfaces:
 - Ecosystem: `packs/` (public/local, `packs add` scaffold,
   self-contained bundles via bundled `plugins`), config `plugins:`
   imports, builder presets (`crashtest preset lovable|bolt|replit`),
-  `run --module-plan` coverage preview, `crashtest packs` inventory.
+  `run --module-plan` coverage preview, `crashtest packs` inventory;
+  shipped packs: `crashtest-site` (18), `cve-feed` (2, offline KEV/NVD
+  snapshot), `wp-money-shapes` (3, armedByKey), `wp-roles` (3,
+  experimental), `wp-stock-smoke` (4).
 
 Self-dogfood:
 - Attacking fixtures/demo gated in CI against the committed ledger.

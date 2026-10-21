@@ -29,7 +29,16 @@ src/adapters/           hono / express / fastify / node in-process adapters + re
                         not a transport; PRD section 10 note + section 14 service thread)
 src/rng.js              seeded xorshift (determinism)
 fixtures/demo/app.js    the self-dogfood target (hardened + vulnerable variants)
-fixtures/wordpress/     wp-worker.php (the generic subprocess worker only)
+fixtures/wordpress/     wp-worker.php + stub-wp/ (the generic subprocess worker
+                        + the deterministic stub WP core the WP packs' teeth run on)
+fixtures/site/          second site shape the pack tests exercise
+test/                   176 tests; count pins live here - the guarantee -> pin
+                        map is in the project brain's pins.md (see Project memory)
+web/                    the shipped site (prestruct-prerendered): Home, attack
+                        catalog, dashboard (renders any ledger), FAQ; version
+                        badge rides the nav (`web/src/components/Nav.jsx`)
+horcrux/                the project brain stone (vant horcrux) + README only -
+                        never read by tests/tooling/CI; see "Project memory"
 packs/                  extension surface: public/<name>/pack.json (tracked,
                         shipped packs) + local/<name>/ (gitignored, private);
                         loader src/packs/loader.js, `crashtest packs` verb;
@@ -84,14 +93,49 @@ BOUNDED requires `owner` + `bound` or it is demoted to EXPLOITED. Drop modules
 into `labs/scenarios/` (or any dir via config `scenarioDirs`) and they load.
 Full semantics: `src/scenarios/contract.js` + tests in `test/scenarios/`.
 
+Library state at 1.0.0: **30 attacks across 12 modules** (auth, authz,
+guards, input, proto-hygiene, recursion, upload, race, state, volume,
+taxonomy, session). Adding/renaming any attack means updating, in the SAME
+commit: the attacks doc + web catalog, the count pins (catalog=30,
+per-module census), and the changelog. The suite will find you otherwise;
+that is the pin wall doing its job.
+
+Shipped packs (`packs/public/`, latest first): `cve-feed` (2, offline
+KEV/NVD snapshot), `crashtest-site` (18, the release self-check),
+`wp-money-shapes` (3, armedByKey), `wp-roles` (3, experimental),
+`wp-stock-smoke` (4). Pack manifests carry their own semver - never
+bump those for CLI-level releases.
+
 ## Common commands
 
 ```bash
-npm test          # full suite (node --test)
-npm run check     # syntax check across every source/test file
+npm test             # full suite (node --test); 176 pass is the v1.0.0 floor
+npm run check        # syntax check across every source/test file
+npm run lint:docs    # docs links + style + fiction-signature scan
 npx crashtest init
-npx crashtest run # dogfoods fixtures/demo against the committed ledger
+npx crashtest run    # dogfoods fixtures/demo against the committed ledger
+(cd web && npm run build)   # the site: 6/6 pages prerendered is healthy
 ```
+
+## Receipts before "green" (and the pre-tag ritual)
+
+Only say a gate passed if you ran it this turn. The pre-tag ritual (caught
+three real bugs right before 1.0.0 - two determinism leaks, one count
+fiction):
+
+1. Name census - attack names in code vs docs vs web vs tests.
+2. Numeric claims vs code constants - every number in prose must have a
+   constant behind it (9 headers x 6 values = 54 spoof VARIANTS, not
+   "54 headers").
+3. Determinism double-run - two consecutive `crashtest run`s must give
+   byte-identical baselines. `Date.now()` in a shipped surface is a bug.
+
+## Version surfaces (all 1.0.0 at release)
+
+`package.json` + `src/cli.js` VERSION (kept equal by `test/version.test.js`),
+`web/package.json`, nav badge + catalog eyebrow in web/. Pack manifest
+semvers and the historical 0.1.0 Sigstore provenance link are their own
+truths - do not sweep them along on a bump.
 
 ## Release procedure (maintainers)
 
@@ -105,12 +149,26 @@ automatically (attestations verifiable in the npm UI / Sigstore log).
 
 ## Project memory (vant)
 
-This session chain runs on [vant](https://github.com/dhaupin/vant) - per-
-project brains (crashtest brain) persisted inside the rook horcrux stone in
-[dhaupin/rookworks](https://github.com/dhaupin/rookworks) (password references
-live in rook's identity files; ask the maintainer, don't fish for secrets).
-Session milestones land via `VANT_BRAIN=crashtest vant memory learn ...`;
-process lessons are the source of most house rules above.
+This session chain runs on [vant](https://github.com/dhaupin/vant) - the
+crashtest dev-brain (12 public brain files + private working notes; nothing
+secret in either). Restorable anywhere from the stone in this repo:
+
+```bash
+# in a vant clone:
+VANT_BRAIN_PASSWORD='quillstone-9fold' \
+  node ./bin/vant.js horcrux restore /path/to/this/repo/horcrux/crashtest-p_quillstone-9fold.svg
+```
+
+- `horcrux/README.md` maps the folder; the brain's `boot.md` is the wake
+  sequence, `state.md` carries receipts, `pins.md` the guarantee map.
+- Re-seal after brain edits: edit the markdown in the vant install, then
+  `vant horcrux create` (or `refresh`), swap the stone here, update the
+  README in the same commit.
+- The older rookworks horcrux lineage predates this repo stone; password
+  references for THAT live in rook's identity files - ask the maintainer,
+  don't fish for secrets.
+- Session milestones also land via `VANT_BRAIN=crashtest vant memory learn ...`;
+  process lessons are the source of most house rules above.
 
 ## Porting backlog
 
