@@ -86,8 +86,12 @@ meant to be easily reviewed.
 
 3. In the restored install, the brain lands at
    `models/public/crashtest/` (and private notes at
-   `models/private/crashtest/`). Start with `boot.md`, which names the
-   wake-up sequence.
+   `models/private/crashtest/`), and the install's brain state
+   (`models/state.json`) wakes pointing at `crashtest`
+   (`currentBrain: "crashtest"`) - plain `vant` commands resolve to
+   this brain with no env needed. (Sealed 2026-10-21 re-seal; the
+   vant default brain is still reachable via `VANT_BRAIN=vant`.)
+   Start with `boot.md`, which names the wake-up sequence.
 
 ## Maintenance
 

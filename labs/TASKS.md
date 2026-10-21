@@ -70,6 +70,26 @@
 
 ## Log
 
+- [2026-10-21 ~21Z] **vant tracker run-down + the stone re-sealed on
+  the brain-selector fix. Checked the open vant issues against the
+  crashtest flow: #227 (boot restores state but post-restore
+  currentBrain can point elsewhere) is CONFIRMED live on our own
+  stone - the original seal froze state.json with currentBrain=vant,
+  so a plain restore landed users on the wrong brain; #228
+  (brain set/get are no-op printer stubs, bin/brain.js set/get)
+  still repro in code; #226 (snapshot --brain unscooped) and #230
+  (sandbox warn-once nit) untouched upstream, no maintainer replies
+  yet, no new vant commits. Fix on our side: live state.json now
+  carries currentBrain=crashtest (stack [crashtest,vant]) - by direct
+  edit, since the setter is a #228 stub - then re-seal.
+  horcrux/crashtest-p_quillstone-9fold.svg re-created (~880KB, ts
+  19:55Z) and the restore recipe re-verified on a THIRD virgin vant
+  clone: 13 files to crashtest (both), 8 to vant (both), post-restore
+  state.json wakes currentBrain=crashtest - no env needed; README
+  updated to promise exactly that. Concrete evidence comments ready
+  to post on #227/#228 via the vant tracker (maintainer asked for
+  reports there). lint/check pending next commit.**
+
 - [2026-10-21 ~20Z] **the project brain goes portable: `horcrux/` lands
   (folder + README + the sealed crashtest brain stone). A vant install
   exists outside the repo (~/vant) and holds the crashtest dev-brain:
