@@ -70,6 +70,30 @@
 
 ## Log
 
+- [2026-10-22 ~01Z] **stegoframe spin-up: FOURTH upstream repo, second
+  spin-up with live findings. The pack (stegoframe-worker, 6 shapes)
+  attacks the whole wire surface - the Pages _worker.js - in-process
+  with canned ASSETS/KV fixtures and a shimmed keepalive fetch (the
+  worker's pingSupabase stays in-process). Two runs at HEAD: 34 rows,
+  byte-identical. TWO REAL FINDINGS filed as stegoframe#7:
+  (1) rate-limit-ip-rotation - the ENTIRE rate limiter keys on
+  CF-Connecting-IP; 30 rotated headers -> zero 429s (nil harm on a
+  genuine CF edge where the header is edge-set, but the wall evaporates
+  on reverse-proxy/mirror/local deployments); (2) supa-env-mangle -
+  String.replace treats operator env values as replacement strings, so
+  $& re-injects the matched placeholder and $' tail-splices the whole
+  document (page ballooned 446/282 bytes) - config-corruption class,
+  one-line fix ($-escape or split/join substitution). Walls HELD: KV
+  burst 429 exactly at hit 21 w/ Retry-After 60, memory-mode parity
+  identical, clean substitution no-echo, asset passthrough across
+  methods w/ ETag preserved. Honest skip documented: the LSB codec
+  lives client-side (duplicated into tests/codec.test.js from
+  index.html) - no server surface; noted the copy-drift risk against
+  issue #6. Proposed pack ships in stegoframe's repo
+  (packs/public/stegoframe-worker/ + crashtest.config.js run root,
+  left untracked there as adoptable artifacts). Brain + stone
+  re-sealed with the receipts.**
+
 - [2026-10-22 ~00Z] **gistory spin-up + the gistory-sync pack lands
   (proven, filed upstream): dhaupin/gistory#1 carries the full proposal.
   The port: tests/redteam.ts scenarios onto the pack contract - 7 shapes
