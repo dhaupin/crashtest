@@ -101,14 +101,15 @@ request is an in-process `Request` object through the app's own routing.
 | `proto-hygiene` | HEAD/GET parity, duplicate query keys, dot-segment/double-slash path shapes, header case chaos | shipped 2026-10-21 - as planned (cheap, low false-positive): HEAD body graded INFO-only (wire runtimes strip it), header case pinned as a transport invariant; first run graded a real 204-with-body bug in the demo fixture |
 | `recursion` | deep-nest stack exhaustion on recursive JSON walkers, catastrophic-backtracking patterns (redos) | shipped 2026-10-21 - the loop-without-a-guard class: two attacks, with the redos timing oracle self-controlled (evil/benign pairs on the SAME handler, ratio bucket only - no host clock); unbounded-language-loop shapes stay in scope notes |
 | `upload` | multipart shapes: filename traversal, double extensions, null-byte names, polyglot content types | shipped 2026-10-21 - as planned, FormData bodies in-process; both attacks verdict off the STORE (what the handler derives and persists), the hardened demo carries the allow-list discipline the attack demands |
+| `race` | concurrent pairs: double-submit idempotency, concurrent partial writes (lost-update window) | shipped 2026-10-21 - the "interleaved scheduling in the harness" row solved cheaper than planned: handlers burst under one Promise.all and interleave at every await boundary (the fake D1/KV calls are async); bursts are deterministic by microtask order, and uncaught same-key/unique-conflict throws grade as findings (a storage wall the wire never shaped). Remaining shape: expiry-race (validation-to-use gap) |
 
 Planned expansions (v1.x - wording stays `planned` until each ships):
 
 | Planned library | Attacks designed for | Status |
 |---|---|---|
 | `session` (extension) | replay windows (token reuse past expiry-to-deletion gaps) | planned - the base module shipped 2026-10-21; this row covers only what did not |
-| `race` | concurrent pairs: double-submit idempotency, lost-update window, expiry race (validation-to-use gap) | planned - needs interleaved scheduling in the harness |
 | `wp-roles` (pack scope) | role-callback bypass shapes on the WP envelope wire | planned - explicitly experimental (section 10 note) |
+| `browser` | scenarios that need a real DOM: DOM clobbering (name-attribute collisions), form-action/base hijack, postMessage origin confusion, storage fingerprinting, CSP proof-by-render | designed, not built - see the browser lane below |
 
 ## Extended sources (designed, deliberately not built yet)
 
@@ -130,6 +131,72 @@ harness stays a drone that never dials out. Shape:
   answered by construction: the snapshot is CURATED (exploited-first,
   adapter-relevant) and budget-capped; the full NVD corpus never enters
   this repo.
+
+## The browser lane (designed, deliberately not built)
+
+The ask: scenarios for the DOM dimension - the attacks that only make sense
+against rendered pages (DOM clobbering via `name` attribute collisions,
+form-action/base hijack, `postMessage` origin confusion, storage
+fingerprinting, CSP proof-by-render, clickjacking visibility). Many users
+do not want puppeteer/playwright junk in their install, and rule 1 is law:
+zero runtime dependencies in the CORE. The design answers both:
+
+1. **Separate, optional lanes - never bundled.** Browser capability ships
+   as its own peer package (`crashtest-browser-lane` shape) or a pack whose
+   manifest declares its own `plugins`/deps. The core harness learns
+   NOTHING unless the adopting repo opts in (the same reason the site pack
+   is not vendored: bound capability belongs OUTSIDE the tarball).
+2. **Two honest execution lanes, both socket-free at the run layer:**
+   a. *DOM-sim lane* - lightweight DOM engines (happy-dom-shaped) driven
+      in-process against the SAME in-process handlers rendered on the page.
+      No subprocess, no sockets, fast; DOM fidelity is the documented gap.
+   b. *Browser-thread lane* - a real browser as a SERVICE THREAD, exactly
+      the WordPress worker precedent (PRD section 10 note + section 14):
+      subprocess orchestration over stdio pipes, wire format = NDJSON,
+      NOT a transport. A real CDP bridge uses pipe transport
+      (`--remote-debugging-pipe`), not a WS socket - the design keeps the
+      one law intact; scenario payloads be routed through the stdio lane
+      and the browser never dials out.
+3. **Scenario families that unlock** (each is a verdict-shaped oracle):
+   DOM clobbering (a hostile `name=` value hijacks a form field),
+   form-action/base hijack (a planted `<base>`/`formaction` re-targets
+   submissions), postMessage origin confusion (a handler that trusts
+   `event.origin` against a spoofable double), CSP proof-by-render (the
+   rendered page must NOT execute what the CSP promises to block),
+   storage-leak audit (localStorage/sessionStorage carrying secrets after
+   a render), clickjacking visibility (a CONTENTS-overlay check that a
+   sensitive control is not invisible under an overlay stack).
+4. **Adoption optics:** `npx crashtest run --module-plan` reports the
+   browser module NEEDS-ARMING when the lane is absent; nothing in the
+   default install changes shape, size, or gates.
+
+- Status: designed, planned - not started. The WP service-thread spike is
+  the precedent to copy: subprocess orchestration, wire format, zero core
+  dependencies. Whether DOM-sim lands first or the CDP pipe lane does is
+  a build-order question, not a design question.
+
+## The WordPress packs (state of the lane)
+
+A dedicated spot, because the lane carries weight and it needs touch each
+round:
+
+- **Shipped:** `wp-money-shapes` (write-volley / txn-replay / gate-burst -
+  the dollar-shaped family, vocabulary-injected per target) and
+  `wp-stock-smoke` (the smoke pack: inventory, option gates, call
+  whitelist, cost meters - the shape that degrades to honest skipped-
+  REFUSED on every non-WP run root, which the site tests pin).
+- **The adapter:** `src/adapters/wordpress.js` is the v0.3 subprocess
+  spike - the WP worker runs as a subprocess, the wire is NDJSON on stdio
+  (a wire format, NOT a transport; PRD section 10 note). The generic
+  worker (`fixtures/wordpress/wp-worker.php`) is fixture-only: it exists
+  so the adapter tests stay runnable without a live WP install.
+- **Missing before `wp-roles` can ship: (1) a worker fixture that
+  exercises the role/callback REGISTRATION layer (current_user_can
+  mapping, capability constants, callback authorization on the envelope
+  wire) - the current worker cannot host the role attack vocabulary; (2)
+  the wp-roles pack itself with the role-callback bypass shapes;
+  (3) an armed target exercise end to end. Status stays planned,
+  explicitly experimental per section 10 until all three land.
 
 Deliberate scope notes (kept out of the catalog, honest reasons):
 

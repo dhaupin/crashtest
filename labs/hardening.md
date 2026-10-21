@@ -1,13 +1,13 @@
 # Hardening report
 
-> crashtest v1.0.0 / 2026-10-21T07:01:10.143Z / seed 12648430
+> crashtest v1.0.0 / 2026-10-21T07:19:01.960Z / seed 12648430
 > CI rule: fail on a NEW EXPLOITED finding, or a REGRESSION of anything previously REFUSED.
 
 ## Findings
 
-### 🛡 REFUSED (27)
+### 🛡 REFUSED (29)
 - auth/identity-spoof-headers: all 54 identity-header spoofs denied or ignored on "admin"
-- auth/secret-watermark: 10 routes x 3 error-path probes: no fake secret ever left the env
+- auth/secret-watermark: 12 routes x 3 error-path probes: no fake secret ever left the env
 - auth/privilege-escalation: ownership mutations rejected by "device" (baseline 403)
 - authz/method-matrix-privileged: 5 methods (bare + bodies where the method carries one) all denied on "admin" - the gate is method-blind
 - authz/role-body-spoof-family: 8 role-word claims x 3 methods all denied on "admin" - identity lives in the request the server derives, not in the body the attacker owns
@@ -17,8 +17,10 @@
 - input/proto-pollution-body: payload to "enroll" did not pollute state (status 400)
 - input/never-fail-mutations: 64 hostile bodies all under the floor on "enroll" (seed 3650991062)
 - input/oversized-field: oversized body handled on "enroll" (status 400)
-- proto-hygiene/head-get-parity: 10 route(s): HEAD mirrors GET (no throws, no status drift beyond honest 405) + 9 info note(s)
-- proto-hygiene/request-shape-flood: 10 route(s) x 18 bare shapes (query chaos, path shapes, header casings) all landed 4xx-or-cleaner with case-parity intact
+- proto-hygiene/head-get-parity: 12 route(s): HEAD mirrors GET (no throws, no status drift beyond honest 405) + 11 info note(s)
+- proto-hygiene/request-shape-flood: 12 route(s) x 18 bare shapes (query chaos, path shapes, header casings) all landed 4xx-or-cleaner with case-parity intact
+- race/double-submit-idempotency: 3-way same-key burst on "charge" landed exactly one acknowledged effect + 2 honest 409(s); the store held 1 row(s)
+- race/concurrent-write-lost-update: concurrent field-split pair both landed on "profile" - all four submitted fields present in the store; no silent stomp
 - recursion/deep-nest-stack-overflow: deep-nested body (12000 levels) answered honestly on "enroll" (400) - a depth guard or flat processing refused it
 - recursion/redos-catastrophic-pattern: 2 evil/benign backtracking pairs walked linearly through "validate" - no self-relative ratio crossed the bucket
 - session/cookie-hygiene: login cookie on "login" carries the full hygiene set: Secure + HttpOnly + SameSite policy
@@ -39,10 +41,10 @@
 ### 🔒 BOUNDED (0)
 
 ## Cost economics
-- total: 739 backend ops across 1006 in-process requests from 27 attacks
+- total: 814 backend ops across 1070 in-process requests from 29 attacks
   - auth/identity-spoof-headers: 55 ops / 55 requests
-  - auth/secret-watermark: 30 ops / 85 requests
-  - auth/privilege-escalation: 4 ops / 89 requests
+  - auth/secret-watermark: 36 ops / 91 requests
+  - auth/privilege-escalation: 4 ops / 95 requests
   - authz/method-matrix-privileged: 9 ops / 9 requests
   - authz/role-body-spoof-family: 24 ops / 33 requests
   - authz/handler-alias-confusion: 8 ops / 41 requests
@@ -51,8 +53,10 @@
   - input/proto-pollution-body: 1 ops / 1 requests
   - input/never-fail-mutations: 64 ops / 65 requests
   - input/oversized-field: 1 ops / 66 requests
-  - proto-hygiene/head-get-parity: 20 ops / 20 requests
-  - proto-hygiene/request-shape-flood: 180 ops / 200 requests
+  - proto-hygiene/head-get-parity: 24 ops / 24 requests
+  - proto-hygiene/request-shape-flood: 216 ops / 240 requests
+  - race/double-submit-idempotency: 9 ops / 3 requests
+  - race/concurrent-write-lost-update: 20 ops / 5 requests
   - recursion/deep-nest-stack-overflow: 1 ops / 1 requests
   - recursion/redos-catastrophic-pattern: 4 ops / 5 requests
   - session/cookie-hygiene: 7 ops / 1 requests

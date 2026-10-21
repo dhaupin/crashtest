@@ -24,6 +24,21 @@ const ENV_SPEC = {
           rows: [],
           uniques: { sid_unique: ['sid'] },
         },
+        // Race surfaces: charges (idempotency by unique cid) and per-field
+        // settings (unique user+field pair) + the whole-record blob table the
+        // vulnerable variant stomps with. All session-adjacent stores.
+        charges: {
+          rows: [],
+          uniques: { cid_unique: ['cid'] },
+        },
+        settings: {
+          rows: [],
+          uniques: { user_field_unique: ['user', 'field'] },
+        },
+        blobs: {
+          rows: [],
+          uniques: { user_unique: ['user'] },
+        },
       },
     },
   },
@@ -120,7 +135,72 @@ const logoutHard = async ({ request, env }) => {
       'cache-control': 'no-store',
     },
   });
-};  // Upload round: the 'upload' surface. Hardened: safe-name grammar +
+};  // Race round: the concurrency surfaces. Hardened charge: INSERT with a
+  // UNIQUE cid - the second same-key submission conflicts honestly (409) and
+  // the store keeps exactly one row. Vulnerable charge: the classic TOCTOU
+  // draft - an await-gapped SELECT-then-INSERT, both bursts see nothing...
+  // both insert. Hardened profile: per-field rows, concurrent field-writers
+  // never collide. Vulnerable profile: whole-record blob overwrite
+  // (DELETE + INSERT), the last writer silently stomps the first.
+  const chargeHard = conflictOr500(async ({ request, env }) => {
+    let body;
+    try { body = await request.json(); } catch { return new Response('bad json', { status: 400 }); }
+    const idem = body?.idem;
+    const cents = body?.cents;
+    if (typeof idem !== 'string' || !/^[a-zA-Z0-9-]{1,64}$/.test(idem)) {
+      return new Response('invalid idempotency key', { status: 400 });
+    }
+    if (!Number.isFinite(cents) || cents <= 0) return new Response('invalid cents', { status: 400 });
+    const res = await env.DB.prepare('INSERT INTO charges (cid, user, cents) VALUES (?, ?, ?)').bind(idem, body.user ?? 'rook', cents).run();
+    return new Response('charged', {
+      status: 201,
+      headers: { 'cache-control': 'no-store' },
+    });
+  });
+
+  const chargeVuln = conflictOr500(async ({ request, env }) => {
+    const body = await request.json();
+    // The await gap IS the race window: the second same-key submission
+    // reads 'nothing yet' and inserts after the first one did.
+    const dup = await env.DB.prepare('SELECT id FROM charges WHERE cid = ?').bind(body?.idem).first('id');
+    if (dup != null) return new Response('already charged', { status: 409 });
+    await env.DB.prepare('INSERT INTO charges (cid, user, cents) VALUES (?, ?, ?)').bind(body?.idem, body?.user ?? 'rook', body?.cents ?? 0).run();
+    return new Response('charged', { status: 201 });
+  });
+
+  const profileHard = async ({ request, env }) => {
+    let body;
+    try { body = await request.json(); } catch { return new Response('bad json', { status: 400 }); }
+    if (typeof body?.user !== 'string') return new Response('invalid user', { status: 400 });
+    const allowed = ['name', 'beta', 'email', 'alpha'];
+    for (const k of Object.keys(body)) {
+      if (k === 'user') continue;
+      if (!allowed.includes(k)) return new Response('unknown field (allowed: name, beta, email, alpha)', { status: 400 });
+    }
+    // Per-field rows: each field is its own (user, field) cell - concurrent
+    // writers writing DIFFERENT fields never touch each other's rows.
+    for (const k of Object.keys(body)) {
+      if (k === 'user') continue;
+      const prev = await env.DB.prepare('SELECT value FROM settings WHERE user = ? AND field = ?').bind(body.user, k).first('value');
+      if (prev != null) {
+        await env.DB.prepare('UPDATE settings SET value = ? WHERE user = ? AND field = ?').bind(String(body[k]), body.user, k).run();
+      } else {
+        await env.DB.prepare('INSERT INTO settings (user, field, value) VALUES (?, ?, ?)').bind(body.user, k, String(body[k])).run();
+      }
+    }
+    return new Response('saved', { status: 201, headers: { 'cache-control': 'no-store' } });
+  };
+
+  const profileVuln = async ({ request, env }) => {
+    const body = await request.json();
+    // The classic draft: whole-record write - delete the row, insert the
+    // fresh blob. A concurrent writer's fields vanish without a trace.
+    await env.DB.prepare('DELETE FROM blobs WHERE user = ?').bind(body?.user ?? 'rook').run();
+    await env.DB.prepare('INSERT INTO blobs (user, json) VALUES (?, ?)').bind(body?.user ?? 'rook', JSON.stringify(body)).run();
+    return new Response('saved', { status: 201 });
+  };
+
+  // Upload round: the 'upload' surface. Hardened: safe-name grammar +
   // content-type allow-list + size cap, storage keyed by the DERIVED name.
   // Vulnerable: the classic LLM draft - filename and content type straight
   // from the wire, echoed back verbatim.
@@ -334,6 +414,8 @@ function buildRoutes({ vulnerable = false } = {}) {
     logout: vulnerable ? logoutVuln : logoutHard,
     validate: vulnerable ? validateVuln : validateHard,
     upload: vulnerable ? uploadVuln : uploadHard,
+    charge: vulnerable ? chargeVuln : chargeHard,
+    profile: vulnerable ? profileVuln : profileHard,
   };
 }
 

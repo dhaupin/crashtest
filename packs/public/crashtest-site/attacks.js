@@ -1,6 +1,6 @@
 // packs/public/crashtest-site/attacks.js - the hardcore attacks.
 //
-// Seventeen attacks against crashtest's own shipped website. Every one is
+// Eighteen attacks against crashtest's own shipped website. Every one is
 // brutal-by-design: it names its fault class precisely, demands specific
 // wire behavior (not "nice to have"), and EXPLOITEDs with evidence when a
 // claim the site makes turns out to be false. Verdicts are honest - a wall
@@ -653,6 +653,38 @@ export default {
           return { verdict: 'EXPLOITED', detail: 'multipart battery broke the asset surface: ' + faults[0] + ` (+${faults.length - 1} more)` };
         }
         return { verdict: 'REFUSED', detail: routes.length + ' route(s) x ' + shapes.length + ' multipart shapes (' + probes + ' probes): zero throws, zero 5xx, zero reflection - nothing on this site borrows wording from a hostile multipart' };
+      },
+    },
+
+    {
+      // The library `race` discipline aimed at the site: a static asset
+      // surface must be an EQUAL-SHARE under concurrent load - N concurrent
+      // GETs of the SAME asset must all succeed with byte-identical bodies
+      // (a torn or throttled serve would be a finding; a shaped 429 wall is
+      // honest, the site pack owns the cache-control rules).
+      name: 'race-asset-parity',
+      description: '12 concurrent GETs of the SAME asset on every shipped route must all succeed with byte-identical bodies - a static serve has no race window, so any byte drift, shaped-429 disagreement, or fault across the parity burst is a finding',
+      async run(harness) {
+        const routes = ['site-html', 'site-headers', 'site-manifest', 'site-sitemap', 'site-robotstxt'];
+        const faults = [];
+        for (const route of routes) {
+          if (!harness.listRoutes().includes(route)) continue;
+          const recs = await Promise.all(Array.from({ length: 12 }, () => harness.run(route, { method: 'GET' })));
+          const texts = [];
+          for (const rec of recs) {
+            if (rec.threw) { faults.push(`${route}: threw under the parity burst`); texts.push(null); continue; }
+            if (rec.status >= 500) { faults.push(`${route}: ${rec.status} under the parity burst`); texts.push(null); continue; }
+            texts.push(await rec.response.text());
+          }
+          const okTexts = texts.filter((t) => t !== null);
+          if (okTexts.length && new Set(okTexts).size > 1) {
+            faults.push(`${route}: byte drift across the parity burst (${new Set(okTexts).size} distinct bodies from the same asset)`);
+          }
+        }
+        if (faults.length) {
+          return { verdict: 'EXPLOITED', detail: 'asset parity burst broke: ' + faults[0] + ` (+${faults.length - 1} more)` };
+        }
+        return { verdict: 'REFUSED', detail: routes.join(', ') + ': 12 concurrent GETs on the same asset came back byte-identical every time - equal-share serving, no race window on a static surface' };
       },
     },
   ],

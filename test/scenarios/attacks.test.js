@@ -502,3 +502,76 @@ test('upload: EXPLOITED on the trust-the-wire draft, REFUSED on the validated st
   assert.equal(skip.verdict, 'REFUSED');
   assert.ok(skip.skipped === true, `undeclared route must skip, not fail: ${skip.detail}`);
 });
+
+// ---- race (same-key bursts + concurrent field writes) --------------------
+const RACE_ENV = { d1: { DB: { tables: {
+  devices: { rows: [{ id: 1, key: 'seed', owner: 'rook' }], uniques: { key_unique: ['key'] } },
+  charges: { rows: [], uniques: { cid_unique: ['cid'] } },
+  settings: { rows: [], uniques: { user_field_unique: ['user', 'field'] } },
+  blobs: { rows: [], uniques: { user_unique: ['user'] } },
+} } }, kv: { UPLOADS: {}, DEVICE_CACHE: { seed: { last: 'seed' } } } };
+
+function raceRoutes({ unique }) {
+  return {
+    charge: unique
+      ? async ({ request, env }) => {
+          const body = await request.json();
+          try {
+            await env.DB.prepare('INSERT INTO charges (cid, user, cents) VALUES (?, ?, ?)').bind(body.idem, body.user ?? 'rook', body.cents ?? 0).run();
+            return new Response('charged', { status: 201 });
+          } catch (err) {
+            if (String(err?.message).includes('UNIQUE')) return new Response('already charged', { status: 409 });
+            throw err;
+          }
+        }
+      : async ({ request, env }) => {
+          const body = await request.json();
+          const dup = await env.DB.prepare('SELECT id FROM charges WHERE cid = ?').bind(body.idem).first('id');
+          if (dup != null) return new Response('already charged', { status: 409 });
+          await env.DB.prepare('INSERT INTO charges (cid, user, cents) VALUES (?, ?, ?)').bind(body.idem, body.user ?? 'rook', body.cents ?? 0).run();
+          return new Response('charged', { status: 201 });
+        },
+    profile: unique
+      ? async ({ request, env }) => {
+          const body = await request.json();
+          for (const k of Object.keys(body)) {
+            if (k === 'user') continue;
+            await env.DB.prepare('INSERT INTO settings (user, field, value) VALUES (?, ?, ?)').bind(body.user, k, String(body[k])).run();
+          }
+          return new Response('saved', { status: 201 });
+        }
+      : async ({ request, env }) => {
+          const body = await request.json();
+          await env.DB.prepare('DELETE FROM blobs WHERE user = ?').bind(body.user).run();
+          await env.DB.prepare('INSERT INTO blobs (user, json) VALUES (?, ?)').bind(body.user, JSON.stringify(body)).run();
+          return new Response('saved', { status: 201 });
+        },
+  };
+}
+
+test('race: EXPLOITED on the TOCTOU charge + record-stomping writes, REFUSED on the unique-key/per-field pair', async () => {
+  const [module] = (await loadScenarios()).map(l => l.module).filter(m => m.name === 'race');
+  assert.ok(module, 'race library module must load');
+  const idem = module.attacks.find(a => a.name === 'double-submit-idempotency');
+  const lostUpdate = module.attacks.find(a => a.name === 'concurrent-write-lost-update');
+  for (const a of [idem, lostUpdate]) assert.ok(a);
+
+  const vuln = buildHarness(raceRoutes({ unique: false }), { env: RACE_ENV });
+  const r1 = await idem.run(vuln, { submitRoute: 'charge' });
+  assert.equal(r1.verdict, 'EXPLOITED', `the TOCTOU charge must admit the double: ${r1.detail}`);
+  assert.match(r1.detail, /kept 2 charge rows|threw uncaught/);
+  const r2 = await lostUpdate.run(vuln, { embedRoute: 'profile' });
+  assert.equal(r2.verdict, 'EXPLOITED', `record stomping must lose fields: ${r2.detail}`);
+  assert.match(r2.detail, /fields lost|threw uncaught/);
+
+  const hard = buildHarness(raceRoutes({ unique: true }), { env: RACE_ENV });
+  const r3 = await idem.run(hard, { submitRoute: 'charge' });
+  assert.equal(r3.verdict, 'REFUSED', `unique cid must hold: ${r3.detail}`);
+  const r4 = await lostUpdate.run(hard, { embedRoute: 'profile' });
+  assert.equal(r4.verdict, 'REFUSED', `per-field storage must hold: ${r4.detail}`);
+
+  // Contract pin: undeclared routes degrade to skipped-REFUSED.
+  const skip = await idem.run(buildHarness({}, { env: RACE_ENV }), { submitRoute: 'charge' });
+  assert.equal(skip.verdict, 'REFUSED');
+  assert.ok(skip.skipped === true, `undeclared routes must skip, not fail: ${skip.detail}`);
+});

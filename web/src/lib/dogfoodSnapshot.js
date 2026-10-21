@@ -13,7 +13,7 @@
 export const dogfood = {
   "ledger": {
     "schemaVersion": 1,
-    "generatedAt": "2026-10-21T07:01:10.238Z",
+    "generatedAt": "2026-10-21T07:19:02.073Z",
     "findings": [
       {
         "id": "auth/identity-spoof-headers",
@@ -23,7 +23,7 @@ export const dogfood = {
       {
         "id": "auth/secret-watermark",
         "verdict": "REFUSED",
-        "detail": "10 routes x 3 error-path probes: no fake secret ever left the env"
+        "detail": "12 routes x 3 error-path probes: no fake secret ever left the env"
       },
       {
         "id": "auth/privilege-escalation",
@@ -73,12 +73,22 @@ export const dogfood = {
       {
         "id": "proto-hygiene/head-get-parity",
         "verdict": "REFUSED",
-        "detail": "10 route(s): HEAD mirrors GET (no throws, no status drift beyond honest 405) + 9 info note(s)"
+        "detail": "12 route(s): HEAD mirrors GET (no throws, no status drift beyond honest 405) + 11 info note(s)"
       },
       {
         "id": "proto-hygiene/request-shape-flood",
         "verdict": "REFUSED",
-        "detail": "10 route(s) x 18 bare shapes (query chaos, path shapes, header casings) all landed 4xx-or-cleaner with case-parity intact"
+        "detail": "12 route(s) x 18 bare shapes (query chaos, path shapes, header casings) all landed 4xx-or-cleaner with case-parity intact"
+      },
+      {
+        "id": "race/double-submit-idempotency",
+        "verdict": "REFUSED",
+        "detail": "3-way same-key burst on \"charge\" landed exactly one acknowledged effect + 2 honest 409(s); the store held 1 row(s)"
+      },
+      {
+        "id": "race/concurrent-write-lost-update",
+        "verdict": "REFUSED",
+        "detail": "concurrent field-split pair both landed on \"profile\" - all four submitted fields present in the store; no silent stomp"
       },
       {
         "id": "recursion/deep-nest-stack-overflow",
@@ -167,6 +177,8 @@ export const dogfood = {
       "input/oversized-field",
       "proto-hygiene/head-get-parity",
       "proto-hygiene/request-shape-flood",
+      "race/double-submit-idempotency",
+      "race/concurrent-write-lost-update",
       "recursion/deep-nest-stack-overflow",
       "recursion/redos-catastrophic-pattern",
       "session/cookie-hygiene",
@@ -185,9 +197,9 @@ export const dogfood = {
   },
   "cost": {
     "totals": {
-      "ops": 739,
-      "requests": 1006,
-      "distinctAttacks": 27
+      "ops": 814,
+      "requests": 1070,
+      "distinctAttacks": 29
     },
     "perAttack": [
       {
@@ -197,13 +209,13 @@ export const dogfood = {
       },
       {
         "id": "auth/secret-watermark",
-        "ops": 30,
-        "requests": 85
+        "ops": 36,
+        "requests": 91
       },
       {
         "id": "auth/privilege-escalation",
         "ops": 4,
-        "requests": 89
+        "requests": 95
       },
       {
         "id": "authz/method-matrix-privileged",
@@ -247,13 +259,23 @@ export const dogfood = {
       },
       {
         "id": "proto-hygiene/head-get-parity",
-        "ops": 20,
-        "requests": 20
+        "ops": 24,
+        "requests": 24
       },
       {
         "id": "proto-hygiene/request-shape-flood",
-        "ops": 180,
-        "requests": 200
+        "ops": 216,
+        "requests": 240
+      },
+      {
+        "id": "race/double-submit-idempotency",
+        "ops": 9,
+        "requests": 3
+      },
+      {
+        "id": "race/concurrent-write-lost-update",
+        "ops": 20,
+        "requests": 5
       },
       {
         "id": "recursion/deep-nest-stack-overflow",
@@ -329,7 +351,7 @@ export const dogfood = {
   },
   "meta": {
     "version": "1.0.0",
-    "startedAt": "2026-10-21T07:01:10.143Z",
+    "startedAt": "2026-10-21T07:19:01.960Z",
     "seed": 12648430
   }
 };

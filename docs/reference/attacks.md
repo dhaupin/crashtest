@@ -7,7 +7,7 @@ description: Every shipped scenario module and attack, what it does, and what ve
 
 # The Attack Catalog
 
-Twenty-seven attacks across eleven modules ship in the core package. Each returns
+Twenty-nine attacks across twelve modules ship in the core package. Each returns
 exactly one verdict per run: 🛡 REFUSED, ⚡ EXPLOITED, or 🔒 BOUNDED
 (BOUNDED requires an owner + bound or it demotes to EXPLOITED - loudly).
 
@@ -122,6 +122,18 @@ or stores skip honestly.
 |---|---|
 | `filename-traversal-family` | Attacker-shaped filenames (unix/windows traversal, percent-dots, null-byte splits, double extensions, absolute paths, dotfiles) ride a multipart POST. Any derived storage key that escapes the safe-name grammar = EXPLOITED with the key named - the measured wire truth, parsed from the storage layer after the write. |
 | `mime-polyglot-family` | Content types that lie: an SVG with a script inside and a text/html document are canonical XSS carriers. Stored verbatim = EXPLOITED; refused with an honest 4xx = REFUSED. The implied fix is an allow-list discipline on the content type, the same allow-list the demo fixture hardened the week it shipped. |
+
+## `race` - concurrency
+
+In-process synchronization comes free: handlers under one burst interleave
+at every await boundary (the fake D1/KV calls are async), which is exactly
+the read-before-write / write-after-read window the classic races live in.
+Bursts are deterministic by microtask order - same inputs, same schedule.
+
+| Attack | What it does |
+|---|---|
+| `double-submit-idempotency` | N concurrent POSTs with the SAME idempotency key must land exactly ONE side effect. Two acknowledged-and-stored = the double-charge class; an uncaught same-key throw (storage wall without a shaped answer) is also a finding; one row + shaped 409s = REFUSED. |
+| `concurrent-write-lost-update` | Two concurrent writers submit DIFFERENT fields into the same record; after both land, every field must be present. A record holding only the last writer's fields (or a writer lost to an uncaught unique row conflict) = the silent-stomp lost-update class, EXPLOITED with what dropped named. Per-field storage or conflict-detecting writes = REFUSED. |
 
 ## Writing your own
 

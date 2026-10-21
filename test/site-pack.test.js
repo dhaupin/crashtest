@@ -3,7 +3,7 @@
 // (pack.json entry = the attack module; the run root wires the routes by
 // importing buildSiteRoutes() from the pack). Two proofs live here:
 //
-//   1. CLI-level run-root honesty - 17 site attacks all REFUSED at HEAD, and
+//   1. CLI-level run-root honesty - 18 site attacks all REFUSED at HEAD, and
 //      the WP packs on board degrade to skipped-REFUSED on a non-WP run root
 //      (never fake EXPLOITEDs - the section 12 zero-false-positive rule).
 //   2. Teeth, two ways - version-grammar-hostile-shapes EXPLOITEDs a
@@ -48,7 +48,7 @@ test('crashtest-site pack runs on itself from a foreign run root (exit 0, all re
 
     const ledger = JSON.parse(await readFile(LEDGER_PATH, 'utf8'));
     const siteRows = ledger.findings.filter((f) => f.id.startsWith('crashtest-site/'));
-    assert.equal(siteRows.length, 17, 'the site pack contributes all 17 attacks (9 original + 2 taxonomy + 2 session + 1 authz + 1 proto-hygiene + 1 recursion + 1 upload probe)');
+    assert.equal(siteRows.length, 18, 'the site pack contributes all 18 attacks (9 original + 2 taxonomy + 2 session + 1 authz + 1 proto-hygiene + 1 recursion + 1 upload + 1 race probe)');
     assert.ok(siteRows.every((f) => f.verdict === 'REFUSED'), 'every shipped-site attack refused on the hardened repo');
     assert.ok(
       siteRows.some((f) => f.id === 'crashtest-site/version-grammar-hostile-shapes'),

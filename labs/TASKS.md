@@ -70,7 +70,48 @@
 
 ## Log
 
-- [2026-10-21 ~13Z] **upload shipped - 27 attacks across 11 modules.**
+- [2026-10-21 ~14Z] **race shipped - 29 attacks across 12 modules; two PRD
+  additions: the browser lane (designed) and the WordPress packs subsection
+  (touched spot).** Three PRD moves first: a `browser` planned row + a full
+  "browser lane" design section (two honest execution lanes - an in-process
+  DOM-sim and a real-browser SERVICE THREAD over CDP pipe transport,
+  neither ever a socket; the capability ships as a SEPARATE optional package
+  so nobody's install collects puppeteer junk; scenario families named:
+  DOM clobbering, form-action/base hijack, postMessage origin confusion,
+  CSP proof-by-render, storage-leak audit, clickjacking visibility). And
+  the WordPress lane got its dedicated spot: shipped packs ( wp-money-
+  shapes, wp-stock-smoke), the v0.3 subprocess adapter + NDJSON stdio wire,
+  and the honest gap list before wp-roles can ship (a role/callback-
+  registration worker fixture first, then the pack, then an end-to-end
+  armed exercise).
+  Then the planned row SHIPPED: src/scenarios/library/race.js (2 attacks).
+  The PRD's old "needs interleaved scheduling in the harness" solved
+  cheaper: handlers under one Promise.all already interleave at every
+  await boundary (fake D1/KV calls are async), bursts are deterministic by
+  microtask order. double-submit-idempotency (3-way same-key burst must
+  land ONE stored effect: two rows = double-charge; an uncaught same-key
+  throw = the storage wall without a shaped answer, ALSO a finding; one
+  row + shaped 409s = REFUSED). concurrent-write-lost-update (field-split
+  concurrent writers must both survive: a record holding only the last
+  writer, or a writer lost to an uncaught unique row conflict, = the
+  silent stomp; per-field storage = REFUSED). Honest lesson from the test
+  round: the in-service throw is a VERDICT-grade finding, not a transport
+  hiccup (fixed the oracle wording). Demo grew both surfaces: charge (hard:
+  unique-cid INSERT + shaped 409 catch; vuln: await-gapped SELECT-then-
+  INSERT TOCTOU draft) and profile (hard: per-field rows; vuln:
+  whole-record blob DELETE+INSERT stomper). Vuln bench: 10 REFUSED /
+  19 EXPLOITED, lost-update trips (blobs.user throw + stomp class).
+  Dogfood hardened: 29/29 REFUSED (814 ops / 1070 requests) - snapshot +
+  all count pins moved (27 -> 29 rows, 11 -> 12 groups, 739/1006 ->
+  814/1070, module-plan 28 -> 30, catalog/FAQ parity 27 -> 29). Site pack
+  gains race-asset-parity (18 attacks now): 12 concurrent GETs of the same
+  asset must come back byte-identical (56 parity burst requests, honest
+  REFUSED). Full battery vs ourselves (demo + site, all 12 modules +
+  packs): 54/54 REFUSED, exit 0, 1230 ops / 2755 requests, 0 new /
+  0 regressed. Gates: suite 170/170, check 0, lint:docs 0, web build 6/6.
+  Remaining planned: session/replay, browser lane (designed), wp-roles
+  (needs its worker fixture first), race/expiry-race extension, extended
+  sources CVE/KEV pack.
   PRD planned row `upload` (multipart shapes) lands as
   src/scenarios/library/upload.js (2 attacks), both verdicts read the
   STORE - the handler's derived storage is the wire truth, not the

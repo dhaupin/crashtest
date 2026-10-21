@@ -56,6 +56,13 @@ const MODULES = [
     ],
   },
   {
+    mod: 'race',
+    attacks: [
+      ['double-submit-idempotency', 'N concurrent POSTs with the SAME idempotency key must land exactly one side effect - two acknowledged charges or an uncaught same-key throw (a storage wall the wire never shaped) is the double-charge class; one row + shaped 409s holds', 'read-then-insert with an await gap (TOCTOU)'],
+      ['concurrent-write-lost-update', 'Two concurrent field-split writers must both survive: after both land, every submitted field is present in the store - a record holding only the last writer (or a writer lost to an uncaught conflict) is the silent stomp', 'whole-record writes that replace what a concurrent writer just stored'],
+    ],
+  },
+  {
     mod: 'state',
     attacks: [
       ['enumeration-oracle', 'Arms mustDenyIds, probes each - 200s (or content ripples) mean foreign rows leak by guessable id', 'GET-by-id without ownership checks'],
@@ -120,7 +127,7 @@ export default function Attacks() {
         <p className="field-report">
           Field-report from the target we trust least: our own code. This repo
           dogfoods itself in CI - runs we did on ourselves. The committed ledger
-          holds <span className="ok">27 REFUSED findings</span> on our own hardened demo
+          holds <span className="ok">29 REFUSED findings</span> on our own hardened demo
           app, and the self-site run paid for one real bug: the shipped version endpoint
           once answered a malformed registry payload with <span className="bad">200 and no
           version key</span>. Found, fixed, never regressing again - pinned by the
