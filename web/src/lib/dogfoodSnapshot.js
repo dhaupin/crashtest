@@ -13,7 +13,7 @@
 export const dogfood = {
   "ledger": {
     "schemaVersion": 1,
-    "generatedAt": "2026-10-21T05:17:45.697Z",
+    "generatedAt": "2026-10-21T05:59:29.890Z",
     "findings": [
       {
         "id": "auth/identity-spoof-headers",
@@ -23,12 +23,27 @@ export const dogfood = {
       {
         "id": "auth/secret-watermark",
         "verdict": "REFUSED",
-        "detail": "7 routes x 3 error-path probes: no fake secret ever left the env"
+        "detail": "8 routes x 3 error-path probes: no fake secret ever left the env"
       },
       {
         "id": "auth/privilege-escalation",
         "verdict": "REFUSED",
         "detail": "ownership mutations rejected by \"device\" (baseline 403)"
+      },
+      {
+        "id": "authz/method-matrix-privileged",
+        "verdict": "REFUSED",
+        "detail": "5 methods (bare + bodies where the method carries one) all denied on \"admin\" - the gate is method-blind"
+      },
+      {
+        "id": "authz/role-body-spoof-family",
+        "verdict": "REFUSED",
+        "detail": "8 role-word claims x 3 methods all denied on \"admin\" - identity lives in the request the server derives, not in the body the attacker owns"
+      },
+      {
+        "id": "authz/handler-alias-confusion",
+        "verdict": "REFUSED",
+        "detail": "alias \"dev-check\" denies identically to \"admin\" - no unauthenticated grant, no identity-header trapdoor (3 spoof vectors probed)"
       },
       {
         "id": "guards/hygiene-no-store",
@@ -112,6 +127,9 @@ export const dogfood = {
       "auth/identity-spoof-headers",
       "auth/secret-watermark",
       "auth/privilege-escalation",
+      "authz/method-matrix-privileged",
+      "authz/role-body-spoof-family",
+      "authz/handler-alias-confusion",
       "guards/hygiene-no-store",
       "guards/burst-wall",
       "input/proto-pollution-body",
@@ -131,9 +149,9 @@ export const dogfood = {
   },
   "cost": {
     "totals": {
-      "ops": 464,
-      "requests": 659,
-      "distinctAttacks": 18
+      "ops": 508,
+      "requests": 748,
+      "distinctAttacks": 21
     },
     "perAttack": [
       {
@@ -143,13 +161,28 @@ export const dogfood = {
       },
       {
         "id": "auth/secret-watermark",
-        "ops": 21,
-        "requests": 76
+        "ops": 24,
+        "requests": 79
       },
       {
         "id": "auth/privilege-escalation",
         "ops": 4,
-        "requests": 80
+        "requests": 83
+      },
+      {
+        "id": "authz/method-matrix-privileged",
+        "ops": 9,
+        "requests": 9
+      },
+      {
+        "id": "authz/role-body-spoof-family",
+        "ops": 24,
+        "requests": 33
+      },
+      {
+        "id": "authz/handler-alias-confusion",
+        "ops": 8,
+        "requests": 41
       },
       {
         "id": "guards/hygiene-no-store",
@@ -230,7 +263,7 @@ export const dogfood = {
   },
   "meta": {
     "version": "1.0.0",
-    "startedAt": "2026-10-21T05:17:45.630Z",
+    "startedAt": "2026-10-21T05:59:29.821Z",
     "seed": 12648430
   }
 };

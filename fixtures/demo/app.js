@@ -221,9 +221,17 @@ function buildRoutes({ vulnerable = false } = {}) {
   };
 
   const adminHard = async () => new Response('403: admin only', { status: 403 });
-  // Vulnerable admin: trusts identity headers straight from the wire.
+  // Vulnerable admin: trusts identity headers straight from the wire AND -
+  // the authz round - self-declared role bodies (the classic "role in the
+  // body" draft: admin by body-declared role/admin/isAdmin field).
   const adminVuln = async ({ request, env }) => {
-    const role = request.headers.get('x-is-admin') ?? request.headers.get('x-user-role');
+    let role = request.headers.get('x-is-admin') ?? request.headers.get('x-user-role');
+    if (role !== 'admin' && role !== 'true') {
+      try {
+        const body = await request.json();
+        role = body?.role ?? body?.isAdmin ?? body?.admin;
+      } catch { /* no body - headers only, as the draft would do */ }
+    }
     if (role === 'admin' || role === 'true') {
       const all = await env.DB.prepare('SELECT COUNT(*) FROM devices').first('count');
       return Response.json({ all: Number(all) });
@@ -231,10 +239,25 @@ function buildRoutes({ vulnerable = false } = {}) {
     return new Response('403: admin only', { status: 403 });
   };
 
+  // The dev-debug leftover, both ways: the hardened app keeps the alias
+  // route but it must deny IDENTICALLY to the primary admin gate (unauth
+  // and spoofed); the vulnerable app's leftover is the trapdoor - same
+  // count action, honors the identity headers the primary ignores.
+  const devCheckHard = adminHard;
+  const devCheckVuln = async ({ request, env }) => {
+    let role = request.headers.get('x-is-admin') ?? request.headers.get('x-user-role');
+    if (role === 'admin' || role === 'true') {
+      const all = await env.DB.prepare('SELECT COUNT(*) FROM devices').first('count');
+      return Response.json({ debugAll: Number(all), via: 'dev-check' });
+    }
+    return new Response('403: admin only (dev-check)', { status: 403 });
+  };
+
   return {
     enroll: vulnerable ? enrollVuln : enrollHard,
     device: vulnerable ? deviceVuln : deviceHard,
     admin: vulnerable ? adminVuln : adminHard,
+    'dev-check': vulnerable ? devCheckVuln : devCheckHard,
     burst: async () => new Response('accepted', { headers: { 'cache-control': 'no-store' } }),
     login: vulnerable ? loginVuln : loginHard,
     me: vulnerable ? meVuln : meHard,

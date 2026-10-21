@@ -1,6 +1,6 @@
 // packs/public/crashtest-site/attacks.js - the hardcore attacks.
 //
-// Thirteen attacks against crashtest's own shipped website. Every one is
+// Fourteen attacks against crashtest's own shipped website. Every one is
 // brutal-by-design: it names its fault class precisely, demands specific
 // wire behavior (not "nice to have"), and EXPLOITEDs with evidence when a
 // claim the site makes turns out to be false. Verdicts are honest - a wall
@@ -466,6 +466,72 @@ export default {
           return { verdict: 'EXPLOITED', detail: faults[0] + ` (+${faults.length - 1} more)` };
         }
         return { verdict: 'REFUSED', detail: routes.length + ' shipped routes: the forged double was ignored everywhere - no adoption, no byte reflection, no faults' };
+      },
+    },
+
+    {
+      // The library `authz` module's privilege-decision discipline, stated
+      // the way a STATIC site can be honest about it: the site ships no
+      // privileged surface, so nothing it ships may ADVERTISE one - a sitemap
+      // or HTML or robots that names /admin, /debug, /dev-check, /wp-admin
+      // is announcing a gate attackers don't have to guess at.
+      name: 'authz-no-privileged-surface',
+      description: 'the site ships no privileged surface, so no shipped artifact may advertise one: HTML, sitemap, robots.txt and the headers file must not expose an admin/debug/dev-check path - role-claim bodies POSTed at shipped routes must not mint anything either (no body-declared-role handler exists to flip)',
+      async run(harness) {
+        const artifacts = [
+          { name: 'site-html', label: 'prerendered HTML', optionalWhen404: true },
+          { name: 'site-sitemap', label: 'sitemap.xml', optionalWhen404: true },
+          { name: 'site-robotstxt', label: 'robots.txt', optionalWhen404: false },
+          { name: 'site-headers', label: '_headers file', optionalWhen404: false },
+          { name: 'site-manifest', label: 'webmanifest', optionalWhen404: false },
+        ];
+        // Privilege-surface words: a path-ish reference, not the English
+        // word - "admin" in prose is fine, "href=.../admin" is advertising.
+        const SURFACES = [
+          [/((?:href|src|loc|url|path)\s*[=:])\s*["']?[^"'>\s]*\b\/admin(?:istrator)?\b/i, '/admin path reference'],
+          [/((?:href|src|loc|url|path)\s*[=:])\s*["']?[^"'>\s]*\b\/dev-check\b/i, '/dev-check path reference'],
+          [/((?:href|src|loc|url|path)\s*[=:])\s*["']?[^"'>\s]*\b\/debug\b/i, '/debug path reference'],
+          [/((?:href|src|loc|url|path)\s*[=:])\s*["']?[^"'>\s]*\b\/wp-admin\b/i, '/wp-admin path reference'],
+        ];
+        const advertised = [];
+        for (const artifact of artifacts) {
+          if (!harness.listRoutes().includes(artifact.name)) continue;
+          const res = await hit(harness, artifact.name, { method: 'GET' });
+          if (res.threw) { advertised.push(artifact.label + ': threw'); continue; }
+          if (res.status === 404 && artifact.optionalWhen404) continue; // build-only artifact absent - config gap
+          if (res.status >= 400) { advertised.push(artifact.label + ': missing from shipped artifacts (status ' + res.status + ')'); continue; }
+          const text = String(res.text ?? '').slice(0, 40000);
+          for (const [, rx, why] of SURFACES) {
+            const m = text.match(rx);
+            if (m) { advertised.push(`${artifact.label}: advertises ${why} (${m[0].slice(0, 60)})`); break; }
+          }
+        }
+        // Behavioral half: role-claim bodies cannot flip anything a site
+        // without a privilege handler - any 2xx that MINTS state (a cookie)
+        // or answers differently than the bare request is checked implicitly
+        // by the session probes; here we only assert the write-shaped methods
+        // never escalate a deny into a grant-shaped 2xx with a role echo.
+        const routes = ['version', 'site-html', 'site-headers', 'site-manifest', 'site-sitemap', 'site-robotstxt'];
+        const flips = [];
+        for (const route of routes) {
+          if (!harness.listRoutes().includes(route)) continue;
+          const res = await hit(harness, route, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'x-user-role': 'admin' },
+            body: '{"role":"admin","isAdmin":true}',
+          });
+          if (res.threw) { flips.push(route + ': threw on a role-claim POST'); continue; }
+          if (res.status >= 200 && res.status < 300 && String(res.text ?? '').includes('"role":"admin"')) {
+            flips.push(route + ': 2xx echoes the role decision back (a body-driven privilege read exists here)');
+          }
+        }
+        if (advertised.length) {
+          return { verdict: 'EXPLOITED', detail: advertised.length + ' shipped artifact(s) advertise a privileged surface: ' + advertised.join(' | ') };
+        }
+        if (flips.length) {
+          return { verdict: 'EXPLOITED', detail: 'role-claim bodies flipped a response decision: ' + flips.join(' | ') };
+        }
+        return { verdict: 'REFUSED', detail: 'no shipped artifact advertises a privileged surface and role-claim bodies flip nothing on ' + routes.length + ' routes - the privilege decision simply does not exist here, and nothing pretends it does' };
       },
     },
   ],

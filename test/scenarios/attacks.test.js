@@ -259,3 +259,61 @@ test('session: EXPLOITED on the trust-the-wire draft, REFUSED when rotated + for
   assert.equal(skip.verdict, 'REFUSED');
   assert.ok(skip.skipped === true, `undeclared routes must skip, not fail: ${skip.detail}`);
 });
+
+// ---- authz (method matrix / role bodies / alias drift) -------------------
+function authzRoutes({ leaky }) {
+  const adminGate = leaky
+    ? async ({ request, env }) => {
+        // This fixture's leaky gate trusts BODY-declared roles only (the
+        // primary's own bug); the alias trusts the identity HEADERS the
+        // primary ignores - which is exactly the drift authz/alias hunts.
+        let role = null;
+        try { const body = await request.json(); role = body?.role ?? body?.isAdmin; } catch { /* no body */ }
+        if (role === 'admin' || role === 'true') return Response.json({ all: 1 });
+        return new Response('403: admin only', { status: 403 });
+      }
+    : async () => new Response('403: admin only', { status: 403 });
+  return {
+    admin: adminGate,
+    // the alias dimension: hardened keeps the name, denies identically;
+    // leaky is the leftover debug trapdoor honoring headers the gate ignores
+    'dev-check': leaky
+      ? async ({ request }) => {
+          if (request.headers.get('x-is-admin') === 'admin') return Response.json({ debug: true });
+          return new Response('403: admin only (dev-check)', { status: 403 });
+        }
+      : () => new Response('403: admin only', { status: 403 }),
+  };
+}
+
+const authzEnv = envSpec;
+
+test('authz: EXPLOITED on the header/body-trusting gate + debug alias, REFUSED when method-blind + role-tight + alias-aligned', async () => {
+  const [module] = (await loadScenarios()).map(l => l.module).filter(m => m.name === 'authz');
+  assert.ok(module, 'authz library module must load');
+  const matrix = module.attacks.find(a => a.name === 'method-matrix-privileged');
+  const roleBody = module.attacks.find(a => a.name === 'role-body-spoof-family');
+  const alias = module.attacks.find(a => a.name === 'handler-alias-confusion');
+  for (const a of [matrix, roleBody, alias]) assert.ok(a);
+
+  const vuln = buildHarness(authzRoutes({ leaky: true }), { env: authzEnv });
+  const r1 = await roleBody.run(vuln, { privilegedRoute: 'admin' });
+  assert.equal(r1.verdict, 'EXPLOITED', `body-declared roles must flip the leaky gate: ${r1.detail}`);
+  assert.match(r1.detail, /role.*POST|isAdmin/);
+  const r2 = await alias.run(vuln, { privilegedRoute: 'admin', aliasRoute: 'dev-check' });
+  assert.equal(r2.verdict, 'EXPLOITED', `the debug leftover must be the trapdoor: ${r2.detail}`);
+  assert.match(r2.detail, /x-is-admin/);
+
+  const hard = buildHarness(authzRoutes({ leaky: false }), { env: authzEnv });
+  const r3 = await matrix.run(hard, { privilegedRoute: 'admin' });
+  assert.equal(r3.verdict, 'REFUSED', `the gate must be method-blind: ${r3.detail}`);
+  const r4 = await roleBody.run(hard, { privilegedRoute: 'admin' });
+  assert.equal(r4.verdict, 'REFUSED', `role claims must never route: ${r4.detail}`);
+  const r5 = await alias.run(hard, { privilegedRoute: 'admin', aliasRoute: 'dev-check' });
+  assert.equal(r5.verdict, 'REFUSED', `the alias must deny identically: ${r5.detail}`);
+
+  // Contract pin: undeclared privileged routes degrade to skipped-REFUSED.
+  const skip = await matrix.run(buildHarness({}, { env: authzEnv }), { privilegedRoute: 'admin' });
+  assert.equal(skip.verdict, 'REFUSED');
+  assert.ok(skip.skipped === true, `undeclared routes must skip, not fail: ${skip.detail}`);
+});

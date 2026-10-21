@@ -97,13 +97,13 @@ request is an in-process `Request` object through the app's own routing.
 | `guards` | throttle walls, breaker behavior, response hygiene (no-store, Retry-After) | gistory guards tests |
 | `taxonomy` | honest-refusal semantics: abuse answers 4xx, never 5xx / uncaught; error bodies stay impersonal (no canary echo, no stack frames) | shipped 2026-10-21 - the response-shape dimension every other library left to chance |
 | `session` | cookie hygiene (Secure/HttpOnly/SameSite on the login transition), fixation (sid rotation + forged-id rejection), logout invalidation | shipped 2026-10-21 - the cookie dimension `auth` deliberately left alone; skips politely on undeclared routes, honestly skips cookie-less logins |
+| `authz` | route x method matrix on privileged paths, self-declared role bodies, handler alias confusion (the dev/debug leftover trapdoor) | shipped 2026-10-21 - the door `privilege-escalation` opens: this attacks the privilege DECISION, not the owner field |
 
 Planned expansions (v1.x - wording stays `planned` until each ships):
 
 | Planned library | Attacks designed for | Status |
 |---|---|---|
 | `session` (extension) | replay windows (token reuse past expiry-to-deletion gaps) | planned - the base module shipped 2026-10-21; this row covers only what did not |
-| `authz` | alternate privilege vectors: route x method matrix on privileged paths, handler alias confusion, self-declared role bodies | planned - the door `privilege-escalation` opens |
 | `upload` | multipart shapes: filename traversal, double extensions, null-byte names, polyglot content types | planned - FormData bodies are in-process; storage-fill pairs for size |
 | `race` | concurrent pairs: double-submit idempotency, lost-update window, expiry race (validation-to-use gap) | planned - needs interleaved scheduling in the harness |
 | `proto-hygiene` (guards extension) | HEAD/GET parity, duplicate query keys, dot-segment/double-slash path shapes, header case chaos | planned - cheap, low false-positive |

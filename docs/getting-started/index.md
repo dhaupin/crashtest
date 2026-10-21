@@ -36,13 +36,14 @@ $ node bin/crashtest.js run --expect-baseline labs/crashledger.json   # against 
 ⚡ guards/hygiene-no-store: 2xx write from "enroll" has NO Cache-Control - shared caches may replay the write
 ⚡ input/proto-pollution-body: canary planted on Object.prototype via payload to "enroll" (status 200)
 🛡 input/oversized-field: oversized body handled on "enroll" (status 200)
+⚡ authz/role-body-spoof-family: body-declared role claims flipped the privilege decision on "admin": role via POST (status 200) | role via PUT (status 200) | role via PATCH (status 200)
 ⚡ session/cookie-hygiene: login cookie on "login" misses 3 hygiene flag(s): Secure (cookie must never ride plain http on a real surface); HttpOnly (script-readability = one XSS harvests every session); SameSite=Lax (or Strict) (un-padded cross-site carrying)
 ⚡ taxonomy/abuse-not-5xx: 7/10 abuse shapes escalated on "enroll" - first: truncated-object (5xx: 500)
 ⚡ taxonomy/errors-stay-impersonal: 1/10 error paths leak on "enroll" - first: not-json (canary echo (handler parroting attacker-controlled data))
 🛡 volume/storage-fill: route "kvwrite" not declared on this target - fill check skipped (declare a KV-writing route)
 
-tally: {"TOTAL":18,"REFUSED":6,"EXPLOITED":12,"BOUNDED":0} / cost: 384 ops / 461 requests
-baseline: 0 new / 12 regressed / 0 accepted hits
+tally: {"TOTAL":21,"REFUSED":8,"EXPLOITED":13,"BOUNDED":0} / cost: 455 ops / 550 requests
+baseline: 0 new / 13 regressed / 0 accepted hits
 exit: 1  (REFUSED->EXPLOITED regressions - fix it or bound it, then re-run)
 ```
 

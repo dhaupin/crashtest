@@ -70,7 +70,35 @@
 
 ## Log
 
-- [2026-10-21 ~09Z] **crashtest-site pack grows session probes; full-battery
+- [2026-10-21 ~10Z] **authz module shipped - 21 attacks across 8 modules;
+  full battery vs ourselves: 42/42 held.** PRD section 6 planned row #2
+  ships: src/scenarios/library/authz.js (3 attacks) attacks the privilege
+  DECISION itself (privilege-escalation attacks the owner field - authz
+  attacks the gate): method-matrix-privileged (the privileged route must
+  deny on EVERY method - GET/POST/PUT/PATCH/DELETE, bare + bodies; a gate
+  that trips only on the method the developer tested is the class),
+  role-body-spoof-family (8 role-word claims x 3 methods - role/isAdmin/
+  is_admin/admin/scope/permissions/nested user.role/body-echoed x-user-role
+  must never flip a deny; identity lives in what the server derives, not
+  what the attacker declares), and handler-alias-confusion (a second route
+  performing the same privileged action must deny identically to the
+  primary, unauth AND spoofed - the dev/debug leftover trapdoor). Demo
+  fixture grew the surface both ways: vuln admin now ALSO honors body-
+  declared roles (the classic draft), both variants carry the dev-check
+  alias (hard denies identically; vuln honors the headers the primary
+  ignores). Harness lesson: GET/HEAD cannot carry a wire body - the matrix
+  rides bare attempts there. Two-way proofs pinned; undeclared-route skip
+  pin. Vuln bench: 8 REFUSED / 13 EXPLOITED (role-body trips: role via
+  POST/PUT/PATCH all 200). Dogfood hardened: 21/21 REFUSED (508 ops / 748
+  requests) - snapshot regenerated, pins moved (dashboard/parity 18 -> 21
+  rows, 7 -> 8 groups, cost 464/659 -> 508/748; module-plan 19 -> 22;
+  s15-dogfood 18 -> 21; catalog/FAQ parity 18 -> 21). Site pack gains
+  authz-no-privileged-surface (14 attacks now): no shipped artifact may
+  advertise /admin|/dev-check|/debug|/wp-admin path references, and role-
+  claim bodies flip nothing - first vs-ourselves run honest REFUSED. Full
+  combined battery (demo + site routes, all 8 modules + packs): 42/42
+  REFUSED, exit 0, 648 ops / 1433 requests, 0 new / 0 regressed. Gates:
+  suite 166/166, check 0, lint:docs 0, web build 6/6.
   run vs ourselves: 38/38 held.** The public self-dogfood pack now carries the
   session discipline as two self-contained probes (same spirit as the
   taxonomy pair last round):

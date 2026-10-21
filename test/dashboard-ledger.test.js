@@ -12,18 +12,18 @@ import { dogfood } from '../web/src/lib/dogfoodSnapshot.js';
 test('dogfood snapshot parses as a ledger and reports a clean gate (exit 0)', () => {
   const vm = parseArtifact(dogfood.ledger, { sourceLabel: 'test' });
   assert.equal(vm.kind, 'ledger');
-  assert.equal(vm.counts.total, 18);
-  assert.equal(vm.counts.refused, 18);
+  assert.equal(vm.counts.total, 21);
+  assert.equal(vm.counts.refused, 21);
   assert.equal(vm.counts.exploited, 0);
   assert.equal(vm.gate.status, 'pass');
   assert.equal(vm.gate.exitCode, 0);
-  assert.equal(vm.groupings.length, 7); // auth, guards, input, session, state, taxonomy, volume
+  assert.equal(vm.groupings.length, 8); // auth, authz, guards, input, session, state, taxonomy, volume
 });
 
 test('snapshot cost economics survived generation (totals + per-attack rows)', () => {
-  assert.equal(dogfood.cost.totals.ops, 464);
-  assert.equal(dogfood.cost.totals.requests, 659);
-  assert.ok(dogfood.cost.perAttack.length >= 18);
+  assert.equal(dogfood.cost.totals.ops, 508);
+  assert.equal(dogfood.cost.totals.requests, 748);
+  assert.ok(dogfood.cost.perAttack.length >= 21);
   const amp = dogfood.cost.perAttack.find((p) => p.id === 'volume/cost-amplification');
   assert.deepEqual({ ops: amp.ops, requests: amp.requests }, { ops: 81, requests: 100 });
 });

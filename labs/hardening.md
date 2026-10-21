@@ -1,14 +1,17 @@
 # Hardening report
 
-> crashtest v1.0.0 / 2026-10-21T05:17:45.630Z / seed 12648430
+> crashtest v1.0.0 / 2026-10-21T05:59:29.821Z / seed 12648430
 > CI rule: fail on a NEW EXPLOITED finding, or a REGRESSION of anything previously REFUSED.
 
 ## Findings
 
-### 🛡 REFUSED (18)
+### 🛡 REFUSED (21)
 - auth/identity-spoof-headers: all 54 identity-header spoofs denied or ignored on "admin"
-- auth/secret-watermark: 7 routes x 3 error-path probes: no fake secret ever left the env
+- auth/secret-watermark: 8 routes x 3 error-path probes: no fake secret ever left the env
 - auth/privilege-escalation: ownership mutations rejected by "device" (baseline 403)
+- authz/method-matrix-privileged: 5 methods (bare + bodies where the method carries one) all denied on "admin" - the gate is method-blind
+- authz/role-body-spoof-family: 8 role-word claims x 3 methods all denied on "admin" - identity lives in the request the server derives, not in the body the attacker owns
+- authz/handler-alias-confusion: alias "dev-check" denies identically to "admin" - no unauthenticated grant, no identity-header trapdoor (3 spoof vectors probed)
 - guards/hygiene-no-store: "enroll" write responses marked no-store
 - guards/burst-wall: no wall under 50-burst on "burst" (0 client errors) - wall presence optional, breakage none
 - input/proto-pollution-body: payload to "enroll" did not pollute state (status 400)
@@ -30,10 +33,13 @@
 ### 🔒 BOUNDED (0)
 
 ## Cost economics
-- total: 464 backend ops across 659 in-process requests from 18 attacks
+- total: 508 backend ops across 748 in-process requests from 21 attacks
   - auth/identity-spoof-headers: 55 ops / 55 requests
-  - auth/secret-watermark: 21 ops / 76 requests
-  - auth/privilege-escalation: 4 ops / 80 requests
+  - auth/secret-watermark: 24 ops / 79 requests
+  - auth/privilege-escalation: 4 ops / 83 requests
+  - authz/method-matrix-privileged: 9 ops / 9 requests
+  - authz/role-body-spoof-family: 24 ops / 33 requests
+  - authz/handler-alias-confusion: 8 ops / 41 requests
   - guards/hygiene-no-store: 3 ops / 1 requests
   - guards/burst-wall: 50 ops / 51 requests
   - input/proto-pollution-body: 1 ops / 1 requests

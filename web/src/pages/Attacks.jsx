@@ -12,6 +12,14 @@ const MODULES = [
     ],
   },
   {
+    mod: 'authz',
+    attacks: [
+      ['method-matrix-privileged', 'Fires the privileged route on every HTTP method (GET/POST/PUT/PATCH/DELETE, bare and with bodies) - the gate must deny method-blind; a gate that trips only on the tested method is a finding', 'gates keyed to one request method'],
+      ['role-body-spoof-family', 'The role-word field family (role, isAdmin, is_admin, admin, scope, permissions, nested user.role) fired in bodies at the privileged route must never flip a deny - identity lives in what the server derives, not in what the attacker declares', 'handlers that trust body-declared roles'],
+      ['handler-alias-confusion', 'A second route performing the same privileged action (the dev/debug leftover) must deny identically - unauthenticated AND under identity-header spoofing; an alias that honors what the primary ignores is the trapdoor', 'leftover debug/alias routes with weaker gates'],
+    ],
+  },
+  {
     mod: 'guards',
     attacks: [
       ['hygiene-no-store', 'Every 2xx write must carry store class (no-store / private / explicit immutable) - mandated by HTTP cache semantics', 'handlers that write without cache directives'],
@@ -91,7 +99,7 @@ export default function Attacks() {
         <p className="field-report">
           Field-report from the target we trust least: our own code. This repo
           dogfoods itself in CI - runs we did on ourselves. The committed ledger
-          holds <span className="ok">18 REFUSED findings</span> on our own hardened demo
+          holds <span className="ok">21 REFUSED findings</span> on our own hardened demo
           app, and the self-site run paid for one real bug: the shipped version endpoint
           once answered a malformed registry payload with <span className="bad">200 and no
           version key</span>. Found, fixed, never regressing again - pinned by the

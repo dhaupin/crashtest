@@ -7,7 +7,7 @@ description: Every shipped scenario module and attack, what it does, and what ve
 
 # The Attack Catalog
 
-Eighteen attacks across seven modules ship in the core package. Each returns
+Twenty-one attacks across eight modules ship in the core package. Each returns
 exactly one verdict per run: 🛡 REFUSED, ⚡ EXPLOITED, or 🔒 BOUNDED
 (BOUNDED requires an owner + bound or it demotes to EXPLOITED - loudly).
 
@@ -18,6 +18,18 @@ exactly one verdict per run: 🛡 REFUSED, ⚡ EXPLOITED, or 🔒 BOUNDED
 | `identity-spoof-headers` | Fires a 54-header identity matrix (`x-is-admin`, `x-user-role`, `x-forwarded-for`, ...) at your privileged route. A spoof that flips an authorized action = EXPLOITED; all denied/ignored = REFUSED. |
 | `secret-watermark` | Plants fake secrets in the fake env, then walks error paths. A probe that echoes one back = EXPLOITED. |
 | `privilege-escalation` | Replays writes where `owner` names someone else (victim pairs: attacker->victim, attacker->admin). An accepted write = EXPLOITED. |
+
+## `authz` - the privilege decision
+
+Where `auth` attacks who you claim to be, `authz` attacks the privilege
+DECISION itself - how a handler's admin gate gets flipped without touching
+the owner field. All three skip politely when their routes are undeclared.
+
+| Attack | What it does |
+|---|---|
+| `method-matrix-privileged` | The privileged route must deny ON EVERY HTTP METHOD (GET/POST/PUT/PATCH/DELETE, bare + with bodies). A gate that only trips on the method the developer tested = EXPLOITED with the winning method named. |
+| `role-body-spoof-family` | Self-declared role bodies never route: the role-word field family (`role`, `isAdmin`, `is_admin`, `scope`, `permissions`, nested `user.role`, ...) fired at the privileged route must not flip a deny. Any grant = the classic "trust the body's role field" draft. |
+| `handler-alias-confusion` | A second route performing the same privileged action (the dev/debug leftover) must deny identically to the primary - unauthenticated AND under identity-header spoofing. An alias that honors what the primary ignores is the trapdoor. |
 
 ## `guards` - hygiene and load
 
