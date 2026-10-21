@@ -70,6 +70,30 @@
 
 ## Log
 
+- [2026-10-22 ~00Z] **gistory spin-up + the gistory-sync pack lands
+  (proven, filed upstream): dhaupin/gistory#1 carries the full proposal.
+  The port: tests/redteam.ts scenarios onto the pack contract - 7 shapes
+  attacking the four sync Pages Functions in-process (Node type
+  stripping + real node:sqlite D1 shim with gistory's own migrations;
+  the fake-D1 correctly STAYS OUT because handlers use INSERT OR
+  IGNORE / ON CONFLICT..DO UPDATE / COALESCE(MAX)). Two runs at HEAD:
+  35 rows, byte-identical ledgers. Verdicts: 5 REFUSED (takeover,
+  create-race, device-spoof, wire-refusal, guard-429-no-store all
+  HOLD), 1 EXPLOITED (watermark-poison-pin - gistory's own documented
+  accepted risk, reproduced live; recommend acceptedRisks row for
+  CI-green), 1 BOUNDED (existence-oracle, owner gistory + UUIDv4/flood-
+  bucket bound). ZERO new gistory defects. Port lessons recorded in
+  the brain: my envRow never awaited its async shim read (Promise
+  .push_hash always undefined -> null hashes), and create-race read
+  the capability hash before the second racer - the redteam suite's
+  own ordering was the source of truth; extensionless TS imports
+  needed a 15-line resolve hook (ts-crashtest-hooks), committed
+  nowhere - recipe lives in gistory#1. crashtest#4 and #5 CLOSED:
+  both pack proposals now live upstream (prestruct#24/#25,
+  vant#231/#233, gistory#1). Puppeteer verdict for prestruct went in
+  #25: keep CI browser-free, add an opt-in render lane (RENDER_LANE)
+  for the snapshot path.**
+
 - [2026-10-21 ~23Z] **prestruct spin-up complete (the request from
   crashtest#4, now answered at prestruct HEAD): two crashtest v1.0.0
   runs via prestruct's own crashtest.config.js, exit 0 both, tally
