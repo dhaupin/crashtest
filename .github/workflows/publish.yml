@@ -65,15 +65,21 @@ jobs:
           test -f "$TARBALL" || { echo "::error::expected asset $TARBALL not produced"; exit 1; }
 
           # Guardrail (same spirit as test/packaging.test.js): the release
-          # asset must contain the reusable surfaces (bin/ + src/ + the two
-          # self-contained packs) and never repo-bound internals - web/,
+          # asset must contain the reusable surfaces (bin/ + src/ + the
+          # shipped packs) and never repo-bound internals - web/,
           # packs/public/crashtest-site/, labs/, test/.
-          tar -tzf "$TARBALL" | grep -q "^package/bin/crashtest.js$"
-          if tar -tzf "$TARBALL" | grep -Eq "^package/(web/|labs/|test/|packs/public/crashtest-site/)"; then
+          # Listing goes through a FILE first: `tar | grep -q` echoes the
+          # grep early-exit into a SIGPIPE which pipefail turns into a
+          # failure - the exact piped-exit hazard the house rules warn
+          # about, and it bit the v1.0.0 asset job.
+          tar -tzf "$TARBALL" > tarball-listing.txt
+          grep -q "^package/bin/crashtest.js$" tarball-listing.txt
+          if grep -Eq "^package/(web/|labs/|test/|packs/public/crashtest-site/)" tarball-listing.txt; then
             echo "::error::release tarball contains repo-bound internals:"
-            tar -tzf "$TARBALL" | grep -E "^package/(web/|labs/|test/|packs/public/crashtest-site/)"
+            grep -E "^package/(web/|labs/|test/|packs/public/crashtest-site/)" tarball-listing.txt
             exit 1
           fi
+          rm tarball-listing.txt
           echo "TARBALL=$TARBALL" >> $GITHUB_ENV
 
       - name: Create the GitHub release
