@@ -55,6 +55,10 @@ const FAQS = [
     a: <>0: baseline held. 1: a NEW EXPLOITED finding, or a previously-REFUSED surface that regressed. 2: configuration problem (missing or malformed config/baseline) - the run is untrustworthy, which is different from "your app is weak". Never a false positive on undeclared routes: those degrade to skipped-REFUSED.</>,
   },
   {
+    q: 'Does it know about known CVEs?',
+    a: <>Yes - through the shipped <strong>cve-feed</strong> pack. It cross-references a curated, committed KEV/NVD snapshot (currently 12 entries from the actively-exploited list and their NVD ranges) against what your surface actually discloses: <code>kev-banner-audit</code> sweeps every declared route for banner and stack-tell disclosure, and <code>kev-version-range-audit</code> checks any disclosed version against the snapshot&apos;s vulnerable ranges. It is deliberately offline: run time reads only the committed snapshot file - no sockets, no CVE feed subscriptions - so runs stay deterministic (same commit, same verdicts) and finding freshness is a maintainer-side sync you control. Match tokens are word-boundary-safe (the token <code>ws</code> never matches inside the word <code>answer</code>).</>,
+  },
+  {
     q: 'Who builds with this?',
     a: <>Agent developers who want a hardening pass as part of "done" (the primary audience - it is built to run in the agent loop), solo and small-OSS maintainers who cannot afford a pentest, and security-minded teams as a first-pass filter before human review.</>,
   },

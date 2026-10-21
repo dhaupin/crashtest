@@ -127,8 +127,18 @@ reality directly - tracked vs machine-private.
   is the OSS repo's own dogfood pack: it attacks the website crashtest
   ships (the /api/version Pages Function, deployed headers, prerendered
   HTML, sitemap, manifest, robots.txt) from any run root, and its first
-  run caught a real bug in the version function. Adapter-prefix rule
-  applies: it speaks the generic HTTP dialect, so no `wp-`-style prefix.
+  run caught a real bug in the version function (hostile registry shapes
+  echoed straight through as a badge 200). [`cve-feed`](https://github.com/dhaupin/crashtest/blob/main/packs/public/cve-feed/pack.json)
+  is the second shipped pack: a curated KEV/NVD snapshot slice for known-
+  vulnerability disclosure -> checks the shipped banner set and the
+  dependency version floor itself. Run time reads ONLY the committed
+  `snapshot.json` (zero sockets, same commit -> same findings); refresh
+  is a maintainer-side sync of the slice + CI byte-integrity join; the
+  snapshot shape, the 12-row/4200-byte budget, and the word-boundary
+  safety of its match tokens (the `ws`/`answer` case) are all pinned in
+  [`test/cve-feed.test.js`](../../test/cve-feed.test.js). Adapter-prefix
+  rule applies: it speaks the generic HTTP dialect, so no `wp-`-style
+  prefix.
 - **Private packs** (the khf-style case: money paths guarded by a
   maintainer's own plugin, scenarios nobody else should have) live in
   `packs/local/` of a run root OUTSIDE the target repo. Nothing on disk is

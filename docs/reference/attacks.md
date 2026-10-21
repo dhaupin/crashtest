@@ -136,6 +136,32 @@ Bursts are deterministic by microtask order - same inputs, same schedule.
 | `double-submit-idempotency` | N concurrent POSTs with the SAME idempotency key must land exactly ONE side effect. Two acknowledged-and-stored = the double-charge class; an uncaught same-key throw (storage wall without a shaped answer) is also a finding; one row + shaped 409s = REFUSED. |
 | `concurrent-write-lost-update` | Two concurrent writers submit DIFFERENT fields into the same record; after both land, every field must be present. A record holding only the last writer's fields (or a writer lost to an uncaught unique row conflict) = the silent-stomp lost-update class, EXPLOITED with what dropped named. Per-field storage or conflict-detecting writes = REFUSED. |
 
+## Shipped packs (belt with suspenders)
+
+The core package also ships two public packs, loaded per run root with
+`packs:` and enumerated with `crashtest packs` - they ride the same
+contract, so their verdicts land in the same ledger:
+
+- `crashtest-site` (18 attacks) - the self-check every crashtest release
+  must survive: it sweeps everything the project itself ships
+  (sitemap truth, robots.txt self-sabotage, secret leakage in HTML). It
+  is the pack that caught a real bug on its first run: a malformed
+  version payload once answered 200, and the validation floor now
+  pays for itself in CI.
+- `cve-feed` (2 attacks: `kev-banner-audit`, `kev-version-range-audit`) -
+  known-vulnerability awareness against a curated KEV/NVD snapshot of 12
+  entries, budget-capped (12 rows / 4200 bytes). Run time reads only the
+  committed `snapshot.json` - no sockets, same commit -> same findings;
+  refresh is a maintainer-side sync plus a CI-side byte-integrity join.
+  `kev-banner-audit` sweeps every declared route for disclosure culture
+  (`Server`, `X-Powered-By`, stack-tell bodies spelled like shipped
+  CVEs) - any hit is EXPLOITED; a quiet surface is REFUSED.
+  `kev-version-range-audit` reads disclosed versions from the surface
+  and refuses any that sit in an entry's vulnerable set. Match tokens
+  are word-boundary-disciplined, so `ws` never matches inside
+  `answer` - both teeth and the no-false-positive case are pinned in
+  `test/cve-feed.test.js`.
+
 ## Writing your own
 
 Any module with the same contract loads from

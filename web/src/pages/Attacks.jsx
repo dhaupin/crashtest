@@ -125,6 +125,23 @@ export default function Attacks() {
             </tbody>
           </table>
         </div>
+        <h3 style={{ marginTop: 40 }}>Shipped packs ride the same ledger</h3>
+        <p className="sub">
+          Beyond the 30 library attacks above, two public packs ship in the
+          package and load wherever <code>packs:</code> points: <code>crashtest-site</code>{' '}
+          (18 attacks - the release self-check that caught our own version
+          endpoint answering a malformed payload with a 200) and{' '}
+          <code>cve-feed</code> (2 attacks - <code>kev-banner-audit</code> and{' '}
+          <code>kev-version-range-audit</code>), which reads a curated,
+          committed KEV/NVD snapshot instead of the network. Same verdicts,
+          same ledger, still zero sockets: run time reads only the committed
+          snapshot file, so findings stay deterministic (same commit, same
+          verdicts); refresh is a maintainer-side sync. The snapshot shape,
+          its 12-row/4200-byte budget, and the word-boundary grammar of its
+          match tokens (so <code>ws</code> never reads into <code>answer</code>) are all
+          pinned in{' '}
+          <a href="https://github.com/dhaupin/crashtest/blob/main/test/cve-feed.test.js" target="_blank" rel="noreferrer">test/cve-feed.test.js</a>.
+        </p>
         <p className="field-report">
           Field-report from the target we trust least: our own code. This repo
           dogfoods itself in CI - runs we did on ourselves. The committed ledger

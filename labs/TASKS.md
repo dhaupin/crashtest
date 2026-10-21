@@ -70,6 +70,33 @@
 
 ## Log
 
+- [2026-10-21 ~18Z] **cve-feed goes public-facing across every surface
+  (root docs + docs + web) and the pack's surface-as-contract pin lands.
+  README: new cve-feed paragraph in the dogfood section (offline KEV/NVD
+  sweep, zero sockets, pinned). docs/reference/attacks.md: prose-only
+  'Shipped packs' section (library-catalog count stays exactly 30 - no
+  `| \`` rows added, the parity pin holds); docs/index.md: packs-register
+  line under 'Where to go'. Web: Attacks.jsx gains the shipped-packs
+  section (site + cve-feed, deterministic snapshot philosophy, test pin
+  link); FAQ.jsx gains the 'Does it know about known CVEs?' answer with
+  the honest offline/sync story. Suite pin hardened: snapshot rows now
+  EXACTLY 12 (a shrunk/regenerated snapshot fails loudly, refresh moves
+  the constant deliberately) + per-entry version-shape checks + a
+  generalized token-boundary roundtrip (every shipped token must not
+  match inside a longer word - not just the ws/answer case). Suite 176
+  (was 175), all pass; lint:docs 0; check 0.**
+
+- [2026-10-21 ~17Z] **post-extension brittleness audit (the "is it all
+  guarded" question, all four axes, real commands). Suite 175/175, check
+  0, lint:docs 0, cvetest 3/3; snapshot stays within its 12-row/4200-byte
+  budget at HEAD. Docs parity gap CLOSED: cve-feed now joins crashtest-
+  site in docs/reference/packs.md's pack register with the byte-anchored
+  claims pinned to what the suite actually asserts (no-fiction rule
+  observed live: an overclaimed roundtrip phrase was walked back to exact
+  - budget / shape / boundary-safety). Roundtrip test file remains the
+  next-lens extension on the list for the pack (currently: shape +
+  budget + teeth + word-boundary pin in test/cve-feed.test.js).**
+
 - [2026-10-21 ~16Z] **two pre-v1 builders land together: the session
   replay-window extension + the cve-feed snapshot pack (extended sources).
   Library now 30 attacks / 12 modules; full battery vs ourselves 60/60

@@ -43,6 +43,9 @@ Each attack returns one of three verdicts:
   [ledger format](/crashtest/reference/ledger), and the
   [exit rules](/crashtest/reference/exit-rules) are documented machine-honest -
   every claim here matches the shipped CLI.
+- **Extending it:** shipped packs (including `cve-feed`, the offline
+  KEV/NVD snapshot sweep) and your own are covered in the
+  [packs register](/crashtest/reference/packs).
 
 ## The one rule worth quoting
 

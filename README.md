@@ -102,6 +102,17 @@ forever by [`test/site-pack.test.js`](./test/site-pack.test.js), which pins
 the two-way proof: a porous route EXPLOITED, the hardened one REFUSED.
 A pack runs from any run root - point `packs:` at a directory on disk.
 
+Known-vulnerability awareness ships the same way, and just as offline:
+[`packs/public/cve-feed/`](./packs/public/cve-feed/pack.json) carries a
+curated KEV/NVD snapshot (12 entries, budget-capped) and sweeps the target
+for banner disclosure (`Server`, `X-Powered-By`, stack-tell bodies) and
+vulnerable-range matches against a hardcoded version line. Run time reads
+only the committed `snapshot.json` - no sockets, same commit -> same
+findings; freshness is a maintainer-side sync, not an attack-time fetch.
+Its shape, byte/row budget and token grammar (the `ws`/`answer`
+word-boundary case) are pinned in
+[`test/cve-feed.test.js`](./test/cve-feed.test.js).
+
 ## Landscape
 
 | Tool | Mode | Gap crashtest fills |
