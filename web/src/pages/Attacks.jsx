@@ -41,6 +41,13 @@ const MODULES = [
       ['cost-amplification', '40 identical replays; maxWall sets the accepted ceiling - under it, REFUSED with the measured ops/request', 'handlers doing table scans per request'],
     ],
   },
+  {
+    mod: 'taxonomy',
+    attacks: [
+      ['abuse-not-5xx', '10 abuse shapes (garbage/truncated JSON, wrong or absent content types, oversized canary strings) - every one must land as an honest 4xx; a 5xx or an uncaught throw is a finding', 'mutation routes with no shaped sad path'],
+      ['errors-stay-impersonal', 'Sad-path bodies must not echo attacker canaries (values or field names) or leak stack frames (node:internal, at fn(...), file:line:col)', 'error handlers that template raw input or debug text'],
+    ],
+  },
 ]
 
 export default function Attacks() {
