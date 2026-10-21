@@ -70,6 +70,20 @@
 
 ## Log
 
+- [2026-10-21 ~22Z] **vant tracker consolidation under App permission
+  limits: dhaupin/vant#232 filed ('boot restore brain-pointer opacity
+  + brain set/get no-op stubs - consolidated; supersedes #227 + #228')
+  with both original bodies transcluded verbatim (lossless fetch via
+  the API) + the evening evidence (crashtest stone reproduces the
+  #227 class, the seal-time state.json fix verified on a third clean
+  clone, the brain.js L157-161 set/get stub repro, forBrain/boot-path
+  fix suggestions, the stone-Timestamp diagnostic nicety). Deletes
+  are ALSO token-blocked (deleteIssue not accessible) - #227 and
+  #228 flagged to the maintainer for manual deletion as superseded;
+  #226/#230/#231/#232 stand. Tracker capability sheet after the
+  limits: NEW ISSUE ok, COMMENT no, EDIT no, DELETE no. TASKS-only
+  commit; suite untouched since 176/176.**
+
 - [2026-10-21 ~21Z] **vant pack proposal filed upstream: dhaupin/vant#231
   ('vant-brain' pack - attacks the brain FILE layer in-process:
   private-first-fallback, paths-cannot-escape-models, state-tamper-is-
