@@ -70,7 +70,29 @@
 
 ## Log
 
-- [2026-10-21 ~07Z] **First taxonomy run vs ourselves: crashtest caught
+- [2026-10-21 ~08Z] **session module shipped - 18 attacks across 7 modules.**
+  New seed library src/scenarios/library/session.js (3 attacks): cookie-hygiene
+  (the login transition must mint Secure + HttpOnly + a SameSite policy; a
+  missing flag names itself; a cookie-less login honestly skips - bearer
+  auth is out of scope by design), session-fixation (two logins must mint
+  DIFFERENT sids; a forged canary sid must never authenticate - me()
+  honoring an unknown cookie is the trust-the-wire classic), and
+  logout-invalidates (a logged-out sid must be dead on arrival:
+  me() with the pre-logout cookie must deny 4xx-class). Demo fixture grew
+  the session surface both ways: hardened login/me/logout (D1-backed sid
+  store, row-id-derived sids - zero clocks, determinism rule 4 honored,
+  full flag family, 401 for forged/unknown sids, 204 logout that deletes
+  the row) vs the classic LLM draft (static fixed sid for every login,
+  zero flags, any cookie authenticates, logout is a look-busy no-op).
+  Vulnerable bench: 6 REFUSED / 12 EXPLOITED, exit 1 (all three session
+  attacks trip). Dogfood artifacts regenerated: 18/18 REFUSED (464 ops /
+  659 requests, secret-watermark now walks 7 routes). Count pins synced:
+  attacks.md header + new session section, FAQ '18 across 7 modules',
+  Attacks.jsx catalog page module card, consistency/module-plan/
+  s15-dogfood test pins, check chain. PRD section 6: session moved to the
+  shipped table; only the replay-window extension stays planned. Getting-
+  started bench block refreshed with the real vulnerable output. Gates:
+  suite 165/165, check 0, lint:docs 0.
   crashtest.** The public site pack (crashtest-site) grew two taxonomy
   probes - taxonomy-abuse-not-5xx (abuse battery over every shipped route;
   must deny honestly or serve cleanly, never 5xx/throw) and

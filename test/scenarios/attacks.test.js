@@ -186,3 +186,76 @@ test('seeded determinism: same seed angle produces identical verdict details', a
   assert.equal(a.detail, b.detail);
   assert.equal(a.detail, b.detail); // twice, once for the love of evidence
 });
+
+// ---- session (three-attack wire: hygiene / fixation / logout) ------------
+function sessionRoutes({ secure }) {
+  const sessions = new Map(); // sid -> user
+  let rowSeq = 0; // deterministic sid source: sid${n}
+  return {
+    login: async ({ request }) => {
+      let body;
+      try { body = await request.json(); } catch { return new Response('bad json', { status: 400 }); }
+      if (typeof body?.user !== 'string') return new Response('invalid user', { status: 400 });
+      let sid;
+      let flags;
+      if (secure) {
+        sid = `sid${++rowSeq}-rook-session`;
+        sessions.set(sid, body.user);
+        flags = 'Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=3600';
+      } else {
+        // the classic draft: one static sid for every login, zero flags
+        sid = 'rook-fixed-sid';
+        sessions.set(sid, body.user);
+        flags = 'Path=/';
+      }
+      return new Response('ok', {
+        status: 200,
+        headers: { 'set-cookie': `sid=${sid}; ${flags}`, 'cache-control': 'no-store' },
+      });
+    },
+    me: async ({ request }) => {
+      const sid = (request.headers.get('cookie') ?? '').match(/sid=([^;]*)/)?.[1];
+      if (sid && sessions.get(sid)) return Response.json({ user: sessions.get(sid) }, { headers: { 'cache-control': 'no-store' } });
+      return new Response('unauthenticated', { status: 401, headers: { 'cache-control': 'no-store' } });
+    },
+    // The vulnerable draft's logout is a look-busy no-op (cookie stays alive
+    // server-side); only the hardened variant actually deletes the row.
+    logout: async ({ request }) => {
+      const sid = (request.headers.get('cookie') ?? '').match(/sid=([^;]*)/)?.[1];
+      if (secure && sid) sessions.delete(sid);
+      return new Response('ok', { status: 204, headers: { 'cache-control': 'no-store' } });
+    },
+  };
+}
+
+const sessionEnv = { d1: { DB: { tables: { devices: { rows: [{ id: 1, key: 'seed', owner: 'rook' }], uniques: { key_unique: ['key'] } }, sessions: { rows: [], uniques: { sid_unique: ['sid'] } } } } } };
+
+test('session: EXPLOITED on the trust-the-wire draft, REFUSED when rotated + forged-deny + invalidated', async () => {
+  const [module] = (await loadScenarios()).map(l => l.module).filter(m => m.name === 'session');
+  assert.ok(module, 'session library module must load');
+  const hygiene = module.attacks.find(a => a.name === 'cookie-hygiene');
+  const fixation = module.attacks.find(a => a.name === 'session-fixation');
+  const logout = module.attacks.find(a => a.name === 'logout-invalidates');
+  for (const a of [hygiene, fixation, logout]) assert.ok(a);
+
+  const vuln = buildHarness(sessionRoutes({ secure: false }), { env: sessionEnv });
+  const r1 = await hygiene.run(vuln, { loginRoute: 'login' });
+  assert.equal(r1.verdict, 'EXPLOITED', `zero-flag cookie must trip: ${r1.detail}`);
+  const r2 = await fixation.run(vuln, { loginRoute: 'login', meRoute: 'me' });
+  assert.equal(r2.verdict, 'EXPLOITED', `static sid + forged-200 must trip: ${r2.detail}`);
+  const r3 = await logout.run(vuln, { loginRoute: 'login', meRoute: 'me', logoutRoute: 'logout' });
+  assert.equal(r3.verdict, 'EXPLOITED', `logout no-op must trip: ${r3.detail}`);
+
+  const hard = buildHarness(sessionRoutes({ secure: true }), { env: sessionEnv });
+  const r4 = await hygiene.run(hard, { loginRoute: 'login' });
+  assert.equal(r4.verdict, 'REFUSED', `full hygiene must hold: ${r4.detail}`);
+  const r5 = await fixation.run(hard, { loginRoute: 'login', meRoute: 'me' });
+  assert.equal(r5.verdict, 'REFUSED', `rotation + forged-deny must hold: ${r5.detail}`);
+  const r6 = await logout.run(hard, { loginRoute: 'login', meRoute: 'me', logoutRoute: 'logout' });
+  assert.equal(r6.verdict, 'REFUSED', `invalidation must hold: ${r6.detail}`);
+
+  // Contract pin: undeclared session routes degrade to skipped-REFUSED.
+  const skip = await fixation.run(buildHarness({}, { env: sessionEnv }), { loginRoute: 'login', meRoute: 'me' });
+  assert.equal(skip.verdict, 'REFUSED');
+  assert.ok(skip.skipped === true, `undeclared routes must skip, not fail: ${skip.detail}`);
+});

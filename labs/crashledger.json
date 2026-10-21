@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-20T08:12:45.504Z",
+  "generatedAt": "2026-10-21T05:17:45.697Z",
   "findings": [
     {
       "id": "auth/identity-spoof-headers",
@@ -10,7 +10,7 @@
     {
       "id": "auth/secret-watermark",
       "verdict": "REFUSED",
-      "detail": "4 routes × 3 error-path probes: no fake secret ever left the env"
+      "detail": "7 routes x 3 error-path probes: no fake secret ever left the env"
     },
     {
       "id": "auth/privilege-escalation",
@@ -25,7 +25,7 @@
     {
       "id": "guards/burst-wall",
       "verdict": "REFUSED",
-      "detail": "no wall under 50-burst on \"burst\" (0 client errors) — wall presence optional, breakage none"
+      "detail": "no wall under 50-burst on \"burst\" (0 client errors) - wall presence optional, breakage none"
     },
     {
       "id": "input/proto-pollution-body",
@@ -43,9 +43,24 @@
       "detail": "oversized body handled on \"enroll\" (status 400)"
     },
     {
+      "id": "session/cookie-hygiene",
+      "verdict": "REFUSED",
+      "detail": "login cookie on \"login\" carries the full hygiene set: Secure + HttpOnly + SameSite policy"
+    },
+    {
+      "id": "session/session-fixation",
+      "verdict": "REFUSED",
+      "detail": "session rotation + forged-id rejection hold on \"login\"/\"me\" (two distinct sids, forged sid denied with 401)"
+    },
+    {
+      "id": "session/logout-invalidates",
+      "verdict": "REFUSED",
+      "detail": "logout invalidation holds on \"logout\" - me() with the logged-out sid denies (status 401)"
+    },
+    {
       "id": "state/enumeration-oracle",
       "verdict": "REFUSED",
-      "detail": "no mustDenyIds configured — declare ids the CURRENT identity must never read to arm the oracle"
+      "detail": "no mustDenyIds configured - declare ids the CURRENT identity must never read to arm the oracle"
     },
     {
       "id": "state/id-collision-alias",
@@ -53,14 +68,24 @@
       "detail": "owner-b's claim on [alias-48430] by \"enroll\" stayed separate (status 409; owner-a row intact)"
     },
     {
+      "id": "taxonomy/abuse-not-5xx",
+      "verdict": "REFUSED",
+      "detail": "10 abuse shapes answered honestly on \"enroll\" (statuses: 400/201)"
+    },
+    {
+      "id": "taxonomy/errors-stay-impersonal",
+      "verdict": "REFUSED",
+      "detail": "10 abuse shapes answered impersonally on \"enroll\" - no canary echo, no stack frames"
+    },
+    {
       "id": "volume/credential-stuffing",
       "verdict": "REFUSED",
-      "detail": "enroll held 60 stuffing attempts (1 admitted, 59 refused) · 121 ops total · ~2.02 ops/request"
+      "detail": "enroll held 60 stuffing attempts (1 admitted, 59 refused) / 121 ops total / ~2.02 ops/request"
     },
     {
       "id": "volume/storage-fill",
       "verdict": "REFUSED",
-      "detail": "route \"kvwrite\" not declared on this target — fill check skipped (declare a KV-writing route)"
+      "detail": "route \"kvwrite\" not declared on this target - fill check skipped (declare a KV-writing route)"
     },
     {
       "id": "volume/cost-amplification",
@@ -79,8 +104,13 @@
     "input/proto-pollution-body",
     "input/never-fail-mutations",
     "input/oversized-field",
+    "session/cookie-hygiene",
+    "session/session-fixation",
+    "session/logout-invalidates",
     "state/enumeration-oracle",
     "state/id-collision-alias",
+    "taxonomy/abuse-not-5xx",
+    "taxonomy/errors-stay-impersonal",
     "volume/credential-stuffing",
     "volume/storage-fill",
     "volume/cost-amplification"

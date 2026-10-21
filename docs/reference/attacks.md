@@ -7,7 +7,7 @@ description: Every shipped scenario module and attack, what it does, and what ve
 
 # The Attack Catalog
 
-Fifteen attacks across six modules ship in the core package. Each returns
+Eighteen attacks across seven modules ship in the core package. Each returns
 exactly one verdict per run: 🛡 REFUSED, ⚡ EXPLOITED, or 🔒 BOUNDED
 (BOUNDED requires an owner + bound or it demotes to EXPLOITED - loudly).
 
@@ -55,6 +55,20 @@ exactly one verdict per run: 🛡 REFUSED, ⚡ EXPLOITED, or 🔒 BOUNDED
 |---|---|
 | `abuse-not-5xx` | Fires abuse shapes (garbage + truncated JSON, wrong/absent content types, oversized strings) at your route. Every one must come back as an honest 4xx-class refusal - a 5xx or an uncaught throw = EXPLOITED. Same fuzz-floor oracle the input module uses, on the raw-garbage payload family. |
 | `errors-stay-impersonal` | The sad path is infrastructure, not an inspector: error bodies must not parrot attacker-planted canaries (fields echoed back with their own values or names) or stack fragments (V8 frames, `node:internal`, file:line:col). A leak = EXPLOITED with the fleeing named. |
+
+## `session` - how the session behaves on the wire
+
+Where `auth` attacks who you claim to be (headers) and what you own (owner
+writes), `session` attacks the cookie itself. All three skip politely when
+their routes are undeclared; a cookie-less (bearer-token) login honestly
+skips the hygiene gradings (armed=false) - the route must mint a cookie for
+this module to assess it.
+
+| Attack | What it does |
+|---|---|
+| `cookie-hygiene` | The auth transition (login) must mint a `Set-Cookie` carrying `Secure`, `HttpOnly`, and a `SameSite` policy. Any missing flag = EXPLOITED with the flag named. |
+| `session-fixation` | Two logins must mint DIFFERENT session ids (a shared sid across the privilege transition is the fixation classic), and a forged canary sid must never authenticate - `me()` honoring an unknown cookie = EXPLOITED. |
+| `logout-invalidates` | A logged-out sid must be dead on arrival: `me()` with the pre-logout cookie must deny (4xx class). Still-200 = EXPLOITED - the server kept the session alive. |
 
 ## Writing your own
 

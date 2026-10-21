@@ -1,6 +1,7 @@
 // S1.5 - dogfood fixture: crashtest attacks its own fixture app.
 // `fixtures/demo` models the smallest real agent-built API: a device
-// registration surface with an admin panel. TWO variants:
+// registration surface with an admin panel and a session surface. TWO
+// variants:
 //   buildRoutes({ vulnerable: false }) - hardened: allow-lists, validation,
 //     hygiene headers, header-blind admin gate. The committed baseline
 //     (labs/crashledger.json) is cut against THIS variant.
@@ -16,6 +17,13 @@ const ENV_SPEC = {
           rows: [{ id: 1, key: 'seed', owner: 'rook' }],
           uniques: { key_unique: ['key'] },
         },
+        // Session store for the login/me/logout surface. Vulkan-hard variant
+        // rotates sids via last_row_id (deterministic across reruns); the
+        // vulnerable variant never touches this table - it trusts the wire.
+        sessions: {
+          rows: [],
+          uniques: { sid_unique: ['sid'] },
+        },
       },
     },
   },
@@ -28,6 +36,99 @@ const ENV_SPEC = {
 function insert(env, key, owner) {
   return env.DB.prepare('INSERT INTO devices (key, owner) VALUES (?, ?)').bind(key, owner).run();
 }
+
+function insertSession(env, sid, user) {
+  return env.DB.prepare('INSERT INTO sessions (sid, user) VALUES (?, ?)').bind(sid, user).run();
+}
+
+function deleteSession(env, sid) {
+  return env.DB.prepare('DELETE FROM sessions WHERE sid = ?').bind(sid).run();
+}
+
+function getSession(env, sid) {
+  return env.DB.prepare('SELECT user FROM sessions WHERE sid = ?').bind(sid).first('user');
+}
+
+// Gameplay-cookie sid from the caller (fixtures don't get ctx.seed - the
+// row id keeps it deterministic AND rotating: two logins never share a sid).
+function sidFromRowId(rowId) {
+  return `sid${rowId}-rook-session`;
+}
+
+function parseSid(request) {
+  const cookie = request.headers.get('cookie') ?? '';
+  const m = cookie.match(/(?:^|;\s*)sid=([^;]*)/);
+  return m ? m[1] : null;
+}
+
+// Hardened login: validate the claimed user, mint a unique rotating sid,
+// set the full hygiene flag family (Secure + HttpOnly + SameSite=Strict),
+// no-store on the write. No flags missing = cookie-hygiene REFUSED.
+//
+// Determinism note: no clocks anywhere. The sid is derived from the D1 row
+// id (rowid increments monotonically within a run), so two logins mint two
+// distinct sids and the whole surface replays identically across runs.
+const loginHard = conflictOr500(async ({ request, env }) => {
+  let body;
+  try { body = await request.json(); } catch { return new Response('bad json', { status: 400 }); }
+  if (typeof body?.user !== 'string' || !/^[a-zA-Z0-9-]{1,32}$/.test(body.user)) {
+    return new Response('invalid user', { status: 400 });
+  }
+  // Provisional row bid: insert once to learn the next row id, then swap
+  // the provisional row for the real one - uniqueness sits on sid anyway.
+  const PENDING_SID = 'sid-provisional';
+  const provisioned = await insertSession(env, PENDING_SID, body.user);
+  const sid = sidFromRowId(provisioned.meta.last_row_id + 1);
+  await deleteSession(env, PENDING_SID);
+  await insertSession(env, sid, body.user);
+  return new Response('ok', {
+    status: 200,
+    headers: {
+      'set-cookie': `sid=${sid}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=3600`,
+      'cache-control': 'no-store',
+    },
+  });
+});
+
+// Hardened me: the sid must exist server-side - a forged/canary cookie gets
+// an honest 401, never a trust-the-wire 200.
+const meHard = async ({ request, env }) => {
+  const sid = parseSid(request);
+  const user = sid ? await getSession(env, sid) : null;
+  if (!user) return new Response('unauthenticated', { status: 401, headers: { 'cache-control': 'no-store' } });
+  return Response.json({ user }, { headers: { 'cache-control': 'no-store' } });
+};
+
+// Hardened logout: delete the row AND clear the cookie. The logged-out sid
+// is dead on arrival (logout-invalidates gate).
+const logoutHard = async ({ request, env }) => {
+  const sid = parseSid(request);
+  if (sid) await deleteSession(env, sid);
+  return new Response('ok', {
+    status: 204,
+    headers: {
+      'set-cookie': 'sid=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict',
+      'cache-control': 'no-store',
+    },
+  });
+};
+
+// Vulnerable session surface - the classic LLM draft:
+//   login: static sid every time (fixation classic) with ZERO hygiene flags
+//   me:    trusts ANY sid cookie straight from the wire (forged = 200)
+//   logout: a no-op 200 that neither deletes the row (there is none) nor
+//           clears the cookie
+const loginVuln = async () => new Response('ok', {
+  status: 200,
+  headers: { 'set-cookie': 'sid=rook-fixed-sid; Path=/' },
+});
+
+const meVuln = async ({ request }) => {
+  if (!parseSid(request)) return new Response('401: send the sid cookie', { status: 401 });
+  return Response.json({ user: 'trusted', from: 'cookie' });
+};
+
+const logoutVuln = async () => new Response('ok', { status: 204 });
 
 function conflictOr500(handler) {
   return async ({ request, env }) => {
@@ -135,6 +236,9 @@ function buildRoutes({ vulnerable = false } = {}) {
     device: vulnerable ? deviceVuln : deviceHard,
     admin: vulnerable ? adminVuln : adminHard,
     burst: async () => new Response('accepted', { headers: { 'cache-control': 'no-store' } }),
+    login: vulnerable ? loginVuln : loginHard,
+    me: vulnerable ? meVuln : meHard,
+    logout: vulnerable ? logoutVuln : logoutHard,
   };
 }
 

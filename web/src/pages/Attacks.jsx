@@ -48,6 +48,14 @@ const MODULES = [
       ['errors-stay-impersonal', 'Sad-path bodies must not echo attacker canaries (values or field names) or leak stack frames (node:internal, at fn(...), file:line:col)', 'error handlers that template raw input or debug text'],
     ],
   },
+  {
+    mod: 'session',
+    attacks: [
+      ['cookie-hygiene', 'The login transition must mint a Set-Cookie carrying Secure, HttpOnly, and a SameSite policy - any missing flag is a finding; a cookie-less login honestly skips (bearer-token auth is out of scope by design)', 'handlers that mint session cookies without the full flag set'],
+      ['session-fixation', 'Two logins must mint different session ids, and a forged canary sid must never authenticate - a shared sid across the privilege transition is the fixation classic', 'logins that reissue a static sid or honor unknown cookies'],
+      ['logout-invalidates', 'A logged-out sid must be dead on arrival: me() with the pre-logout cookie must deny (4xx class) - still-200 is a finding', 'logouts that clear the client cookie but not the server session'],
+    ],
+  },
 ]
 
 export default function Attacks() {
