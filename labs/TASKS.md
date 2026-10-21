@@ -70,6 +70,85 @@
 
 ## Log
 
+- [2026-10-21 ~05Z] **Tag also cuts the GitHub Release (publish.yml second
+  job).** Mirrors prestruct's release.yml mechanism: a `github-release` job
+  in publish.yml NEEDS the npm `publish` job (single tag trigger, the
+  workflow's own "not both" rule intact), so the release exists only after
+  a publish that landed. It packs the same-commit npm tarball (no install
+  needed for `npm pack`), guards its contents to the reusable surfaces the
+  packaging test pins (bin/src + two reusable packs; never web/, labs/,
+  test/, repo-bound crashtest-site) and creates the release via
+  softprops/action-gh-release@v2 with generated notes + the tarball asset.
+  Honest quirk documented in the workflow: re-backed asset is not
+  byte-identical to the registry artifact (tar stores mtimes; same tree,
+  other clock). docs/publish.md synced (new release note + corrected
+  drifted files-field rule) and passed the style gate once the em dash
+  came out. YAML parse verified via js-yaml; guardrail + `npm pack` dry-
+  exited against the real tarball before cleanup. Grammar self-caught:
+  v1.0.0 tag-time release marker stays (unreleased) until the tag exists
+  (test/version.test.js), so the CHANGELOG flip rides the tag commit.
+
+- [2026-10-21 ~04Z] **Post-migration dead-code sweep — port is now total.**
+  Follow-up to the first migration entry's "proxies stay" call, reversed on
+  evidence: the npm package's own init/ template ships proxy.js,
+  proxy.worker.js, and proxy.package.json, so crashtest's web/ copies were
+  pure template-era dead weight (site prerenders all 6 routes, never sets
+  config.proxy.url, nothing in CI/docs deploys them) — deleted, along with
+  web/ssr.config.example.js (upstream init/ ships the updated template doc;
+  the local copy still documented the vendored-file era) and
+  web/incremental.js (a pre-signature cache draft stub referencing the
+  deleted `node scripts/prerender.js`, imported by nothing). Stale comment
+  touches: web/index.html and web/ssr.config.js now name the prestruct
+  engine via `prestruct build` instead of the deleted script files; the
+  usePageMeta.js hook comment de-staled with them. Kept: web/scripts/
+  make-ledger-snapshot.mjs (live — feeds lib/dogfoodSnapshot.js). Repo-wide
+  ghost grep for the six deleted paths: only historical TASKS references
+  remain. Fresh build + suite + dogfood through the sweep: build exit 0
+  (6/6), check 0, suite 163/163, dogfood exit 0 (artifact set already
+  verified byte-stable apart from issue #23's status.json).
+
+- [2026-10-21 ~03Z] **Cache story corrected + status.json filed upstream (#23).**
+  Follow-up to the migration entry: the stale-`(cached)`-HTML incident was a
+  VENDORED-copy bug (pre-signature cache), and prestruct v1.0.0 already
+  shipped the fix — every cache entry carries a sha256 signature over the
+  fresh shell (dist/index.html after vite build), siteUrl, and route meta,
+  and a hit only counts when it matches; legacy sig-less entries render
+  once and upgrade. Verified live on crashtest: warm cache + a src/ edit ->
+  the whole route set re-rendered ("ok", never "cached"), and the repro edit
+  was revoked and rebuilt pristine. So NO workarounds (no forced --clean)
+  go on the site build — `prestruct build` as-is is correct, and the day-one
+  word of the npm engine stands: cache matches stale-shell era.
+  Also verified ×2 fresh-build determinism: dist differs ONLY in
+  dist/.prestruct/status.json's generatedAt (the build manifest the engine
+  writes into dist) — filed upstream as dhaupin/prestruct#23 with the ask:
+  move the manifest out of dist (or gate it behind config) + a
+  deterministic stamp option; gitignore can't help (dist is post-checkout
+  generated). Checked prestruct's open issues before filing: none.
+  Full re-run through the new engine: `prestruct validate` ok (6 routes),
+  build exit 0 (6/6 rendered), round-2 rebuild byte-identical apart from
+  the manifest, suite 163/163, check 0, dogfood baseline 0 new / 0
+  regressed, exit 0 (ledger/report artifacts restored to committed state).
+
+- [2026-10-21 ~03Z] **Migrated web/scripts to the published `prestruct` npm
+  package (v1.0.0).** Deleted the vendored
+  `web/scripts/{prerender,inject-brand}.js`; `web` now devDependencies
+  `prestruct ^1.0.0` and its build is the one-liner `prestruct build`
+  (validate -> vite build -> inject-brand -> prerender, all workdir-anchored;
+  route render failures exit nonzero — the vendored copy let them ride
+  green). The npm engine CANONICAL: upstream already absorbed the JSON-LD
+  bare-object check; A/B gate on a fresh cache: every prerendered HTML page,
+  sitemap, _headers, and assets/ byte-identical to the vendored build
+  (deploy-id format already matched at HEAD). Vendored prerender cache
+  lesson confirmed live: stale `(cached)` HTML from three commits back
+  invalidated a first A/B — always clear `.prestruct` before comparing.
+  New engine behavior (accepted): `dist/.prestruct/status.json` build
+  manifest ships with dist; cache lives in `web/.prestruct` (gitignored);
+  proxies (scripts/proxy{,.worker}.js + proxy.package.json) stay — they are
+  self-contained deploy alternatives, engine only touches proxy files when
+  `config.proxy.url` is set (crashtest never sets it). CI unchanged:
+  `npm install --prefix web && npm run build --prefix web` picks prestruct
+  up via web's own install. Suite 163/163, check 0, dogfood gate green.
+
 - [2026-10-20 ~24Z] **The pre-tag sweep: audit #1 + #2, surface walk.
   Site pack dist-absent behavior fixed: web/dist is build-only, so
   site-html + the HTML/sitemap attacks degrade to skipped-REFUSED with the

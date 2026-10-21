@@ -3,7 +3,7 @@
  * ========================
  * Updates route-specific head tags on client-side navigation.
  *
- * SSR (prerender.js) bakes correct tags into each route's HTML at build time --
+ * SSR (the prestruct prerender pass) bakes correct tags into each route's HTML at build time --
  * bots without JS and initial page loads see those tags directly.
  * This hook keeps them in sync when the user navigates within the SPA,
  * covering JS-enabled bots (Googlebot, social crawlers) and the browser tab.

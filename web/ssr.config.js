@@ -1,6 +1,7 @@
 /**
  * ssr.config.js — crashtest site identity + route map.
- * Populates inject-brand.js SEO tags and prerender.js route generation.
+ * Fills the prestruct engine (inject-brand + prerender, via `prestruct build`)
+ * with the site's SEO tags and route list.
  */
 export default {
   siteUrl:  'https://crashtest.creadev.org',

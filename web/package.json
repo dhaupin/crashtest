@@ -6,7 +6,7 @@
   "description": "crashtest site — seeded, in-process adversarial QA for agent-built apps (prestruct prerender + CF Pages)",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node scripts/inject-brand.js && node scripts/prerender.js",
+    "build": "prestruct build",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -16,6 +16,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
+    "prestruct": "^1.0.0",
     "vite": "^5.4.0"
   }
 }

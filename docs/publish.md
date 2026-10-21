@@ -50,8 +50,17 @@ CI (`.github/workflows/publish.yml`) runs tests and publishes with OIDC -
 **no NPM_TOKEN secret is stored anywhere**. Provenance is generated
 automatically because the repo is public and `repository.url` matches.
 
+The same tag also cuts the **GitHub Release**: a `github-release` job NEEDS
+the npm `publish` job, so the release (title `Crashtest vX.Y.Z`, auto notes,
+and the npm tarball attached as the asset, with tarball contents guarded to
+the same reusable surfaces the packaging test pins) only exists after a publish
+that actually landed. Nothing to do by hand.
+
 ## Rules
 
 - Only publish from version tags, never from `main` directly.
-- The `files` field limits the tarball to `bin/` + `src/` (tests and labs stay out).
+- The `files` field limits the tarball to `bin/` + `src/` + the two
+  self-contained reusable packs (`packs/public/wp-money-shapes`,
+  `packs/public/wp-stock-smoke`) - tests, labs, `web/` and the repo-bound
+  `crashtest-site` pack stay out (pinned by `test/packaging.test.js`).
 - Verify a release with `npm view crashtest@<version>` (or `npm pack --dry-run`).

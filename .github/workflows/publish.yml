@@ -7,6 +7,11 @@ name: npm-publish
 # npm Trusted Publishing (OIDC): no NPM_TOKEN secret needed, provenance
 # is generated automatically for public packages from public repos.
 # One-time setup on npmjs.com is REQUIRED (see docs/publish.md).
+#
+# After the npm publish lands, a second job cuts the GitHub Release for
+# the same tag (title, notes, and the npm tarball as asset). It NEEDS the
+# publish job as its gate: the release only exists to mirror a publish
+# that actually happened.
 
 on:
   push:
@@ -36,3 +41,58 @@ jobs:
 
       - name: Publish
         run: npm publish
+
+  github-release:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the release + upload the asset
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Extract version from the tag
+        run: echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+
+      # npm pack needs no node_modules — it packages exactly the `files`
+      # entries. This pack is built from the SAME commit npm published from,
+      # so the asset mirrors the registry artifact (not byte-identical:
+      # tar stores mtimes — same tree, other clock).
+      - name: Pack the npm tarball as the release asset
+        run: |
+          set -euo pipefail
+          TARBALL="crashtest-${VERSION#v}.tgz"
+          npm pack
+          test -f "$TARBALL" || { echo "::error::expected asset $TARBALL not produced"; exit 1; }
+
+          # Guardrail (same spirit as test/packaging.test.js): the release
+          # asset must contain the reusable surfaces (bin/ + src/ + the two
+          # self-contained packs) and never repo-bound internals — web/,
+          # packs/public/crashtest-site/, labs/, test/.
+          tar -tzf "$TARBALL" | grep -q "^package/bin/crashtest.js$"
+          if tar -tzf "$TARBALL" | grep -Eq "^package/(web/|labs/|test/|packs/public/crashtest-site/)"; then
+            echo "::error::release tarball contains repo-bound internals:"
+            tar -tzf "$TARBALL" | grep -E "^package/(web/|labs/|test/|packs/public/crashtest-site/)"
+            exit 1
+          fi
+          echo "TARBALL=$TARBALL" >> $GITHUB_ENV
+
+      - name: Create the GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Crashtest ${{ env.VERSION }}"
+          body: |
+            In-process adversarial QA for agent-built apps: the harness drives seeded
+            redteam/fuzz/guard campaigns against your real handlers (WHATWG Requests —
+            no sockets), produces a hardening ledger whose CI gate fails on regressions.
+
+            ```bash
+            npm install --save-dev crashtest
+            npx crashtest init
+            ```
+
+            Zero runtime dependencies. The `crashtest-${{ env.VERSION }}.tgz` asset is
+            the same tarball shape npm published for this tag. Full runbook:
+            [docs](https://docs.creadev.org/crashtest) · [README](https://github.com/dhaupin/crashtest#crashtest)
+          files: ${{ env.TARBALL }}
+          fail_on_unmatched_files: true
+          generate_release_notes: true

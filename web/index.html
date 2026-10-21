@@ -7,7 +7,9 @@
   <!--
     Shell template. Do not add brand meta here directly.
 
-    inject-brand.js populates these tags at build time from ssr.config.js:
+    The npm prestruct engine's inject-brand pass populates these tags at
+    build time from ssr.config.js (`prestruct build`):
+
       <title>, description, author, keywords, canonical,
       Open Graph, Twitter Card, JSON-LD.
 
@@ -15,7 +17,7 @@
     They are replaced before the site is deployed -- never served as-is.
   -->
 
-  <!-- Primary SEO (populated by inject-brand.js) -->
+  <!-- Primary SEO (populated by prestruct inject-brand) -->
   <title>Site</title>
   <meta name="description" content="" />
   <meta name="keywords"    content="" />
