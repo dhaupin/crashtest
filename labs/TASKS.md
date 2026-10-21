@@ -70,6 +70,24 @@
 
 ## Log
 
+- [2026-10-21 ~23Z] **prestruct spin-up complete (the request from
+  crashtest#4, now answered at prestruct HEAD): two crashtest v1.0.0
+  runs via prestruct's own crashtest.config.js, exit 0 both, tally
+  34/34 REFUSED, byte-identical ledgers (determinism confirmed); the
+  prestruct-proxy pack held on all four shapes across both runtimes
+  (method-contract-walk, malformed-target-fuzz, bot-render-fallback,
+  refresh-strict-parity) + proto-hygiene sweeps; all other library
+  rows honest declared-skips (the proxy pair is the whole HTTP
+  surface). NO OPEN BUGS at prestruct. Findings reported as
+  prestruct#24: verification receipt + adoption proposal (CI gate
+  wiring, docs note, the stale ln/* labels in the committed ledger
+  docs as a cosmetics re-cut, pins guidance). prestruct's tracked
+  labs/ left byte-clean after the run (git checkout; results live in
+  the issue + local logs). Brain state updated + stone re-sealed
+  (horcrux/ carries the fresh crashtest-p_quillstone-9fold.svg).
+  Tracker caps: new-issue/comment/edit/delete relative to App -
+  only NEW works cross-repo; prestruct#24 filed via create.**
+
 - [2026-10-21 ~22Z] **vant tracker consolidation under App permission
   limits: dhaupin/vant#232 filed ('boot restore brain-pointer opacity
   + brain set/get no-op stubs - consolidated; supersedes #227 + #228')
