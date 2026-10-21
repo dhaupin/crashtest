@@ -70,6 +70,25 @@
 
 ## Log
 
+- [2026-10-21 ~19Z] **pre-v1 deep scenario audit (the nitpick pass), three
+  real catches, all fixed. (1) DETERMINISM fiction in shipped surface:
+  guards/hygiene-no-store built its write key from Date.now() (house rule
+  4 violation - same commit, different stored row shape) -> seed-derived
+  now; wp-money-shapes/gate-burst posted Date.now() in the flooder payload
+  -> seed-derived (oracle reads paced-hints, but the wire obeys the law).
+  Verified: two consecutive dogfood runs = byte-identical baselines,
+  30/30 REFUSED. (2) COUNT fiction: docs + web claimed a "54-header
+  identity matrix" - the code fires 9 headers x 6 privilege values = 54
+  SPOOF VARIANTS, not 54 headers; both surfaces rephrased to the honest
+  countable shape (docs/reference/attacks.md + web Attacks.jsx, confirmed
+  in the prerendered HTML). (3) Catalog copy-counts all verified live:
+  30 catalog rows match the module census per module (3/3/2/3/2/3/2/4/2/
+  2/2/2), volume 60/30/40, guards 50, input 64 + 1MiB, taxonomy 10
+  abuse shapes, recursion 12000 deep, storage-fill 8KB, wp 15 posts -
+  every number in the prose now has a code constant behind it. Gates:
+  suite 176/176, check 0, lint:docs 0, web build 6/6, dogfood ledger
+  diff clean.**
+
 - [2026-10-21 ~18Z] **cve-feed goes public-facing across every surface
   (root docs + docs + web) and the pack's surface-as-contract pin lands.
   README: new cve-feed paragraph in the dogfood section (offline KEV/NVD

@@ -6,7 +6,7 @@ const MODULES = [
   {
     mod: 'auth',
     attacks: [
-      ['identity-spoof-headers', 'Spoofs the whole 54-header identity matrix (x-is-admin, x-user-role, x-forwarded-for...) at a privileged route', 'any handler that reads identity straight from wire headers'],
+      ['identity-spoof-headers', 'Fires 54 spoof variants - 9 identity headers (x-is-admin, x-user-role, x-forwarded-user...) each claiming 6 privilege values - at a privileged route', 'any handler that reads identity straight from wire headers'],
       ['secret-watermark', 'Plants fake secrets in env, probes error paths - a leaked secret means some error string echoed it', 'handlers that template raw error text'],
       ['privilege-escalation', 'Replays owner-b claims over owner-a writes (writer/victim pairs)', 'routes that accept an owner field without checking the caller'],
     ],

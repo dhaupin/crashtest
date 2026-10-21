@@ -22,7 +22,10 @@ export default {
       if (!harness.listRoutes().includes(route)) {
         return refused(`route "${route}" not declared on this target - attack skipped (declare it for coverage)`, { route, skipped: true });
       }
-      const body = ctx.body !== undefined ? ctx.body : JSON.stringify({ key: `hyg-${Date.now() % 100000}`, owner: 'rook' });
+      // Determinism (rule 4): the write body's key is SEED-DERIVED, never
+      // time-derived - Date.now() here would make same-commit runs differ in
+      // the stored row shape even when the verdict held.
+      const body = ctx.body !== undefined ? ctx.body : JSON.stringify({ key: `hyg-${(ctx.seed ?? 0xC0FFEE) % 100000}`, owner: 'rook' });
       const record = await harness.run(route, {
         method: 'POST', body,
         headers: { 'content-type': 'application/json' },

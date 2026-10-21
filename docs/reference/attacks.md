@@ -15,7 +15,7 @@ exactly one verdict per run: 🛡 REFUSED, ⚡ EXPLOITED, or 🔒 BOUNDED
 
 | Attack | What it does |
 |---|---|
-| `identity-spoof-headers` | Fires a 54-header identity matrix (`x-is-admin`, `x-user-role`, `x-forwarded-for`, ...) at your privileged route. A spoof that flips an authorized action = EXPLOITED; all denied/ignored = REFUSED. |
+| `identity-spoof-headers` | Fires 54 spoof variants - 9 identity headers (`x-is-admin`, `x-user-role`, `x-forwarded-user`, ...) each claiming 6 privilege values - at your privileged route. A spoof that flips an authorized action = EXPLOITED; all denied/ignored = REFUSED. |
 | `secret-watermark` | Plants fake secrets in the fake env, then walks error paths. A probe that echoes one back = EXPLOITED. |
 | `privilege-escalation` | Replays writes where `owner` names someone else (victim pairs: attacker->victim, attacker->admin). An accepted write = EXPLOITED. |
 

@@ -92,7 +92,7 @@ export default {
       for (let i = 0; i < 15; i++) {
         const rec = await harness.wpState({
           kind: 'post', ip,
-          payload: burstBody(k, realNonce),
+          payload: burstBody(k, realNonce, ctx),
         });
         const head  = String(rec?.response?.headers?.get('location') ?? '');
         const blob  = head + ' ' + String(rec?.body ?? '');
@@ -129,12 +129,16 @@ function writeBody(k, marker) {
   };
 }
 
-function burstBody(k, nonce) {
+function burstBody(k, nonce, ctx = {}) {
+  // Determinism (rule 4): no Date.now() anywhere in the shipped wire - the
+  // ts field is seed-derived once per burst, so two runs of the same commit
+  // post byte-identical payloads (the paced-wall oracle reads hints, not
+  // this field, but the wire itself obeys the law).
   return {
     [k.action]: 1,
     [k.nonceKey ?? 'nonce']: nonce,
     email: 'ctburst@probe.example.org',
-    ts: Math.floor(Date.now() / 1000) - 5,
+    ts: (ctx.seed ?? 0xC0FFEE) % 1000000,
   };
 }
 
