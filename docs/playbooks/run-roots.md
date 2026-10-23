@@ -113,13 +113,19 @@ directory of artifacts is.
 
 ## 4. When your handler speaks real SQL (the node:sqlite fixture)
 
-The built-in `FakeD1` models a deliberately small SQL subset - flat
-SELECT/INSERT/UPDATE/DELETE plus the behavior contracts campaigns depend
-on (`UNIQUE constraint failed: t.col`, `{meta:{changes,last_row_id}}`,
-integer autoincrement, positional binding). That is the right size for
-crud-shaped handlers, but a handler that speaks real SQL (a relay: upserts,
-`CASE`, `COALESCE`, aggregate allocators, `RETURNING`) hits the subset wall
-- and before FakeD1 grows, the documented fallback is to hand the harness a
+The built-in `FakeD1` speaks a real SQL subset (v0.2) - SELECT with the
+expression grammar (CASE, arithmetic, COALESCE, comparisons, `IS NULL`,
+`IN`, aliases), aggregates with whole-result-set scope, `INSERT OR
+IGNORE|REPLACE`, `ON CONFLICT(...) DO NOTHING|DO UPDATE` upserts with
+`excluded.*`, `INSERT..SELECT` (the seq-allocator shape), `RETURNING`, and
+`LIMIT ?/OFFSET ?` bound params - plus the behavior contracts campaigns
+depend on (`UNIQUE constraint failed: t.col`, `{meta:{changes,last_row_id}}`,
+integer autoincrement, positional binding). It was verified against real
+SQLite (node:sqlite) for the eight relay statements that motivated it.
+That is still a deliberate subset, though: a handler speaking the rest
+(JOINs, GROUP BY/HAVING, subqueries, window functions, `unixepoch()`-class
+functions) hits the wall - and the documented fallback is to hand the
+harness a
 D1-shaped object backed by your own engine. `node:sqlite` does it in ~40
 lines (the shape gistory's run root proved first, per
 [dhaupin/gistory](https://github.com/dhaupin/gistory)):
@@ -159,7 +165,9 @@ Rules that keep this honest:
   between the built-in subset and a custom engine.
 - **Pin the Node version in CI** (`node-version: 24`) - `node:sqlite` is
   unflagged there; on older runners the import throws.
-- When FakeD1 grows (see the [faked1 v0.2 proposal](https://github.com/dhaupin/crashtest/issues/8)),
+- When FakeD1 covers your statements outright (v0.2 speaks the eight relay
+  shapes - see
+  [`test/harness/d1-v02.test.js`](https://github.com/dhaupin/crashtest/blob/main/test/harness/d1-v02.test.js)),
   this fixture gets deleted and the run root swaps back to the built-in -
   a byte-identical ledger is the acceptance gate for that swap.
 

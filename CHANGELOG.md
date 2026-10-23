@@ -7,6 +7,23 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.0.1 (unreleased)
 
+- faked1 v0.2 (`src/harness/d1.js`): the FakeD1 SQL subset grew to the
+  relay class, grounded in and verified against real SQLite (node:sqlite)
+  for the eight statements gistory's relay actually runs - general value
+  expressions (CASE WHEN/THEN/ELSE, arithmetic, COALESCE, comparisons,
+  `IS [NOT] NULL`, `IN`, `AS` aliases), whole-result-set aggregates
+  (MAX/MIN/COUNT/SUM/AVG; unaliased COUNT(*) keeps the `count` key),
+  `INSERT OR IGNORE|REPLACE`, `ON CONFLICT(cols) DO NOTHING|DO UPDATE`
+  upserts with row-vs-`excluded.*` resolution (bare cols read the STORED
+  row at eval time, pre-assignment), `INSERT..SELECT` (seq-allocator
+  shape), `RETURNING` on INSERT/UPDATE/DELETE (write
+  `.run()/.first()/.all()` surface `{results, meta}`), and `LIMIT ?` /
+  `OFFSET ?` bound by parameter. All v0.1 behavior contracts re-pinned
+  (UNIQUE message shape, `{meta:{changes,last_row_id}}`, textual param
+  order, batch partial-apply honesty); unsupported SQL still throws listed
+  gap messages. Teeth: test/harness/d1-v02.test.js (issue #8; the
+  node:sqlite fixture pattern in the run-roots playbook stays for handlers
+  speaking JOINs/GROUP BY/window functions).
 - `crashtest init` scaffolds WORKING pack stubs: both `packs/public/my-pack/`
   and `packs/local/my-private-pack/` now ship the same contract-valid
   `index.js` stub `packs add` writes (honest unarmed REFUSED-skip module)
