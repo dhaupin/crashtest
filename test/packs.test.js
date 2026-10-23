@@ -8,7 +8,10 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadPacks, validatePackManifest } from '../src/packs/loader.js';
+import { loadPacks, validatePackManifest, validateEnvClaims, evaluatePackEnv, applyPackSeed, renderEnvClaims, renderPrerequisite } from '../src/packs/loader.js';
+import { FakeD1 } from '../src/harness/d1.js';
+import { FakeKV } from '../src/harness/kv.js';
+import { newBackendCounter } from '../src/harness/counters.js';
 import { main } from '../src/cli.js';
 
 async function mkPack(root, visibility, name, manifest, entryBody) {
@@ -219,6 +222,31 @@ test('CLI: init scaffolds packs the loader loads OUT OF THE BOX (issue #16 pin)'
   ]);
 });
 
+// ---- env claims (issue #12): manifest-declared binding prerequisites ----
+
+test('validateEnvClaims: shapes validate loudly, normalized copy comes back', () => {
+  const good = { d1: { DB: { tables: ['charges', 'settings'] } }, kv: { UPLOADS: {} }, routes: ['charge'], seed: {} };
+  assert.deepEqual(validateEnvClaims(good, 'x'), good);
+  // loud on every wrong shape - a silent claim was never there
+  assert.throws(() => validateEnvClaims([], 'x'), /claims must be an object/);
+  assert.throws(() => validateEnvClaims({ nope: {} }, 'x'), /unrecognized claim "nope"/);
+  assert.throws(() => validateEnvClaims({ d1: { 'bad name': {} } }, 'x'), /binding names must match/);
+  assert.throws(() => validateEnvClaims({ d1: { DB: 'str' } }, 'x'), /"d1\[DB\]" must be an object/);
+  assert.throws(() => validateEnvClaims({ d1: { DB: { junk: 1 } } }, 'x'), /accepts only "tables"/);
+  assert.throws(() => validateEnvClaims({ d1: { DB: { tables: 'x' } } }, 'x'), /array of table names/);
+  assert.throws(() => validateEnvClaims({ d1: { DB: { tables: [''] } } }, 'x'), /array of table names/);
+  assert.throws(() => validateEnvClaims({ kv: { NS: { prop: 1 } } }, 'x'), /empty object for now/);
+  assert.throws(() => validateEnvClaims({ routes: 'charge' }, 'x'), /array of route names/);
+  assert.throws(() => validateEnvClaims({ seed: { nope: {} } }, 'x'), /not a seed kind/);
+  assert.throws(() => validateEnvClaims({ seed: { d1: { DB: { t: { rows: 'no' } } } } }, 'x'), /rows" must be an array of row objects/);
+  assert.throws(() => validateEnvClaims({ seed: { d1: { DB: { t: { rows: [], uniques: 'x' } } } } }, 'x'), /uniques" must be an object/);
+  // tables-less d1 claims normalize to {}
+  assert.deepEqual(validateEnvClaims({ d1: { DB: {} } }, 'x').d1, { DB: {} });
+  // the manifest-level pass-through: unsigned stays undefined
+  assert.equal(validatePackManifest(GOOD_MANIFEST, 'x').env, undefined);
+  assert.deepEqual(validatePackManifest({ ...GOOD_MANIFEST, env: { kv: { K: {} } } }, 'x').env, { d1: {}, kv: { K: {} }, routes: [], seed: {} });
+});
+
 test('loadPacks: pointing at ONE pack dir loads exactly it (docs "one pack dir only" shape)', async () => {
   // This shape shipped in the docs before the loader could honor it - the
   // fix lets a run root aim packs: straight at a single pack, visibility
@@ -236,4 +264,104 @@ test('loadPacks: pointing at ONE pack dir loads exactly it (docs "one pack dir o
   await writeFile(join(inlineDir, 'index.js'), ENTRY_OK.replace(/probe-pack/g, 'inline-pack'));
   const inline = await loadPacks([inlineDir]);
   assert.deepEqual(inline.map((p) => [p.origin, p.visibility]), [['inline/inline-pack', 'inline']], 'arbitrary-dir packs label as inline');
+});
+
+test('evaluatePackEnv: only the UNMET rows come back, names render compactly', () => {
+  const db = new FakeD1({ tables: { charges: { rows: [] } } });
+  const check = { env: { DB: db }, routeNames: ['charge'] };
+  const claims = { env: { d1: { DB: { tables: ['charges', 'settings'] } }, kv: { GHOST: {} }, routes: ['charge', 'absent'] } };
+  const rows = evaluatePackEnv(claims, check);
+  assert.deepEqual(rows.map(renderPrerequisite), ['d1[DB:settings]', 'kv[GHOST]', 'route[absent]']);
+  // a missing binding names the whole binding, not per-table ghosts
+  assert.deepEqual(
+    evaluatePackEnv({ env: { d1: { NOD: {} } } }, check).map((r) => r.detail),
+    ['no d1 binding "NOD" in the run root'],
+  );
+  // satisfied claims -> zero rows; unchecked (null) still rows, flagged false
+  assert.equal(evaluatePackEnv({ env: { d1: { DB: {} } } }, check).length, 0);
+  assert.ok(evaluatePackEnv(claims, null).every((r) => r.checked === false));
+  assert.equal(renderEnvClaims(claims.env), 'd1[DB: charges, settings], kv[GHOST], routes[charge, absent]');
+  assert.equal(renderEnvClaims(null), '');
+});
+
+test('loadPacks: prerequisites attach with a check context, stay absent without one', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'packs-env-'));
+  await mkPack(join(root, 'packs'), 'public', 'claiming', { ...GOOD_MANIFEST, env: { d1: { DB: { tables: ['charges'] } }, routes: ['charge'] } }, ENTRY_OK);
+  const unchecked = await loadPacks([join(root, 'packs')]);
+  assert.equal('prerequisites' in unchecked[0], false);
+  const checked = await loadPacks([join(root, 'packs')], new Map(), { env: {}, routeNames: [] });
+  assert.deepEqual(checked[0].prerequisites.map(renderPrerequisite), ['d1[DB]', 'route[charge]']);
+});
+
+test('applyPackSeed: kv absent-or-identical, d1 seed tables NEW only, no counter ticks', () => {
+  const counter = newBackendCounter();
+  const pack = (seed) => [{ manifest: { name: 'seed-pack', env: { seed } } }];
+
+  // kv: absent keys set (non-strings JSON-stringify like buildEnv)
+  const kv = new FakeKV('UPLOADS');
+  applyPackSeed(pack({ kv: { UPLOADS: { canary: 'v1', obj: { a: 1 } } } }), { UPLOADS: kv });
+  assert.equal(kv._store.get('canary'), 'v1');
+  assert.equal(kv._store.get('obj'), JSON.stringify({ a: 1 }));
+  // identical values are a no-op (idempotent re-apply)
+  applyPackSeed(pack({ kv: { UPLOADS: { canary: 'v1', obj: { a: 1 } } } }), { UPLOADS: kv });
+  assert.equal(kv._store.get('canary'), 'v1');
+  // differing values fail loudly, naming the pack + binding + key
+  const other = new FakeKV('UPLOADS');
+  other._store.set('canary', 'run-root-wrote-this');
+  assert.throws(
+    () => applyPackSeed(pack({ kv: { UPLOADS: { canary: 'v1' } } }), { UPLOADS: other }),
+    /pack "seed-pack" env\.seed: kv\[UPLOADS\]\.canary .* with different content/,
+  );
+  // a missing binding is an unmet prerequisite - seeds never invent one
+  assert.doesNotThrow(() => applyPackSeed(pack({ kv: { GHOST: { k: 1 } } }), {}));
+
+  // d1: seed tables are NEW tables carrying FakeD1's own row/uniques shape
+  const db = new FakeD1({ tables: {}, counter });
+  const seedPack = pack({ d1: { DB: { gadgets: { rows: [{ id: 3, name: 'g' }], uniques: { name_unique: ['name'] } } } } });
+  applyPackSeed(seedPack, { DB: db });
+  const t = db._t.get('gadgets');
+  assert.deepEqual(t.rows, [{ id: 3, name: 'g' }]);
+  assert.equal(t.nextId, 4); // derives exactly like the FakeD1 constructor
+  assert.deepEqual([...t.uniques.get('name_unique')], ['name']);
+  // seeds tick NO counters - fixture state, not requests
+  assert.equal(counter.count('d1.query'), 0);
+  // an existing table fails loudly - the run root owns its own tables
+  assert.throws(
+    () => applyPackSeed(seedPack, { DB: db }),
+    /d1\[DB\]\[gadgets\] is already declared by the run root - env\.seed may not extend run-root tables/,
+  );
+});
+
+test('CLI: packs (no config) renders the claims line; packs --config evaluates UNMET against the wired harness', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'packs-claims-'));
+  const base = join(root, 'packs');
+  await mkPack(base, 'public', 'claiming', {
+    ...GOOD_MANIFEST,
+    env: { d1: { DB: { tables: ['charges'] } }, kv: { MISSING_KV: {} }, routes: ['charge', 'absent'] },
+  }, ENTRY_OK);
+  await writeFile(join(root, 'crashtest.config.js'),
+    `export default {
+      routes: { charge: async () => new Response('ok') },
+      env: { d1: { DB: { tables: { charges: { rows: [] } } } } },
+    };\n`);
+  const noCfg = await withCwd(root, async () => { process.exitCode = undefined; await main(['packs']); });
+  assert.match(noCfg, /claims d1\[DB: charges\], kv\[MISSING_KV\]/);
+  assert.doesNotMatch(noCfg, /UNMET/);; // no harness -> claims are display-only
+  const withCfg = await withCwd(root, async () => { process.exitCode = undefined; await main(['packs', '--config', 'crashtest.config.js']); });
+  assert.match(withCfg, /claims d1\[DB: charges\], kv\[MISSING_KV\]/);
+  assert.match(withCfg, /prerequisites UNMET - kv\[MISSING_KV\], route\[absent\]/);
+});
+
+test('CLI: run --module-plan prints the unmet env-claim row per pack (pure dry-run)', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'packs-plan-'));
+  await mkPack(join(root, 'packs'), 'public', 'claiming', { ...GOOD_MANIFEST, name: 'claiming', env: { kv: { MISSING_KV: {} } } }, ENTRY_OK.replace(/probe-pack/g, 'claiming'));
+  await writeFile(join(root, 'crashtest.config.js'), "export default { };\n");
+  const text = await withCwd(root, async () => { process.exitCode = undefined; await main(['run', '--module-plan', '--json']); });
+  assert.match(text, /pack claiming \[public\/claiming\]: 1 env claim\(s\) unmet \(kv\[MISSING_KV\]\)/);
+  const lines = text.split('\n');
+  const plan = JSON.parse(lines[lines.length - 1]);
+  const row = plan.packs.find((p) => p.name === 'claiming');
+  assert.deepEqual(row.prerequisites.map(renderPrerequisite), ['kv[MISSING_KV]']);
+  // env claims do NOT flip attack statuses - WILL-FIRE stays, the skip question is runtime
+  assert.equal(row.prerequisites.length, 1);
 });

@@ -78,6 +78,9 @@ export function buildModulePlan(target, packs = [], scenarios = []) {
       attacks: p.module.attacks.length,
       armedByKey: p.manifest.armedByKey ?? null,
       package: p.manifest.package ?? null,
+      // Issue #12: unmet env claims ride the plan (empty = satisfied or no
+      // claims). Display only - attack-level skip verdicts stay ground truth.
+      prerequisites: p.prerequisites ?? [],
     })),
     totals: {
       attacks: attackRows.length,

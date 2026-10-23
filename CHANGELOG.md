@@ -7,6 +7,22 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.0.1 (unreleased)
 
+- pack.json env claims (issue #12): a pack now DECLARES what it needs of
+  the run root - `env.d1` / `env.kv` binding claims (d1 optionally with
+  `tables`), `env.routes`, and an optional `env.seed` fixture passthrough
+  - and the loader computes each pack's structured `prerequisites` (unmet
+  claims only) against the built harness surface. Display surfaces: the
+  pack line + `prerequisites UNMET` diagnostics in `crashtest packs`
+  (with a config, claims evaluate against a real harness, no requests),
+  the `--module-plan` blob (`plan.packs[].prerequisites`) + per-pack
+  unmet rows, and the same diagnostics before a real `run`. Attack-level
+  skip verdicts stay the ground truth - claims are display, and a missing
+  binding never invents one. Seeds land only into EXISTING claimed
+  bindings (kv absent-or-identical, d1 tables must be new; conflicts fail
+  the run loudly), tick no counters, and derive the same commit -> same
+  findings. Teeth: test/packs.test.js (env claims section),
+  schema docs in docs/reference/packs.md.
+
 - faked1 v0.2 (`src/harness/d1.js`): the FakeD1 SQL subset grew to the
   relay class, grounded in and verified against real SQLite (node:sqlite)
   for the eight statements gistory's relay actually runs - general value

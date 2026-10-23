@@ -69,7 +69,7 @@ test('buildModulePlan: shape carries the packs inventory (package field passes t
     [{ origin: 'public/p', visibility: 'public', manifest: { name: 'p', version: '1.2.3', package: '@you/pack', armedByKey: null }, module: { name: 'p', attacks: [{ name: 'a' }] } }],
     [{ origin: 'public/p/index.js', module: { name: 'p', attacks: [{ name: 'a' }] } }],
   );
-  assert.deepEqual(plan.packs, [{ name: 'p', visibility: 'public', version: '1.2.3', origin: 'public/p', attacks: 1, armedByKey: null, package: '@you/pack' }]);
+  assert.deepEqual(plan.packs, [{ name: 'p', visibility: 'public', version: '1.2.3', origin: 'public/p', attacks: 1, armedByKey: null, package: '@you/pack', prerequisites: [] }]);
 });
 
 async function tmpRoot() {

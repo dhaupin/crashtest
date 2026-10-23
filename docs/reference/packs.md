@@ -53,6 +53,58 @@ with zero config wiring by the adopting repo. A broken listing (missing
 file, wrong shape, name collision) fails the run loudly naming the pack,
 the same rule as every other surface.
 
+**`env` (optional, binding claims)** - the pack TELLS the run root what it
+needs of the harness instead of every attack hand-probing `harness.env` and
+stringing its own skip prose:
+
+```json
+{
+  "schemaVersion": 1,
+  "name": "my-money-pack",
+  "description": "one line",
+  "env": {
+    "d1":    { "DB": { "tables": ["charges", "settings"] } },
+    "kv":    { "UPLOADS": {} },
+    "routes": ["charge", "profile"],
+    "seed": {
+      "kv": { "UPLOADS": { "canary": "v1" } },
+      "d1": { "DB": { "devices": { "rows": [{ "id": 1, "name": "d0" }] } } }
+    }
+  }
+}
+```
+
+Semantics, pinned the same way everything else is:
+
+- A pack loads with a `prerequisites` array of its **UNMET claims only**,
+  computed against the built harness surface (bindings + registered
+  routes). The CLI renders it; the attack-level skip verdicts stay the
+  ground truth - claims are display, and a missing binding never invents
+  one.
+- `crashtest packs` (with a config) prints the claims on the pack line and
+  an `UNMET` diagnostics line under any unmet claim:
+
+```text
+public @0.3.1 - my-money-pack: 3 attacks from public/my-money-pack / claims d1[DB: charges, settings], kv[UPLOADS], routes[charge, profile]
+         a pack example
+         prerequisites UNMET - d1[DB:charges], kv[UPLOADS], route[charge]
+```
+
+- `run --module-plan` carries the same rows into the plan blob
+  (`plan.packs[].prerequisites`) and prints a flagged diagnostics line
+  per affected pack (`pack <name> [<origin>]: N env claim(s) unmet (...)
+  -`), so the plan answers "what would fire AND what would not fire" in
+  one place. `run` prints the same line before the campaign.
+- `env.seed` is the deterministic fixture passthrough. Seed rows land ONLY
+  where the claimed binding already exists in the run root: kv keys set
+  when absent, a no-op when identical, and **loud failures on conflict**
+  (`env.seed may not overwrite run-root state`); d1 seed tables must be
+  NEW tables (the run root owns its own) with FakeD1's own `{ rows,
+  uniques }` shape and constructor-identical autoincrement. Seeds tick no
+  counters. Same commit -> same seeds -> same findings (determinism law).
+- A broken `env` block (wrong kind, wrong shape) fails the run loudly at
+  pack validation, like every other manifest error.
+
 ## Where packs live
 
 ```text

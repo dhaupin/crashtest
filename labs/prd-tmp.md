@@ -54,9 +54,9 @@
   batch partial-apply honesty, every gap still throws a LISTED UNSUPPORTED
   message (DISCOVER, not mid-campaign). **Acceptance**: gistory's four-table
   fixture runs row-for-row like real SQLite; the gistory run root swaps its
-  `node:sqlite` fixture for bare FakeD1 with byte-identical results
-  (37/6/0), and files the cross-repo issue on dhaupin/gistory when it
-  ships. Out of scope: JOINs, GROUP BY/HAVING, subqueries, windows,
+  `node:sqlite` fixture for bare FakeD1 with byte-identical  results (37/6/0), and files the cross-repo issue on dhaupin/gistory when it
+  ships. **DONE 2026-10-23**: v0.2 shipped in 8e8a511; cross-repo issue is
+  dhaupin/gistory#2. Out of scope: JOINs, GROUP BY/HAVING, subqueries, windows,
   triggers, FKs, CREATE/ALTER.
 - **#9 FakeD1/FakeKV ops gaps** (vant arms): aggregates beyond COUNT
   (MIN/MAX/AVG/SUM, GROUP BY/HAVING, simple JOINs eventually), functions
@@ -112,6 +112,8 @@ crashtest run is stability-green on both).
    37/6/0 + the cross-repo issue on dhaupin/gistory).
 4. Lane 3: #12 env claims (small), then #14 + #15 (land together; vars are
    the natural bag for chain steps).
+   - **#12 DONE 2026-10-23**: env claims + structured prerequisites + seed
+     passthrough (changelog 1.0.1 entry; TASKS 2026-10-23).
 5. Lane 4: #10/#11 once fixtures can express their tables.
 6. Lane 5: census conversion after the primitives exist.
 

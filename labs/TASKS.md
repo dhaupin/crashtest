@@ -1509,3 +1509,32 @@ t  (ct_create_user/ct_grant_role/ct_reset_users whitelist helpers),
   JSX verified parse-clean via esbuild (no build run needed).
 - Verified: 105/105 tests, check exit 0, CLI plan blob round-trips through
   the bridge exactly as CI would paste it.
+
+### 2026-10-23 - cross-repo closure + pack env claims (issue #12)
+- The dhaupin/gistory cross-repo issue is FILED (gistory#2): closing the last
+  checklist item on crashtest issue #8 - it announces faked1 v0.2 (shipped in
+  8e8a511), names the eight statements it grew for, and hands gistory the
+  optional swap: its run root drops the hand-rolled node:sqlite fixture for
+  bare FakeD1 and should see byte-identical 37/6/0. The fixture keeps working
+  either way; the ask is the verification, and drift files back here at cause.
+- pack.json env claims (#12) landed. Manifest gains an optional `env` block:
+  `d1`/`kv` binding claims (d1 optionally with `tables`), `routes`, and an
+  optional `seed` fixture passthrough. loadPacks takes the built harness
+  surface and computes UNMET-claims-only `prerequisites` per pack.
+- Display, not enforcement: `crashtest packs` (with a config - throws away a
+  request-free throwaway harness for claim evaluation) prints claims +
+  `prerequisites UNMET` lines; `--packs --json` carries `env` + `prerequisites`;
+  the module plan blob gains `plan.packs[].prerequisites` plus a per-pack
+  unmet row in the printout; a real `run` prints the diagnostics line before
+  the campaign. Attack-level skip verdicts remain ground truth by design.
+  cmdRun/cmdPacks share a new buildTargetHarness (routes/adapters/routeAliases
+  duplicated code retired in the process).
+- Seed semantics (deterministic, loud at cause): kv keys set when absent,
+  no-op when identical, fail the run when different; d1 seed tables must be
+  NEW tables with FakeD1's {rows, uniques} shape; nextId derives exactly like
+  the FakeD1 constructor; seeds tick no counters; a missing binding is an
+  unmet claim - seeds never invent bindings.
+- Tests: +6 pins in test/packs.test.js (env claims: validation, evaluation,
+  loader wiring, seed behaviors, CLI claims/UNMET rendering, module-plan row),
+  the plan-shape pin updated for the additive field (module-plan.test.js).
+  Full suite 228/228, check exit 0, lint:docs exit 0.

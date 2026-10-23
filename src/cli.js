@@ -9,7 +9,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { buildHarness } from './harness/harness.js';
 import { registerAdapters } from './adapters/index.js';
 import { loadScenarios } from './scenarios/loader.js';
-import { loadPacks } from './packs/loader.js';
+import { loadPacks, applyPackSeed, renderEnvClaims, renderPrerequisite } from './packs/loader.js';
 import { loadPlugins, configDir } from './plugins/loader.js';
 import { runCampaign } from './campaigns/runner.js';
 import { buildLedger, diffAgainstBaseline, exitCode, renderMarkdown } from './report.js';
@@ -56,7 +56,7 @@ COMMANDS
     --out-dir <dir>           ALSO write run-blob.json + crashledger.json +
                               hardening.md copies into dir (artifact fan-out;
                               the repo's labs/ rules are untouched)
-  crashtest packs             List discovered packs (public + local)
+  crashtest packs             List discovered packs (public + local), env claims shown/unmet lines rendered
     --config <path>           Honor the config's packs knob
     --json                    Machine inventory (versions, armedByKey, npm pkg)
   crashtest packs add <name> [--public]
@@ -224,23 +224,12 @@ export default {
   console.log('Next: commit labs/ so CI has a baseline, then `crashtest run` (0.1).');
 }
 
-async function cmdRun(opts = {}) {
-  // PRD section 14 alignment: `run --json` appends the machine run blob (tally,
-  // verdict rows, cost economics) as the LAST stdout line - the exact shape
-  // the dashboard bridge (/dashboard and web/src/lib/ledgerModel.js) and any
-  // future hosted runner read. Human output is unchanged.
-  const root = repoRoot();
-  const configPath = join(root, opts.config ?? 'crashtest.config.js');
-  if (!(await exists(configPath))) {
-    console.error(`crashtest run: no ${configPath.split('/').pop()} in ${root}`);
-    console.error('A target needs a config declaring its routes + env, e.g.:');
-    console.error('  export default { routes: { enroll: handler }, env: { d1: {...}, secrets: {...} } }');
-    console.error('Directories: labs/scenarios/ is auto-scanned for extra scenario modules.');
-    process.exitCode = 2;
-    return;
-  }
-
-  const target = (await import(pathToFileURL(configPath).href)).default;
+/**
+ * Build the harness for an imported config: routes/adapters/routeAliases only -
+ * no scenario loading, no requests. Shared by cmdRun and `packs --config`
+ * (env-claim checks there see exactly the bindings/routes a run would see).
+ */
+async function buildTargetHarness(target) {
   const harness = buildHarness(target.routes ?? {}, {
     env: target.env ?? {},
     cost: target.cost ?? {},
@@ -258,6 +247,27 @@ async function cmdRun(opts = {}) {
       harness.aliasRoute(name, route, { path, method });
     }
   }
+  return harness;
+}
+
+async function cmdRun(opts = {}) {
+  // PRD section 14 alignment: `run --json` appends the machine run blob (tally,
+  // verdict rows, cost economics) as the LAST stdout line - the exact shape
+  // the dashboard bridge (/dashboard and web/src/lib/ledgerModel.js) and any
+  // future hosted runner read. Human output is unchanged.
+  const root = repoRoot();
+  const configPath = join(root, opts.config ?? 'crashtest.config.js');
+  if (!(await exists(configPath))) {
+    console.error(`crashtest run: no ${configPath.split('/').pop()} in ${root}`);
+    console.error('A target needs a config declaring its routes + env, e.g.:');
+    console.error('  export default { routes: { enroll: handler }, env: { d1: {...}, secrets: {...} } }');
+    console.error('Directories: labs/scenarios/ is auto-scanned for extra scenario modules.');
+    process.exitCode = 2;
+    return;
+  }
+
+  const target = (await import(pathToFileURL(configPath).href)).default;
+  const harness = await buildTargetHarness(target);
 
   const scenarios = await loadScenarios([
     ...(target.scenarioDirs ?? []),
@@ -271,7 +281,9 @@ async function cmdRun(opts = {}) {
   let loadedPacks = [];
   if (packsOpt !== false) {
     const packRoots = Array.isArray(packsOpt) ? packsOpt : [join(root, 'packs')];
-    loadedPacks = await loadPacks(packRoots);
+    // env claims (issue #12): packs load with the built harness surface, so
+    // every pack carries its UNMET prerequisites (empty = all satisfied).
+    loadedPacks = await loadPacks(packRoots, new Map(), { env: harness.env, routeNames: harness.listRoutes() });
     packScenarios = loadedPacks.map((p) => ({ origin: p.origin, module: p.module }));
     // Bundled plugin imports (pack.json "plugins"): the unified surface - a
     // pack ships BOTH its own entry module and imported scenario modules,
@@ -317,9 +329,26 @@ async function cmdRun(opts = {}) {
       console.log(`${mark} ${m.name} [${m.source}${m.version ? ` @${m.version}` : ''}] ${m.attacks.length} attack(s) - ${m.status}${m.reason ? `: ${m.reason}` : ''}`);
       for (const a of m.attacks) console.log(`    ${a.id} - ${a.status}`);
     }
+    for (const p of plan.packs) {
+      if (p.prerequisites?.length) {
+        console.log(`⚑ pack ${p.name} [${p.origin}]: ${p.prerequisites.length} env claim(s) unmet (${p.prerequisites.map(renderPrerequisite).join(', ')})`);
+      }
+    }
     console.log(`plan: ${plan.totals.attacks} attack ids - ${plan.totals.willFire} WILL-FIRE / ${plan.totals.needsArming} NEEDS-ARMING / ${plan.totals.skippedFilter} SKIPPED-FILTER`);
     if (opts.json) console.log(JSON.stringify(plan));
     return;
+  }
+
+  // Pack env claims (issue #12): env.seed fixture rows land BEFORE the
+  // campaign - only into bindings the pack explicitly claims, only
+  // absent-or-identical kv keys, only NEW d1 tables (conflicts fail the run
+  // loudly at cause). Seeds tick no counters. Then the unmet-claim
+  // diagnostics line renders; attack-level skip verdicts stay ground truth.
+  applyPackSeed(loadedPacks, harness.env);
+  for (const p of loadedPacks) {
+    if (p.prerequisites?.length) {
+      console.log(`pack ${p.manifest.name} [${p.origin}]: ${p.prerequisites.length} env claim(s) unmet (${p.prerequisites.map(renderPrerequisite).join(', ')})`);
+    }
   }
 
   const run = await runCampaign(harness, allScenarios, {
@@ -474,15 +503,24 @@ async function probeDetectedHandlers(name, repoRoot, presetOutput) {
 async function cmdPacks(opts = {}) {
   const root = repoRoot();
   const roots = [join(root, 'packs')];
+  let target = null;
   if (opts.config) {
-    const target = (await import(pathToFileURL(join(root, opts.config)).href)).default;
+    target = (await import(pathToFileURL(join(root, opts.config)).href)).default;
     if (target.packs === false) { console.log('packs: disabled in this config'); return; }
     if (Array.isArray(target.packs)) {
       roots.length = 0;
       roots.push(...target.packs);
     }
   }
-  const packs = await loadPacks(roots);
+  // With a config, env-claim checks run against a throwaway harness built
+  // exactly like a run would build it (no requests fire) - so `packs`
+  // shows the same satisfied/unmet verdicts the attack will see.
+  let check = null;
+  if (target) {
+    const harness = await buildTargetHarness(target);
+    check = { env: harness.env, routeNames: harness.listRoutes() };
+  }
+  const packs = await loadPacks(roots, new Map(), check);
   if (!packs.length) {
     console.log('packs: none found - `crashtest init` scaffolds packs/public/ (tracked) + packs/local/ (gitignored)');
     return;
@@ -490,8 +528,12 @@ async function cmdPacks(opts = {}) {
   for (const p of packs) {
     const pkg = p.manifest.package ? ` (npm: ${p.manifest.package})` : '';
     const arm = p.manifest.armedByKey ? ` / armedBy moduleCtx['${p.manifest.armedByKey}']` : '';
-    console.log(`${p.visibility}${p.manifest.version ? ` @${p.manifest.version}` : ''} - ${p.manifest.name}: ${p.module.attacks.length} attacks from ${p.origin}${pkg}${arm}`);
+    const claims = p.manifest.env ? ` / claims ${renderEnvClaims(p.manifest.env)}` : '';
+    console.log(`${p.visibility}${p.manifest.version ? ` @${p.manifest.version}` : ''} - ${p.manifest.name}: ${p.module.attacks.length} attacks from ${p.origin}${pkg}${arm}${claims}`);
     console.log(`         ${p.manifest.description}`);
+    if (p.prerequisites?.length) {
+      console.log(`         prerequisites UNMET - ${p.prerequisites.map(renderPrerequisite).join(', ')}`);
+    }
   }
   if (opts.json) {
     // Machine inventory (PRD section 14 artifact): the registry VERSION JOIN stays
@@ -507,6 +549,8 @@ async function cmdPacks(opts = {}) {
         origin: p.origin,
         attacks: p.module.attacks.length,
         armedByKey: p.manifest.armedByKey ?? null,
+        env: p.manifest.env ?? null,
+        prerequisites: p.prerequisites ?? null,
         description: p.manifest.description,
       })),
     }));
