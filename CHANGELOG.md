@@ -7,6 +7,20 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.0.1 (unreleased)
 
+- the snapshot-diff oracle (issue #13 crate-tooling blocker 2):
+  `harness.snapshotStore()` copies every fake binding's state
+  (FakeD1.snapshot() per binding + the new FakeKV.snapshot()) and
+  `harness.diffSnapshots(before, after)` returns the deterministic diff -
+  D1 rows match by `id` (structural fallback: equal rows cancel, residue
+  added/removed), KV maps by key, table maps added/removed wholesale.
+  Rows carry {added, removed, changed + differing field names}, all
+  sorted, all copies - same inputs twice, byte-identical, so a diff rides
+  evidence without breaking the byte-stability law. Snapshots tick no
+  counters (attack bookkeeping, not campaign ops); a binding changing
+  shape between captures (d1<->kv) fails loudly as an oracle bug. This is
+  the uniform shape replacing the pack-by-pack hand-rolled store diffs
+  (vant measured at least four); docs in reference/scenario-contract.md.
+  Teeth: test/harness/diff.test.js.
 - the determinism linter (issue #13 crate-tooling blocker 3):
   `crashtest lint-determinism [--config <path>] [dirs...]` greps the
   DECLARED user surfaces (config scenarioDirs + packs roots by default;

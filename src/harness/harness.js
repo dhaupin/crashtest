@@ -14,6 +14,7 @@ import { newBackendCounter } from './counters.js';
 import { buildEnv } from './env.js';
 import { FakeKV } from './kv.js';
 import { FakeD1 } from './d1.js';
+import { diffStoreSnapshots } from './diff.js';
 
 export class Harness {
   /**
@@ -185,6 +186,32 @@ export class Harness {
       // is out of scope: document vs freeze-and-heal is a v0.3 call.
     }
     return { kv, d1, counter: this._counter.clone() };
+  }
+
+  /**
+   * snapshotStore() - the attack-side snapshot for the diff oracles (issue
+   * #13 blocker 2): { [bindingName]: FakeD1.snapshot() | FakeKV.snapshot() }
+   * over every fake binding in the env. Capture -> run the attack ->
+   * capture again -> harness.diffSnapshots(before, after) grades what the
+   * STORE did, not what the wire said. No counters tick - bookkeeping, not
+   * campaign ops.
+   */
+  snapshotStore() {
+    const out = {};
+    for (const [name, binding] of Object.entries(this.env)) {
+      if (binding instanceof FakeKV) out[name] = binding.snapshot();
+      else if (binding instanceof FakeD1) out[name] = binding.snapshot();
+    }
+    return out;
+  }
+
+  /**
+   * diffSnapshots(before, after) - the uniform diff oracle dispatch for the
+   * MIXED store map snapshotStore() returns: per-binding D1/KV dispatch,
+   * merged result (see src/harness/diff.js diffStoreSnapshots).
+   */
+  diffSnapshots(before, after) {
+    return diffStoreSnapshots(before, after);
   }
 
   /**

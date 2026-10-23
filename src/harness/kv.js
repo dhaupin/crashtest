@@ -41,4 +41,15 @@ export class FakeKV {
     // Storage-fill campaigns read list.truncated; fakes use full-scan counts.
     return { keys, list_complete: true, cursor: undefined };
   }
+
+  /**
+   * Deep copy of current store state, keyed map - the KV counterpart of
+   * FakeD1.snapshot(), for the diff oracles (harness.snapshot/diff).
+   * Reads NO counters: a snapshot is attack bookkeeping, not a campaign op.
+   */
+  snapshot() {
+    const out = {};
+    for (const [k, v] of this._store) out[k] = v;
+    return out;
+  }
 }

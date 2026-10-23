@@ -1617,3 +1617,21 @@ t  (ct_create_user/ct_grant_role/ct_reset_users whitelist helpers),
   9ed6bb5. Issue #13 stays open: blockers 1 (two-pod broker), 2 (snapshot
   diff helper), 4 (expectation tables as data) remain, in that order of
   discussion next.
+
+### 2026-10-23 - Lane 5: the snapshot-diff oracle (issue #13 blocker 2)
+- The uniform store-diff shape landed: harness.snapshotStore() (copies every
+  fake binding state; FakeKV grew snapshot() mirroring FakeD1.snapshot())
+  and harness.diffSnapshots(before, after) = diffStoreSnapshots - per-binding
+  D1/KV dispatch, rows matched by id (structural fallback: equal rows cancel,
+  residue added/removed), KV keyed, table maps added/removed wholesale.
+- Output contracts: deterministic (same inputs twice -> byte-identical,
+  sorted everywhere), copies only (mutating a diff never reaches the store),
+  changed rows carry the differing FIELD NAMES, snapshots tick no counters,
+  and a binding changing shape between captures (d1<->kv) fails loudly as an
+  oracle bug, never a fake finding. This replaces the pack-by-pack hand-rolled
+  comparators (vant measured at least four hand-rolls); the state module's
+  id-collision-alias row and the new memory/governance rows are natural
+  adopters.
+- Teeth: test/harness/diff.test.js (5 pins incl. determinism + harness
+  integration + no-tick). Docs: scenario-contract #4 subsection. Suite
+  252/252 after this lane.

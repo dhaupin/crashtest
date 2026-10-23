@@ -192,6 +192,8 @@ harness.env                       // { DB, KV_BUCKETS, SECRETS... } per the conf
 harness.log() / harness.costTotals()                  // this run's rows / op economics
 harness.freezeTo() / harness.restoreTo(snapshot)      // fake-backend snapshot + restore
 harness.runFresh(name, reqInit, at?)                  // re-run against a frozen state
+harness.snapshotStore()          // { [binding]: FakeD1.snapshot() | FakeKV.snapshot() } - attack bookkeeping
+harness.diffSnapshots(before, after)   // the uniform diff oracle (see below)
 ```
 
 `harness.run()` fires ONE in-process WHATWG `Request` at that route's
@@ -215,6 +217,28 @@ Two helpers from `../src/scenarios/contract.js` save boilerplate:
 `refused(detail, extra)` / `exploited(detail, extra)` build records, and
 `fuzzFloorViolation(record)` maps a harness record to the floor-breaking
 case (5xx / uncaught throw / no status) or `null`.
+
+### Store snapshots + the diff oracle (issues #14's alias rows, #13 blocker 2)
+
+The uniform shape for grading what the STORAGE did:
+
+```js
+const before = harness.snapshotStore();   // { DB: ..., UPLOADS: ... } copies
+// ... fire the attack's requests ...
+const after = harness.snapshotStore();
+const diff = harness.diffSnapshots(before, after);
+if (diff.changed) { /* grade diff.bindings.DB.tables.notes.added/removed/changed */ }
+```
+
+Rows match by `id` when both sides carry it (the autoincrement
+convention); structurally otherwise (equal rows cancel, the residue is
+added/removed). Table maps too small to name and KV maps diff by key.
+Output is DETERMINISTIC - same inputs twice, byte-identical, sorted
+(every copied row, nothing reaches the snapshots) - so a diff rides the
+ledger as `evidence` without breaking the byte-stability law. Snapshots
+tick NO counters (bookkeeping, not campaign ops), and a binding changing
+shape between captures (d1<->kv) is an oracle bug that fails loudly, not
+a finding.
 
 ## A worked pack skeleton
 

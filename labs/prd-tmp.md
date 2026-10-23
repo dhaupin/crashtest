@@ -103,6 +103,11 @@ Flip blockers (the crate tooling list): two-pod fixture broker, snapshot
 diff helper, `--lint-determinism` flag, expectation tables as data. Staged
 per-bucket, reverse-verified (old suite stays green alongside until the
 crashtest run is stability-green on both).
+   - **blocker 2 DONE 2026-10-23**: the snapshot-diff oracle -
+     `harness.snapshotStore()` + `harness.diffSnapshots()`
+     (diffStoreSnapshots: per-binding D1/KV dispatch, id-matched rows with
+     a structural fallback, deterministic sorted output, copies only, no
+     counter ticks) - src/harness/diff.js, test/harness/diff.test.js.
    - **blocker 3 DONE 2026-10-23**: `crashtest lint-determinism` (+
      `run --lint-determinism` pre-flight) - the flat grep over the declared
      sources (config scenarioDirs + packs roots, or explicit dirs) for the
