@@ -114,6 +114,10 @@ crashtest run is stability-green on both).
    the natural bag for chain steps).
    - **#12 DONE 2026-10-23**: env claims + structured prerequisites + seed
      passthrough (changelog 1.0.1 entry; TASKS 2026-10-23).
+   - **#14 + #15 DONE 2026-10-23**: chain attacks (steps/c.state/expect
+     grammar, step-named findings) + vars/objects/groups campaign state,
+     both additive, both teeth-pinned in test/primitives.test.js (TASKS
+     2026-10-23).
 5. Lane 4: #10/#11 once fixtures can express their tables.
 6. Lane 5: census conversion after the primitives exist.
 

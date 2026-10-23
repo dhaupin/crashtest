@@ -100,6 +100,24 @@ export function renderMarkdown(run, ledger, diff, opts = {}) {
   for (const p of run.cost.perAttack) {
     P(`  - ${p.id}: ${p.ops} ops / ${p.requests} requests`);
   }
+  // Campaign state (issues #14/#15): rendered ONLY when a run actually
+  // carries groups/vars/objects, so committed baselines stay byte-stable.
+  if (run.groups?.length) {
+    P();
+    P(`## Groups`);
+    for (const g of run.groups) {
+      P(`- ${g.name} (${g.ids.length} row(s)): ${g.verdict}`);
+      for (const id of g.ids) P(`  - ${id}`);
+    }
+  }
+  if (run.vars?.length || run.objects?.length) {
+    P();
+    P(`## Campaign state`);
+    for (const v of run.vars ?? []) P(`- var ${v.key} <- ${v.setBy}`);
+    for (const o of run.objects ?? []) {
+      P(`- objects('${o.name}') <- ${o.keys.map((k) => `${k.key} (${k.setBy})`).join(', ') || '(empty)'}`);
+    }
+  }
   P();
   P(`## Baseline diff`);
   P(`- ${baselineDiffLine(diff)}`);

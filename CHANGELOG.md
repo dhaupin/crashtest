@@ -7,6 +7,30 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.0.1 (unreleased)
 
+- harness primitives for stateful QA (issues #14 + #15, additive - the
+  plain `run(harness, ctx) -> one record` contract is untouched):
+  **chain attacks** declare `steps: [...]` on an attack (instead of
+  `run`): each step fires a route, grades its own record against an
+  evaluative `expect` (exact status, `'2xx' / '4xx' / '429-or-4xx'` spec
+  strings, or a `(record) => {ok, detail}` grader; omitted = the fuzz
+  floor), and the chain reports ONE summary verdict named by the flipped
+  steps with the per-step table in `evidence.steps` - a 6-step flow no
+  longer smears into an unattributable blob. `c.state` is the
+  deterministic shared bag across steps; honest-skip inherits on
+  undeclared routes and `guard` skips, never a false positive.
+  **campaign state**: `ctx.vars` (deterministic JSON registry - values
+  round-trip and are prototype-safe with `{ __proto__: ... }` rejected at
+  cause; re-writes are LOUD late-key errors naming both writers; reads
+  of unset keys skip honestly), `ctx.objects('name')` namespaced bags for
+  wordier fixture handles (write-once, inventory listed), and
+  `group: 'feature-name'` on attacks so shards grade jointly (aggregate
+  verdict, per-row records intact). Everything lands in the run blob +
+  the report when non-empty (**Groups** / **Campaign state** sections;
+  committed baselines stay byte-stable when a run carries none) and dies
+  with the campaign. Teeth: test/primitives.test.js (9 pins), contract
+  validation for steps/groups; docs in reference/scenario-contract.md
+  #2b + #3.
+
 - pack.json env claims (issue #12): a pack now DECLARES what it needs of
   the run root - `env.d1` / `env.kv` binding claims (d1 optionally with
   `tables`), `env.routes`, and an optional `env.seed` fixture passthrough

@@ -19,6 +19,35 @@ export async function runCampaign(harness, scenarios, opts = {}) {
   const moduleFilter = opts.modules ? new Set(opts.modules) : null;
   const startedAt = new Date().toISOString();
   const rows = [];
+  // Cross-row state (issue #15): a campaign-scoped vars registry (JSON-
+  // deterministic values, re-writes conflict loudly) and objects() accessors
+  // for the wordier fixture handles. Both are per-campaign by construction:
+  // nothing crosses runs, everything is listed in the campaign output.
+  const vars = createCampaignVars();
+  const objectNamespaces = new Map();
+  const objects = (name) => {
+    if (typeof name !== 'string' || !/^[a-z][a-z0-9-]*$/.test(name)) {
+      throw new TypeError(`objects(): namespace name must be kebab-case, got ${JSON.stringify(name)}`);
+    }
+    let ns = objectNamespaces.get(name);
+    if (!ns) {
+      ns = {
+        name,
+        set(key, value, setBy) {
+          if (typeof key !== 'string' || !key.trim()) throw new TypeError(`objects('${name}'): keys are non-empty strings`);
+          if (ns._store.has(key)) {
+            throw new Error(`campaign objects('${name}'): "${key}" already set by ${ns._store.get(key).setBy} - re-writes conflict loudly (late-key canary law)`);
+          }
+          ns._store.set(key, { value, setBy });
+        },
+        get(key) { return ns._store.get(key)?.value; },
+        has(key) { return ns._store.has(key); },
+        _store: new Map(),
+      };
+      objectNamespaces.set(name, ns);
+    }
+    return ns;
+  };
 
   for (const { module } of scenarios) {
     if (moduleFilter && !moduleFilter.has(module.name)) continue;
@@ -40,8 +69,12 @@ export async function runCampaign(harness, scenarios, opts = {}) {
           ...(opts.moduleCtx?.[module.name] ?? {}),
           ...(opts.attackCtx?.[id] ?? {}),
           seed: campaignSeed,
+          vars,
+          objects,
         };
-        findResult = await attack.run(harness, ctx);
+        findResult = attack.steps !== undefined
+          ? await runChainAttack(attack, harness, ctx)
+          : await attack.run(harness, ctx);
         if (findResult?.verdict === 'BOUNDED' && (!findResult.owner || !findResult.bound)) {
           // An accepted risk without a bound is a finding (principle 6).
           findResult = { ...findResult, verdict: 'EXPLOITED', detail: `${findResult.detail || 'BOUNDED'} - owner/bound missing (finding per PRD principle 6)` };
@@ -59,12 +92,27 @@ export async function runCampaign(harness, scenarios, opts = {}) {
         owner: findResult.owner,
         bound: findResult.bound,
         evidence: findResult.evidence ?? findResult.violations ?? findResult.counts ?? undefined,
+        ...(attack.group !== undefined ? { group: attack.group } : {}),
         costDelta: delta(harness.costTotals(), costBefore),
         requests: harness.log().length - beforeModule.rowsBefore,
       };
       rows.push(record);
     }
     if (typeof module.afterAll === 'function') await module.afterAll(hookCtx);
+  }
+
+  // Groups (issue #15): the named bundles grade ONE feature as an aggregate
+  // of their member rows' graded verdicts - each row keeps its own record.
+  const groupsMap = new Map();
+  const worse = (a, b) => (a === 'EXPLOITED' || b === 'EXPLOITED'
+    ? 'EXPLOITED'
+    : a === 'BOUNDED' || b === 'BOUNDED' ? 'BOUNDED' : 'REFUSED');
+  for (const r of rows) {
+    if (!r.group) continue;
+    let g = groupsMap.get(r.group);
+    if (!g) { g = { name: r.group, ids: [], verdict: 'REFUSED' }; groupsMap.set(r.group, g); }
+    g.ids.push(r.id);
+    g.verdict = worse(g.verdict, r.verdict);
   }
 
   const tally = rows.reduce((t, r) => (t[r.verdict] = (t[r.verdict] ?? 0) + 1) && t, {});
@@ -82,9 +130,182 @@ export async function runCampaign(harness, scenarios, opts = {}) {
     exploited: fins,
     refused: rows.filter(r => r.verdict === 'REFUSED'),
     accepted: rows.filter(r => r.verdict === 'BOUNDED'),
+    groups: [...groupsMap.values()].sort((a, b) => a.name.localeCompare(b.name)),
+    vars: vars.listing(),
+    objects: [...objectNamespaces.values()].map((ns) => ({
+      name: ns.name,
+      keys: [...ns._store.entries()].map(([k, v]) => ({ key: k, setBy: v.setBy })),
+    })).sort((a, b) => a.name.localeCompare(b.name)),
     cost: summarizeCost(rows),
     startedAt, finishedAt,
   };
+}
+
+// ---------- campaign state primitives (issue #15) ----------
+
+/**
+ * A deterministic campaign-scoped string->value registry. Values must be
+ * JSON round-trippable (serializable + deterministic; no wall clock, no
+ * Math.random products - the determinism law inherits wholesale). A re-write
+ * of a set key is a LOUD late-key error naming both writers - never
+ * last-write-wins. Reads of unset keys return undefined; the reader skips
+ * honestly citing the name (coverage-follows-the-fixture, now for data).
+ * Everything written is listed in the campaign output (vars listing); values
+ * do not serialize INTO the report - the keys + writers do, so nothing
+ * crosses runs silently and nothing bloats the ledger.
+ */
+function createCampaignVars() {
+  const map = new Map();
+  return {
+    set(key, value, setBy = 'ctx.vars.set') {
+      if (typeof key !== 'string' || !key.trim()) {
+        throw new TypeError('ctx.vars.set: keys are non-empty strings');
+      }
+      if (map.has(key)) {
+        throw new Error(`campaign vars: "${key}" already set by "${map.get(key).setBy}" - ctx.vars re-writes conflict loudly (late-key canary law, never last-write-wins)`);
+      }
+      assertProtoSafe(value, `campaign vars: "${key}"`, 0);
+      let probe = value;
+      try { probe = JSON.parse(JSON.stringify(value)); } catch (err) {
+        throw new TypeError(`campaign vars: "${key}" value is not JSON round-trippable (${err.message}) - vars accept only serializable deterministic values`);
+      }
+      if (!sameShape(value, probe)) {
+        throw new TypeError(`campaign vars: "${key}" value changed shape across JSON.stringify/parse - vars accept only serializable deterministic values`);
+      }
+      map.set(key, { value, setBy });
+    },
+    get(key) { return map.get(key)?.value; },
+    has(key) { return map.has(key); },
+    listing() { return [...map.entries()].map(([key, v]) => ({ key, setBy: v.setBy })).sort((a, b) => a.key.localeCompare(b.key)); },
+  };
+}
+
+/**
+ * Reject NON-plain objects at cause: a var whose prototype carries data
+ * ({ __proto__: {...} } object literals) poisons every later reader through
+ * inheritance while looking harmless to stringify AND to own-key comparison
+ * - the input.js hostileSerialize canary, one level deeper. Vars accept
+ * objects whose [[Prototype]] is Object.prototype (or null) and arrays -
+ * nothing else climbs the inheritance ladder silently.
+ */
+function assertProtoSafe(value, label, depth) {
+  if (depth > 64) throw new TypeError(`${label} value nesting exceeds 64 levels`);
+  if (value === null || typeof value !== 'object') return;
+  if (Array.isArray(value)) {
+    for (const v of value) assertProtoSafe(v, label, depth + 1);
+    return;
+  }
+  const proto = Object.getPrototypeOf(value);
+  if (proto !== Object.prototype && proto !== null) {
+    throw new TypeError(`${label} value is not prototype-safe (its [[Prototype]] is ${proto?.constructor?.name ?? 'non-standard'}) - vars accept plain JSON-shaped data only`);
+  }
+  for (const v of Object.values(value)) assertProtoSafe(v, label, depth + 1);
+}
+
+/**
+ * Structural equality WITHOUT stringify tricks: JSON.stringify silently
+ * drops __proto__ own-keys (input.js's hostileSerialize lesson), so comparing
+ * stringified forms would compare dropped-to-dropped and pass. Recursive own-
+ * key comparison instead - a stringify-dropped key (or missing one) does not
+ * survive the shape check.
+ */
+function sameShape(a, b, depth = 0) {
+  if (depth > 64) throw new TypeError('value nesting exceeds 64 levels - vars accept bounded deterministic shapes');
+  if (a === null || b === null) return a === b;
+  if (typeof a !== typeof b) return false;
+  if (typeof a !== 'object') return a === b; // number/string/boolean/undefined
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  const ka = Object.keys(a);
+  const kb = Object.keys(b);
+  if (ka.length !== kb.length) return false;
+  const kbSet = new Set(kb);
+  if (!ka.every((k) => kbSet.has(k))) return false;
+  return ka.every((k) => sameShape(a[k], b[k], depth + 1));
+}
+
+// ---------- chain attacks (issue #14) ----------
+
+/**
+ * Run one step-scoped attack: every step grades its own record against the
+ * evaluative `expect` spec, the chain reports ONE summary verdict, and the
+ * summary/finding detail names the flipped steps explicitly - a 6-step flow
+ * never smears into an unattributable blob.
+ */
+async function runChainAttack(attack, harness, ctx) {
+  const c = { ...ctx, state: {} };
+  const stepRows = [];
+  for (const step of attack.steps) {
+    if (step.guard && !step.guard(c)) {
+      stepRows.push({ name: step.name, verdict: 'REFUSED', skip: true, detail: 'guard(c) returned false - step skips honestly' });
+      continue;
+    }
+    if (!step.route || !harness.listRoutes().includes(step.route)) {
+      // Honest-skip inherits: a route the run root never declared is a
+      // skipped-REFUSED step named by step - never a false positive.
+      stepRows.push({ name: step.name, verdict: 'REFUSED', skip: true, detail: `no route "${step.route ?? '<none>'}" registered in the harness - step skips honestly` });
+      continue;
+    }
+    let rec;
+    try {
+      const reqInit = step.init ? step.init(c) ?? {} : {};
+      rec = await harness.run(step.route, reqInit);
+    } catch (err) {
+      rec = { route: step.route, status: null, ok: false, response: null, threw: true, error: err, durationMs: null, ops: null };
+    }
+    stepRows.push({ name: step.name, ...gradeExpect(step.expect, rec) });
+  }
+  const flipped = stepRows.filter((s) => s.verdict === 'EXPLOITED').map((s) => s.name);
+  const verdict = flipped.length ? 'EXPLOITED' : 'REFUSED';
+  const detail = flipped.length
+    ? `chain EXPLOITED at step${flipped.length > 1 ? 's' : ''}: ${flipped.join(', ')}`
+    : `chain held: ${stepRows.length} step${stepRows.length === 1 ? '' : 's'} - ${stepRows.map((s) => `${s.name}${s.skip ? ' (skip)' : ''}`).join(', ')}`;
+  return {
+    verdict,
+    detail,
+    evidence: { steps: stepRows },
+  };
+}
+
+/**
+ * Grade one step record against expect. The fuzz floor always applies
+ * (threw / 5xx / no status = EXPLOITED); the expect spec then decides the
+ * shape question - REFUSED when the wire did what the chain expected.
+ */
+function gradeExpect(expect, rec) {
+  const fail = (why) => ({ verdict: 'EXPLOITED', detail: why, status: rec?.status ?? null });
+  if (!rec) return fail('no record');
+  if (rec.threw) return fail(`uncaught throw: ${rec.error?.name}: ${rec.error?.message}`);
+  if (rec.status == null) return fail('no status (transport error)');
+  if (rec.status >= 500) return fail(`5xx: ${rec.status}`);
+  if (expect === undefined) {
+    return { verdict: 'REFUSED', detail: `status ${rec.status} (no expect - fuzz floor held)`, status: rec.status };
+  }
+  if (typeof expect === 'function') {
+    const out = expect(rec);
+    const ok = out && typeof out === 'object' ? Boolean(out.ok) : Boolean(out);
+    const why = out && typeof out === 'object' && out.detail ? out.detail : `expect grader said not ok at status ${rec.status}`;
+    return ok
+      ? { verdict: 'REFUSED', detail: typeof out === 'object' && out.detail ? out.detail : `matched expect grader at status ${rec.status}`, status: rec.status }
+      : fail(why);
+  }
+  if (statusMatches(rec.status, expect)) {
+    return { verdict: 'REFUSED', detail: `status ${rec.status} matched expect ${expect}`, status: rec.status };
+  }
+  return fail(`status ${rec.status} did not match expect ${expect}`);
+}
+
+/** '2xx-or-4xx' -> status classes; a number -> exact status. */
+function statusMatches(status, spec) {
+  if (typeof spec === 'number') return status === spec;
+  return String(spec)
+    .split('-or-')
+    .some((part) => {
+      const cls = /^(\d)xx$/.exec(part.trim());
+      if (cls) return Math.floor(status / 100) === Number(cls[1]);
+      const exact = /^\d{3}$/.exec(part.trim());
+      if (exact) return status === Number(part.trim());
+      throw new TypeError(`expect spec "${spec}": part "${part.trim()}" is not a status class ('2xx') or exact status ('429')`);
+    });
 }
 
 function delta(after, before) {

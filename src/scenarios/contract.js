@@ -39,7 +39,16 @@ export function validateScenario(mod, origin = 'unknown') {
     }
     if (seen.has(a.name)) fail(`duplicate attack name: ${a.name}`);
     seen.add(a.name);
-    if (typeof a.run !== 'function') fail(`attack "${a.name}" needs run(harness, ctx)`);
+    if (typeof a.run === 'function' && a.steps !== undefined) {
+      fail(`attack "${a.name}" declares both run and steps - pick one`);
+    }
+    if (typeof a.run === 'function') {
+      if (a.group !== undefined && (typeof a.group !== 'string' || !/^[a-z][a-z0-9-]*$/.test(a.group))) {
+        fail(`attack "${a.name}": "group" wants a kebab-case name`);
+      }
+      continue;
+    }
+    validateSteps(a, fail);
   }
   for (const key of ['beforeAll', 'afterAll']) {
     if (mod[key] !== undefined && typeof mod[key] !== 'function') {
@@ -50,6 +59,39 @@ export function validateScenario(mod, origin = 'unknown') {
     }
   }
   return mod;
+}
+
+/**
+ * Validate the step-scoped attack shape (issue #14). Every wrong shape is a
+ * loud contract error - never a half-graded chain.
+ */
+function validateSteps(a, fail) {
+  if (!Array.isArray(a.steps) || a.steps.length === 0) {
+    fail(`attack "${a.name}" needs run(harness, ctx) - or a non-empty steps array`);
+  }
+  const seenSteps = new Set();
+  for (const s of a.steps) {
+    if (!s || typeof s !== 'object' || Array.isArray(s)) {
+      fail(`attack "${a.name}": each step must be an object`);
+    }
+    if (typeof s.name !== 'string' || !/^[a-z][a-z0-9-]*$/.test(s.name)) {
+      fail(`attack "${a.name}": step name must be kebab-case, got ${JSON.stringify(s.name)}`);
+    }
+    if (seenSteps.has(s.name)) fail(`attack "${a.name}": duplicate step name: ${s.name}`);
+    seenSteps.add(s.name);
+    if (s.route !== undefined && (typeof s.route !== 'string' || !s.route.trim())) {
+      fail(`attack "${a.name}" step "${s.name}": route must be a route name`);
+    }
+    for (const fn of ['init', 'guard']) {
+      if (s[fn] !== undefined && (typeof s[fn] !== 'function' || s[fn].length > 1)) {
+        fail(`attack "${a.name}" step "${s.name}": ${fn}(c) takes at most one arg`);
+      }
+    }
+    if (s.expect !== undefined
+      && typeof s.expect !== 'string' && typeof s.expect !== 'number' && typeof s.expect !== 'function') {
+      fail(`attack "${a.name}" step "${s.name}": expect wants a status number, a spec string ('2xx', '4xx-or-429'), or a (record) => {ok, detail} grader`);
+    }
+  }
 }
 
 /** Enumerate every attack id as `module/attack` (used by campaigns + ledger). */
@@ -76,6 +118,29 @@ export function bounded(owner, bound, detail, extra = {}) {
  * Maps a harness run record to one of those two outcomes, else null.
  * null means "the record was fine" (2xx-4xx, no throw) - callers decide
  * what verdict that represents for their attack.
+ *
+ * Step-scoped attacks (issue #14, additive): an attack may declare `steps`
+ * instead of `run` - a conversational row where each step fires a route,
+ * grades its own record against an evaluative `expect` spec, and the chain
+ * reports ONE summary verdict named by the flipped steps:
+ *
+ *   steps: [
+ *     { name: 'request-code', route: 'auth', init: (c) => ({ ... }),
+ *       expect: '2xx' },
+ *   ]
+ *
+ *   - expect: a status number, a spec string ('2xx', '4xx', '2xx-or-4xx'),
+ *     or (record) => {ok, detail}/boolean for richer oracles; omitted means
+ *     the fuzz floor alone (never threw, never 5xx).
+ *   - c is the chain bag: { ...ctx, state: {} } - steps share c.state
+ *     deterministically (set/read across steps, no wall clock allowed).
+ *   - a step whose route is not registered skips honestly (never a false
+ *     positive mid-chain); a guard=false step skips honestly too.
+ *
+ * Cross-row state (issue #15): attacks may set/get campaign-scoped vars
+ * (ctx.vars, JSON-deterministic values, conflicting re-writes are LOUD) and
+ * objects namespaced bags (ctx.objects('name'), wordier fixture handles),
+ * and may declare `group: 'feature-name'` to grade jointly in the report.
  */
 export function fuzzFloorViolation(record) {
   if (!record) return 'no record';

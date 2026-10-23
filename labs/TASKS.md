@@ -1538,3 +1538,35 @@ t  (ct_create_user/ct_grant_role/ct_reset_users whitelist helpers),
   loader wiring, seed behaviors, CLI claims/UNMET rendering, module-plan row),
   the plan-shape pin updated for the additive field (module-plan.test.js).
   Full suite 228/228, check exit 0, lint:docs exit 0.
+
+### 2026-10-23 - harness primitives: chains + campaign state (issues #14 + #15)
+- Both primitives landed together in one lane (the prd order: vars are the
+  natural bag for chain steps). Additive only - plain `run(harness, ctx)`
+  rows are untouched; the verdict contract, ledger schema, and exit rules
+  did not move.
+- **Chains (#14)**: an attack may now declare `steps: [...]` instead of
+  `run`. Each step names a route, optionally builds its request with
+  `init(c)` (c = the chain bag: ctx + a deterministic shared `c.state`),
+  and grades against an evaluative `expect` (exact number, spec string
+  '2xx'/'4xx'/'429-or-4xx', or a (record) => {ok, detail} grader;
+  omitted = fuzz floor alone). One row per chain, summary verdict names
+  flipped steps, per-step table rides evidence.steps. Undeclared routes
+  and guard=false steps degrade to honest skipped-REFUSED, named by step.
+- **Campaign state (#15)**: ctx.vars (set once, conflict LOUD naming both
+  writers; JSON round-trippable AND prototype-safe - the { __proto__:
+  {...} } object literal is rejected at cause because inheritance poisons
+  later readers invisibly; reads of unset keys return undefined so the
+  reader skips honestly), ctx.objects('name') write-once namespaces for
+  wordier fixture handles, and attack-level `group: 'feature-name'`
+  bundles (aggregate verdict = worst member, per-row records intact).
+- Determinism/safety inherited wholesale: no wall clock in c.state or var
+  values; all listings sorted (vars = key+writer, objects = namespace+key
+  writer, groups = ids); state dies with the campaign (two-run test pins
+  zero cross-run leakage). report.js renders Groups/Campaign state ONLY
+  when a run carries them, so committed baselines stay byte-stable
+  (dogfood double-run re-verified: hardening.md churn was ONLY the
+  pre-existing v1.0.0->v1.0.1 version line, now restored).
+- Tests: +9 in test/primitives.test.js; contract.js validates steps
+  shapes/groups loudly (mutual exclusion with run, kebab step names, dup
+  step names, init/guard arity, bad expect types). Full suite 237/237,
+  check exit 0, lint:docs exit 0.

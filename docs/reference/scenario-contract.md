@@ -37,7 +37,9 @@ origin - never a silent gap):
 - `name` and `attack.name` are kebab-case; duplicate attack names within a
   module are a load error, and the same module-name from two surfaces (pack
   vs `scenarioDirs` vs built-ins) is a collision error.
-- `attacks` must be a non-empty array; each attack needs a `run` function.
+- `attacks` must be a non-empty array; each attack needs a `run` function
+  OR (issue #14, see section 2b) a non-empty `steps: [...]` chain - never
+  both.
 - `beforeAll`/`afterAll` must be a function taking no second argument.
   They FIRE: `runCampaign` calls them once per module, around the
   module's attacks, with the module-level ctx (`moduleCtx[<name>]` +
@@ -87,6 +89,47 @@ your `moduleCtx` let run roots arm them later without code changes. The
 [module plan](/crashtest/reference/module-plan) previews which of your
 attacks WILL-FIRE vs NEEDS-ARMING before any run.
 
+## 2b. Chain attacks - the step-scoped row (issue #14)
+
+A multi-step flow is a chain, not one blob: the attack declares `steps`
+and the runner fires + grades each step, reporting ONE summary verdict
+whose detail names the flipped steps.
+
+```js
+{
+  name: 'otp-conversation-steal',
+  description: 'the whole conversation, step by step',
+  steps: [
+    { name: 'request-code', route: 'auth',
+      init: (c) => ({ url: '/auth?user=mary' }), expect: '2xx' },
+    { name: 'wrong-code', route: 'auth',
+      init: (c) => ({ url: '/auth?user=mary&code=000000' }), expect: '4xx' },
+    { name: 'replay-window', route: 'auth',
+      init: (c) => ({ url: `/auth?code=${c.state.minted}` }), expect: '2xx' },
+  ],
+}
+```
+
+- **Per-step + one summary.** Every step grades its own record
+  (REFUSED when the wire matched, EXPLOITED when it flipped); the row
+  summary is EXPLOITED if any step flipped, with `chain EXPLOITED at
+  step(s): ...` naming them, and the full per-step list rides `evidence.steps`.
+- **`expect` is evaluative**, because the row grades shapes, not
+  fixtures: a status number (exact), a spec string (`'2xx'`, `'4xx'`,
+  `'429-or-4xx'`), or a `(record) => { ok, detail }` grader for richer
+  oracles. Omitted = the fuzz floor alone (never threw, never 5xx).
+- **`c.state` is the deterministic shared bag** across steps: a step can
+  stash a returned code/id for later steps to read. No wall clock in the
+  bag (the determinism law inherits wholesale) - the sample bodies use
+  constants like `'000000'`, never `Math.random`.
+- **Honest-skip inherits, never a false positive:** a step whose route
+  is not registered on the harness skips as a skipped-REFUSED step
+  (named by step), and a `guard(c)` returning false skips the step,
+  too. The chain never falsifies a verdict because a surface is missing.
+- The chain lands as ONE row (id, verdict = summary), so ledger
+  semantics, the exit rules, and `--json` are unchanged; the step table
+  lives in `evidence.steps`.
+
 ## 3. What `ctx` carries
 
 The campaign runner assembles ctx per attack as a shallow merge:
@@ -95,7 +138,9 @@ The campaign runner assembles ctx per attack as a shallow merge:
 const ctx = {
   ...moduleCtx['your-module-name'],         // from the config's `moduleCtx:`
   ...attackCtx['your-module-name/your-attack'],  // optional per-attack override
-  seed,                                      // campaign seed (default 0xC0FFEE)
+  seed,                                      // campaign seed (default 0xC0xFFEE with your seed)
+  vars,                                      // campaign-scoped registry (see below)
+  objects,                                   // namespaced bag accessor (see below)
 };
 ```
 
@@ -103,6 +148,39 @@ That mapping is the whole contract: **the keys of `moduleCtx['<your pack
 name>']` arrive directly on `ctx`** - `ctx.route`, `ctx.db`, `ctx.upload`,
 whatever vocabulary your attacks expect. Missing keys degrade to a REFUSED
 skip, never a false positive (`coverage follows the fixture`).
+
+### Cross-row state (`ctx.vars` / `ctx.objects`, issue #15)
+
+Packs can hand deterministic VALUES across rows instead of every row
+re-deriving its own fixture:
+
+```js
+// row 1 mints:
+ctx.vars.set('otp-canary', '000123');
+// a later row (its own pack included) consumes:
+const code = ctx.vars.get('otp-canary');          // undefined if never set -
+if (code === undefined) return refused('skip honestly - var not set');
+
+// wordier things (fixture handles, snapshot bags) get namespaces:
+ctx.objects('fixtures').set('ledger', dbHandle);
+```
+
+Laws pinned in the runner: values are **JSON round-trippable and
+prototype-safe** (plain data only - a `{ __proto__: {...} }` object is
+rejected at cause, not silently emptied); a re-write of a set key is a
+**loud late-key error naming both writers** (never last-write-wins);
+reads of unset keys return `undefined` so the reader can skip honestly;
+everything written is listed in the report (**vars/objects listing =
+keys + writers**, never the values), and the registry dies with the
+campaign - no cross-run leakage by construction.
+
+### Groups (`group: 'feature-name'`)
+
+An attack may declare `group: 'svc-healthy'`; the report bundles those
+rows' ids under one named group whose verdict is the aggregate (worst) of
+its member rows - each row keeps its individual record and verdict. This
+is how a feature graded across five shards reads as ONE finding instead
+of five unrelated rows, without smearing them into a mega attack.
 
 ## 4. The harness (the one dispatch surface)
 
