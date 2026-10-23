@@ -93,11 +93,11 @@ BOUNDED requires `owner` + `bound` or it is demoted to EXPLOITED. Drop modules
 into `labs/scenarios/` (or any dir via config `scenarioDirs`) and they load.
 Full semantics: `src/scenarios/contract.js` + tests in `test/scenarios/`.
 
-Library state at 1.0.0: **30 attacks across 12 modules** (auth, authz,
-guards, input, proto-hygiene, recursion, upload, race, state, volume,
-taxonomy, session). Adding/renaming any attack means updating, in the SAME
-commit: the attacks doc + web catalog, the count pins (catalog=30,
-per-module census), and the changelog. The suite will find you otherwise;
+Library state at 1.0.0: **49 attacks across 14 modules** (auth, authz,
+governance, guards, input, memory, proto-hygiene, recursion, upload,
+race, state, volume, taxonomy, session). Adding/renaming any attack means
+updating, in the SAME commit: the attacks doc + web catalog, the count
+pins (catalog=49, per-module census), and the changelog. The suite will find you otherwise;
 that is the pin wall doing its job.
 
 Shipped packs (`packs/public/`, latest first): `next-middleware-shapes`

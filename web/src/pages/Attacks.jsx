@@ -27,11 +27,40 @@ const MODULES = [
     ],
   },
   {
+    mod: 'governance',
+    attacks: [
+      ['succession-trust-floor', 'A designated successor at trust L inherits only capabilities >= L - the deep-private half stays locked below the floor; a breach resolves ALLOW below the level', 'successor caches that inherit the whole capability map'],
+      ['succession-single-heir', 'Two successor declarations for one role must resolve deterministically by declared precedence - never arrival order or randomness', 'role maps keyed by insertion order'],
+      ['succession-revocation-carry', 'Revoking an heir propagates into a session opened AFTER the revocation, including any cached capability map - a still-allowed ask is the carry gap', 'capability caches consulted without checking revocation'],
+      ['escrow-two-key-release', 'An escrowed operation releases only under TWO independent approvals - one principal self-signing twice must never release', 'approval flows that count signatures, not principals'],
+      ['escrow-expiry-is-fail-closed', 'An escrow past its TTL releases nothing and answers typed - silent past-TTL release is the classic class', 'expiry checks that only run on read paths'],
+      ['escrow-refusal-is-typed', 'Denied releases answer with a typed reason naming the blocker - raw 5xx or blank errors are findings', 'refusal paths that fault instead of refusing'],
+      ['grant-conflict-deterministic', 'Two conflicting grants (allow/deny) resolve by declared precedence regardless of insertion order', 'grant tables without a precedence rule'],
+      ['capability-no-sideways', 'A grant scoped to brain/namespace A must not authorize writes into B even when the objects share a parent', 'scope checks that stop at the parent prefix'],
+      ['lock-ttl-honesty', 'A lock past TTL behaves exactly as the app documents it (declare the documented ttlMode) - the disagreement between claim and behavior is the finding', 'locks whose advertised TTL is aspiration'],
+      ['lock-owner-fencing', 'A stale holder writing through an expired fence token is refused loudly - a deleted-token write that succeeds is the fencing gap', 'fence tokens checked only at acquire time'],
+    ],
+  },
+  {
     mod: 'input',
     attacks: [
       ['proto-pollution-body', 'Feeds __proto__/constructor keys through JSON bodies (JSON.stringify silently DROPS them - hostileSerialize is built to keep them on the wire)', 'recursive-merge handlers that spread untrusted bodies'],
       ['never-fail-mutations', '64 hostile bodies (huge ids, nested types, unicode tricks) - any failure mode past a 4xx is a finding', 'mutation routes without shaped rejection'],
       ['oversized-field', '1MB fields, deep nesting, giant arrays', 'handlers without a body limit'],
+    ],
+  },
+  {
+    mod: 'memory',
+    attacks: [
+      ['drift-silent-overwrite', 'Two writers update the same fact without revision bumps - the read must surface the conflict or keep both provenance lines, never a silent blend', 'note stores without revision discipline'],
+      ['drift-stale-poisons-fresh', 'A fact written by a retired writer must not outrank the current writer for the same key - staleness beats recency = the poison', 'read paths without writer-identity ranking'],
+      ['drift-contradiction-carry', 'A note whose body contradicts its own declared summary must be flagged by the read path - carried silently is the honesty gap', 'read layers that trust the header blindly'],
+      ['hallucinated-fact-probe', 'A claim referencing a note id that never existed (deterministic ghost key) must be detectable on read-back', 'note stores that accept any reference'],
+      ['citation-drift', 'A note citing a deleted anchor is a dangling claim - the read path must refuse it loudly, never serve it resolved', 'citation graphs without liveness checks'],
+      ['phantom-scope', 'A private-scoped note must not inherit a wider scope when its content claims public provenance - scope lives in the field, not in prose', 'merges that let content widen scope'],
+      ['identity-merge-collision', 'Two agent identities that wrote the same fact keep BOTH provenance lines through the merge - one vanished author is silent loss', 'merges that overwrite attribution'],
+      ['resolution-order-stability', 'Resolving N conflicting facts must be a deterministic function of declared inputs - same inputs twice, same winner, twice', 'resolvers with side-effect timing'],
+      ['delete-is-loud', 'Pruning deletes leave traceable residue (tombstone/prune traces) - a forget-claim with no tombstone erases history', 'prunes that drop rows outright'],
     ],
   },
   {
@@ -127,7 +156,7 @@ export default function Attacks() {
         </div>
         <h3 style={{ marginTop: 40 }}>Shipped packs ride the same ledger</h3>
         <p className="sub">
-          Beyond the 30 library attacks above, five public packs ship in the
+          Beyond the 49 library attacks above, five public packs ship in the
           package and load wherever <code>packs:</code> points: <code>crashtest-site</code>{' '}
           (18 attacks - the release self-check that caught our own version
           endpoint answering a malformed payload with a 200),{' '}
@@ -154,7 +183,7 @@ export default function Attacks() {
         <p className="field-report">
           Field-report from the target we trust least: our own code. This repo
           dogfoods itself in CI - runs we did on ourselves. The committed ledger
-          holds <span className="ok">30 REFUSED findings</span> on our own hardened demo
+          holds <span className="ok">49 REFUSED findings</span> on our own hardened demo
           app, and the self-site run paid for one real bug: the shipped version endpoint
           once answered a malformed registry payload with <span className="bad">200 and no
           version key</span>. Found, fixed, never regressing again - pinned by the

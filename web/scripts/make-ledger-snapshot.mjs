@@ -27,10 +27,28 @@ await mkdir(path.dirname(OUT), { recursive: true });
 const ledger    = JSON.parse(await readFile(path.join(ROOT, 'labs', 'crashledger.json'), 'utf8'));
 const hardening = await readFile(path.join(ROOT, 'labs', 'hardening.md'), 'utf8');
 
-// Report header: "> crashtest v0.1.0 / 2026-10-20T02:02:43.135Z / seed 12648430"
-const head = hardening.match(/^> crashtest v(\S+) \/ (\S+) \/ seed (\d+)/m)
-  ?? ['x', 'unknown', 'unknown', 'unknown'];
-const [, version, startedAt, seed] = head;
+// Report header. Two shapes exist in the wild:
+//   old: "> crashtest v0.1.0 / 2026-10-20T02:02:43.135Z / seed 12648430"
+//   new (cut-stamp refactor): "> crashtest v1.0.0 / seed 12648430" with the
+//     wall-clock stamp in labs/run-meta.json (determinism law - the ledger
+//     itself must stay byte-stable per commit).
+const headNew = hardening.match(/^> crashtest v(\S+) \/ seed (\d+)/m);
+const headOld = hardening.match(/^> crashtest v(\S+) \/ (\S+) \/ seed (\d+)/m);
+let version = 'unknown';
+let startedAt = null;
+let seed = null;
+if (headNew) {
+  [, version, seed] = headNew;
+  const metaPath = path.join(ROOT, 'labs', 'run-meta.json');
+  try {
+    const meta = JSON.parse(await readFile(metaPath, 'utf8'));
+    if (meta.crashtestVersion && version === 'unknown') version = meta.crashtestVersion;
+    startedAt = meta.generatedAt ?? null;
+    seed = meta.seed ?? Number(seed);
+  } catch { /* run-meta is a sidecar; missing it leaves startedAt null */ }
+} else if (headOld) {
+  [, version, startedAt, seed] = headOld;
+}
 
 // Cost totals: "- total: 397 backend ops across 599 in-process requests from 13 attacks"
 const totals = hardening.match(/^- total: (\d+) backend ops across (\d+) in-process requests from (\d+) attacks/m);
@@ -50,7 +68,7 @@ const snapshot = {
     totals: { ops: Number(totals[1]), requests: Number(totals[2]), distinctAttacks: Number(totals[3]) },
     perAttack,
   },
-  meta: { version, startedAt, seed: Number(seed) },
+  meta: { version, startedAt, seed: seed == null ? null : Number(seed) },
 };
 
 const banner = `/**

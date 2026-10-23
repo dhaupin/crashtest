@@ -1570,3 +1570,35 @@ t  (ct_create_user/ct_grant_role/ct_reset_users whitelist helpers),
   shapes/groups loudly (mutual exclusion with run, kebab step names, dup
   step names, init/guard arity, bad expect types). Full suite 237/237,
   check exit 0, lint:docs exit 0.
+
+### 2026-10-23 - Lane 4: memory rows + governance rows (issues #10 + #11)
+- Two new general library families from the vant arms: **memory** (9 attacks,
+  note-store discipline: drift/hallucination/resolution) and **governance**
+  (10 attacks, order-keeping: succession/escrow/trust-floors/locks). Library
+  census 30 attacks / 12 modules -> 49 / 14, same contract, honest-skip law
+  unchanged (undeclared vocabulary = skipped-REFUSED named by knob).
+- Vocabulary is moduleCtx-driven (the state.js pattern): memory wants
+  writeRoute/readRoute/deleteRoute/readStyle; governance wants
+  grantsRoute/resolveRoute/escrowRoute/locksRoute + ttlMode (the DOCUMENTED
+  ttl behavior) + staleToken. Answers may be JSON ({permit}) or raw status
+  codes - both gradeable; 4xx reads as deny.
+- Determinism: fixed canary ids/canaries ('note-ghost-0001', 'fence-stale-000'
+  style), no wall clock, no randomness; a 5xx anywhere is an EXPLOITED via
+  the fuzz-floor story; skip lines name the missing KNOBS (a skip that says
+  `route "undefined"` names nothing - fixed in both modules).
+- Two-way teeth (test/scenarios/memory-governance.test.js): disciplined
+  fixture holds all 9 armed memory rows + the governance surface; the
+  vulnerable twin flips representative rows (drift-silent-overwrite,
+  identity-merge-collision, escrow-two-key-release, capability-no-sideways,
+  lock-owner-fencing); 19-row honest-skip census on a bare harness.
+- Pin wall swept in the same commit: attacks doc (two new sections), web
+  catalog (two new MODULES blocks + count claims), FAQ claim 49 across 14,
+  AGENTS.md census line, count pins (module-plan skippedFilter 50,
+  dogfood battery 49 findings/baseline/REFUSED(49), dashboard >= 49,
+  web-ui-parity 49/49), dogfood labs/ artifacts regenerated (49/49
+  REFUSED on the demo target - it arms neither vocabulary) + web
+  ledger-snapshot regenerated.
+- Fixed at cause on the way: web/scripts/make-ledger-snapshot.mjs header
+  regex predated the cut-stamp refactor and silently wrote vunknown /
+  seed-unknown meta; it now parses both header shapes and reads
+  startedAt from labs/run-meta.json.

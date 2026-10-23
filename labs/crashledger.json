@@ -32,6 +32,56 @@
       "detail": "alias \"dev-check\" denies identically to \"admin\" - no unauthenticated grant, no identity-header trapdoor (3 spoof vectors probed)"
     },
     {
+      "id": "governance/succession-trust-floor",
+      "verdict": "REFUSED",
+      "detail": "vocabulary knob(s) \"grantsRoute\", \"resolveRoute\" not declared on this target - governance skipped (export moduleCtx['governance'].grantsRoute/resolveRoute for coverage)"
+    },
+    {
+      "id": "governance/succession-single-heir",
+      "verdict": "REFUSED",
+      "detail": "vocabulary knob(s) \"grantsRoute\", \"resolveRoute\" not declared on this target - governance skipped (export moduleCtx['governance'].grantsRoute/resolveRoute for coverage)"
+    },
+    {
+      "id": "governance/succession-revocation-carry",
+      "verdict": "REFUSED",
+      "detail": "vocabulary knob(s) \"grantsRoute\", \"resolveRoute\" not declared on this target - governance skipped (export moduleCtx['governance'].grantsRoute/resolveRoute for coverage)"
+    },
+    {
+      "id": "governance/escrow-two-key-release",
+      "verdict": "REFUSED",
+      "detail": "vocabulary knob(s) \"escrowRoute\" not declared on this target - escrow skipped (export moduleCtx['governance'].escrowRoute for coverage)"
+    },
+    {
+      "id": "governance/escrow-expiry-is-fail-closed",
+      "verdict": "REFUSED",
+      "detail": "vocabulary knob(s) \"escrowRoute\" not declared on this target - escrow skipped (export moduleCtx['governance'].escrowRoute for coverage)"
+    },
+    {
+      "id": "governance/escrow-refusal-is-typed",
+      "verdict": "REFUSED",
+      "detail": "vocabulary knob(s) \"escrowRoute\" not declared on this target - escrow skipped (export moduleCtx['governance'].escrowRoute for coverage)"
+    },
+    {
+      "id": "governance/grant-conflict-deterministic",
+      "verdict": "REFUSED",
+      "detail": "vocabulary knob(s) \"grantsRoute\", \"resolveRoute\" not declared on this target - governance skipped (export moduleCtx['governance'].grantsRoute/resolveRoute for coverage)"
+    },
+    {
+      "id": "governance/capability-no-sideways",
+      "verdict": "REFUSED",
+      "detail": "vocabulary knob(s) \"grantsRoute\", \"resolveRoute\" not declared on this target - governance skipped (export moduleCtx['governance'].grantsRoute/resolveRoute for coverage)"
+    },
+    {
+      "id": "governance/lock-ttl-honesty",
+      "verdict": "REFUSED",
+      "detail": "governance knob(s) \"locksRoute\", \"ttlMode\" not declared on this target - lock-ttl-honesty skipped (declare locksRoute + the DOCUMENTED ttlMode for coverage)"
+    },
+    {
+      "id": "governance/lock-owner-fencing",
+      "verdict": "REFUSED",
+      "detail": "governance knob(s) \"locksRoute\", \"staleToken\" not declared on this target - fencing skipped (declare locksRoute + staleToken for coverage)"
+    },
+    {
       "id": "guards/hygiene-no-store",
       "verdict": "REFUSED",
       "detail": "\"enroll\" write responses marked no-store"
@@ -55,6 +105,51 @@
       "id": "input/oversized-field",
       "verdict": "REFUSED",
       "detail": "oversized body handled on \"enroll\" (status 400)"
+    },
+    {
+      "id": "memory/drift-silent-overwrite",
+      "verdict": "REFUSED",
+      "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)"
+    },
+    {
+      "id": "memory/drift-stale-poisons-fresh",
+      "verdict": "REFUSED",
+      "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)"
+    },
+    {
+      "id": "memory/drift-contradiction-carry",
+      "verdict": "REFUSED",
+      "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)"
+    },
+    {
+      "id": "memory/hallucinated-fact-probe",
+      "verdict": "REFUSED",
+      "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)"
+    },
+    {
+      "id": "memory/citation-drift",
+      "verdict": "REFUSED",
+      "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\", \"deleteRoute\" not declared on this target - citation drift skipped (export moduleCtx['memory'].writeRoute/readRoute/deleteRoute for coverage)"
+    },
+    {
+      "id": "memory/phantom-scope",
+      "verdict": "REFUSED",
+      "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)"
+    },
+    {
+      "id": "memory/identity-merge-collision",
+      "verdict": "REFUSED",
+      "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)"
+    },
+    {
+      "id": "memory/resolution-order-stability",
+      "verdict": "REFUSED",
+      "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)"
+    },
+    {
+      "id": "memory/delete-is-loud",
+      "verdict": "REFUSED",
+      "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\", \"deleteRoute\" not declared on this target - delete skip (export moduleCtx['memory'].writeRoute/readRoute/deleteRoute for coverage)"
     },
     {
       "id": "proto-hygiene/head-get-parity",
@@ -161,11 +256,30 @@
     "authz/method-matrix-privileged",
     "authz/role-body-spoof-family",
     "authz/handler-alias-confusion",
+    "governance/succession-trust-floor",
+    "governance/succession-single-heir",
+    "governance/succession-revocation-carry",
+    "governance/escrow-two-key-release",
+    "governance/escrow-expiry-is-fail-closed",
+    "governance/escrow-refusal-is-typed",
+    "governance/grant-conflict-deterministic",
+    "governance/capability-no-sideways",
+    "governance/lock-ttl-honesty",
+    "governance/lock-owner-fencing",
     "guards/hygiene-no-store",
     "guards/burst-wall",
     "input/proto-pollution-body",
     "input/never-fail-mutations",
     "input/oversized-field",
+    "memory/drift-silent-overwrite",
+    "memory/drift-stale-poisons-fresh",
+    "memory/drift-contradiction-carry",
+    "memory/hallucinated-fact-probe",
+    "memory/citation-drift",
+    "memory/phantom-scope",
+    "memory/identity-merge-collision",
+    "memory/resolution-order-stability",
+    "memory/delete-is-loud",
     "proto-hygiene/head-get-parity",
     "proto-hygiene/request-shape-flood",
     "race/double-submit-idempotency",

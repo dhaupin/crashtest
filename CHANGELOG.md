@@ -7,6 +7,35 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.0.1 (unreleased)
 
+- two new general library families armed from the vant arms (issues #10
+  and #11) - the library grows 30 attacks / 12 modules -> **49 attacks /
+  14 modules**, same contract, same honest-skip law, same pin walls:
+  **memory** (9 attacks) grades note-store discipline for any app that
+  persists versioned notes and re-reads them (drift rows:
+  silent-overwrite, stale-poisons-fresh, contradiction-carry;
+  hallucination rows: hallucinated-fact-probe, citation-drift,
+  phantom-scope; resolution rows: identity-merge-collision,
+  resolution-order-stability, delete-is-loud) via moduleCtx['memory']
+  (writeRoute/readRoute/deleteRoute/readStyle); **governance** (10
+  attacks) grades the order-keeping apparatus (succession:
+  trust-floor/single-heir/revocation-carry; escrow: two-key-release,
+  expiry-is-fail-closed, refusal-is-typed; trust floors:
+  grant-conflict-deterministic, capability-no-sideways; locks:
+  lock-ttl-honesty, lock-owner-fencing) via moduleCtx['governance']
+  (grantsRoute/resolveRoute/escrowRoute/locksRoute + ttlMode/staleToken).
+  Both model-free, in-process, deterministic (fixed canary ids, no wall
+  clock); honest-skip inherits wholesale. Teeth:
+  test/scenarios/memory-governance.test.js (two-way: disciplined fixture
+  holds, vulnerable twin flips drift/merge/escrow/sideways/fencing rows;
+  19-row honest-skip census). All pin walls swept in the same commit
+  (attacks doc + web catalog + count pins catalog=49 + FAQ claim +
+  dogfood battery regenerated at 49/49). Skip lines name missing KNOBS,
+  not "undefined" routes. Also fixed at cause: the web ledger-snapshot
+  generator's header regex predated the cut-stamp refactor (it silently
+  wrote vunknown/seed-unknown meta since the report header moved to the
+  `v<ver> / seed <n>` + stamp-line shape); it now parses both shapes and
+  takes startedAt from labs/run-meta.json.
+
 - harness primitives for stateful QA (issues #14 + #15, additive - the
   plain `run(harness, ctx) -> one record` contract is untouched):
   **chain attacks** declare `steps: [...]` on an attack (instead of

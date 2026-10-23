@@ -7,13 +7,12 @@
  * Re-run the generator after a dogfood run changes labs/, then commit.
  *
  * The dashboard renders this snapshot as its default, honest view:
- * a real ledger cut v1.0.0 - not demo data hand-typed for the page.
+ * a real ledger cut v1.0.1 - not demo data hand-typed for the page.
  */
 
 export const dogfood = {
   "ledger": {
     "schemaVersion": 1,
-    "generatedAt": "2026-10-21T08:06:53.379Z",
     "findings": [
       {
         "id": "auth/identity-spoof-headers",
@@ -46,6 +45,56 @@ export const dogfood = {
         "detail": "alias \"dev-check\" denies identically to \"admin\" - no unauthenticated grant, no identity-header trapdoor (3 spoof vectors probed)"
       },
       {
+        "id": "governance/succession-trust-floor",
+        "verdict": "REFUSED",
+        "detail": "vocabulary knob(s) \"grantsRoute\", \"resolveRoute\" not declared on this target - governance skipped (export moduleCtx['governance'].grantsRoute/resolveRoute for coverage)"
+      },
+      {
+        "id": "governance/succession-single-heir",
+        "verdict": "REFUSED",
+        "detail": "vocabulary knob(s) \"grantsRoute\", \"resolveRoute\" not declared on this target - governance skipped (export moduleCtx['governance'].grantsRoute/resolveRoute for coverage)"
+      },
+      {
+        "id": "governance/succession-revocation-carry",
+        "verdict": "REFUSED",
+        "detail": "vocabulary knob(s) \"grantsRoute\", \"resolveRoute\" not declared on this target - governance skipped (export moduleCtx['governance'].grantsRoute/resolveRoute for coverage)"
+      },
+      {
+        "id": "governance/escrow-two-key-release",
+        "verdict": "REFUSED",
+        "detail": "vocabulary knob(s) \"escrowRoute\" not declared on this target - escrow skipped (export moduleCtx['governance'].escrowRoute for coverage)"
+      },
+      {
+        "id": "governance/escrow-expiry-is-fail-closed",
+        "verdict": "REFUSED",
+        "detail": "vocabulary knob(s) \"escrowRoute\" not declared on this target - escrow skipped (export moduleCtx['governance'].escrowRoute for coverage)"
+      },
+      {
+        "id": "governance/escrow-refusal-is-typed",
+        "verdict": "REFUSED",
+        "detail": "vocabulary knob(s) \"escrowRoute\" not declared on this target - escrow skipped (export moduleCtx['governance'].escrowRoute for coverage)"
+      },
+      {
+        "id": "governance/grant-conflict-deterministic",
+        "verdict": "REFUSED",
+        "detail": "vocabulary knob(s) \"grantsRoute\", \"resolveRoute\" not declared on this target - governance skipped (export moduleCtx['governance'].grantsRoute/resolveRoute for coverage)"
+      },
+      {
+        "id": "governance/capability-no-sideways",
+        "verdict": "REFUSED",
+        "detail": "vocabulary knob(s) \"grantsRoute\", \"resolveRoute\" not declared on this target - governance skipped (export moduleCtx['governance'].grantsRoute/resolveRoute for coverage)"
+      },
+      {
+        "id": "governance/lock-ttl-honesty",
+        "verdict": "REFUSED",
+        "detail": "governance knob(s) \"locksRoute\", \"ttlMode\" not declared on this target - lock-ttl-honesty skipped (declare locksRoute + the DOCUMENTED ttlMode for coverage)"
+      },
+      {
+        "id": "governance/lock-owner-fencing",
+        "verdict": "REFUSED",
+        "detail": "governance knob(s) \"locksRoute\", \"staleToken\" not declared on this target - fencing skipped (declare locksRoute + staleToken for coverage)"
+      },
+      {
         "id": "guards/hygiene-no-store",
         "verdict": "REFUSED",
         "detail": "\"enroll\" write responses marked no-store"
@@ -69,6 +118,51 @@ export const dogfood = {
         "id": "input/oversized-field",
         "verdict": "REFUSED",
         "detail": "oversized body handled on \"enroll\" (status 400)"
+      },
+      {
+        "id": "memory/drift-silent-overwrite",
+        "verdict": "REFUSED",
+        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)"
+      },
+      {
+        "id": "memory/drift-stale-poisons-fresh",
+        "verdict": "REFUSED",
+        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)"
+      },
+      {
+        "id": "memory/drift-contradiction-carry",
+        "verdict": "REFUSED",
+        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)"
+      },
+      {
+        "id": "memory/hallucinated-fact-probe",
+        "verdict": "REFUSED",
+        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)"
+      },
+      {
+        "id": "memory/citation-drift",
+        "verdict": "REFUSED",
+        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\", \"deleteRoute\" not declared on this target - citation drift skipped (export moduleCtx['memory'].writeRoute/readRoute/deleteRoute for coverage)"
+      },
+      {
+        "id": "memory/phantom-scope",
+        "verdict": "REFUSED",
+        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)"
+      },
+      {
+        "id": "memory/identity-merge-collision",
+        "verdict": "REFUSED",
+        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)"
+      },
+      {
+        "id": "memory/resolution-order-stability",
+        "verdict": "REFUSED",
+        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)"
+      },
+      {
+        "id": "memory/delete-is-loud",
+        "verdict": "REFUSED",
+        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\", \"deleteRoute\" not declared on this target - delete skip (export moduleCtx['memory'].writeRoute/readRoute/deleteRoute for coverage)"
       },
       {
         "id": "proto-hygiene/head-get-parity",
@@ -175,11 +269,30 @@ export const dogfood = {
       "authz/method-matrix-privileged",
       "authz/role-body-spoof-family",
       "authz/handler-alias-confusion",
+      "governance/succession-trust-floor",
+      "governance/succession-single-heir",
+      "governance/succession-revocation-carry",
+      "governance/escrow-two-key-release",
+      "governance/escrow-expiry-is-fail-closed",
+      "governance/escrow-refusal-is-typed",
+      "governance/grant-conflict-deterministic",
+      "governance/capability-no-sideways",
+      "governance/lock-ttl-honesty",
+      "governance/lock-owner-fencing",
       "guards/hygiene-no-store",
       "guards/burst-wall",
       "input/proto-pollution-body",
       "input/never-fail-mutations",
       "input/oversized-field",
+      "memory/drift-silent-overwrite",
+      "memory/drift-stale-poisons-fresh",
+      "memory/drift-contradiction-carry",
+      "memory/hallucinated-fact-probe",
+      "memory/citation-drift",
+      "memory/phantom-scope",
+      "memory/identity-merge-collision",
+      "memory/resolution-order-stability",
+      "memory/delete-is-loud",
       "proto-hygiene/head-get-parity",
       "proto-hygiene/request-shape-flood",
       "race/double-submit-idempotency",
@@ -205,7 +318,7 @@ export const dogfood = {
     "totals": {
       "ops": 842,
       "requests": 1082,
-      "distinctAttacks": 30
+      "distinctAttacks": 49
     },
     "perAttack": [
       {
@@ -239,6 +352,56 @@ export const dogfood = {
         "requests": 41
       },
       {
+        "id": "governance/succession-trust-floor",
+        "ops": 0,
+        "requests": 0
+      },
+      {
+        "id": "governance/succession-single-heir",
+        "ops": 0,
+        "requests": 0
+      },
+      {
+        "id": "governance/succession-revocation-carry",
+        "ops": 0,
+        "requests": 0
+      },
+      {
+        "id": "governance/escrow-two-key-release",
+        "ops": 0,
+        "requests": 0
+      },
+      {
+        "id": "governance/escrow-expiry-is-fail-closed",
+        "ops": 0,
+        "requests": 0
+      },
+      {
+        "id": "governance/escrow-refusal-is-typed",
+        "ops": 0,
+        "requests": 0
+      },
+      {
+        "id": "governance/grant-conflict-deterministic",
+        "ops": 0,
+        "requests": 0
+      },
+      {
+        "id": "governance/capability-no-sideways",
+        "ops": 0,
+        "requests": 0
+      },
+      {
+        "id": "governance/lock-ttl-honesty",
+        "ops": 0,
+        "requests": 0
+      },
+      {
+        "id": "governance/lock-owner-fencing",
+        "ops": 0,
+        "requests": 0
+      },
+      {
         "id": "guards/hygiene-no-store",
         "ops": 3,
         "requests": 1
@@ -262,6 +425,51 @@ export const dogfood = {
         "id": "input/oversized-field",
         "ops": 1,
         "requests": 66
+      },
+      {
+        "id": "memory/drift-silent-overwrite",
+        "ops": 0,
+        "requests": 0
+      },
+      {
+        "id": "memory/drift-stale-poisons-fresh",
+        "ops": 0,
+        "requests": 0
+      },
+      {
+        "id": "memory/drift-contradiction-carry",
+        "ops": 0,
+        "requests": 0
+      },
+      {
+        "id": "memory/hallucinated-fact-probe",
+        "ops": 0,
+        "requests": 0
+      },
+      {
+        "id": "memory/citation-drift",
+        "ops": 0,
+        "requests": 0
+      },
+      {
+        "id": "memory/phantom-scope",
+        "ops": 0,
+        "requests": 0
+      },
+      {
+        "id": "memory/identity-merge-collision",
+        "ops": 0,
+        "requests": 0
+      },
+      {
+        "id": "memory/resolution-order-stability",
+        "ops": 0,
+        "requests": 0
+      },
+      {
+        "id": "memory/delete-is-loud",
+        "ops": 0,
+        "requests": 0
       },
       {
         "id": "proto-hygiene/head-get-parity",
@@ -361,8 +569,8 @@ export const dogfood = {
     ]
   },
   "meta": {
-    "version": "1.0.0",
-    "startedAt": "2026-10-21T08:06:53.290Z",
+    "version": "1.0.1",
+    "startedAt": "2026-10-23T21:38:04.126Z",
     "seed": 12648430
   }
 };

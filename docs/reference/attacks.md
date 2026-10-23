@@ -7,8 +7,8 @@ description: Every shipped scenario module and attack, what it does, and what ve
 
 # The Attack Catalog
 
-Thirty attacks across twelve modules ship in the core package. Each returns
-exactly one verdict per run: 🛡 REFUSED, ⚡ EXPLOITED, or 🔒 BOUNDED
+Forty-nine attacks across fourteen modules ship in the core package. Each
+returns exactly one verdict per run: 🛡 REFUSED, ⚡ EXPLOITED, or 🔒 BOUNDED
 (BOUNDED requires an owner + bound or it demotes to EXPLOITED - loudly).
 
 ## `auth` - identity and secrets
@@ -38,6 +38,28 @@ the owner field. All three skip politely when their routes are undeclared.
 | `hygiene-no-store` | Every 2xx write must carry a store class (`no-store`, `private`, or explicit cache bounds). Missing = EXPLOITED - shared caches may replay a write. |
 | `burst-wall` | 50 requests at sustained pace. Absence of a wall is fine if nothing breaks; 5xx storms or timeouts = EXPLOITED (honest 429s with Retry-After = the good shape). |
 
+## `governance` - order-keeping (succession, escrow, trust floors, locks)
+
+The #11 general family: grades the ORDER-KEEPING apparatus of agent systems
+- who may act, who succeeds whom, what releases what. Model-free; the
+patient is any app with grant records, approval flows, or lock/lease
+records. Vocabulary (undeclared knobs degrade to skipped-REFUSED): `moduleCtx['governance']` with `grantsRoute`, `resolveRoute`, `escrowRoute`,
+`locksRoute`, plus `ttlMode` (the lock behavior the app DOCUMENTS after a
+TTL) and `staleToken` for the fencing half.
+
+| Attack | What it does |
+|---|---|
+| `succession-trust-floor` | A designated successor at trust L inherits only capabilities >= L - a deep-private ask below the floor that resolves ALLOW is the breach. |
+| `succession-single-heir` | Two successor declarations for one role must resolve deterministically by declared precedence, never arrival order or RNG. |
+| `succession-revocation-carry` | A revocation must propagate into a session opened AFTER it, cached capability maps included - a still-allowed ask is the carry gap. |
+| `escrow-two-key-release` | An escrow releases only under two independent approvals - one principal self-signing twice must not release. |
+| `escrow-expiry-is-fail-closed` | An escrow past its TTL releases nothing and answers typed; silent past-TTL release is the classic class. |
+| `escrow-refusal-is-typed` | Denied releases carry a typed reason naming the blocker - raw 5xx or blank errors are findings. |
+| `grant-conflict-deterministic` | Two conflicting grants (allow/deny) resolve by declared precedence regardless of insertion order. |
+| `capability-no-sideways` | A grant scoped to brain/A must not authorize writes into brain/B even when the objects share a parent. |
+| `lock-ttl-honesty` | A lock past its TTL behaves exactly as the app documents it (`ttlMode`) - claim-vs-behavior disagreement is the finding. |
+| `lock-owner-fencing` | A stale holder writing through an expired fence token is refused loudly - a deleted-token write that succeeds is the fencing gap. |
+
 ## `input` - payloads
 
 | Attack | What it does |
@@ -45,6 +67,30 @@ the owner field. All three skip politely when their routes are undeclared.
 | `proto-pollution-body` | `__proto__`/`constructor` keys through JSON bodies (JSON.stringify drops them, so the transport replays them raw). State changed after a write = EXPLOITED. |
 | `never-fail-mutations` | 64 hostile bodies (huge ids, nested types, unicode tricks). Any landing past 4xx - a 500, a crash, a hang - = EXPLOITED per-case with the first offender named. |
 | `oversized-field` | 1MB fields, deep nesting, giant arrays. A shaped enforcement (413/400) = REFUSED. |
+
+## `memory` - note-store discipline (drift, hallucination, resolution)
+
+The #10 general family for agent-memory-shaped apps: the patient persists
+notes, reads them back, merges/prunes them - and the verdicts grade what
+the storage discipline DID, never what an LLM meant. Vocabulary:
+`moduleCtx['memory']` with `writeRoute` (POST `{ id, body, summary?, refs?,
+scope?, writers? }`), `readRoute` (JSON read-back), optional `deleteRoute`,
+and optional `readStyle` (`'body'` default or `'query'`). Note fields are
+read by name where present (`writers`, `revision`, scope, refs,
+tombstone markers); a missing route is a skipped-REFUSED, same law as
+every module.
+
+| Attack | What it does |
+|---|---|
+| `drift-silent-overwrite` | Two writers update the same fact without revision bumps - the read must surface the conflict or keep both provenance lines, never a silent blend. |
+| `drift-stale-poisons-fresh` | A fact written by a retired writer must not outrank the current writer for the same key - staleness beats recency = the poison. |
+| `drift-contradiction-carry` | A note whose body contradicts its declared summary must be flagged by the read path. |
+| `hallucinated-fact-probe` | A claim referencing a note id that never existed (deterministic ghost key) must be detectable on read-back. |
+| `citation-drift` | A note citing a deleted anchor is a dangling claim the read path must refuse loudly. |
+| `phantom-scope` | A private-scoped note must not inherit a wider scope when its content claims public provenance. |
+| `identity-merge-collision` | Merging two agent identities that wrote the same fact keeps BOTH provenance lines - one vanished author is the silent-loss class. |
+| `resolution-order-stability` | Resolving N conflicting facts is a deterministic function of declared inputs - same inputs twice, same winner, twice. |
+| `delete-is-loud` | Pruning deletes leave traceable residue (tombstone/prune traces) - a forget-claim with none erases history. |
 
 ## `state` - data you don't own
 
