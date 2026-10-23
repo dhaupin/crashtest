@@ -43,6 +43,8 @@
     url: /crashtest/reference/exit-rules
   - title: Scenario Packs
     url: /crashtest/reference/packs
+  - title: The Scenario Contract
+    url: /crashtest/reference/scenario-contract
   - title: Plugins
     url: /crashtest/reference/plugins
   - title: Builder Presets

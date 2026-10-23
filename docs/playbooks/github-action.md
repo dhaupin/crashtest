@@ -10,7 +10,7 @@ description: One composite step turns the committed hardening ledger into branch
 Crashtest ships as a composite action for other repositories. One step:
 
 ```yaml
-- uses: dhaupin/crashtest@v1.0.0
+- uses: dhaupin/crashtest@v1.0.1
   with:
     config: crashtest.config.js   # path, relative to repo root
     run-tests: 'false'            # 'true' also runs npm test before the gate

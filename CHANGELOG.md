@@ -5,7 +5,29 @@ Notable changes to the `crashtest` package. The released version lives in
 `test/version.test.js`); releases go out on `vX.Y.Z` git tags via npm
 Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
-## 1.0.0 (unreleased)
+## 1.0.1 (unreleased)
+
+- `crashtest init` scaffolds WORKING pack stubs: both `packs/public/my-pack/`
+  and `packs/local/my-private-pack/` now ship the same contract-valid
+  `index.js` stub `packs add` writes (honest unarmed REFUSED-skip module)
+  alongside the manifest, so a fresh init loads out of the box instead of
+  hard-failing the very next `run` on a missing entry file (issue #16;
+  pinned by a loader round-trip test in test/packs.test.js).
+- the scenario-contract lifecycle hooks are LIVE: `beforeAll(ctx)` /
+  `afterAll(ctx)` were validated (`src/scenarios/contract.js` arity-checked
+  them) but never invoked - the first external pack author (gistory,
+  issue #7) built a one-loud arming check on them. `runCampaign` now calls
+  them once per module, around the module's attacks, with the module's
+  `moduleCtx[<name>]` + seed; a throw inside either hook fails the campaign
+  loudly at cause (rule 3). Pinned in test/campaigns.test.js.
+- docs: new reference page `docs/reference/scenario-contract.md` - the
+  module/record/ctx/harness shapes a first-time pack author had to read
+  source for, linked from the packs reference; and a run-roots playbook
+  section "When your handler speaks real SQL" documenting the
+  `node:sqlite` D1-shape fixture pattern (Node >= 24) for handlers whose
+  SQL outgrows the FakeD1 v0.1 subset (issue #6).
+
+## 1.0.0
 
 - two more framework wire packs ship: `vite-dev-shapes` (0.1.0) - the vite
   dev-file wire (`/@fs/`): `vite-fs-deny-bypass` (grammar differential:

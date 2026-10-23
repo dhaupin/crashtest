@@ -111,7 +111,59 @@ itself). Same gate artifacts, no `tee`/`tail` plumbing - pick the one that
 fits the job: `--json` when stdout is the transport, `--out-dir` when a
 directory of artifacts is.
 
-## 4. Where the platform thread lives
+## 4. When your handler speaks real SQL (the node:sqlite fixture)
+
+The built-in `FakeD1` models a deliberately small SQL subset - flat
+SELECT/INSERT/UPDATE/DELETE plus the behavior contracts campaigns depend
+on (`UNIQUE constraint failed: t.col`, `{meta:{changes,last_row_id}}`,
+integer autoincrement, positional binding). That is the right size for
+crud-shaped handlers, but a handler that speaks real SQL (a relay: upserts,
+`CASE`, `COALESCE`, aggregate allocators, `RETURNING`) hits the subset wall
+- and before FakeD1 grows, the documented fallback is to hand the harness a
+D1-shaped object backed by your own engine. `node:sqlite` does it in ~40
+lines (the shape gistory's run root proved first, per
+[dhaupin/gistory](https://github.com/dhaupin/gistory)):
+
+```js
+// crashtest/fixture.mjs - a node:sqlite-backed D1-shape, zero dependencies
+import { DatabaseSync } from 'node:sqlite';   // Node >= 24 exposes it unflagged
+import { readFileSync } from 'node:fs';
+const db = new DatabaseSync(':memory:');
+db.exec(readFileSync('migrations/schema.sql', 'utf8')); // seed the real DDL
+function shape(rows, meta = {}) {
+  return { results: rows, ...meta, first: (col) => (rows[0] ?? {})[col === '*' ? undefined : col],
+           all: () => rows, run: () => ({ meta }) };
+}
+export const D1 = {
+  prepare(sql) {
+    let bind = [];
+    return {
+      bind: (...args) => { bind = args; return this; },
+      first: (col) => shape(db.prepare(sql).all(...bind)).first(col),
+      all: () => shape(db.prepare(sql).all(...bind)).all(),
+      run: () => { const stmt = db.prepare(sql); stmt.run(...bind);
+        return { meta: { changes: Number(stmt.info.changes), last_row_id: Number(db.lastInsertRowid) } }; },
+    };
+  },
+};
+// crashtest.config.js: env: { d1: { DB: D1 } } - one instance for the whole
+// run, so attacks see each other's materialized state.
+```
+
+Rules that keep this honest:
+
+- **One instance per run.** Handlers close over the same env object; a
+  per-attack engine resets the state your attacks depend on seeing.
+- **The `.prepare().bind().first()/all()/run()` surface is the contract**
+  FakeD1 implements too - matching it byte-for-byte keeps a pack portable
+  between the built-in subset and a custom engine.
+- **Pin the Node version in CI** (`node-version: 24`) - `node:sqlite` is
+  unflagged there; on older runners the import throws.
+- When FakeD1 grows (see the [faked1 v0.2 proposal](https://github.com/dhaupin/crashtest/issues/8)),
+  this fixture gets deleted and the run root swaps back to the built-in -
+  a byte-identical ledger is the acceptance gate for that swap.
+
+## 5. Where the platform thread lives
 
 The run root + artifact contract is the seed of PRD **section 14 - crashtest as a
 CI runner** (a greptile-style review lane: hosted run roots, org dashboards,

@@ -16,7 +16,7 @@ import { buildLedger, diffAgainstBaseline, exitCode, renderMarkdown } from './re
 import { buildModulePlan } from './plans.js';
 import { listPresets, scaffoldPreset, probeHandler } from './presets.js';
 
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 const LEDGER_PATH = 'labs/crashledger.json';
 const META_BASENAME = 'run-meta.json';
 const META_PATH = `labs/${META_BASENAME}`;
@@ -174,10 +174,43 @@ async function cmdInit({ force }) {
     name,
     description: desc,
     entry: 'index.js',
-    _notes: 'Set entry to your scenario-module file; every export must satisfy the scenario contract (see docs/reference/packs).',
+    _notes: 'The scaffolded index.js is a contract-valid stub module - replace it with your real scenarios (see docs/reference/packs.md).',
   }, null, 2) + '\n';
+  // The manifest needs its entry file the moment the loader sees the pack
+  // (issue #16: a manifest pointing at a missing index.js bricks the very
+  // next `run`). Scaffold the SAME honest stub `packs add` writes, so a
+  // fresh init loads out of the box and degrades to an unarmed REFUSED skip
+  // until real scenarios exist - never a load failure.
+  const PACK_ENTRY_STUB = (name, visibility) => `// packs/${visibility}/${name}/index.js - scaffolded by \`crashtest init\`.
+// Scenario contract: { name, description, attacks: [{ name, run(harness, ctx) -> ONE record }] }.
+// Record verdicts: 'REFUSED' (defense held) / 'EXPLOITED' / 'BOUNDED' (needs owner + bound).
+// Target vocabulary (route names, meta keys, tables...) goes in crashtest.config.js as
+//   moduleCtx: { ${name}: { ... } } - missing keys degrade to a REFUSED skip, never a false positive.
+export default {
+  name: '${name}',
+  description: 'TODO: one line',
+  // Coverage (module-plan) sees this: while your moduleCtx['${name}'] is
+  // unset, the plan marks NEEDS-ARMING instead of assuming the pack fires.
+  armedByKey: '${name}',
+  attacks: [{
+    name: 'first-attack',
+    description: 'TODO: what this attack fires and what must hold',
+    async run(harness, ctx) {
+      const cfg = ctx?.config?.['${name}'] ?? null;
+      if (!cfg) {
+        return { verdict: 'REFUSED', skip: true, detail: "not armed - set moduleCtx['${name}'] in crashtest.config.js" };
+      }
+      // TODO: fire requests with harness.run(...) and return EXACTLY one record.
+      // See docs/reference/packs.md and docs/reference/scenario-contract.md.
+      return { verdict: 'REFUSED', detail: 'scaffold attack - replace with a real probe' };
+    },
+  }],
+};
+`;
   await writeFile(join(publicPack, 'pack.json'), PACK_STUB('my-pack', 'A public pack: share it, track it, version it'));
+  await writeFile(join(publicPack, 'index.js'), PACK_ENTRY_STUB('my-pack', 'public'));
   await writeFile(join(localPack, 'pack.json'), PACK_STUB('my-private-pack', 'A private pack: packs/local/ is gitignored by default - stays on your machine'));
+  await writeFile(join(localPack, 'index.js'), PACK_ENTRY_STUB('my-private-pack', 'local'));
   // Root .gitignore owns the local-pack privacy (created or appended once).
   const dotIgnore = join(root, '.gitignore');
   const ignoreEntry = 'packs/local/\n';
@@ -187,7 +220,7 @@ async function cmdInit({ force }) {
   }
   console.log(`crashtest init: wrote ${LEDGER_PATH}`);
   console.log(`crashtest init: wrote ${REPORT_PATH}`);
-  console.log('crashtest init: packs/ scaffold - packs/public/ (tracked) + packs/local/ (gitignored) with stub manifests');
+  console.log('crashtest init: packs/ scaffold - packs/public/ (tracked) + packs/local/ (gitignored), each with a contract-valid stub pack');
   console.log('Next: commit labs/ so CI has a baseline, then `crashtest run` (0.1).');
 }
 

@@ -143,3 +143,46 @@ test('campaign: deterministic - same seed + same app -> identical rows, twice', 
   assert.deepEqual(a.rows.map(r => [r.id, r.verdict, r.detail]), b.rows.map(r => [r.id, r.verdict, r.detail]));
   assert.deepEqual(a.tally, b.tally);
 });
+
+test('campaign: module beforeAll/afterall hooks fire once per module, in order, with moduleCtx + seed (contract hooks are LIVE - issue #7)', async () => {
+  // Pins the lifecycle the contract promised: the validator arity-checks
+  // beforeAll/afterAll, and the runner was the missing invocation - a pack
+  // (gistory's sync-relay-shapes) builds its one-loud arming check here, so
+  // a hook that never ran would have made that a fiction.
+  const events = [];
+  const scenarios = [{
+    origin: 'hooks',
+    module: {
+      name: 'hooky-pack',
+      description: 'lifecycle hook fixture',
+      beforeAll: async (ctx) => { events.push(['beforeAll', ctx.seed, ctx.vocab ?? null]); },
+      attacks: [
+        { name: 'first-attack', description: 'a', run: async () => { events.push(['attack', 'first-attack']); return { verdict: 'REFUSED', detail: 'ok' }; } },
+        { name: 'second-attack', description: 'b', run: async () => { events.push(['attack', 'second-attack']); return { verdict: 'REFUSED', detail: 'ok' }; } },
+      ],
+      afterAll: async (ctx) => { events.push(['afterAll', ctx.seed]); },
+    },
+  }];
+  const run = await runCampaign(buildHarness({}, {}), scenarios, { seed: 555, moduleCtx: { 'hooky-pack': { vocab: 'enroll' } } });
+  assert.deepEqual(run.tally, { TOTAL: 2, REFUSED: 2, EXPLOITED: 0, BOUNDED: 0 });
+  assert.deepEqual(run.rows.map(r => r.id), ['hooky-pack/first-attack', 'hooky-pack/second-attack']);
+  assert.deepEqual(events, [
+    ['beforeAll', 555, 'enroll'],
+    ['attack', 'first-attack'],
+    ['attack', 'second-attack'],
+    ['afterAll', 555],
+  ]);
+});
+
+test('campaign: a throwing beforeAll fails the campaign loudly at cause (rule 3, issue #7 arming)', async () => {
+  const scenarios = [{
+    origin: 'bad-hook',
+    module: {
+      name: 'bad-hook-pack',
+      description: 'throwing arming check',
+      beforeAll: () => { throw new TypeError('vocabulary gap: "enroll" route missing from this target'); },
+      attacks: [{ name: 'never-attack', description: 'n', run: async () => ({ verdict: 'REFUSED', detail: 'no' }) }],
+    },
+  }];
+  await assert.rejects(() => runCampaign(buildHarness({}, {}), scenarios, { seed: 1 }), /vocabulary gap: "enroll" route missing/);
+});

@@ -198,6 +198,27 @@ test('CLI: packs add refuses existing dirs and non-kebab-case names LOUDLY', asy
   process.exitCode = undefined;
 });
 
+test('CLI: init scaffolds packs the loader loads OUT OF THE BOX (issue #16 pin)', async () => {
+  // The bug this pins: init wrote manifest stubs declaring entry 'index.js'
+  // without writing one - the very next `run`/`packs` hard-failed until the
+  // user deleted the scaffold. Init must scaffold the same honest stub
+  // `packs add` writes, and it must survive a full loader round-trip.
+  const root = await mkdtemp(join(tmpdir(), 'packs-init-'));
+  await withCwd(root, async () => {
+    process.exitCode = undefined;
+    await main(['init']);
+  });
+  process.exitCode = undefined;
+  const packs = await loadPacks([join(root, 'packs')]);
+  const scaffolded = packs
+    .map((p) => [p.visibility, p.manifest.name, p.module.attacks[0]?.name])
+    .sort((a, b) => a[1].localeCompare(b[1]));
+  assert.deepEqual(scaffolded, [
+    ['public', 'my-pack', 'first-attack'],
+    ['local', 'my-private-pack', 'first-attack'],
+  ]);
+});
+
 test('loadPacks: pointing at ONE pack dir loads exactly it (docs "one pack dir only" shape)', async () => {
   // This shape shipped in the docs before the loader could honor it - the
   // fix lets a run root aim packs: straight at a single pack, visibility

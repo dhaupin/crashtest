@@ -3,7 +3,7 @@
 > **We break it so they can't.**
 > In-process adversarial QA for agent-built software - no network, no bans, no invoice.
 >
-> [`npmjs.com/package/crashtest`](https://www.npmjs.com/package/crashtest) / MIT / v1.0.0
+> [`npmjs.com/package/crashtest`](https://www.npmjs.com/package/crashtest) / MIT / v1.0.1
 
 Crashtest attacks your project's **real handlers** - the way a security engineer
 would, minus the live server. Every attack is an in-process `Request` through
@@ -72,7 +72,7 @@ adapters: {
 ## CI as a GitHub Action
 
 ```yaml
-- uses: dhaupin/crashtest@v1.0.0   # composite: install + run + gate
+- uses: dhaupin/crashtest@v1.0.1   # composite: install + run + gate
   with:
     config: crashtest.config.js
     run-tests: 'true'              # optional: also run your own tests

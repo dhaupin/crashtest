@@ -11,7 +11,8 @@ A **pack** is a bundle you author once and reuse across run roots: scenario
 modules (same contract as the built-ins), bundled imports, and - going
 forward - recipes and target declarations. Zero new concepts to learn: a
 pack's scenario modules satisfy the exact same contract the seed libraries
-do.
+do (that contract is now on the site:
+[The Scenario Contract](/crashtest/reference/scenario-contract)).
 
 > **One surface, three ways in.** Packs used to sit beside two other words
 > ("plugins" via config import specifiers, "presets" via repo scaffolding).

@@ -23,6 +23,14 @@ export async function runCampaign(harness, scenarios, opts = {}) {
   for (const { module } of scenarios) {
     if (moduleFilter && !moduleFilter.has(module.name)) continue;
     const beforeModule = { rowsBefore: harness.log().length };
+    // Module-level lifecycle hooks. contract.js validates them (arity-1,
+    // ctx-only); runCampaign is where they actually FIRE - once before the
+    // module's first attack and once after its last, with the module's
+    // moduleCtx + seed (issue #7: a pack's one-loud arming check lives
+    // here). A throw inside either hook fails the campaign loudly at cause
+    // (rule 3) - never a half-run with a silently skipped module.
+    const hookCtx = { ...(opts.moduleCtx?.[module.name] ?? {}), seed: campaignSeed };
+    if (typeof module.beforeAll === 'function') await module.beforeAll(hookCtx);
     for (const attack of module.attacks) {
       const id = `${module.name}/${attack.name}`;
       const costBefore = harness.costTotals();
@@ -56,6 +64,7 @@ export async function runCampaign(harness, scenarios, opts = {}) {
       };
       rows.push(record);
     }
+    if (typeof module.afterAll === 'function') await module.afterAll(hookCtx);
   }
 
   const tally = rows.reduce((t, r) => (t[r.verdict] = (t[r.verdict] ?? 0) + 1) && t, {});
