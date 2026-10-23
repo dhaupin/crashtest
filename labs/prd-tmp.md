@@ -103,6 +103,11 @@ Flip blockers (the crate tooling list): two-pod fixture broker, snapshot
 diff helper, `--lint-determinism` flag, expectation tables as data. Staged
 per-bucket, reverse-verified (old suite stays green alongside until the
 crashtest run is stability-green on both).
+   - **blocker 3 DONE 2026-10-23**: `crashtest lint-determinism` (+
+     `run --lint-determinism` pre-flight) - the flat grep over the declared
+     sources (config scenarioDirs + packs roots, or explicit dirs) for the
+     wall-clock / randomness token family; findings exit 2 naming
+     file:line (src/lint.js, test/lint-determinism.test.js).
 
 ## Build order agreed
 

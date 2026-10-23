@@ -7,6 +7,21 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.0.1 (unreleased)
 
+- the determinism linter (issue #13 crate-tooling blocker 3):
+  `crashtest lint-determinism [--config <path>] [dirs...]` greps the
+  DECLARED user surfaces (config scenarioDirs + packs roots by default;
+  explicit dirs override; `packs: false` opts out) for the wall-clock /
+  unseeded-randomness token family (`Date.now`, `new Date(`,
+  `Math.random`) - findings exit 2 (a config-class failure) naming every
+  file:line with the law phrased (`derive from ctx.seed instead`); a flat
+  surface exits 0 with the scanned count. `run --lint-determinism` runs
+  the same lint as a pre-flight INSTEAD of the campaign (no requests, no
+  artifacts written - CI wires it in one line). Flat grep on purpose:
+  the finding classes are flat-shaped and an AST walk would want a
+  dependency (zero-deps law); the crate's own src/ is not scanned (its
+  determinism is pinned by tests, and the harness's durationMs is INFO,
+  not a verdict input). Teeth: test/lint-determinism.test.js.
+
 - two new general library families armed from the vant arms (issues #10
   and #11) - the library grows 30 attacks / 12 modules -> **49 attacks /
   14 modules**, same contract, same honest-skip law, same pin walls:

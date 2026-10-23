@@ -15,6 +15,7 @@ import { runCampaign } from './campaigns/runner.js';
 import { buildLedger, diffAgainstBaseline, exitCode, renderMarkdown } from './report.js';
 import { buildModulePlan } from './plans.js';
 import { listPresets, scaffoldPreset, probeHandler } from './presets.js';
+import { collectSourceFiles, lintDeterminism } from './lint.js';
 
 const VERSION = '1.0.1';
 const LEDGER_PATH = 'labs/crashledger.json';
@@ -59,6 +60,12 @@ COMMANDS
   crashtest packs             List discovered packs (public + local), env claims shown/unmet lines rendered
     --config <path>           Honor the config's packs knob
     --json                    Machine inventory (versions, armedByKey, npm pkg)
+  crashtest lint-determinism [--config <path>] [dirs...]
+                              Grep the DECLARED sources (config scenarioDirs +
+                              packs roots, or explicit dirs) for wall-clock /
+                              unseeded-randomness tokens (Date.now, new Date(
+                              , Math.random) - findings exit 2 naming file:line
+                              (issue #13 blocker 3; also: run --lint-determinism)
   crashtest packs add <name> [--public]
                               Scaffold a fresh pack (local + gitignored by default)
   crashtest preset <name> [--root <dir>]
@@ -225,6 +232,41 @@ export default {
 }
 
 /**
+ * `crashtest lint-determinism` - the determinism-law grep (issue #13 blocker
+ * 3). Scans the config's DECLARED user surfaces (scenarioDirs + packs roots
+ * by default; explicit dirs override) for the wall-clock / randomness token
+ * family. Findings exit 2 (the run is wrong, not your code's verdicts) with
+ * every file:line named - never a silent flat surface.
+ */
+async function cmdLintDeterminism(opts = {}) {
+  const root = repoRoot();
+  let roots;
+  if (opts.dirs?.length) {
+    roots = opts.dirs.map((d) => (d.startsWith('/') ? d : join(root, d)));
+  } else {
+    roots = [join(root, 'labs', 'scenarios'), join(root, 'packs')];
+    if (opts.config) {
+      const target = (await import(pathToFileURL(join(root, opts.config)).href)).default;
+      if (Array.isArray(target.scenarioDirs)) roots.push(...target.scenarioDirs.map((d) => join(root, d)));
+      if (Array.isArray(target.packs)) roots.push(...target.packs);
+      if (target.packs === false) roots = roots.filter((r) => !r.endsWith('packs'));
+    }
+  }
+  const files = await collectSourceFiles(roots);
+  const findings = await lintDeterminism(files);
+  if (!findings.length) {
+    console.log(`determinism lint: ${files.length} source file(s) scanned - flat (no wall clock, no unseeded randomness in the token family)`);
+    return;
+  }
+  for (const f of findings) {
+    console.log(`determinism lint: ${f.file}:${f.line}: ${f.token} - ${f.why}`);
+    console.log(`    ${f.text}`);
+  }
+  console.log(`determinism lint: ${findings.length} finding(s) across ${files.length} file(s) - same commit must give same findings; derive from ctx.seed instead`);
+  process.exitCode = 2;
+}
+
+/**
  * Build the harness for an imported config: routes/adapters/routeAliases only -
  * no scenario loading, no requests. Shared by cmdRun and `packs --config`
  * (env-claim checks there see exactly the bindings/routes a run would see).
@@ -318,6 +360,13 @@ async function cmdRun(opts = {}) {
   const allScenarios = [...scenarios, ...packScenarios, ...pluginScenarios]
     .sort((a, b) => a.module.name.localeCompare(b.module.name));
   if (!allScenarios.length) throw new Error('no scenario modules found (built-ins missing?)');
+
+  // run --lint-determinism: the determinism grep INSTEAD of the campaign
+  // (issue #13 blocker 3) - same loaders, no requests, no artifacts; exit 0
+  // flat / 2 findings. A pre-flight a run root can wire into CI cheaply.
+  if (opts.lintDeterminism) {
+    return cmdLintDeterminism({ config: opts.config });
+  }
 
   // PRD section 14: `run --module-plan` - the coverage dry-run. Same loaders, same
   // filters, same arming rules as the real run; NO harness, NO requests,
@@ -656,6 +705,11 @@ export async function main(argv) {
     const confIdx = argv.indexOf('--config');
     return cmdPacks({ config: confIdx > -1 ? argv[confIdx + 1] : undefined, json: argv.includes('--json') });
   }
+  if (verb === 'lint-determinism') {
+    const confIdx = argv.indexOf('--config');
+    const dirs = argv.slice(1).filter((a) => !a.startsWith('-') && a !== argv[confIdx + 1]);
+    return cmdLintDeterminism({ config: confIdx > -1 ? argv[confIdx + 1] : undefined, dirs });
+  }
   if (verb === 'preset') {
     const name = argv[1];
     const rootIdx = argv.indexOf('--root');
@@ -671,7 +725,8 @@ export async function main(argv) {
     const expectBaseline = baseIdx > -1 ? argv[baseIdx + 1] : undefined;
     const outIdx = argv.indexOf('--out-dir');
     const outDir = outIdx > -1 ? argv[outIdx + 1] : undefined;
-    return cmdRun({ config, json, modulePlan, expectBaseline, outDir });
+    const lintIdx = argv.indexOf('--lint-determinism');
+    return cmdRun({ config, json, modulePlan, expectBaseline, outDir, lintDeterminism: lintIdx > -1 });
   }
   console.error(`crashtest: unknown command "${verb}" (try --help)`);
   process.exitCode = 1;

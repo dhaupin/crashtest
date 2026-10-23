@@ -1602,3 +1602,18 @@ t  (ct_create_user/ct_grant_role/ct_reset_users whitelist helpers),
   regex predated the cut-stamp refactor and silently wrote vunknown /
   seed-unknown meta; it now parses both header shapes and reads
   startedAt from labs/run-meta.json.
+
+### 2026-10-23 - Lane 5 start: the determinism linter (issue #13 blocker 3)
+- `crashtest lint-determinism` + `run --lint-determinism` pre-flight landed:
+  the flat grep over the DECLARED user surfaces (config scenarioDirs + packs
+  roots by default, explicit dirs override, `packs: false` opts out) for
+  Date.now / new Date( / Math.random. Findings exit 2 naming every
+  file:line with the law phrased; flat surfaces exit 0 with a scanned count.
+  Zero-deps by design (flat grep, no AST walk); src/ itself is never scanned
+  (its determinism is pinned by tests; durationMs is INFO, not a verdict
+  input; redos self-controls its clock by design).
+- Issue closes this turn: #6/#7/#16 (79895b9), #8 (8e8a511 + gistory#2
+  hand-off), #12 (947b74a), #14/#15 (ac9e33a). Lane 4 (#10/#11) shipped as
+  9ed6bb5. Issue #13 stays open: blockers 1 (two-pod broker), 2 (snapshot
+  diff helper), 4 (expectation tables as data) remain, in that order of
+  discussion next.
