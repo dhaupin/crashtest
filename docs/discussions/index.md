@@ -10,8 +10,9 @@ description: The release-post system - one announcing-vX.Y.Z.md per release, dis
 One post per release, shaped like prestruct's
 [announcing-v1.0.0](https://github.com/dhaupin/prestruct/blob/main/docs/discussions/announcing-v1.0.0.md).
 The post lives in `docs/discussions/` as versioned source so the release
-trail is in the same tree as the changelog it summarizes, and the paste-ready
-block can be dropped into GitHub Discussions when a release goes live.
+trail is in the same tree as the changelog it summarizes, and the file's
+raw markdown IS the GitHub Discussions announcement - view source, copy,
+strip the frontmatter, post.
 
 ## The conventions
 
@@ -21,12 +22,14 @@ block can be dropped into GitHub Discussions when a release goes live.
 - **Frontmatter contract.** Same four required fields every docs page
   gates on (`permalink`, `layout`, `title`, `description`) plus `version`.
   The permalink is `discussions/announcing-vX.Y.Z`.
-- **The paste-ready block.** After the intro, the actual announcement is
-  ONE fenced block (`~~~md`) that can be copy-pasted into the Discussions
-  announcement verbatim. The wrapper file is the repo-side copy; the block
-  is the community-facing text. Keep statements in the wrapper (posting
-  mechanics, crosslinks self-referential) out of the block - the block
-  should stand alone in a forum.
+- **The file IS the post.** No wrapper prose, no nested copy block: below
+  the frontmatter the file carries the announcement body itself, so the
+  source of the doc is the source of the post. To publish, copy the raw
+  markdown from GitHub (view source on the file) into the Discussions
+  announcement, stripping ONLY the four frontmatter lines at the top
+  (routing metadata the docs build needs, not forum content). The posting
+  mechanics live in this index, not in the posts themselves - the post
+  body should stand alone in a forum.
 - **Voice and facts.** Same rules as everywhere else in the docs: the dry
   hyphen voice ([about/style](../about/style)), no marketing language, no
   cliches, and every number and claim verified against the CLI, the

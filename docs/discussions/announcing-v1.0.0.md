@@ -2,23 +2,9 @@
 permalink: discussions/announcing-v1.0.0
 layout: default
 title: Announcing crashtest v1.0.0
-description: The draft release post for the crashtest v1.0.0 GitHub Discussions announcement - technical, changelog-style, ready to paste.
+description: The crashtest v1.0.0 release post - the file IS the announcement; copy the raw markdown from GitHub into Discussions. Technical, changelog-style.
 ---
 
-# Announcing crashtest v1.0.0
-
-_The release post for the GitHub Discussions announcement. Technical,
-changelog-style. Copy the fenced block below into the announcement category.
-To post it live, use the GitHub web UI (Discussions - New discussion -
-ANNOUNCE category with "Set as announcement" checked), or the GraphQL
-`createDiscussion` mutation. Prose follows the repo content-style contract
-([docs/about/style](../about/style)): direct, dry, hyphen voice, no
-marketing language. Every claim is verified against the CLI and the
-committed pins (see [docs/discussions](./) for the posting system)._
-
----
-
-~~~md
 # crashtest v1.0.0
 
 crashtest is seeded, in-process adversarial QA for agent-built app code.
@@ -152,4 +138,4 @@ The service contract is stable from here: breaking changes get a major
 bump, findings and exit rules are the compatibility surface, and the
 seeded ledgers keep old `crashtest.config.js` files running. If you gate
 a repo on it, tell us what got through.
-~~~
+
