@@ -7,6 +7,22 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.0.1 (unreleased)
 
+- pack self-audit fixtures backfilled for all 8 production packs
+  (packs/public/<pack>/test/fixtures/, SPEC section 4 norm - closes
+  dhaupin/crashtest#28): each fixture is hand-invocable
+  (`node test/fixtures/run.mjs`) and pins the pack's documented shape as
+  transcription of existing assertions, never invention - the manifest
+  contract (schemaVersion 1, name/dir match, entry imports clean), the
+  census-locked attack inventory (crashtest-site 18, wp-stock-smoke 4,
+  wp-money-shapes 3, wp-roles 3, cve-feed/next-middleware-shapes/
+  vite-dev-shapes/qs-shapes 2 each; 36 total), the kebab-case id grammar,
+  and the per-pack data rules (cve-feed snapshot shape + unique CVE ids,
+  wp-money-shapes armedByKey residency, contract-shaped run() for the
+  wire packs). Manifest surface untouched (fixtures are cargo, not
+  schema). test/pack-fixtures.test.js discovers + runs every fixture in
+  CI (10 rows): adding a ninth pack without its fixture, dropping an
+  attack, or wrecking a manifest now fails the offending pack rather
+  than waiting for a cross-host load. Suite 317/317 (was 307).
 - the campaign-path seam pinned two-way (test/harness/v03-campaign.test.js):
   a live `runCampaign` walks the v0.3 engine surface end-to-end - the
   disciplined run-root scores 5/5 REFUSED (scoped GROUP BY rollup,

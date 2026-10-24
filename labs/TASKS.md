@@ -70,6 +70,31 @@
 
 ## Log
 
+- [2026-10-24 ~00Z] **SPEC section 4 self-audit fixtures backfilled for
+  all 8 production packs (closes dhaupin/crashtest#28). Shape: every
+  pack carries packs/public/<pack>/test/fixtures/run.mjs, hand-invocable
+  (`node test/fixtures/run.mjs`), importing the REAL entry module named
+  by pack.json and pinning the documented shape as transcription of
+  existing assertions: the manifest contract (schemaVersion 1, name/dir
+  match, entry imports clean), the census-locked attack inventory
+  (crashtest-site 18, wp-stock-smoke 4, wp-money-shapes 3, wp-roles 3,
+  cve-feed / next-middleware-shapes / vite-dev-shapes / qs-shapes 2
+  each - 36 total, the same counts the shipped-pack census already pins in
+  AGENTS + test/packs.test.js),
+  the kebab-case unique-id grammar, and per-pack data rules: cve-feed
+  pins snapshot.json (schemaVersion 1, entries + CVE-YYYY-NNNN+ shape,
+  no dup CVE ids); wp-money-shapes pins armedByKey residency; the wire
+  packs pin contract-shaped run() teeth. The manifest surface stayed
+  frozen - fixtures are the pack's cargo, exactly as #28 asked.
+  Aggregator: test/pack-fixtures.test.js (10 rows) discovers the 8-pack
+  census, runs every fixture, and pins the 36-attack aggregate - a ninth
+  pack without its fixture, a dropped attack, or a wrecked manifest now
+  fails THAT pack's CI host-first instead of waiting for a cross-host
+  load (the SPEC's own rationale). Receipt-back issue filed to
+  dhaupin/packstruct per the standing cross-repo loop
+  (see the issue for pack-by-pack asserts + green gates: suite 317/317,
+  check 0, lint:docs 0). Changelog 1.0.1 entry.**
+
 - [2026-10-22 ~06Z] **the framework pack lane finishes its agreed
   shortlist: TWO more wire packs ship AND every pack dogfooded end to
   end through the real CLI. (1) qs-shapes receipts (the precedent probe
