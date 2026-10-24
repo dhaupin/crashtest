@@ -240,6 +240,61 @@ tick NO counters (bookkeeping, not campaign ops), and a binding changing
 shape between captures (d1<->kv) is an oracle bug that fails loudly, not
 a finding.
 
+### Multi-party flows: the two-pod broker (issue #13 blocker 1)
+
+Stateful conversations (sync/backup/federation - two or more parties
+cross-talking) stage as PODS over declarative env bindings, sharing one
+route table and one set of handlers:
+
+```js
+import { buildPods } from '../../src/harness/pods.js';
+
+const pods = buildPods({
+  routes: { sync: mySyncHandler },            // ONE route table, every pod
+  pods: {
+    home:   { env: { d1: { DB: { tables: homeFixture } }, kv: { SESSIONS: {} } } },
+    remote: { env: { d1: { DB: { tables: remoteFixture } }, kv: { SESSIONS: {} } } },
+  },
+  shared: ['SESSIONS'],                        // cross-talk seams, declared
+});
+
+await pods.run('home', 'sync', { method: 'POST', body: ... }); // drive one pod
+pods.diff('home', 'remote');   // cross-pod store diff (the oracle above)
+pods.snapshot('home');         // one pod's before/after frames
+pods.pod('home');              // that pod's whole Harness (env, routes, run)
+```
+
+A declared `shared` binding is ONE fake instance attached to every pod -
+cross-talk by construction, no sockets (the fake transport is still the
+whole product here). Loud failures name the cause: staging fewer than two
+pods, a shared binding missing on any pod, an unknown pod name. Worked
+two-way example with a running federation conversation:
+`test/harness/pods.test.js`.
+
+### Expectation tables as data (issue #13 blocker 4)
+
+Converted packs keep the "table is complete" property the native suites
+have today by declaring EXPECTED verdicts per row and validating them:
+
+```js
+import { evalExpectations, renderExpectationResult } from '../../src/expectations.js';
+
+const result = evalExpectations(rows, [        // rows: produced run records
+  { module: 'auth', attack: 'weak-key', verdict: 'REFUSED' },
+  { module: 'auth', attack: 'secret-echo', verdict: 'BOUNDED' },
+], { scopeName: 'vant-auth' });
+if (!result.pass) throw new Error(renderExpectationResult(result, { scopeName: 'vant-auth' }));
+```
+
+`result` is `{ pass, matched, mismatched, extra }`, deterministic and
+sorted: a flipped verdict reports `{ status: 'verdict', expected, actual }`,
+a declared row never covered reports `status: 'missing'`, an undeclared
+produced row lands in `extra`. Duplicate table rows and identity-less
+records fail loudly at cause (a table is complete only when each row is
+declared once). The two-way campaign walk that pins the whole v0.3 surface
+live - hardened run-root 5/5 REFUSED, naive twin 5/5 EXPLOITED - is
+`test/harness/v03-campaign.test.js`.
+
 ## A worked pack skeleton
 
 See [Scenario Packs](/crashtest/reference/packs) for the manifest and the
