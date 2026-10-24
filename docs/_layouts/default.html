@@ -69,11 +69,13 @@
         .search-key { border: 1px solid var(--line); border-radius: 4px;
             padding: 0 5px; font-size: 10.5px; line-height: 16px; }
         .theme-switch svg { width: 18px; height: 18px; display: block; }
-        /* Moon shows in dark mode (click = go light); sun in light mode.
-           Both icons always render - CSS decides, markup stays constant. */
-        .theme-switch .icon-sun { display: none; }
-        html[data-theme="light"] .theme-switch .icon-moon { display: none; }
-        html[data-theme="light"] .theme-switch .icon-sun { display: block; }
+        /* Sun shows in dark mode (click = go light); moon in light mode
+           (click = go dark) - the icon is the ACTION, not the state (the
+           agreed struct-family convention, crashtest#26). Both icons always
+           render - CSS decides, markup stays constant. */
+        .theme-switch .icon-moon { display: none; }
+        html[data-theme="light"] .theme-switch .icon-sun { display: none; }
+        html[data-theme="light"] .theme-switch .icon-moon { display: block; }
         .hamburger { display: none; border: none; }
         .brand-logo { width: 22px; height: 22px; display: block; border-radius: 5px; }
 

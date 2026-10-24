@@ -82,12 +82,14 @@ body {
 }
 .theme-switch:hover { color: var(--accent); }
 .theme-switch svg { width: 18px; height: 18px; display: block; }
-/* Moon shows in dark mode (click = go light); sun shows in light mode.
-   Both icons always render in the markup - CSS picks, which keeps the
-   prerendered output and the hydrated output identical. */
-.theme-switch .icon-sun { display: none; }
-html[data-theme="light"] .theme-switch .icon-moon { display: none; }
-html[data-theme="light"] .theme-switch .icon-sun { display: block; }
+/* Sun shows in dark mode (click = go light); moon shows in light mode
+   (click = go dark) - the icon is the ACTION, not the state (the agreed
+   struct-family convention, crashtest#26). Both icons always render in
+   the markup - CSS picks, which keeps the prerendered output and the
+   hydrated output identical. */
+.theme-switch .icon-moon { display: none; }
+html[data-theme="light"] .theme-switch .icon-sun { display: none; }
+html[data-theme="light"] .theme-switch .icon-moon { display: block; }
 .nav-burger {
   display: none; background: none; border: 1px solid var(--line); border-radius: 6px;
   color: var(--ink); cursor: pointer; padding: 7px; align-items: center; justify-content: center;
