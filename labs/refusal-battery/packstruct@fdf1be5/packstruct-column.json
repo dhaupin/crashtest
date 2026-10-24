@@ -1,0 +1,367 @@
+{
+  "schema": 1,
+  "tool": "packstruct lint",
+  "version": "0.9.0",
+  "rows": [
+    {
+      "id": "schemaVersion-num-2",
+      "manifest": {
+        "schemaVersion": 2,
+        "name": "shape-pack",
+        "version": "1.0.0",
+        "entry": "probes-entry.js",
+        "description": "battery base - clean otherwise"
+      },
+      "packstruct": {
+        "refused": true,
+        "norms": [
+          "schemaVersion"
+        ]
+      },
+      "expected": {
+        "refused": true,
+        "norms": [
+          "schemaVersion"
+        ]
+      },
+      "honest": true
+    },
+    {
+      "id": "schemaVersion-string-1",
+      "manifest": {
+        "schemaVersion": "1",
+        "name": "shape-pack",
+        "version": "1.0.0",
+        "entry": "probes-entry.js",
+        "description": "battery base - clean otherwise"
+      },
+      "packstruct": {
+        "refused": true,
+        "norms": [
+          "schemaVersion"
+        ]
+      },
+      "expected": {
+        "refused": true,
+        "norms": [
+          "schemaVersion"
+        ]
+      },
+      "honest": true
+    },
+    {
+      "id": "schemaVersion-missing",
+      "manifest": {
+        "schemaVersion": 1,
+        "name": "shape-pack",
+        "version": "1.0.0",
+        "entry": "probes-entry.js",
+        "description": "battery base - clean otherwise"
+      },
+      "packstruct": {
+        "refused": true,
+        "norms": [
+          "schemaVersion"
+        ]
+      },
+      "expected": {
+        "refused": true,
+        "norms": [
+          "schemaVersion"
+        ]
+      },
+      "honest": true
+    },
+    {
+      "id": "name-uppercase",
+      "manifest": {
+        "schemaVersion": 1,
+        "name": "Shape-Pack",
+        "version": "1.0.0",
+        "entry": "probes-entry.js",
+        "description": "battery base - clean otherwise"
+      },
+      "packstruct": {
+        "refused": true,
+        "norms": [
+          "name-kebab-case",
+          "name-dir-match"
+        ]
+      },
+      "expected": {
+        "refused": true,
+        "norms": [
+          "name-kebab-case",
+          "name-dir-match"
+        ]
+      },
+      "honest": true
+    },
+    {
+      "id": "name-dir-mismatch",
+      "manifest": {
+        "schemaVersion": 1,
+        "name": "other-name",
+        "version": "1.0.0",
+        "entry": "probes-entry.js",
+        "description": "battery base - clean otherwise"
+      },
+      "packstruct": {
+        "refused": true,
+        "norms": [
+          "name-dir-match"
+        ]
+      },
+      "expected": {
+        "refused": true,
+        "norms": [
+          "name-dir-match"
+        ]
+      },
+      "honest": true
+    },
+    {
+      "id": "version-major-only",
+      "manifest": {
+        "schemaVersion": 1,
+        "name": "shape-pack",
+        "version": "1",
+        "entry": "probes-entry.js",
+        "description": "battery base - clean otherwise"
+      },
+      "packstruct": {
+        "refused": true,
+        "norms": [
+          "version"
+        ]
+      },
+      "expected": {
+        "refused": true,
+        "norms": [
+          "version"
+        ]
+      },
+      "honest": true
+    },
+    {
+      "id": "version-two-part-ok",
+      "manifest": {
+        "schemaVersion": 1,
+        "name": "shape-pack",
+        "version": "1.0",
+        "entry": "probes-entry.js",
+        "description": "battery base - clean otherwise"
+      },
+      "packstruct": {
+        "refused": false,
+        "norms": []
+      },
+      "expected": {
+        "refused": false
+      },
+      "honest": true
+    },
+    {
+      "id": "description-empty",
+      "manifest": {
+        "schemaVersion": 1,
+        "name": "shape-pack",
+        "version": "1.0.0",
+        "entry": "probes-entry.js",
+        "description": ""
+      },
+      "packstruct": {
+        "refused": true,
+        "norms": [
+          "description"
+        ]
+      },
+      "expected": {
+        "refused": true,
+        "norms": [
+          "description"
+        ]
+      },
+      "honest": true
+    },
+    {
+      "id": "entry-parent-escape",
+      "manifest": {
+        "schemaVersion": 1,
+        "name": "shape-pack",
+        "version": "1.0.0",
+        "entry": "../escape.js",
+        "description": "battery base - clean otherwise"
+      },
+      "packstruct": {
+        "refused": true,
+        "norms": [
+          "entry"
+        ]
+      },
+      "expected": {
+        "refused": true,
+        "norms": [
+          "entry"
+        ]
+      },
+      "honest": true
+    },
+    {
+      "id": "entry-missing-file",
+      "manifest": {
+        "schemaVersion": 1,
+        "name": "shape-pack",
+        "version": "1.0.0",
+        "entry": "ghost.js",
+        "description": "battery base - clean otherwise"
+      },
+      "packstruct": {
+        "refused": true,
+        "norms": [
+          "entry"
+        ]
+      },
+      "expected": {
+        "refused": true,
+        "norms": [
+          "entry"
+        ]
+      },
+      "honest": true
+    },
+    {
+      "id": "armedByKey-empty",
+      "manifest": {
+        "schemaVersion": 1,
+        "name": "shape-pack",
+        "version": "1.0.0",
+        "entry": "probes-entry.js",
+        "description": "battery base - clean otherwise",
+        "armedByKey": ""
+      },
+      "packstruct": {
+        "refused": true,
+        "norms": [
+          "armedByKey"
+        ]
+      },
+      "expected": {
+        "refused": true,
+        "norms": [
+          "armedByKey"
+        ]
+      },
+      "honest": true
+    },
+    {
+      "id": "armedByKey-ok",
+      "manifest": {
+        "schemaVersion": 1,
+        "name": "shape-pack",
+        "version": "1.0.0",
+        "entry": "probes-entry.js",
+        "description": "battery base - clean otherwise",
+        "armedByKey": "wp-money"
+      },
+      "packstruct": {
+        "refused": false,
+        "norms": []
+      },
+      "expected": {
+        "refused": false
+      },
+      "honest": true
+    },
+    {
+      "id": "unknown-key-allowed",
+      "manifest": {
+        "schemaVersion": 1,
+        "name": "shape-pack",
+        "version": "1.0.0",
+        "entry": "probes-entry.js",
+        "description": "battery base - clean otherwise",
+        "snapshot": "host-owned extra"
+      },
+      "packstruct": {
+        "refused": false,
+        "norms": []
+      },
+      "expected": {
+        "refused": false
+      },
+      "honest": true
+    },
+    {
+      "id": "host-owned-env-allowed",
+      "manifest": {
+        "schemaVersion": 1,
+        "name": "shape-pack",
+        "version": "1.0.0",
+        "entry": "probes-entry.js",
+        "description": "battery base - clean otherwise",
+        "env": {
+          "kv": {}
+        }
+      },
+      "packstruct": {
+        "refused": false,
+        "norms": []
+      },
+      "expected": {
+        "refused": false
+      },
+      "honest": true
+    },
+    {
+      "id": "manifest-invalid-json",
+      "manifest": "(malformed JSON)",
+      "packstruct": {
+        "refused": true,
+        "norms": [
+          "manifest-invalid"
+        ]
+      },
+      "expected": {
+        "refused": true,
+        "norms": [
+          "manifest-invalid"
+        ]
+      },
+      "honest": true
+    },
+    {
+      "id": "manifest-missing",
+      "manifest": "(no pack.json)",
+      "packstruct": {
+        "refused": true,
+        "norms": [
+          "manifest-missing"
+        ]
+      },
+      "expected": {
+        "refused": true,
+        "norms": [
+          "manifest-missing"
+        ]
+      },
+      "honest": true
+    },
+    {
+      "id": "missing-public-dir",
+      "packstruct": {
+        "refused": true,
+        "norms": [
+          "directory-contract"
+        ]
+      },
+      "expected": {
+        "refused": true,
+        "norms": [
+          "directory-contract"
+        ]
+      },
+      "honest": true
+    }
+  ]
+}

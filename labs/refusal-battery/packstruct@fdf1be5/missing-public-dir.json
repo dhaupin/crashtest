@@ -1,0 +1,4 @@
+{
+  "id": "missing-public-dir",
+  "note": "empty packs root (no public/) - expect a directory-contract refusal"
+}

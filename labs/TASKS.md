@@ -1764,6 +1764,35 @@ t  (ct_create_user/ct_grant_role/ct_reset_users whitelist helpers),
   spec-side semver decoupling paragraph + row receipts) live on the
   packstruct repo, not here - crashtest's side of the handshake is done.
 
+### 2026-10-24 - the refusal battery, made permanent in-repo (the in-repo half of the crashtest#25 offer)
+- The first observed crashtest column on packstruct's 17-shape battery was
+  a throwaway paste; this batch makes it a committed, self-verifying
+  artifact set, per the in-repo offer on the #25 column thread:
+  1. **The corpus, transcribed (never invented):** packstruct's battery
+     files + their committed golden column copied byte-exact (cmp-verified
+     at ingest) into labs/refusal-battery/packstruct@fdf1be5/ - 17 shapes +
+     missing-public-dir + packstruct-column.json, pinned to packstruct's
+     lint --deep commit (fdf1be5). Re-ingest = re-copy + regenerate +
+     re-derive in the SAME commit (the folder README holds the rules and
+     the known-anomaly note).
+  2. **The generator:** scripts/gen-refusal-battery.cjs materializes each
+     shape into a scratch root exactly as the file instructs (malformed
+     placeholder bytes, no-pack.json, entry-stub with ONE honest probe -
+     our loader refuses empty attacks arrays at module level), runs
+     src/packs/loader.js over the same bytes, and either writes
+     labs/refusal-matrix-crashtest.json (--write) or VERIFIES the committed
+     column against a fresh observation, refusing with per-row drift lines
+     (packstruct's own self-refusal teeth, mirrored).
+  3. **The pin test (test/refusal-battery.test.js, 4 pins):** byte-drift
+     gate; the six documented host differences (version-major-only,
+     description-empty, armedByKey-empty, name-dir-mismatch,
+     manifest-missing, missing-public-dir) stay exactly as argued on #25;
+     cross-column parity on every non-documented row; and the upstream
+     anomaly (schemaVersion-missing: their column claims refused while
+     their battery bytes still carry the key - their own linter accepts
+     those bytes too) pinned as a WARN-shaped FIRST-detector: the day
+     packstruct's generator fix lands, this file is the first thing that
+     changes, deliberately.
 ### 2026-10-24 - the theme port lands (crashtest#23: packstruct's adopt list, all four items)
 - The packstruct side rebuilt its landing + docs on this repo's engine and
   filed the diff back as an adopt list; everything ships here now, ported
@@ -1816,3 +1845,37 @@ t  (ct_create_user/ct_grant_role/ct_reset_users whitelist helpers),
   present in the prerendered HTML). Suite 295/295, check/lint:docs 0,
   web build 6/6 pages, dogfood reproduces the baseline byte-identical
   (49/49 REFUSED, 0 new/regressed).
+
+### 2026-10-24 - the refusal battery, made permanent in-repo (the in-repo half of the crashtest#25 offer)
+- The first observed crashtest column on packstruct's 17-shape battery was
+  a throwaway paste; this batch makes it a committed, self-verifying
+  artifact set, per the in-repo offer on the #25 column thread:
+  1. **The corpus, transcribed (never invented):** packstruct's battery
+     files + their committed golden column copied byte-exact (cmp-verified
+     at ingest) into labs/refusal-battery/packstruct@fdf1be5/ - 17 shapes +
+     missing-public-dir + packstruct-column.json, pinned to packstruct's
+     lint --deep commit (fdf1be5). Re-ingest = re-copy + regenerate +
+     re-derive in the SAME commit (the folder README holds the rules and
+     the known-anomaly note).
+  2. **The generator:** scripts/gen-refusal-battery.cjs materializes each
+     shape into a scratch root exactly as the file instructs (malformed
+     placeholder bytes, no-pack.json, entry-stub with ONE honest probe -
+     our loader refuses empty attacks arrays at module level), runs
+     src/packs/loader.js over the same bytes, and either writes
+     labs/refusal-matrix-crashtest.json (--write) or VERIFIES the committed
+     column against a fresh observation, refusing with per-row drift lines
+     (packstruct's own self-refusal teeth, mirrored).
+  3. **The pin test (test/refusal-battery.test.js, 4 pins):** byte-drift
+     gate; the six documented host differences (version-major-only,
+     description-empty, armedByKey-empty, name-dir-mismatch,
+     manifest-missing, missing-public-dir) stay exactly as argued on #25;
+     cross-column parity on every non-documented row; and the upstream
+     anomaly (schemaVersion-missing: their column claims refused while
+     their battery bytes still carry the key - their own linter accepts
+     those bytes too) pinned as the FIRST-detector: the day packstruct's
+     generator fix lands, this file is the first thing that changes,
+     deliberately.
+- Suite 295 -> 299 (the 4 battery pins), check 0, lint:docs 0. Zero engine
+  changes; a battery transcription change, an engine rule change, or any
+  edit that disagrees with observed truth fails here with row names, not
+  vibes.

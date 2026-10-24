@@ -1,0 +1,20 @@
+{
+  "id": "armedByKey-empty",
+  "dirName": "shape-pack",
+  "manifest": {
+    "schemaVersion": 1,
+    "name": "shape-pack",
+    "version": "1.0.0",
+    "entry": "probes-entry.js",
+    "description": "battery base - clean otherwise",
+    "armedByKey": ""
+  },
+  "writeEntryFile": true,
+  "expect": {
+    "refused": true,
+    "norms": [
+      "armedByKey"
+    ]
+  },
+  "note": "Hosts: materialize dirName/pack.json (create pack.json only when manifest is non-null; substitute the placeholder bytes for malformed), run YOUR validator over it, return { id, host: refused, norms }. Column 3 of the golden matrix (dhaupin/packstruct#3)."
+}

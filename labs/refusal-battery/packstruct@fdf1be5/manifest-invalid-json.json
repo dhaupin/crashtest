@@ -1,0 +1,13 @@
+{
+  "id": "manifest-invalid-json",
+  "dirName": "shape-pack",
+  "manifest": "INVALID JSON PLACEHOLDER - see gen-refusal-matrix.mjs",
+  "writeEntryFile": false,
+  "expect": {
+    "refused": true,
+    "norms": [
+      "manifest-invalid"
+    ]
+  },
+  "note": "Hosts: materialize dirName/pack.json (create pack.json only when manifest is non-null; substitute the placeholder bytes for malformed), run YOUR validator over it, return { id, host: refused, norms }. Column 3 of the golden matrix (dhaupin/packstruct#3)."
+}
