@@ -1,0 +1,5 @@
+# crashtest site - crawler policy (all the way open, it's a library site)
+User-agent: *
+Allow: /
+
+Sitemap: https://crashtest.creadev.org/sitemap.xml

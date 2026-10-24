@@ -1,0 +1,16 @@
+# Cloudflare Pages redirect rules.
+#
+# The SPA fallback (/* /index.html 200) is NOT included here.
+# With prerendering, every route has its own dist/route/index.html.
+# CF Pages serves each route directly -- no rewrite rule needed.
+#
+# Including the SPA fallback causes an infinite redirect loop:
+# CF's Pretty URLs feature rewrites /about/ to dist/about/index.html,
+# which triggers the /* rule, which rewrites to /index.html, which
+# CF redirects back to /about/... and so on.
+#
+# If you ever revert to SPA-only mode (no prerendering), restore:
+#   /* /index.html 200
+#
+# Add app-specific redirects below as needed:
+# /old-path    /new-path    301

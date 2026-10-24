@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!--
+    Shell template. Do not add brand meta here directly.
+
+    The npm prestruct engine's inject-brand pass populates these tags at
+    build time from ssr.config.js (`prestruct build`):
+
+      <title>, description, author, keywords, canonical,
+      Open Graph, Twitter Card, JSON-LD.
+
+    The placeholder values below give the inject regex something to match.
+    They are replaced before the site is deployed -- never served as-is.
+  -->
+
+  <!-- Primary SEO (populated by prestruct inject-brand) -->
+  <!-- IDENTITY: fill these three (and everything marked YOUR...) with your brand -->
+  <title>Your Site</title>
+  <meta name="description" content="" />
+  <meta name="keywords"    content="" />
+  <meta name="author"      content="" />
+  <meta name="robots"      content="index, follow" />
+  <link rel="canonical"    href="https://your-site.example.com/" />
+
+  <!--
+    Favicons -- replace with your own.
+    Generate from https://favicon.io or similar.
+  -->  <!--
+    Favicons + identity (real files ship in public/):
+  -->
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+  <link rel="icon" type="image/png" href="/favicon-32.png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <meta name="theme-color" content="#10131a" />
+
+  <script>
+    // Theme bootstrap: apply a persisted light theme before the stylesheet
+    // paints (the default tokens are dark). Non-critical: wrapped in try in
+    // case storage is unavailable (private mode). Keep in sync with
+    // src/components/ThemeSwitch.jsx (the key name and the meta color values).
+    try {
+      if (localStorage.getItem('flowforge-theme') === 'light') {
+        document.documentElement.dataset.theme = 'light'
+        document.currentScript.previousElementSibling.setAttribute('content', '#f5f6fa')
+      }
+    } catch (e) {}
+  </script>
+
+  <!--
+    Fonts -- add your font imports here if needed.
+    Use <link rel="preconnect"> to warm the connection before the stylesheet.
+  -->
+</head>
+<body>
+  <div id="root"></div>
+  <!-- Entry module: vite build compiles this into the hashed <script>+<link>
+       pair in dist/index.html, which prerender keeps in every page. Without
+       it, vite emits NOTHING from the app graph and the site ships as
+       unstyled static HTML (found live: crashtest.creadev.org rendered
+       themeless until this tag was restored - the prestruct example has it,
+       the init template didn't). -->
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "what": "The joined refusal matrix (dhaupin/packstruct#3) - column truth OBSERVED from both validators over the same battery bytes, never hand-derived.",
+  "sources": [
+    "packstruct column: scripts/gen-refusal-matrix.mjs (self-verifying battery; refuses its own run on dishonesty), regenerated 2026-10-24 after the crashtest#25 fold fixes",
+    "crashtest column: dhaupin/crashtest#25 fold comment (Rook, 2026-10-24T18:25Z) - every cell observed from src/packs/loader.js running the materialized battery bytes; one row observed against pre-fix battery bytes (annotated in-row)"
+  ],
+  "statusVocabulary": {
+    "agree": "both validators give the same verdict",
+    "documented-divergence": "both verdicts are honestly different and each side's reason is documented here and in the SPEC receipts - matrix rows FIND drift, they do not fight it",
+    "re-verified-after-fix": "the crashtest observation used our pre-fix battery bytes; the fixed bytes change the expected verdict and the prediction is documented for their re-run"
+  },
+  "rows": [
+    { "id": "schemaVersion-num-2", "packstruct": { "refused": true, "norms": ["schemaVersion"] }, "crashtest": { "refused": true, "norms": ["schemaVersion"] }, "status": "agree" },
+    { "id": "schemaVersion-string-1", "packstruct": { "refused": true, "norms": ["schemaVersion"] }, "crashtest": { "refused": true, "norms": ["schemaVersion"] }, "status": "agree" },
+    { "id": "schemaVersion-missing", "packstruct": { "refused": true, "norms": ["schemaVersion"] }, "crashtest": { "refused": false, "norms": [], "as_observed": true }, "status": "re-verified-after-fix", "note": "the #25 observation ran OUR pre-fix battery bytes, which still carried schemaVersion (the emitter ignored drop) - the fixed battery file omits the key, and the loader's REQUIRED_KEYS (src/packs/loader.js:59) mandates it, so the post-fix bytes should refuse on both sides; crashtest re-run requested" },
+    { "id": "name-uppercase", "packstruct": { "refused": true, "norms": ["name-kebab-case", "name-dir-match"] }, "crashtest": { "refused": true, "norms": ["name-kebab-case"] }, "status": "agree", "note": "both refuse; the linter enumerates the stricter second norm (name==dir) - see the SPEC section 2 receipts for the enforced-vs-pack-reality split" },
+    { "id": "version-major-only", "packstruct": { "refused": true, "norms": ["version"] }, "crashtest": { "refused": false, "norms": [] }, "status": "documented-divergence", "note": "dotted MAJOR.MINOR[.PATCH] is the manifest norm (SPEC section 2, 8/8 pack reality) and the pack's own semver discipline (SPEC section 6 - decoupled from release cadence); the engine inventories version for packs --json only and loads regardless" },
+    { "id": "description-empty", "packstruct": { "refused": true, "norms": ["description"] }, "crashtest": { "refused": false, "norms": [] }, "status": "documented-divergence", "note": "SPEC section 2 requires a one-line human-readable description; the engine requires presence + string type and passes empty strings - a spec-side tightening, documented" },
+    { "id": "entry-parent-escape", "packstruct": { "refused": true, "norms": ["entry"] }, "crashtest": { "refused": true, "norms": ["entry"] }, "status": "agree" },
+    { "id": "entry-missing-file", "packstruct": { "refused": true, "norms": ["entry"] }, "crashtest": { "refused": true, "norms": ["entry"] }, "status": "agree", "note": "the engine's refusal surfaces at import (loader.js:394-396); the linter catches the same class at file-existence before any load - the crashtest#16 lesson on both walls" },
+    { "id": "armedByKey-empty", "packstruct": { "refused": false, "norms": [] }, "crashtest": { "refused": false, "norms": [] }, "status": "agree", "note": "POST-FOLD: the packstruct side dropped its non-empty refusal (a check the SPEC never promised); empty = present-not-yet-armed, the engine's own treatment" },
+    { "id": "armedByKey-non-string", "packstruct": { "refused": true, "norms": ["armedByKey"] }, "crashtest": { "refused": false, "norms": [], "as_observed_implies": true }, "status": "documented-divergence", "note": "row added in this fold's generator revision; the engine validates nothing about armedByKey (its #25 statement), so its implied verdict is accept - the linter keeps the SPEC's 'optional STRING' type rule" },
+    { "id": "unknown-key-allowed", "packstruct": { "refused": false, "norms": [] }, "crashtest": { "refused": false, "norms": [] }, "status": "agree", "note": "minimum-spec: extra keys carry no shared meaning (SPEC section 2)" },
+    { "id": "host-owned-env-allowed", "packstruct": { "refused": false, "norms": [] }, "crashtest": { "refused": false, "norms": [] }, "status": "agree", "note": "host-owned acknowledged key: presence is never a spec violation" },
+    { "id": "manifest-invalid-json", "packstruct": { "refused": true, "norms": ["manifest-invalid"] }, "crashtest": { "refused": true, "norms": ["manifest-invalid"] }, "status": "agree" },
+    { "id": "manifest-missing", "packstruct": { "refused": true, "norms": ["manifest-missing"] }, "crashtest": { "refused": false, "norms": [] }, "status": "documented-divergence", "note": "the engine's local/ contract: a dir without pack.json is a loose WIP dir and skips quietly (pinned by their packs.test.js); the linter refuses at author time because a PUBLIC pack without a manifest is never legitimate - the WIP-friendliness belongs to local/, visibility is theirs" },
+    { "id": "missing-public-dir", "packstruct": { "refused": true, "norms": ["directory-contract"] }, "crashtest": { "refused": false, "norms": [] }, "status": "documented-divergence", "note": "visibility dirs are optional roots to the engine (public/ or local/); SPEC section 1 makes the public directory contract required - the linter enforces the spec at author time" },
+    { "id": "name-dir-mismatch", "packstruct": { "refused": true, "norms": ["name-dir-match"] }, "crashtest": { "refused": false, "norms": [] }, "status": "documented-divergence", "note": "the one true enforcement gap on record: the engine keys the shared seen map by manifest.name and never compares to the directory; the 8/8 dir match was the #19 data-level invariant. The linter enforces the SPEC norm (section 2: mismatch = load refuse); engine parity is the engine-first question, crosslinked in the SPEC receipts to crashtest#19/#25" },
+    { "id": "version-two-part-ok", "packstruct": { "refused": false, "norms": [] }, "crashtest": { "refused": false, "norms": [] }, "status": "agree" },
+    { "id": "armedByKey-ok", "packstruct": { "refused": false, "norms": [] }, "crashtest": { "refused": false, "norms": [] }, "status": "agree" }
+  ],
+  "tally": {
+    "agree": 11,
+    "documented-divergence": 6,
+    "re-verified-after-fix": 1,
+    "reading": "Every divergence row is a PACK-STRUCT STRICTNESS the engine does not share (author-time authoring gates vs load-time reality), except armedByKey-non-string which is the SPEC's string-type rule. No divergence is a spec violation on either side - which is exactly what this matrix exists to prove."
+  }
+}

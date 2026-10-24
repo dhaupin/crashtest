@@ -1,17 +1,17 @@
-// The shared refusal battery, in-repo (dhaupin/packstruct#3 / crashtest#25).
-// Three pins, each with a different kind of teeth:
+// The shared refusal battery, in-repo (dhaupin/packstruct#3 / crashtest#25 /
+// crashtest#27). Three pins, each with a different kind of teeth:
 //   1. BYTE-DRIFT - the generated crashtest column must stay equal to the
 //      observed loader behavior over the transcribed battery bytes.
-//   2. DOCUMENTED DIFFERENCES - the six host-legitimacy rows (crashtest#25)
+//   2. DOCUMENTED DIFFERENCES - the host-legitimacy rows (crashtest#25/#27)
 //      stay exactly as documented; a silent drift to agreement or to a new
 //      disagreement is a FINDING, never ambient noise.
 //   3. CROSS-COLUMN PARITY - on every row that is NOT a documented
 //      difference, our verdict must still agree with packstruct's committed
-//      golden column. If it stops agreeing, the two validators diverged and
+//      golden set. If it stops agreeing, the two validators diverged and
 //      someone must re-derive deliberately.
 //
 // Zero sockets: the battery bytes are transcription-committed under
-// labs/refusal-battery/packstruct@fdf1be5/ (see that folder's README;
+// labs/refusal-battery/packstruct@3c84ace/ (see that folder's README;
 // re-ingest = re-copy from a pinned checkout + regenerate, same commit).
 
 import { test } from 'node:test';
@@ -23,7 +23,7 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = dirname(HERE);
-const CORPUS = 'labs/refusal-battery/packstruct@fdf1be5';
+const CORPUS = 'labs/refusal-battery/packstruct@3c84ace';
 
 const readJson = async (p) => JSON.parse(await readFile(join(REPO, p), 'utf8'));
 
@@ -35,27 +35,21 @@ test('battery: the generated crashtest column equals the observed loader behavio
 });
 
 const DOCUMENTED = {
-  'version-major-only': false,
-  'description-empty': false,
-  'armedByKey-empty': false,
-  'name-dir-mismatch': false,
-  'manifest-missing': false,
-  'missing-public-dir': false,
+  'version-major-only': false,    // packs/loader.js does not gate on `version`
+  'description-empty': false,     // presence + string type; empties pass
+  'armedByKey-empty': false,      // presence semantics only; arming is host-ceremony
+  'armedByKey-non-string': false, // same host-owned class: no type gate on armedByKey
+  'name-dir-mismatch': false,     // `seen` is keyed by name; dir-match is data-level
+  'manifest-missing': false,      // loose WIP dirs skip quietly (the local/ contract)
+  'missing-public-dir': false,    // visibility dirs are optional roots
 };
-// Not a host difference - an UPSTREAM anomaly (packstruct's generator bug,
-// recorded on #25): their battery bytes still carry "schemaVersion": 1 while
-// their committed column claims refused [schemaVersion]. Their own linter
-// accepts those bytes too. Skipped from general parity; its facts are pinned
-// in their own test below so the day their fix lands, this file is the
-// first thing that changes.
-const UPSTREAM_ANOMALY = 'schemaVersion-missing';
 
-test('battery: the six documented host differences still hold exactly as argued on #25', async () => {
+test('battery: the documented host differences still hold exactly as argued on #25', async () => {
   const column = await readJson('labs/refusal-matrix-crashtest.json');
   const byId = new Map(column.rows.map((r) => [r.id, r]));
   for (const [id, refused] of Object.entries(DOCUMENTED)) {
     const row = byId.get(id);
-    assert.ok(row, `battery: documented row "${id}" vanished from the column`);
+    assert.ok(row, `battery: documented row "${id}" vanished from the column (corpus re-ingested? re-run the generator)`);
     assert.equal(
       row.host.refused,
       refused,
@@ -71,37 +65,46 @@ test('battery: the six documented host differences still hold exactly as argued 
   );
 });
 
-test('battery: the upstream anomaly (schemaVersion-missing) stays exactly as recorded on #25', async () => {
+test('battery: the packstruct generator fix is LANDED, and our re-observation matches the branch it predicted (crashtest#27 item 1)', async () => {
+  // The fix (packstruct 5a56281): the emitter drops the schemaVersion key
+  // exactly once - the battery bytes for schemaVersion-missing now truly
+  // OMIT the key. crashtest#27 asked us to re-observe and paste the cell:
   const column = await readJson('labs/refusal-matrix-crashtest.json');
-  const row = column.rows.find((r) => r.id === UPSTREAM_ANOMALY);
-  assert.ok(row, 'battery: anomaly row vanished from our column');
-  // our loader keeps accepting the bytes (the key is present and valid)
-  assert.equal(row.host.refused, false, 'battery: our loader now REFUSES schemaVersion-missing bytes - if our engine moved, re-derive this row and expect their column flip too');
-  // the transcribed battery bytes still carry the key the id promises is missing
-  const bat = await readJson(join(CORPUS, UPSTREAM_ANOMALY + '.json'));
-  assert.ok(
-    bat.manifest && typeof bat.manifest === 'object' && 'schemaVersion' in bat.manifest,
-    'battery: schemaVersion-missing.json no longer carries the key (packstruct fixed their generator) - re-ingest + re-derive: their column row should read honest and parity restores; move this anomaly pin in the SAME commit as the re-ingest',
+  const row = column.rows.find((r) => r.id === 'schemaVersion-missing');
+  assert.ok(row, 'battery: schemaVersion-missing vanished from our column');
+  assert.deepEqual(
+    [row.host.refused, row.host.norms],
+    [true, ['schemaVersion']],
+    'battery: the key-absent manifest should REFUSE [schemaVersion] (loader.js REQUIRED_KEYS); if this is now accepted, the SPEC question reopens LOUDLY on #27/#25 - do not silent it',
   );
-  // their committed column still claims a refusal their own linter does not deliver
-  const theirs = await readJson(join(CORPUS, 'packstruct-column.json'));
-  const their = theirs.rows.find((r) => r.id === UPSTREAM_ANOMALY);
-  assert.equal(their?.packstruct?.refused, true, 'battery: packstruct fixed their column row for schemaVersion-missing - re-ingest the corpus and re-derive the parity row in the SAME review');
+  // the battery bytes on record really omit the key
+  const bat = await readJson(join(CORPUS, 'schemaVersion-missing.json'));
+  assert.ok(
+    bat.manifest && typeof bat.manifest === 'object' && !('schemaVersion' in bat.manifest),
+    'battery: the battery bytes carry schemaVersion again - either a rollback re-ingest or a generator regression; re-derive the whole row in the SAME review',
+  );
+  // and the golden set marks this row as the post-fix re-verification
+  const golden = await readJson(join(CORPUS, 'packstruct-golden.json'));
+  const their = golden.rows.find((r) => r.id === 'schemaVersion-missing');
+  assert.equal(
+    their.packstruct.refused,
+    true,
+    'battery: packstruct stopped refusing key-absent manifests on their side - the columns flipped the OTHER way; re-derive both sides per crashtest#27',
+  );
 });
 
-test('battery: every non-documented row still agrees with packstruct\'s committed golden column', async () => {
+test('battery: every non-documented row still agrees with packstruct\'s committed golden set', async () => {
   const column = await readJson('labs/refusal-matrix-crashtest.json');
-  const theirs = await readJson(join(CORPUS, 'packstruct-column.json'));
-  const theirsById = new Map(theirs.rows.map((r) => [r.id, r]));
+  const golden = await readJson(join(CORPUS, 'packstruct-golden.json'));
+  const theirsById = new Map(golden.rows.map((r) => [r.id, r]));
   for (const row of column.rows) {
     if (row.documentedDifference) continue; // asserted + argued separately
-    if (row.id === UPSTREAM_ANOMALY) continue; // pinned in the anomaly test below
     const their = theirsById.get(row.id);
-    assert.ok(their, `battery: packstruct column lost row "${row.id}" (re-ingest the corpus)`);
+    assert.ok(their, `battery: packstruct golden lost row "${row.id}" (re-ingest the corpus)`);
     assert.equal(
       row.host.refused,
       their.packstruct.refused,
-      `battery: cross-column parity broke on "${row.id}" (crashtest ${row.host.refused ? 'REFUSED' : 'accepted'} vs packstruct ${their.packstruct.refused ? 'refused' : 'accepted'}) - the two validators agreed elsewhere and here they must too; treat the break as a linter/loader parity FINDING (one truth per concern), never bend the fixture to silence it. Known upstream anomaly: their committed column claims refused on "schemaVersion-missing" while their battery bytes still carry the key (re-observed on #25) - this test transcribes their claim faithfully; their generator fix is theirs to land`,
+      `battery: cross-column parity broke on "${row.id}" (crashtest ${row.host.refused ? 'REFUSED' : 'accepted'} vs packstruct ${their.packstruct.refused ? 'refused' : 'accepted'}) - the two validators agreed elsewhere and here they must too; treat the break as a linter/loader parity FINDING (one truth per concern), never bend the fixture to silence it`,
     );
   }
 });

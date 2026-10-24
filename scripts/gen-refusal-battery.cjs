@@ -44,6 +44,7 @@ const DOCUMENTED_DIFFERENCES = new Set([
   'version-major-only',    // packs/loader.js does not gate on `version`
   'description-empty',     // presence + string type; empties pass
   'armedByKey-empty',      // presence semantics only; arming is host-ceremony
+  'armedByKey-non-string', // same host-owned class: no type gate on armedByKey
   'name-dir-mismatch',     // `seen` is keyed by name; dir-match is data-level
   'manifest-missing',      // loose WIP dirs skip quietly (the local/ contract)
   'missing-public-dir',    // visibility dirs are optional roots
@@ -98,7 +99,7 @@ async function main() {
   const corpusDir = path.join(ROOT, pinnedDir);
   const columnPath = path.join(ROOT, 'labs', 'refusal-matrix-crashtest.json');
 
-  const files = fs.readdirSync(corpusDir).filter((f) => f.endsWith('.json') && f !== 'packstruct-column.json' && f !== 'README.md').sort();
+  const files = fs.readdirSync(corpusDir).filter((f) => f.endsWith('.json') && f !== 'packstruct-column.json' && f !== 'packstruct-golden.json' && f !== 'README.md').sort();
   const rows = [];
   for (const f of files) {
     const bat = JSON.parse(fs.readFileSync(path.join(corpusDir, f), 'utf8'));

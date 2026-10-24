@@ -241,6 +241,26 @@
         "armedByKey": ""
       },
       "packstruct": {
+        "refused": false,
+        "norms": []
+      },
+      "expected": {
+        "refused": false,
+        "note": "presence semantics only - crashtest loader treats empty as unarmed"
+      },
+      "honest": true
+    },
+    {
+      "id": "armedByKey-non-string",
+      "manifest": {
+        "schemaVersion": 1,
+        "name": "shape-pack",
+        "version": "1.0.0",
+        "entry": "probes-entry.js",
+        "description": "battery base - clean otherwise",
+        "armedByKey": 7
+      },
+      "packstruct": {
         "refused": true,
         "norms": [
           "armedByKey"

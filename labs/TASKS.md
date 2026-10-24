@@ -1879,3 +1879,32 @@ t  (ct_create_user/ct_grant_role/ct_reset_users whitelist helpers),
   changes; a battery transcription change, an engine rule change, or any
   edit that disagrees with observed truth fails here with row names, not
   vibes.
+
+### 2026-10-24 - battery re-ingest at packstruct@3c84ace: the schemaVersion-missing fix is LANDED and re-observed (crashtest#27 item 1)
+- Echo fixed the emitter (packstruct 5a56281: the drop-aware manifestFor
+  path lands the generator + battery writer fixes together) - the battery
+  bytes for schemaVersion-missing now truly OMIT the key. This is exactly
+  the branch the in-repo anomaly pin predicted: the pin flipped THIS file
+  first, and the re-derivation landed the same day:
+  1. **Corpus re-ingested** (cmp-verified at ingest): the battery grew to
+     18 shapes (armedByKey-non-string joined the corpus with the fold),
+     their golden set (labs/refusal-matrix.golden.json) + their observed
+     column transcribed as packstruct-golden.json / packstruct-column.json
+     under the new pin labs/refusal-battery/packstruct@3c84ace/ (fdf1be5
+     renamed out in the same commit).
+  2. **The cell, observed:** our loader REFUSES [schemaVersion] on the
+     key-absent bytes - the golden row's post-fix prediction (REQUIRED_KEYS
+     at loader.js:59) holds; status re-verified-after-fix. The tally moves
+     11/6/1 -> 12/5/0 documented differences (armedByKey-non-string joined
+     the documented set: same host-owned armedByKey class - presence
+     semantics, no type gate, arming is host ceremony).
+  3. **Generator hardening caught in the same pass:** the exclusion filter
+     now knows packstruct-golden.json (the new corpus file otherwise
+     ingested as a phantom battery row). Columns regenerate clean at 18
+     rows; pins rebuilt: fix-landed assertion (bytes omit the key + our
+     refusal + their golden row) replaces the anomaly pin, cross-column
+     parity now reads the golden's packstruct rows.
+- Suite 299/299 (4 battery pins re-derived, suite unchanged in count),
+  check 0, lint:docs 0. The battery bot ls, the truth is observed - the
+  same-commit rule (re-copy + regenerate + re-derive) executed in one
+  review, per the corpus README contract.

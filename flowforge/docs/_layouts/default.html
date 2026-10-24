@@ -1,0 +1,321 @@
+---
+# Jekyll layout for YOUR docs - the flowforge rig shape: fixed header
+# (search trigger > GitHub icon > light/dark switch > hamburger),
+# slide-out mobile sidebar, and a pagefind modal search (Cmd+K). Search
+# requires the pagefind index the docs workflow builds
+# (.github/workflows/docs-deploy.yml); without it the modal reports the
+# index as unavailable instead of pretending. Light/dark switch: tokens
+# only, no-flash bootstrap, the icon is the action (sun in dark), and the
+# light token block mirrors the landing site's. Replace every YOUR...
+# value; paths ride site.baseurl so one config change moves them all.
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page.title | default: "Your Site Docs" }} / Your Site</title>
+    <meta name="description" content="{{ page.description | default: 'Your site: plain two-sentence description.' }}">
+    <link rel="canonical" href="{{ page.url | absolute_url | replace: '.html', '' }}">
+    {% if page.noindex %}<meta name="robots" content="noindex">{% endif %}
+    <meta property="og:title" content="{{ page.title | default: 'Your Site Docs' }}">
+    <meta property="og:description" content="{{ page.description | default: 'Your site: plain two-sentence description.' }}">
+    <meta property="og:url" content="{{ page.url | absolute_url | replace: '.html', '' }}">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Your Site Docs">
+    <link rel="icon" type="image/svg+xml" href="{{ site.baseurl }}/icon.svg">
+    <meta name="color-scheme" content="dark light">
+    <style>
+        :root {
+            --paper: #10131a; --surface: #0d1017; --raised: #1d2430;
+            --ink: #e7eaf1; --ink-soft: #98a2b3; --ink-light: #98a2b3; /* tune BOTH toward AA on YOUR footer bg - crashtest ran 3.78:1 and it failed */
+            --accent: #6d8cff; --moss: #3fae72; --err: #e06557;
+            --line: #2a3140; --code-bg: #0d1017;
+            --header-height: 54px; --sidebar-width: 240px;
+        }
+        /* Light mode: the same identity, ink on pale paper
+           (matches the landing site's html[data-theme="light"] tokens). */
+        html[data-theme="light"] {
+            --paper: #f5f6fa; --surface: #ffffff; --raised: #e6e9f2;
+            --ink: #171b26; --ink-soft: #5b6575; --ink-light: #5b6575;
+            --accent: #4055c5; --moss: #2e7d4f; --err: #b04b3f;
+            --line: #d9dee9; --code-bg: #e9ecf3;
+        }
+        * { margin: 0; box-sizing: border-box; }
+        html { background: var(--paper); color-scheme: dark; }
+        html[data-theme="light"] { color-scheme: light; }
+        body { margin: 0; color: var(--ink); background: var(--paper);
+            font-family: Inter, "SF Pro Text", system-ui, -apple-system, "Segoe UI", sans-serif;
+            font-size: 15px; line-height: 1.65; }
+        a { color: var(--accent); }
+
+        /* Header (vant shape: fixed, brand left, actions right) */
+        .header { position: fixed; top: 0; left: 0; right: 0; height: var(--header-height);
+            background: var(--surface); border-bottom: 1px solid var(--line);
+            display: flex; align-items: center; padding: 0 20px; z-index: 100; }
+        .header-brand { display: flex; align-items: center; gap: 8px; text-decoration: none;
+            color: var(--ink); font-weight: 800; letter-spacing: .02em; font-size: 17px; }
+        .header-brand:hover { text-decoration: none; }
+        .brand-accent { color: var(--accent); }
+        .header-brand .docs-tag { color: var(--ink-soft); font-size: 11px; font-weight: 400; }
+        .header-right { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+        .header-btn { background: none; border: 1px solid transparent; color: var(--ink);
+            padding: 8px; cursor: pointer; border-radius: 6px; transition: background .2s;
+            display: flex; align-items: center; justify-content: center; }
+        .header-btn:hover { background: var(--raised); }
+        .header-btn svg { width: 18px; height: 18px; display: block; }
+        .search-trigger { border: 1px solid var(--line); width: auto; padding: 6px 10px;
+            gap: 8px; color: var(--ink-light); font: inherit; font-size: 12.5px; }
+        .search-trigger:hover { color: var(--ink); border-color: var(--ink-soft); }
+        .search-key { border: 1px solid var(--line); border-radius: 4px;
+            padding: 0 5px; font-size: 10.5px; line-height: 16px; }
+        .theme-switch svg { width: 18px; height: 18px; display: block; }
+        /* Sun shows in dark mode (click = go light); moon in light mode
+           (click = go dark) - the icon is the ACTION, not the state (the
+           agreed struct-family convention, crashtest#26). Both icons always
+           render - CSS decides, markup stays constant. */
+        .theme-switch .icon-moon { display: none; }
+        html[data-theme="light"] .theme-switch .icon-sun { display: none; }
+        html[data-theme="light"] .theme-switch .icon-moon { display: block; }
+        .hamburger { display: none; border: none; }
+        .brand-logo { width: 22px; height: 22px; display: block; border-radius: 5px; }
+
+        /* Sidebar (vant shape: fixed under header, burger-toggled on mobile) */
+        .sidebar-overlay { display: none; position: fixed; top: var(--header-height);
+            left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.5); z-index: 98; }
+        .sidebar-overlay.open { display: block; }
+        .sidebar { position: fixed; top: var(--header-height); left: 0; bottom: 0;
+            width: var(--sidebar-width); background: var(--surface);
+            border-right: 1px solid var(--line); overflow-y: auto; padding: 24px 0;
+            transition: transform .3s ease; z-index: 99; }
+        .sidebar-section { margin-bottom: 18px; }
+        .sidebar-title { color: var(--ink-light); font-size: 10.5px; letter-spacing: .12em;
+            text-transform: uppercase; padding: 0 16px 4px; }
+        .sidebar-nav { list-style: none; }
+        .sidebar-nav a { display: block; padding: 4px 16px; color: var(--ink-soft);
+            text-decoration: none; font-size: 13.5px; border-left: 3px solid transparent;
+            transition: background .15s, color .15s; }
+        .sidebar-nav a:hover { color: var(--ink); background: var(--raised); text-decoration: none; }
+        .sidebar-nav a.active { color: var(--accent); background: var(--raised);
+            border-left-color: var(--accent); }
+
+        /* Main content */
+        .main { margin-left: var(--sidebar-width); margin-top: var(--header-height);
+            padding: 36px 40px 80px; max-width: 860px; }
+        h1 { font-size: 30px; margin: 0 0 18px; letter-spacing: -.01em; line-height: 1.2; }
+        h2 { font-size: 20px; margin: 30px 0 10px; }
+        h3 { font-size: 16px; margin: 22px 0 8px; }
+        p, ul, ol { color: var(--ink); }
+        ul, ol { padding-left: 22px; margin-bottom: 14px; }
+        code { font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 13px;
+            background: var(--code-bg); border: 1px solid var(--line); border-radius: 4px;
+            padding: 1px 5px; }
+        pre { position: relative; background: var(--code-bg); border: 1px solid var(--line);
+            border-radius: 8px; padding: 14px 16px; overflow-x: auto; font-size: 13px;
+            line-height: 1.6; margin: 14px 0; }
+        pre code { background: none; border: none; padding: 0; }
+        /* Rouge token colors - the output of kramdown/rouge is <div class="highlight">
+           wrapping token spans that carried NO color until now (every code block
+           rendered monochrome). Same vocabulary and palette as the landing
+           site's token block (web/src/styles.css), all riding the theme tokens
+           so the light theme re-tunes every token with no extra override. */
+        .highlight .k, .highlight .kd, .highlight .kr, .highlight .kc { color: var(--accent); }
+        .highlight .s, .highlight .s1, .highlight .s2 { color: var(--moss); }
+        .highlight .no, .highlight .mi, .highlight .mf, .highlight .mh { color: var(--accent-deep); }
+        .highlight .nt, .highlight .ge { color: var(--err); }
+        .highlight .gp, .highlight .gh { color: var(--ink-soft); font-weight: 600; }
+        .highlight .c, .highlight .c1, .highlight .cm, .highlight .cd { color: var(--ink-soft); font-style: italic; }
+        blockquote { margin: 0 0 14px; padding: 12px 18px; color: var(--ink-soft);
+            border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 8px 8px 0; }
+        table { border-collapse: collapse; width: 100%; font-size: 13.5px; margin: 14px 0; }
+        th { text-align: left; background: var(--raised); padding: 8px 12px;
+            border-bottom: 1px solid var(--line); }
+        td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+
+        .doc-footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line);
+            color: var(--ink-light); font-size: 13px; }
+        .doc-footer a { color: var(--ink-soft); }
+
+        /* Search modal (vant shape) */
+        .search-modal { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 1000;
+            display: none; align-items: flex-start; justify-content: center; padding: 8vh 1rem; }
+        .search-modal.open { display: flex; }
+        .search-modal-content { width: 100%; max-width: 600px; background: var(--raised);
+            border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,.4); }
+        .search-input { width: 100%; padding: 1rem 1.25rem; font-size: 1rem;
+            font-family: inherit; background: transparent; color: var(--ink);
+            border: none; border-bottom: 1px solid var(--line); outline: none; }
+        .search-input::placeholder { color: var(--ink-light); }
+        .search-results { max-height: 50vh; overflow-y: auto; }
+        .search-result { display: block; padding: 1rem 1.25rem; text-decoration: none;
+            border-bottom: 1px solid var(--line); }
+        .search-result:hover { background: var(--raised); text-decoration: none; }
+        .search-result-title { font-weight: 600; color: var(--ink); font-size: .95rem; }
+        .search-result-excerpt { color: var(--ink-soft); font-size: .85rem; margin-top: .25rem; }
+        .search-empty { padding: 2rem; text-align: center; color: var(--ink-light); }
+        .search-close { position: absolute; right: 1rem; top: 1rem; background: none;
+            border: none; color: var(--ink-light); cursor: pointer; font-size: 1.5rem; padding: .5rem; }
+        .search-close:hover { color: var(--ink); }
+
+        @media (max-width: 768px) {
+            .header .hamburger { display: flex; }
+            .search-key { display: none; }
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .sidebar-overlay.open { display: block; }
+            .main { margin-left: 0; padding: 24px 16px 60px; }
+        }
+    </style>
+    <script>
+        // Theme bootstrap (before first paint): the default tokens are dark,
+        // so only a persisted light theme needs flipping. Keep the key and
+        // the palette in sync with the toggle handler below.
+        try {
+            if (localStorage.getItem('flowforge-theme') === 'light') {
+                document.documentElement.dataset.theme = 'light';
+            }
+        } catch (e) {}
+    </script>
+</head>
+<body>
+    <header class="header">
+        <a href="{{ '/' }}" class="header-brand">
+            <img src="{{ site.baseurl }}/icon.svg" alt="" class="brand-logo" aria-hidden="true">
+            <span><span class="brand-accent">your</span>site</span>
+            <span class="docs-tag">docs</span>
+        </a>
+        <div class="header-right">
+            <button class="header-btn search-trigger" id="searchTrigger" aria-label="Search docs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <span class="search-key">Ctrl K</span>
+            </button>
+            <a href="https://github.com/your-org/your-project" class="header-btn" aria-label="GitHub" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+            </a>
+            <button type="button" class="header-btn theme-switch" id="themeSwitch" aria-label="Toggle light/dark mode">
+                <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+            </button>
+            <button class="header-btn hamburger" onclick="toggleSidebar()" aria-label="Toggle menu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <div class="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <aside class="sidebar" id="sidebar">
+        {% for group in site.data.nav %}
+        <div class="sidebar-section">
+            <div class="sidebar-title">{{ group.title }}</div>
+            <ul class="sidebar-nav">
+                {% for item in group.items %}
+                  {%- assign external = false -%}
+                  {%- if item.url contains '://' -%}{%- assign external = true -%}{%- endif -%}
+                  {%- unless external -%}
+                    {%- assign i_path = item.url | remove: '.html' | replace: '/', '' -%}
+                    {%- assign p_path = page.url | remove: 'index.html' | replace: '/', '' -%}
+                  {%- endunless -%}
+                <li><a href="{{ item.url }}"
+                       {%- if external %} target="_blank" rel="noopener"{% else %}{% if p_path != '' and p_path contains i_path %} class="active"{% endif %}{% endif %}>{{ item.title }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </aside>
+
+    <main class="main">
+        {{ content }}
+        <div class="doc-footer">
+            Your project is <a href="https://github.com/your-org/your-project">open source</a> -
+            site <a href="https://your-site.example.com/">your-site.example.com</a> -
+            <a href="https://your-site.example.com/terms">terms</a> -
+            <a href="https://your-site.example.com/privacy">privacy</a> -
+            made by <a href="https://your-site.example.com" target="_blank">your org</a>
+        </div>
+    </main>
+
+    <div class="search-modal" id="searchModal">
+        <div class="search-modal-content">
+            <input type="text" class="search-input" id="searchInput" placeholder="Search docs..." autocomplete="off">
+            <div class="search-results" id="searchResults"></div>
+        </div>
+        <button class="search-close" id="searchClose" aria-label="Close search">x</button>
+    </div>
+
+    <!-- pagefind loads via the dynamic await import() in doSearch() below - a
+         static <script src> classic tag throws "Cannot use 'import.meta' outside
+         a module" (pagefind 1.5.x contains import.meta) on every page. -->
+    <script>
+    // Theme switch (shared palette in both modes; see the CSS tokens).
+    document.getElementById('themeSwitch').addEventListener('click', function () {
+        var el = document.documentElement;
+        var next = el.dataset.theme === 'light' ? 'dark' : 'light';
+        el.dataset.theme = next;
+        try { localStorage.setItem('flowforge-theme', next); } catch (e) {}
+    });
+
+    // Sidebar (vant shape)
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.querySelector('.sidebar-overlay').classList.toggle('open');
+    }
+    function closeSidebar() {
+        document.getElementById('sidebar').classList.remove('open');
+        document.querySelector('.sidebar-overlay').classList.remove('open');
+    }
+
+    // Search (pagefind, vant shape). The index is built by the docs workflow;
+    // without it the modal reports honestly instead of pretending.
+    var searchTrigger = document.getElementById('searchTrigger');
+    var searchModal = document.getElementById('searchModal');
+    var searchInput = document.getElementById('searchInput');
+    var searchResults = document.getElementById('searchResults');
+    var searchClose = document.getElementById('searchClose');
+
+    async function doSearch(q) {
+        if (q.length < 2) { searchResults.innerHTML = ''; return; }
+        searchResults.innerHTML = '<div class="search-empty">Searching for "' + q + '"...</div>';
+        try {
+            var pagefind = await import('{{ site.baseurl }}/pagefind/pagefind.js');
+            await pagefind.init();
+            var resp = await pagefind.search(q);
+            if (resp.results.length === 0) {
+                searchResults.innerHTML = '<div class="search-empty">No results for "' + q + '"</div>';
+                return;
+            }
+            var html = '';
+            for (var i = 0; i < resp.results.length && i < 5; i++) {
+                var data = await resp.results[i].data();
+                html += '<a href="' + data.url + '" class="search-result">';
+                html += '<div class="search-result-title">' + data.meta.title + '</div>';
+                if (data.excerpt) html += '<div class="search-result-excerpt">' + data.excerpt + '</div>';
+                html += '</a>';
+            }
+            searchResults.innerHTML = html;
+        } catch (e) {
+            searchResults.innerHTML = '<div class="search-empty">Search index not available on this URL - run the docs deploy.</div>';
+        }
+    }
+
+    searchTrigger.addEventListener('click', function() {
+        searchModal.classList.add('open');
+        searchInput.focus();
+    });
+    searchClose.addEventListener('click', function() { searchModal.classList.remove('open'); });
+    searchModal.addEventListener('click', function(e) {
+        if (e.target === searchModal) searchModal.classList.remove('open');
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && searchModal.classList.contains('open')) searchModal.classList.remove('open');
+        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+            e.preventDefault();
+            searchModal.classList.add('open');
+            searchInput.focus();
+        }
+    });
+    searchInput.addEventListener('input', function() { doSearch(this.value); });
+    </script>
+</body>
+</html>

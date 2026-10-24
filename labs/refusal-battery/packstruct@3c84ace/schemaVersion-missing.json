@@ -2,7 +2,6 @@
   "id": "schemaVersion-missing",
   "dirName": "shape-pack",
   "manifest": {
-    "schemaVersion": 1,
     "name": "shape-pack",
     "version": "1.0.0",
     "entry": "probes-entry.js",

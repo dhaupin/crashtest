@@ -1,5 +1,5 @@
 {
-  "id": "armedByKey-empty",
+  "id": "armedByKey-non-string",
   "dirName": "shape-pack",
   "manifest": {
     "schemaVersion": 1,
@@ -7,7 +7,7 @@
     "version": "1.0.0",
     "entry": "probes-entry.js",
     "description": "battery base - clean otherwise",
-    "armedByKey": ""
+    "armedByKey": 7
   },
   "writeEntryFile": true,
   "expect": {

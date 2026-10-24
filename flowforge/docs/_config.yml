@@ -1,0 +1,27 @@
+# Jekyll config for YOUR docs - the flowforge rig shape (sibling of the
+# deployed struct-family docs). Replace the identity values, keep the engine
+# settings: kramdown + rouge (the code-block highlighter the shared token CSS
+# colors), permalink style, and the pagefind exclude list.
+title: Your Site
+baseurl: "/project" # set to the path your docs deploy under (e.g. GitHub Pages project path)
+url: "https://your-site.example.com"
+description: Plain two-sentence description of your project.
+
+markdown: kramdown
+highlighter: rouge
+permalink: :title
+
+# pretty = /path/ (with trailing slug); individual frontmatter overrides.
+exclude: ['README.md', 'Gemfile', 'Gemfile.lock', 'tmp', 'pagefind*']
+
+kramdown:
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    default_lang: plaintext
+    css_class: 'highlight'
+  toc_levels: [1, 2, 3, 4, 5, 6]
+  auto_ids: true
+  auto_id_prefix: ''
+
+plugins:
+  - jekyll-redirect-from

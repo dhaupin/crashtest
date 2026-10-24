@@ -1,0 +1,39 @@
+name: release
+
+# npm Trusted Publishing template (OIDC): NO publish tokens anywhere.
+# Release = bump version, commit, tag vX.Y.Z, push the tag. Provenance is
+# signed automatically by the attestation machinery (verifiable in the npm
+# UI / Sigstore log). If a tag-driven run fails and you need a retry,
+# re-push the tag - a failed run cannot be re-run directly:
+#   git push origin :refs/tags/vX.Y.Z && git push origin vX.Y.Z
+#
+# Adapt `on.push.tags` / the publish dir if your package is not at the repo
+# root. packageManager line: set to your actual package manager + version
+# (corepack reads it; keep it exact, npm@<version> is checked against
+# npm's internally-known fastpath list).
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  id-token: write   # REQUIRED for trusted publishing
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm-publish   # optional: gate releases behind an environment
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      # - name: Install + test (uncomment and tailor)
+      #   run: npm ci && npm test
+
+      - name: npm publish (OIDC - no token secret involved)
+        run: npm publish --provenance --access public

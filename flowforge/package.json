@@ -1,0 +1,41 @@
+{
+  "name": "flowforge",
+  "version": "0.9.0",
+  "type": "module",
+  "description": "flowforge - the shell the struct family ships sites from: landing + docs rig + CI/release plumbing, brand as data. Extracted with receipts from the deployed crashtest web/docs engine.",
+  "files": [
+    "web",
+    "docs",
+    "scripts",
+    ".github/workflows",
+    "labs",
+    "packs",
+    "AGENTS.md",
+    "CHANGELOG.md",
+    "DEPLOY.md",
+    "MANIFEST.md",
+    "README.md"
+  ],
+  "scripts": {
+    "check": "node --check scripts/check-docs-frontmatter.cjs && node --check scripts/check-docs-links.cjs && node --check scripts/check-docs-style.cjs && node --check scripts/check-fiction-signatures.cjs && node --check scripts/check-jekyll-filters.cjs",
+    "lint:docs": "node scripts/check-docs-frontmatter.cjs && node scripts/check-docs-links.cjs && node scripts/check-docs-style.cjs && node scripts/check-fiction-signatures.cjs && node scripts/check-jekyll-filters.cjs",
+    "build:web": "npm run build --prefix web"
+  },
+  "keywords": [
+    "boilerplate",
+    "shell",
+    "docs",
+    "jekyll",
+    "landing-page",
+    "prerender",
+    "react",
+    "vite",
+    "github-pages",
+    "cloudflare-pages"
+  ],
+  "author": "dhaupin",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}
