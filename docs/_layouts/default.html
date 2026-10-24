@@ -111,6 +111,17 @@
             border-radius: 8px; padding: 14px 16px; overflow-x: auto; font-size: 13px;
             line-height: 1.6; margin: 14px 0; }
         pre code { background: none; border: none; padding: 0; }
+        /* Rouge token colors - the output of kramdown/rouge is <div class="highlight">
+           wrapping token spans that carried NO color until now (every code block
+           rendered monochrome). Same vocabulary and palette as the landing
+           site's token block (web/src/styles.css), all riding the theme tokens
+           so the light theme re-tunes every token with no extra override. */
+        .highlight .k, .highlight .kd, .highlight .kr, .highlight .kc { color: var(--accent); }
+        .highlight .s, .highlight .s1, .highlight .s2 { color: var(--moss); }
+        .highlight .no, .highlight .mi, .highlight .mf, .highlight .mh { color: var(--accent-deep); }
+        .highlight .nt, .highlight .ge { color: var(--err); }
+        .highlight .gp, .highlight .gh { color: var(--ink-soft); font-weight: 600; }
+        .highlight .c, .highlight .c1, .highlight .cm, .highlight .cd { color: var(--ink-soft); font-style: italic; }
         blockquote { margin: 0 0 14px; padding: 12px 18px; color: var(--ink-soft);
             border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 8px 8px 0; }
         table { border-collapse: collapse; width: 100%; font-size: 13.5px; margin: 14px 0; }

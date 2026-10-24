@@ -161,6 +161,18 @@ html[data-theme="light"] .theme-switch .icon-sun { display: block; }
 .code .bad { color: var(--err); }
 .code .kw { color: var(--accent); }
 
+/* Syntax-highlighting tokens - the SAME class vocabulary and palette as the
+   docs' Rouge output (docs/_layouts/default.html carries the identical
+   block for .highlight). All colors ride the theme tokens, so the light
+   theme re-tunes every token in one place with no extra override block. */
+.code .k, .highlight .k, .highlight .kd, .highlight .kr, .highlight .kc { color: var(--accent); }
+.code .s, .highlight .s, .highlight .s1, .highlight .s2 { color: var(--moss); }
+.highlight .no { color: var(--accent-deep); }
+.highlight .mi, .highlight .mf, .highlight .mh { color: var(--accent-deep); }
+.highlight .nt, .highlight .ge { color: var(--err); }
+.highlight .gp, .highlight .gh { color: var(--ink-soft); font-weight: 600; }
+.highlight .c, .highlight .c1, .highlight .cm, .highlight .cd { color: var(--ink-soft); font-style: italic; }
+
 /* --- sections / cards --- */
 .section { padding: 34px 0; }
 .section h2 { font-size: 22px; margin: 0 0 6px; }

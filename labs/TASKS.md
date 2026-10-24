@@ -1792,6 +1792,16 @@ t  (ct_create_user/ct_grant_role/ct_reset_users whitelist helpers),
      the same 22px shield img (/icon.svg, the brand-logo class), so web +
      docs brands are identical - and the two icon.svg copies are verified
      byte-equal (web is the source, docs mirrors it).
+  5. **Shared syntax-highlight tokens (follow-up #2):** docs' Rouge
+     output (<div class="highlight"> token spans) carried NO color CSS
+     until now - every docs code block rendered monochrome. One shared
+     token palette lands in BOTH stylesheets (web/src/styles.css for
+     .code + .highlight, docs/_layouts/default.html for .highlight), same
+     class vocabulary, every color riding the theme tokens (keyword
+     amber, string/success moss, tag/warning err, comment ink-soft) so
+     the light theme re-tunes all of it with no extra override block.
+     The web terminal block gains real token spans (.k on the commands,
+     .cm on the comments) so both surfaces highlight identically.
   4. **The Liquid trap (crashtest#23 item 5):** scripts/check-jekyll-
      filters.cjs joins lint:docs - a two-argument call of a single-argument
      Liquid string filter (remove/remove_first/append/prepend/
