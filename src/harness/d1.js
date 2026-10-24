@@ -3,27 +3,31 @@
 //
 //   db.prepare(sql).bind(...params).run() / .first(col) / .all()
 //
-// Supported SQL subset (v0.2 - grew from v0.1 once real-relay run roots hit
-// the wall; grounded in issue #8's eight gistory relay statements):
-//   SELECT [DISTINCT] *|<expr-list> FROM t [WHERE ...] [ORDER BY col [ASC|DESC],...] [LIMIT ?|n [OFFSET ?|m]]
+// Supported SQL subset (v0.3 - grew from v0.2 for the issue #9 expansion):
+//   SELECT [DISTINCT] *|<expr-list> FROM t [JOIN t2 ON <cond>] [WHERE ...]
+//     [GROUP BY col, ... [HAVING <expr>]] [ORDER BY col|alias [ASC|DESC],...]
+//     [LIMIT ?|n [OFFSET ?|m]]
 //     expressions: `?` params (textual order), numbers, 'strings' ('' escapes),
 //       true/false, NULL, arithmetic (+ - * / %), comparisons (= != <> < > <= >=),
-//       AND / OR, IS [NOT] NULL, IN (?, ?, ...), CASE WHEN..THEN..[ELSE..]END,
-//       COALESCE(...), bare column refs, `excluded.<col>` (upserts only)
-//     aggregates (SELECT projections only, whole result set - no GROUP BY):
-//       MAX(col) MIN(col) COUNT(*) COUNT(col) SUM(col) AVG(col); `AS alias`
+//       AND / OR, IS [NOT] NULL, IN (?, ?, ...) and IN (SELECT ...) (depth-one,
+//       exactly one projection column), CASE WHEN..THEN..[ELSE..]END,
+//       COALESCE(...), bare + table-qualified (t.col) column refs,
+//       `excluded.<col>` (upserts only)
+//     scalar fns: UPPER LOWER LENGTH TRIM ABS
+//     aggregates (SELECT projections only): MAX MIN COUNT SUM AVG; `AS alias`
 //     (unaliased COUNT(*) keeps the v0.1 output key `count` - pinned contract)
-//     an INSERT..SELECT may omit FROM: bare aggregates scope over the INSERT
-//       target's own rows (the seq-allocator pattern; SQLite does the same)
-//   INSERT [OR IGNORE|REPLACE] INTO t (col, ...) VALUES (?, ...), (...)
-//     [ON CONFLICT(cols) DO NOTHING | DO UPDATE SET col = <expr>, ...]
-//   INSERT INTO t (col, ...) SELECT <expr-list> ...   (the seq-allocator shape)
-//   UPDATE t SET col = <expr>, col = <expr> WHERE ... (per-row exprs: CASE vs
-//     stored cols; all SET expressions read the row's ORIGINAL values)
-//   DELETE FROM t WHERE ...
-//   RETURNING col[, ...] on INSERT/UPDATE/DELETE (write .run()/.first()/.all()
-//     surface { results: [...], meta } when the statement has RETURNING)
-//   LIMIT ? / OFFSET ? bound by parameter
+//     deterministic fake-clock date fns (harness has ONE clock - every 'now'
+//       and default reads FAKE_CLOCK_EPOCH; same seed -> same output):
+//       UNIXEPOCH(v) DATETIME(v[,fmt]) JULIANDAY(v) STRFTIME(fmt,v)
+//     JSON fns: JSON_EXTRACT(js, path) JSON_TYPE(js) JSON_QUOTE(js)
+//     JOIN = one merge condition (t.col pairs or one bare shared key),
+//       INNER|LEFT|CROSS (RIGHT -> rewrite as LEFT; doc gap)
+//     GROUP BY takes plain column refs; ORDER BY may use projection ALIASES
+//     so the daily-rollup + status-board queries stop re-fanning in JS
+//   CREATE TABLE [IF NOT EXISTS] t (col TYPE [constraints], ...) and
+//   ALTER TABLE t ADD COLUMN name TYPE [NOT NULL] [DEFAULT <expr>]
+//     so the ensureSchema pattern runs pre-campaign like it does on real D1
+//   INSERT/UPDATE/DELETE/RETURNING/LIMIT ?/OFFSET ? (v0.2 semantics, unchanged)
 //
 // Upsert resolution (matches D1/SQLite): inside `ON CONFLICT(...) DO UPDATE
 // SET ...`, each expression reads the STORED row for bare column refs (at
@@ -32,12 +36,12 @@
 // across the whole statement (source first, then the DO UPDATE SET exprs).
 //
 // NOT supported (throw with a listed gap message so gaps surface in DISCOVER,
-// not mid-campaign): JOINs, subqueries (incl. WHERE x IN (SELECT ...)),
-// GROUP BY/HAVING, window functions, bare columns mixed with aggregates in
-// one projection, functions beyond COALESCE (unixepoch(), datetime(),
-// julianday(), json_extract()), NOT, lists-of-columns-less INSERT, quoted
-// identifiers, TRIGGERs, foreign keys, CREATE/ALTER TABLE, OR IGNORE|REPLACE
-// combined with an ON CONFLICT clause.
+// not mid-campaign): window functions, bare columns mixed with whole-set
+// aggregates in one projection, expressions in GROUP BY (plain cols only),
+// bare-aggregate HAVING, NOT, nested subqueries, month/year date modifiers,
+// quoted identifiers, TRIGGERs, foreign keys, DROP/RENAME (beyond ADD
+// COLUMN), lists-of-columns-less INSERT, RIGHT JOIN, JOIN-ON with params,
+// OR IGNORE|REPLACE combined with an ON CONFLICT clause.
 //
 // Behaviors that campaigns COUNT on (v0.1 contracts, unchanged):
 //   - declared UNIQUE constraints throw `UNIQUE constraint failed: t.col` on
@@ -75,38 +79,48 @@ function tokenize(src) {
   while (i < src.length) {
     const ch = src[i];
     if (/\s/.test(ch)) { i++; continue; }
-    if (ch === `'`) {
+    if (ch === `'` || ch === `"`) {
+      // single-quoted strings ('' escapes) + double-quoted strings (SQLite
+      // accepts both in expressions; JSON path literals arrive quoted)
       let j = i + 1, out = '';
       for (;;) {
         if (j >= src.length) throw new D1Error(`crashtest-fake-d1: unmatched quote in "${src}"`, { code: 'PARSE' });
-        if (src[j] === `'`) {
-          if (src[j + 1] === `'`) { out += `'`; j += 2; continue; }
+        // doubled-quote + backslash escapes are checked BEFORE the closer -
+        // they live on characters the closer test would otherwise swallow
+        if (ch === `"` && src[j] === '\\' && (src[j + 1] === `"` || src[j + 1] === '\\')) {
+          out += src[j + 1];
+          j += 2;
+          continue;
+        }
+        if (src[j] === ch) {
+          if (ch === `'` && src[j + 1] === `'`) { out += `'`; j += 2; continue; }
+          if (ch === `"` && src[j + 1] === `"`) { out += `"`; j += 2; continue; }
           break;
         }
         out += src[j++];
       }
-      toks.push({ t: 'str', v: out });
+      toks.push({ t: 'str', v: out, a: i });
       i = j + 1;
       continue;
     }
     if (/[0-9]/.test(ch) || (ch === '-' && /[0-9]/.test(src[i + 1] ?? ''))) {
       NUM_RE.lastIndex = i;
       const m = NUM_RE.exec(src);
-      toks.push({ t: 'num', v: Number(m[0]) });
+      toks.push({ t: 'num', v: Number(m[0]), a: i });
       i = NUM_RE.lastIndex;
       continue;
     }
-    if (ch === '?') { toks.push({ t: 'param' }); i++; continue; }
+    if (ch === '?') { toks.push({ t: 'param', a: i }); i++; continue; }
     if (/[A-Za-z_]/.test(ch)) {
       WORD_RE.lastIndex = i;
       const m = WORD_RE.exec(src);
-      toks.push({ t: 'word', v: m[0] });
+      toks.push({ t: 'word', v: m[0], a: i });
       i = WORD_RE.lastIndex;
       continue;
     }
-    if (ch === `(`) { toks.push({ t: 'punc', v: '(' }); i++; continue; }
-    if (ch === `)`) { toks.push({ t: 'punc', v: ')' }); i++; continue; }
-    if (ch === `,`) { toks.push({ t: 'punc', v: ',' }); i++; continue; }
+    if (ch === `(`) { toks.push({ t: 'punc', v: '(', a: i }); i++; continue; }
+    if (ch === `)`) { toks.push({ t: 'punc', v: ')', a: i }); i++; continue; }
+    if (ch === `,`) { toks.push({ t: 'punc', v: ',', a: i }); i++; continue; }
     const two = src.slice(i, i + 2);
     if (OPS2.includes(two)) { toks.push({ t: 'op', v: two }); i += 2; continue; }
     if ('=<>+-*/%'.includes(ch)) { toks.push({ t: 'op', v: ch }); i++; continue; }
@@ -133,8 +147,93 @@ const CMP_FNS = {
   '>=': (a, b) => a >= b,
 };
 
+// ---------- fake-clock date/JSON helpers (issue #9) ----------
+// The harness has ONE clock: FAKE_CLOCK_EPOCH. Date functions never touch
+// Date.now(); 'now' evaluates to that constant, so the same seed gives the
+// same output no matter when the campaign runs (determinism, house law 4).
+export const FAKE_CLOCK_EPOCH = 1770000000; // 2026-02-02T02:40:00Z
+
+function dateParts(epochSec) {
+  const d = new Date(epochSec * 1000);
+  const p = (n, w = 2) => String(n).padStart(w, '0');
+  return {
+    YYYY: String(d.getUTCFullYear()),
+    MM: p(d.getUTCMonth() + 1),
+    DD: p(d.getUTCDate()),
+    HH: p(d.getUTCHours()),
+    MI: p(d.getUTCMinutes()),
+    SS: p(d.getUTCSeconds()),
+    s: String(epochSec),
+    w: String(d.getUTCDay()),
+  };
+}
+
+function parseDateArg(raw) {
+  if (isNullVal(raw)) return null;
+  const s = String(raw).trim().toLowerCase();
+  if (s === 'now') return FAKE_CLOCK_EPOCH;
+  if (/^-?\d+(?:\.\d+)?$/.test(s)) return Number(s);
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[Tt ](\d{2}):(\d{2})(?::(\d{2}))?)?[Zz]?$/);
+  if (m) {
+    return Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4] ?? 0), Number(m[5] ?? 0), Number(m[6] ?? 0)) / 1000;
+  }
+  throw new D1Error(`crashtest-fake-d1: cannot parse date value "${String(raw).slice(0, 40)}" (fake engine reads ISO strings, unix seconds, or 'now' = the fixed harness clock)`, { code: 'PARSE' });
+}
+
+const MOD_SECONDS = { day: 86400, days: 86400, hour: 3600, hours: 3600, minute: 60, minutes: 60, second: 1, seconds: 1, week: 604800, weeks: 604800 };
+function applyDateMods(mods) {
+  if (mods == null) return 0;
+  const list = Array.isArray(mods) ? mods : [mods];
+  let total = 0;
+  for (const m of list) {
+    if (typeof m === 'number') { total += m; continue; }
+    const hit = String(m).trim().toLowerCase().match(/^([+-]?\d+(?:\.\d+)?)\s+([a-z]+)$/);
+    if (!hit) continue; // unknown modifier kinds are skipped (SQLite-lenient; documented)
+    if (hit[2].startsWith('month') || hit[2].startsWith('year')) {
+      throw new D1Error(`crashtest-fake-d1: unsupported date modifier "${m}" (month/year offsets need calendar arithmetic the fake engine does not model - use day/hour/minute/second)`, { code: 'UNSUPPORTED' });
+    }
+    total += Number(hit[1]) * (MOD_SECONDS[hit[2]] ?? 0);
+  }
+  return total;
+}
+
+/** STRFTIME-style output for DATETIME(v, fmt) / STRFTIME(fmt, v). Unknown %-codes pass through. */
+function fmtDatetime(fmt, epochSec) {
+  const p = dateParts(epochSec);
+  return String(fmt).replace(/%(.)/g, (_, c) =>
+    ({ Y: p.YYYY, m: p.MM, d: p.DD, H: p.HH, M: p.MI, S: p.SS, s: p.s, w: p.w, e: p.DD })[c] ?? `%${c}`);
+}
+
+const dateIso = (e) => { const p = dateParts(e); return `${p.YYYY}-${p.MM}-${p.DD} ${p.HH}:${p.MI}:${p.SS}`; };
+const isDateTimeFn = (n) => ['UNIXEPOCH', 'DATETIME', 'JULIANDAY', 'STRFTIME'].includes(n);
+
+/** JSON_EXTRACT path lookup ('$.a.b', '$[0]', bare 'a.b'); missing -> null. */
+function jsonPathGet(data, path) {
+  let cur = data;
+  const s = String(path ?? '').trim();
+  if (s !== '$') {
+    const raw = s.startsWith('$.') ? s.slice(2) : s.replace(/^\$/, '');
+    for (const part of raw.split(/[.\[\]]+/).filter(Boolean)) {
+      if (cur == null || typeof cur !== 'object') return null;
+      const key = /^-?\d+$/.test(part) ? Number(part) : part;
+      if (!(key in cur)) return null;
+      cur = cur[key];
+    }
+  }
+  return cur;
+}
+
+function jsonTypeOf(v) {
+  if (v === null) return 'null';
+  if (Array.isArray(v)) return 'array';
+  if (typeof v === 'object') return 'object';
+  if (typeof v === 'boolean') return 'true/false';
+  if (typeof v === 'number') return Number.isInteger(v) ? 'integer' : 'real';
+  return 'text';
+}
+
 function compileExpr(src, ctx) {
-  const { params, consumed, allowAgg, hasExcluded } = ctx;
+  const { params, consumed, allowAgg, hasExcluded, deferred, binding = { depth: 0, db: null } } = ctx;
   const toks = tokenize(src);
   let pos = 0;
   const peek = () => toks[pos];
@@ -183,14 +282,71 @@ function compileExpr(src, ctx) {
       } else if (wordIs(t, 'IN')) {
         next();
         expectPunc('(');
-        const items = [];
-        if (!(peek()?.t === 'punc' && peek().v === ')')) {
-          items.push(parseAdd());
-          while (eatPunc(',')) items.push(parseAdd());
+        if (peek()?.t === 'word' && peek().v.toUpperCase() === 'SELECT') {
+          // scalar IN (SELECT ...) subquery (issue #9): exactly one projection
+          // column, nesting depth 1, ?s rebind against the surrounding
+          // statement's textual order when the evaluator first runs it.
+          if (binding.depth >= 1) {
+            throw new D1Error(`crashtest-fake-d1: unsupported predicate in "${src}" (nested subqueries are a documented gap - flatten the two WHEREs into one)`, { code: 'UNSUPPORTED' });
+          }
+          const start = peek().a;
+          let opened = 1, endIdx = null;
+          for (let k = pos; k < toks.length; k++) {
+            if (toks[k].t === 'punc' && toks[k].v === '(') opened++;
+            else if (toks[k].t === 'punc' && toks[k].v === ')') {
+              opened--;
+              if (opened === 0) { endIdx = k; break; }
+            }
+          }
+          if (endIdx == null) {
+            throw new D1Error(`crashtest-fake-d1: cannot parse expression "${src}" (unterminated subquery - wants IN (SELECT ...))`, { code: 'PARSE' });
+          }
+          const subSrc = src.slice(start, toks[endIdx].a);
+          pos = endIdx + 1;
+          const preCount = consumed.v;
+          const subAst = parseStatement(subSrc);
+          subAst.__subDepth = binding.depth + 1; // the sub runs nested: its own IN(SELECT) must refuse
+          const boundArr = [];          const subBinding = { depth: 1, get db() { return binding.db; } };
+          // Count the subquery's own ?s (positional rebinding) and bump the
+          // outer consumption - the ast re-executes at eval time; no probe
+          // compile is needed (a SELECT is not an expression).
+          const subConsumed = { v: tokenize(subSrc).filter((tk) => tk.t === 'param').length };
+          consumed.v = preCount + subConsumed.v;
+          const l0 = l;
+          let primed = false;
+          l = (c) => {
+            const db = subBinding.db;
+            if (db == null) {
+              throw new D1Error(`crashtest-fake-d1: subquery in "${src.slice(0, 40)}" evaluated without a database scope (internal sink)`, { code: 'INTERNAL' });
+            }
+            if (preCount + subConsumed.v > params.length) {
+              throw new D1Error(`crashtest-fake-d1: subquery needs ${subConsumed.v} bound parameter(s) from position ${preCount + 1} but only ${params.length - preCount} were bound (${subSrc.slice(0, 40)})`, { code: 'NO_PARAM' });
+            }
+            if (!primed) {
+              for (let i = 0; i < subConsumed.v; i++) boundArr[i] = params[preCount + i];
+              primed = true;
+            }
+            const sub = execSelectRows(db, subAst, boundArr, null);
+            const vals = sub.map((row) => {
+              if (isNullVal(row)) return null;
+              if (Object.keys(row).length !== 1) {
+                throw new D1Error(`crashtest-fake-d1: scalar IN subquery must select exactly one column (got ${Object.keys(row).length}: ${subSrc.slice(0, 30)})`, { code: 'PARSE' });
+              }
+              return Object.values(row)[0];
+            });
+            const v = l0(c);
+            return vals.some((sv) => sv === v);
+          };
+        } else {
+          const items = [];
+          if (!(peek()?.t === 'punc' && peek().v === ')')) {
+            items.push(parseAdd());
+            while (eatPunc(',')) items.push(parseAdd());
+          }
+          expectPunc(')');
+          const l0 = l;
+          l = (c) => { const v = l0(c); return items.some(f => f(c) === v); };
         }
-        expectPunc(')');
-        const l0 = l;
-        l = (c) => { const v = l0(c); return items.some(f => f(c) === v); };
       } else if (t?.t === 'op' && t.v in CMP_FNS) {
         next();
         const r = parseAdd();
@@ -224,10 +380,10 @@ function compileExpr(src, ctx) {
   }
 
   const aggFns = {
-    MAX(rows, argFn) { const v = rows.map(r => argFn(ctxForRow(r))).filter(x => !isNullVal(x)); return v.length ? Math.max(...v) : null; },
-    MIN(rows, argFn) { const v = rows.map(r => argFn(ctxForRow(r))).filter(x => !isNullVal(x)); return v.length ? Math.min(...v) : null; },
-    SUM(rows, argFn) { const v = rows.map(r => argFn(ctxForRow(r))).filter(x => !isNullVal(x)); return v.length ? v.reduce((s, x) => s + numVal(x), 0) : null; },
-    AVG(rows, argFn) { const v = rows.map(r => argFn(ctxForRow(r))).filter(x => !isNullVal(x)); return v.length ? v.reduce((s, x) => s + numVal(x), 0) / v.length : null; },
+    MAX(rows, argFn) { const v = rows.map((r) => argFn(r)).filter((x) => !isNullVal(x)); return v.length ? Math.max(...v) : null; },
+    MIN(rows, argFn) { const v = rows.map((r) => argFn(r)).filter((x) => !isNullVal(x)); return v.length ? Math.min(...v) : null; },
+    SUM(rows, argFn) { const v = rows.map((r) => argFn(r)).filter((x) => !isNullVal(x)); return v.length ? v.reduce((s, x) => s + numVal(x), 0) : null; },
+    AVG(rows, argFn) { const v = rows.map((r) => argFn(r)).filter((x) => !isNullVal(x)); return v.length ? v.reduce((s, x) => s + numVal(x), 0) / v.length : null; },
   };
 
   function parsePrimary() {
@@ -336,8 +492,73 @@ function compileExpr(src, ctx) {
           };
         }
 
+        // scalar string/math functions (issue #9)
+        const SIMPLE_FNS = {
+          UPPER: (v) => (typeof v === 'string' ? v.toUpperCase() : v),
+          LOWER: (v) => (typeof v === 'string' ? v.toLowerCase() : v),
+          LENGTH: (v) => (typeof v === 'string' ? v.length : null),
+          TRIM: (v) => (typeof v === 'string' ? v.trim() : v),
+          ABS: (v) => (typeof v === 'number' ? Math.abs(v) : null),
+        };
+        if (SIMPLE_FNS[fname]) {
+          if (args.length !== 1) {
+            throw new D1Error(`crashtest-fake-d1: cannot parse literal "${src}" (${fname} takes one argument - got ${args.length})`, { code: 'PARSE' });
+          }
+          const f = SIMPLE_FNS[fname], a = args[0];
+          return (c) => {
+            const v = a(c);
+            return isNullVal(v) ? null : f(v);
+          };
+        }
+        // deterministic fake-clock date functions (issue #9): 'now' and
+        // defaults evaluate against FAKE_CLOCK_EPOCH - never Date.now()
+        if (isDateTimeFn(fname)) {
+          // SQLite allows ANY number of trailing modifier args:
+          //   DATETIME(v, '-1 day', '2 hours'...) / STRFTIME(fmt, v, mods...)
+          if (fname === 'STRFTIME' && args.length < 2) {
+            throw new D1Error(`crashtest-fake-d1: cannot parse literal "${src}" (STRFTIME wants STRFTIME(fmt, value [, modifier, ...]))`, { code: 'PARSE' });
+          }
+          if (fname !== 'STRFTIME' && args.length < 1) {
+            throw new D1Error(`crashtest-fake-d1: cannot parse literal "${src}" (${fname} wants ${fname}(value [, modifier, ...]))`, { code: 'PARSE' });
+          }
+          const fmtA = fname === 'STRFTIME' ? args[0] : null;
+          const valA = fname === 'STRFTIME' ? args[1] : args[0];
+          const modsA = fname === 'STRFTIME' ? args.slice(2) : args.slice(1);
+          return (c) => {
+            const fmt = fmtA ? fmtA(c) : null;
+            const base = parseDateArg(valA(c));
+            if (base == null) return null;
+            const epochSec = base + applyDateMods(modsA.map((m) => m(c)));
+            if (fname === 'UNIXEPOCH') return Math.floor(epochSec);
+            if (fname === 'JULIANDAY') return epochSec / 86400 + 2440587.5;
+            if (fname === 'DATETIME') return fmt ? fmtDatetime(fmt, epochSec) : dateIso(epochSec);
+            return fmtDatetime(fmt, epochSec); // STRFTIME
+          };
+        }
+        // JSON functions (issue #9): paths degrades to NULL per SQLite
+        if (fname === 'JSON_EXTRACT' || fname === 'JSON_TYPE' || fname === 'JSON_QUOTE') {
+          const need = fname === 'JSON_EXTRACT' ? 2 : 1;
+          if (args.length !== need) {
+            throw new D1Error(`crashtest-fake-d1: cannot parse literal "${src}" (${fname} takes ${need} argument${need === 1 ? '' : 's'})`, { code: 'PARSE' });
+          }
+          const arg0 = args[0];
+          const pathA = fname === 'JSON_EXTRACT' ? args[1] : null;
+          return (c) => {
+            const raw = arg0(c);
+            if (isNullVal(raw)) return null;
+            let data = raw;
+            if (fname !== 'JSON_QUOTE' && typeof data === 'string') {
+              try { data = JSON.parse(data); } catch { return null; }
+            }
+            if (pathA != null) data = jsonPathGet(data, pathA(c));
+            if (fname === 'JSON_TYPE') return jsonTypeOf(data);
+            if (fname === 'JSON_QUOTE') return JSON.stringify(data);
+            return data;
+          };
+        }
+
         // unknown function: keep the v0.1 gap message the pins rely on
-        throw new D1Error(`crashtest-fake-d1: cannot parse literal "${t.v}(...)" (unsupported function ${t.v}; supported: COALESCE + aggregates in SELECT projections)`, { code: 'PARSE' });
+        throw new D1Error(`crashtest-fake-d1: cannot parse literal "${t.v}(...)" (unsupported function ${t.v}; supported: COALESCE, UPPER, LOWER, LENGTH, TRIM, ABS, UNIXEPOCH, DATETIME, JULIANDAY, STRFTIME, JSON_EXTRACT, JSON_TYPE, JSON_QUOTE + aggregates in SELECT projections)`, { code: 'PARSE' });
       }
 
       // bare column ref
@@ -407,7 +628,7 @@ function compileProjection(src, params, consumed) {
     const fn = compileExpr(i.src, { params, consumed, allowAgg: isAggregate, hasExcluded: false });
     let key = i.alias ?? i.src;
     if (i.alias == null && COUNT_STAR_KEY.test(i.src.trim())) key = 'count';
-    return { fn, key };
+    return { fn, key, isAgg: AGG_RE.test(i.src) };
   });
   return { items, isAggregate };
 }
@@ -485,45 +706,184 @@ function checkUniques(db, table, candidateRow, excludeId = null) {
 }
 
 function execSelectRows(db, ast, params, fallbackTable = null) {
-  const table = db._table(ast.table ?? fallbackTable);
   const consumed = { v: 0 };
-  // Compile in TEXTUAL param order: the SELECT projection's ?s bind first,
-  // then the WHERE's, then LIMIT/OFFSET (D1 binds positionally by text).
+  const binding = { depth: ast.__subDepth ?? 0, db: null };
+
+  // ---- reference rows: a single table or a one-key JOIN pair (issue #9) ----
+  // FROM-less standalone SELECT (scalar/param projections only, SQLite
+  // compatible) evaluates against one empty row - v0.3 hosts it now that
+  // scalar date/JSON fns exist (bare column refs still parse-reject).
+  const fromLess = !ast.table && !fallbackTable;
+  const tableA = fromLess ? null : db._table(ast.table ?? fallbackTable);
+  const tableB = ast.join ? db._table(ast.join.table) : null;
+  const onFn = ast.join
+    ? compileExpr(ast.join.on, { params, consumed, allowAgg: false, hasExcluded: false, binding })
+    : null;
+
+  // Compile in TEXTUAL param order: the ON/projection/WHERE ?s bind first,
+  // then LIMIT/OFFSET (D1 binds positionally by text).
   let proj = null;
   if (ast.projection !== '*') {
     proj = compileProjection(ast.projection, params, consumed);
   }
+  const hasAgg = proj ? proj.isAggregate : false;
+  const groupKeyCols = Array.isArray(ast.groupBy) && ast.groupBy.length > 0
+    ? ast.groupBy.map((src) => {
+        const s2 = String(src).trim();
+        if (!/^[\w.]+$/.test(s2)) {
+          throw new D1Error(`crashtest-fake-d1: GROUP BY "${s2.slice(0, 30)}" (group keys are plain column refs only; arbitrary expressions are a documented gap)`, { code: 'PARSE' });
+        }
+        return s2;
+      })
+    : null;
+  if (ast.having && !groupKeyCols) {
+    throw new D1Error(`crashtest-fake-d1: HAVING requires GROUP BY (bare-aggregate HAVING is a documented gap)`, { code: 'PARSE' });
+  }
   const whereFn = ast.where && ast.where !== 'ALL'
-    ? compileExpr(ast.where, { params, consumed, allowAgg: false, hasExcluded: false })
+    ? compileExpr(ast.where, { params, consumed, allowAgg: false, hasExcluded: false, binding })
     : () => true;
+  const havingFn = ast.having
+    ? compileExpr(ast.having, { params, consumed, allowAgg: true, hasExcluded: false, binding })
+    : null;
+  binding.db = db; // IN (SELECT ...) subqueries resolve against the outer db
 
-  let matched = table.rows.filter(row => truthy(whereFn(ctxForRow(row))));
-
-  // ORDER BY on the raw matched rows (v0.1 parity: pre-projection), stable
-  // enough for the relay class; ORDER BY <expr> stays a documented gap.
-  if (ast.orderBy?.length) {
-    for (const { col, dir } of ast.orderBy.reverse()) {
-      matched = [...matched].sort((a, b) => {
-        const cmp = a[col] < b[col] ? -1 : a[col] > b[col] ? 1 : 0;
-        return dir === 'DESC' ? -cmp : cmp;
-      });
+  // joined rows are [{ a: leftRow, b: rightRow|null }] pairs (b = null for
+  // the LEFT-join no-match arm); contexts qualify tA./tB. refs and probe
+  // own-table-first for bare names (documented ambiguity fallback).
+  const matched = [];
+  if (ast.join?.kind === 'CROSS') {
+    for (const a of tableA.rows) {
+      for (const b of tableB.rows) {
+        const rc = rowCtx(a, b, tableA, tableB);
+        if (truthy(whereFn(rc))) matched.push({ p: { a, b }, rc });
+      }
+    }
+  } else if (tableB) {
+    for (const a of tableA.rows) {
+      let hit = false;
+      for (const b of tableB.rows) {
+        const rc = rowCtx(a, b, tableA, tableB);
+        if (truthy(onFn(rc)) && truthy(whereFn(rc))) {
+          matched.push({ p: { a, b }, rc });
+          hit = true;
+        }
+      }
+      if (ast.join.kind === 'LEFT' && !hit) {
+        const rc = rowCtx(a, null, tableA, tableB);
+        if (truthy(whereFn(rc))) matched.push({ p: { a, b: null }, rc });
+      }
+    }
+  } else if (!tableA) {
+    matched.push({ p: { a: null, b: null }, rc: rowCtx(null, null, null, null) }); // the one FROM-less row
+  } else {
+    for (const a of tableA.rows) {
+      const rc = rowCtx(a, null, tableA, null);
+      if (truthy(whereFn(rc))) matched.push({ p: { a, b: null }, rc });
     }
   }
 
-  let outRows;
-  if (!proj) {
-    outRows = matched.map(r => ({ ...r }));
+  // Emit the keyed output AND the positional __vals in one pass - the old
+  // v0.2 double-call re-evaluated every item fn, which would re-fire
+  // aggregate (row-pair) emitters per row and double-count SETs. Values are
+  // non-enumerable: invisible to JSON.stringify and Object.keys, so SELECT
+  // output shape stays byte-identical to a keyed row.
+  const emitRow = (rc, c) => {
+    const obj = {};
+    const vals = [];
+    for (const it of proj.items) {
+      const v = it.fn(it.isAgg && c ? c : rc);
+      obj[it.key] = v;
+      vals.push(v);
+    }
+    Object.defineProperty(obj, '__vals', { value: vals, enumerable: false, configurable: true });
+    return obj;
+  };
+
+  let orderItems = [];
+  if (groupKeyCols) {
+    // GROUP BY (issue #9): per-group rollup. Aggregation items scope over
+    // the group's rows; plain items read the group's FIRST row (SQLite
+    // semantics for bare columns next to aggregates).
+    const groups = new Map();
+    for (const { p, rc } of matched) {
+      const keyVals = groupKeyCols.map((c) => rc.get(c));
+      const key = JSON.stringify(keyVals);
+      if (!groups.has(key)) groups.set(key, { keyVals, members: [] });
+      groups.get(key).members.push({ p, rc });
+    }
+    const entries = [...groups.values()];
+    for (const g of havingFn
+      ? entries.filter((g2) => {
+          // HAVING ctx merges both evaluation modes: aggregate terms read
+          // c.set (scoped to THIS group), plain terms read the first row.
+          const hctx = { set: g2.members.map((m) => m.rc), get: g2.members[0].rc.get };
+          return truthy(havingFn(hctx));
+        })
+      : entries) {
+      let obj;
+      const firstRc = g.members[0].rc;
+      if (!proj) {
+        // SELECT * ... GROUP BY col: one row per key (first row's values)
+        const first = g.members[0].p;
+        obj = { ...(first.a ?? {}), ...(first.b ?? {}) };
+        orderItems.push({ out: obj, gKeyVals: g.keyVals });
+      } else if (hasAgg) {
+        const c = { set: g.members.map((m) => m.rc) };
+        obj = emitRow(firstRc, c);
+        orderItems.push({ out: obj, gKeyVals: g.keyVals });
+      } else {
+        obj = emitRow(firstRc, null);
+        orderItems.push({ out: obj, gKeyVals: g.keyVals });
+      }
+    }
+  } else if (hasAgg) {
+    const c = { set: matched.map((m) => m.rc) };
+    const obj = emitRow(null, c);
+    orderItems.push({ out: obj });
   } else {
-    outRows = proj.isAggregate
-      ? evalProjection(proj, matched)
-      : matched.map(row => evalProjection(proj, row));
-    if (ast.distinct) {
-      const seen = new Set();
-      outRows = outRows.filter(r => {
-        const key = JSON.stringify(r);
-        if (seen.has(key)) return false;
-        seen.add(key); return true;
+    for (const { p, rc } of matched) {
+      if (!proj) {
+        const obj = {};
+        Object.assign(obj, p.a ?? {}, p.b ?? {}); // SELECT * on a JOIN: right table wins duplicate names
+        orderItems.push({ out: obj, rc });
+      } else {
+        orderItems.push({ out: emitRow(rc, null), rc });
+      }
+    }
+  }
+
+  let outRows = orderItems.map((e) => e.out);
+  if (ast.distinct) {
+    const seen = new Set();
+    orderItems = orderItems.filter((e) => {
+      const key = JSON.stringify(e.out);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    outRows = orderItems.map((e) => e.out);
+  }
+
+  // ORDER BY (v0.3): multi-key, projection ALIASES, GROUP-BY key columns,
+  // and raw columns resolvable on the joined row - stable reproduction of
+  // the one-key v0.1 sort semantics.
+  if (ast.orderBy?.length) {
+    for (const { col, dir, src } of [...ast.orderBy].reverse()) {
+      const isPlain = src === col;
+      const srcFn = isPlain ? null : compileExpr(src, { params: [], consumed: { v: 0 }, allowAgg: false, hasExcluded: false });
+      orderItems.sort((x, y) => {
+        const keyOf = (e) => {
+          if (Object.prototype.hasOwnProperty.call(e.out, col)) return e.out[col];
+          if (e.gKeyVals && groupKeyCols.includes(col)) return e.gKeyVals[groupKeyCols.indexOf(col)];
+          if (srcFn) return srcFn({ get: (n) => (e.rc ? e.rc.get(n) : null) });
+          if (e.rc) return e.rc.get(col);
+          return null;
+        };
+        const a = keyOf(x), b = keyOf(y);
+        const cmp = a < b ? -1 : a > b ? 1 : 0;
+        return dir === 'DESC' ? -cmp : cmp;
       });
+      outRows = orderItems.map((e) => e.out);
     }
   }
 
@@ -540,6 +900,48 @@ function execSelectRows(db, ast, params, fallbackTable = null) {
 
 function execSelect(db, ast, params) {
   return execSelectRows(db, ast, params, null);
+}
+
+// ---------- CREATE TABLE / ALTER TABLE (issue #9: the ensureSchema pattern) ----------
+
+function execCreate(db, ast) {
+  const EMPTY = { meta: { changes: 0, last_row_id: null } };
+  db._counter?.increment('d1.ddl');
+  if (db._t.has(ast.table)) {
+    // re-running a migration stays honest: the flag that skipped it shows
+    if (ast.ifNotExists) return EMPTY;
+    throw new D1Error(`crashtest-fake-d1: table ${ast.table} already exists`, { code: 'TABLE_EXISTS' });
+  }
+  const uniques = new Map();
+  const declaredId = ast.columns.some((c) => c.name.toLowerCase() === 'id' && c.constraints.includes('PRIMARY KEY'));
+  for (const col of ast.columns) {
+    if (declaredId && col.name.toLowerCase() === 'id') continue; // the allocator is implicit
+    if (col.constraints.includes('UNIQUE')) uniques.set(`${ast.table}_${col.name}_unique`, [col.name]);
+  }
+  db._t.set(ast.table, {
+    name: ast.table,
+    rows: [],
+    nextId: 1,
+    uniques,
+    pureId: declaredId || undefined,
+    pureIdAgg: !declaredId || undefined,
+  });
+  return EMPTY;
+}
+
+function execAlter(db, ast) {
+  const table = db._table(ast.table);
+  db._counter?.increment('d1.ddl');
+  if (table.rows.some((r) => ast.column.name in r)) {
+    throw new D1Error(`crashtest-fake-d1: duplicate column name: ${ast.column.name}`, { code: 'PARSE' });
+  }
+  let backfill = null;
+  if (ast.column.defaultSrc != null) {
+    const fn = compileExpr(ast.column.defaultSrc, { params: [], consumed: { v: 0 }, allowAgg: false, hasExcluded: false });
+    backfill = serialize(fn({ get: () => undefined }));
+  }
+  for (const row of table.rows) row[ast.column.name] = backfill; // NOT NULL without DEFAULT backfills NULL (row-local dummy, like SQLite's admin path)
+  return { meta: { changes: table.rows.length, last_row_id: null } };
 }
 
 /** The INSERT..SELECT source path: SELECT over a real table (WHERE/order/limit apply). */
@@ -566,12 +968,13 @@ function candidatesFromSelect(db, ast, params) {
 function execInsert(db, ast, params) {
   const table = db._table(ast.table);
   const consumed = { v: 0 };
+  const binding = { depth: 0, db: null };
 
   // 1) Source rows (VALUES tuples or INSERT..SELECT), params bound textually.
   const candidates = [];
   if (ast.source.kind === 'values') {
     const compiled = ast.source.tuples.map(tuple =>
-      tuple.map(src => compileExpr(src, { params, consumed, allowAgg: false, hasExcluded: false })));
+      tuple.map(src => compileExpr(src, { params, consumed, allowAgg: false, hasExcluded: false, binding })));
     for (const cells of compiled) {
       const vals = cells.map(fn => fn({ get: () => undefined }));
       candidates.push(mkRow(table, ast.columns, vals.map(serialize)));
@@ -585,19 +988,19 @@ function execInsert(db, ast, params) {
         throw new D1Error(`crashtest-fake-d1: INSERT..SELECT column mismatch (${ast.columns.length} columns, ${ast.source.projSize} projections)`, { code: 'PARSE' });
       }
       const compiled = splitProjection(sel.projection).map(src =>
-        compileExpr(src, { params, consumed, allowAgg: false, hasExcluded: false }));
+        compileExpr(src, { params, consumed, allowAgg: false, hasExcluded: false, binding }));
       const vals = compiled.map(fn => serialize(fn({ get: () => undefined })));
-      candidates.push(mkRow(table, ast.columns, vals, false));
-    } else {
+      candidates.push(mkRow(table, ast.columns, vals, false));      } else {
       candidates.push(...candidatesFromSelect(db, ast, params));
     }
   }
+  binding.db = db; // value IN (SELECT ...) subqueries resolve against the outer db
 
   // 2) DO UPDATE assignments compile ONCE (textual params after the source).
   const setFns = ast.conflict?.action === 'UPDATE'
     ? ast.conflict.sets.map(s => ({
         col: s.col,
-        fn: compileExpr(s.src, { params, consumed, allowAgg: false, hasExcluded: true }),
+        fn: compileExpr(s.src, { params, consumed, allowAgg: false, hasExcluded: true, binding }),
       }))
     : null;
 
@@ -658,15 +1061,17 @@ function applyReturning(ast, returnRows, base) {
 function execUpdate(db, ast, params) {
   const table = db._table(ast.table);
   const consumed = { v: 0 };
+  const binding = { depth: 0, db: null };
   // Bind SET params FIRST - D1 binds positionally in textual order, so
   // `UPDATE t SET a=? WHERE b=?` must read params[0] for a, params[1] for b.
   const setFns = ast.set.map(s => ({
     col: s.col,
-    fn: compileExpr(s.src, { params, consumed, allowAgg: false, hasExcluded: false }),
+    fn: compileExpr(s.src, { params, consumed, allowAgg: false, hasExcluded: false, binding }),
   }));
   const whereFn = ast.where === 'ALL'
     ? () => true
-    : compileExpr(ast.where, { params, consumed, allowAgg: false, hasExcluded: false });
+    : compileExpr(ast.where, { params, consumed, allowAgg: false, hasExcluded: false, binding });
+  binding.db = db; // IN (SELECT ...) subqueries in SET/WHERE resolve here
   const targets = table.rows.filter(row => truthy(whereFn(ctxForRow(row))));
   if (!targets.length) return { meta: { changes: 0, last_row_id: null }, returnRows: [] };
 
@@ -690,9 +1095,11 @@ function execUpdate(db, ast, params) {
 function execDelete(db, ast, params) {
   const table = db._table(ast.table);
   const consumed = { v: 0 };
+  const binding = { depth: 0, db: null };
   const whereFn = ast.where === 'ALL'
     ? () => true
-    : compileExpr(ast.where, { params, consumed, allowAgg: false, hasExcluded: false });
+    : compileExpr(ast.where, { params, consumed, allowAgg: false, hasExcluded: false, binding });
+  binding.db = db; // WHERE uid IN (SELECT ...) resolves against the outer db
   const affected = table.rows.filter(r => truthy(whereFn(ctxForRow(r))));
   const affectedSet = new Set(affected);
   table.rows = table.rows.filter(r => !affectedSet.has(r));
@@ -726,37 +1133,200 @@ function wordAt(sql, i, kw) {
   return /[\W]/.test(before) && /[\W]/.test(after);
 }
 
+/** Row-pair context: qualified tA./tB. refs hit their own table (the NULL
+ * side of a LEFT join reads NULL); bare refs resolve own-table-first then
+ * the other. When both tables share a bare name the LEFT (first) table
+ * wins silently - SQLite would error "ambiguous column name"; the fake
+ * resolves deterministically instead (documented gap). */
+function rowCtx(a, b, tableA, tableB) {
+  const get = (name) => {
+    if (name.includes('.')) {
+      const dot = name.indexOf('.');
+      const prefix = name.slice(0, dot).toLowerCase();
+      const col = name.slice(dot + 1);
+      if (tableB && prefix === tableB.name.toLowerCase()) {
+        if (b == null) return null; // the LEFT-join unmatched arm reads NULL
+        if (!(col in b)) throw new D1Error(`crashtest-fake-d1: no such column: ${name} (columns of ${tableB.name}: ${Object.keys(b).join(', ')})`, { code: 'NO_COLUMN' });
+        return b[col];
+      }
+      if (tableA && prefix === tableA.name.toLowerCase()) {
+        if (a == null || !(col in a)) throw new D1Error(`crashtest-fake-d1: no such column: ${name} (columns of ${tableA.name}: ${tableA ? Object.keys(a ?? {}).join(', ') : ''})`, { code: 'NO_COLUMN' });
+        return a[col];
+      }
+      throw new D1Error(`crashtest-fake-d1: no such table prefix "${prefix}." in "${name}" (joined tables: ${tableA?.name ?? '?'}${tableB ? ` / ${tableB.name}` : ''})`, { code: 'NO_COLUMN' });
+    }
+    if (a && name in a) return a[name];
+    if (b && name in b) return b[name];
+    return null;
+  };
+  return { get };
+}
+
+/** The gap message for statement bodies the v0.3 subset does not parse. */
+function unsupportedSubset(s, why = 'v0.3 subset: SELECT/INSERT/UPDATE/DELETE/CREATE/ALTER - no window-funcs/NOT/nested-subquery/trigger/DROP-RENAME/quoted-identifiers') {
+  return new D1Error(`crashtest-fake-d1: unsupported statement: ${s.slice(0, 60)}... (${why})`, { code: 'UNSUPPORTED' });
+}
+
 /**
- * Parse a SELECT clause. `fallbackTable` lets an INSERT..SELECT omit FROM:
+ * CREATE TABLE [IF NOT EXISTS] / ALTER TABLE .. ADD COLUMN (issue #9): the
+ * ensureSchema pattern a run root speaks before the campaign queries run.
+ * A declared `id INTEGER PRIMARY KEY` becomes the seeded autoincrement
+ * allocator (FakeD1 seeds it implicitly, so an INSERT without the id
+ * column still gets a fresh id); UNIQUE column flags feed the same
+ * UNIQUE-constraint reading the seeded tables declare.
+ */
+export function parseDdl(sql) {
+  let m = sql.match(/^CREATE\s+TABLE\s+(IF\s+NOT\s+EXISTS\s+)?(\w+)\s*\(([\s\S]+)\)$/i);
+  if (m) {
+    const [, ineRaw, table, colText] = m;
+    const columns = splitProjection(colText).map((c) => {
+      const parts = c.trim().split(/\s+/);
+      const name = parts[0];
+      const type = (parts[1] && /^[A-Za-z]+$/.test(parts[1]) ? parts[1] : '').toUpperCase();
+      const rest = (type ? parts.slice(2) : parts.slice(1)).join(' ').toUpperCase();
+      const constraints = [];
+      if (rest.includes('PRIMARY KEY')) constraints.push('PRIMARY KEY');
+      if (rest.includes('NOT NULL')) constraints.push('NOT NULL');
+      if (/\bUNIQUE\b/.test(rest)) constraints.push('UNIQUE');
+      return { name, type, constraints };
+    });
+    return { verb: 'CREATE_TABLE', table, columns, ifNotExists: !!ineRaw };
+  }
+  m = sql.match(/^ALTER\s+TABLE\s+(\w+)\s+ADD\s+COLUMN\s+(\w+)\s*([\s\S]*)$/i);
+  if (m) {
+    const rawTail = (m[3] ?? '').trim();
+    const restParts = rawTail.split(/\s+/);
+    const rest = restParts.join(' ').toUpperCase();
+    if (rest.includes('NOT NULL') && !rest.includes('DEFAULT')) {
+      throw new D1Error(`crashtest-fake-d1: ALTER TABLE ${m[1]} ADD COLUMN ${m[2]} NOT NULL without DEFAULT (SQLite refuses it on a non-empty table)`, { code: 'PARSE' });
+    }
+    const dm = rawTail.match(/DEFAULT\s+([\s\S]+)$/i);
+    return {
+      verb: 'ALTER_TABLE',
+      table: m[1],
+      column: {
+        name: m[2],
+        type: (restParts[0] && /^[A-Za-z]+$/.test(restParts[0] ?? '') ? restParts[0] : '').toUpperCase(),
+        nullable: !rest.includes('NOT NULL'),
+        // keep the RAW literal: `'unset'` compiles as a string, `0` as a
+        // number - quote-stripping here would turn strings into bare
+        // column refs that eval to undefined
+        defaultSrc: dm ? dm[1].trim() : null,
+      },
+    };
+  }
+  return null;
+}
+
+/**
+ * Parse a SELECT clause (incl. GROUP BY/HAVING, one-key JOINs, multi-key
+ * ORDER BY - issue #9). `fallbackTable` lets an INSERT..SELECT omit FROM:
  * its bare aggregates scope over the INSERT target's own rows (the seq
  * allocator pattern - SQLite does the same). A standalone FROM-less SELECT
  * (outside INSERT..SELECT) stays an unsupported gap.
  */
 export function parseSelectClause(s, fallbackTable = null) {
   s = s.trim();
-  const m = s.match(/^SELECT\s+(DISTINCT\s+)?([\s\S]+?)(?:\s+FROM\s+([.\w]+))?(?:\s+WHERE\s+([\s\S]+?))?(?:\s+ORDER\s+BY\s+([\s\S]+?))?(?:\s+LIMIT\s+(\?|\d+)(?:\s+OFFSET\s+(\?|\d+))?)?$/i);
-  if (!m) {
-    throw new D1Error(
-      `crashtest-fake-d1: unsupported statement: ${s.slice(0, 60)}... (v0.2 subset: SELECT/INSERT/UPDATE/DELETE; no JOIN/subquery/GROUP BY/trigger/CREATE-ALTER)`,
-      { code: 'UNSUPPORTED' });
+
+  // peel the top-level clauses from the REAR LIMIT-first (LIMIT, then
+  // ORDER BY, then HAVING, then GROUP BY, then JOIN), so the base regex
+  // stays v0.2-simple over the head
+  let groupBy = null, having = null, orderBy = null, join = null;
+  let limitRaw = null, offsetRaw = null;
+  const limIdx = findTopWord(s, 'LIMIT');
+  if (limIdx > -1) {
+    const lim = s.slice(limIdx + 5).trim();
+    s = s.slice(0, limIdx).trim();
+    const m2 = lim.match(/^(\?|\d+)(?:\s+OFFSET\s+(\?|\d+))?$/i);
+    if (!m2) {
+      throw new D1Error(`crashtest-fake-d1: cannot parse literal "LIMIT ${lim.slice(0, 30)}" (wants LIMIT ?|n [OFFSET ?|m])`, { code: 'PARSE' });
+    }
+    limitRaw = m2[1];
+    offsetRaw = m2[2] ?? null;
   }
-  const [, distinctRaw, selector, table, where, orderBy, limit, offset] = m;
+  const obIdx = findTopWord(s, 'ORDER');
+  if (obIdx > -1) {
+    const after = s.slice(obIdx + 5);
+    if (!/^\s+BY/i.test(after)) {
+      throw new D1Error(`crashtest-fake-d1: cannot parse literal "${s.slice(0, 40)}" (bare ORDER, expected ORDER BY)`, { code: 'PARSE' });
+    }
+    orderBy = after.replace(/^\s+BY\s+/i, '').trim();
+    s = s.slice(0, obIdx).trim();
+  }
+  const hIdx = findTopWord(s, 'HAVING');
+  if (hIdx > -1) {
+    having = s.slice(hIdx + 6).trim();
+    s = s.slice(0, hIdx).trim();
+  }
+  const gbIdx = findTopWord(s, 'GROUP');
+  if (gbIdx > -1) {
+    const after = s.slice(gbIdx + 5);
+    if (!/^\s+BY/i.test(after)) {
+      throw new D1Error(`crashtest-fake-d1: cannot parse literal "${s.slice(0, 40)}" (bare GROUP, expected GROUP BY)`, { code: 'PARSE' });
+    }
+    const tail = after.replace(/^\s+BY\s+/i, '').trim();
+    groupBy = splitProjection(tail);
+    s = s.slice(0, gbIdx).trim();
+  }
+  if (having != null && !groupBy) {
+    throw new D1Error(`crashtest-fake-d1: HAVING requires GROUP BY (bare-aggregate HAVING is a documented gap)`, { code: 'UNSUPPORTED' });
+  }
+  const jIdx = findTopWord(s, 'JOIN');    if (jIdx > -1) {
+    const kindM = /\b(LEFT\s+(?:OUTER\s+)?|RIGHT\s+(?:OUTER\s+)?|INNER\s+|CROSS\s+)$/i.exec(s.slice(0, jIdx));
+    const kind = kindM ? kindM[1].replace(/\s+/g, ' ').trim().toUpperCase() : 'INNER';
+    if (kind.startsWith('RIGHT')) {
+      throw unsupportedSubset(s, 'RIGHT JOIN is not modeled (rewrite as a LEFT JOIN with the tables swapped)');
+    }
+    const after = s.slice(jIdx + 4).trim();
+    // a trailing WHERE belongs to the head, not the ON condition - peel it
+    // back out before locating ON (an ON expression may legitimately START
+    // with the word "where" in a string; findTopWord skips those).
+    const wIdx = findTopWord(after, 'WHERE');
+    const onText = wIdx > -1 ? after.slice(0, wIdx).trim() : after;
+    const whereTail = wIdx > -1 ? after.slice(wIdx) : null;
+    const headBase = s.slice(0, kindM ? kindM.index : jIdx).trim();
+    const onIdx = findTopWord(onText, 'ON');
+    if (onIdx === -1) {
+      throw new D1Error(`crashtest-fake-d1: cannot parse literal "${s.slice(0, 40)}" (wants: [INNER|LEFT [OUTER]|CROSS] JOIN t2 ON <expr>)`, { code: 'PARSE' });
+    }
+    const t2 = onText.slice(0, onIdx).trim();
+    if (!/^[\w.]+$/.test(t2)) {
+      throw unsupportedSubset(s, 'JOIN target must be a bare table name');
+    }
+    join = { table: t2, kind, on: onText.slice(onIdx + 2).trim() };
+    // re-attach the peeled WHERE (and strip the JOIN + kind word) into the head
+    s = (whereTail ? `${headBase} ${whereTail.trim()}` : headBase).trim();
+  }
+
+  const m = s.match(/^SELECT\s+(DISTINCT\s+)?([\s\S]+?)(?:\s+FROM\s+([.\w]+))?(?:\s+WHERE\s+([\s\S]+))?$/i);
+  if (!m) {
+    throw unsupportedSubset(s, 'v0.3 subset: SELECT/INSERT/UPDATE/DELETE/CREATE/ALTER - one JOIN, one subquery depth (no table aliases/multi-hops/subquery-FROM/compound SELECT)');
+  }
+  const [, distinctRaw, selector, table, where] = m;
   if (!table) {
     // A top-level FROM that did not parse into the FROM-group means trailing
-    // grammar the subset does not accept (table aliases, JOINs, ...).
+    // grammar the subset does not accept (table aliases, subquery FROM, ...).
     if (findTopWord(s, 'FROM') > -1) {
-      throw new D1Error(
-        `crashtest-fake-d1: unsupported statement: ${s.slice(0, 60)}... (v0.2 subset: SELECT/INSERT/UPDATE/DELETE; no JOIN/subquery/GROUP BY/trigger/CREATE-ALTER)`,
-        { code: 'UNSUPPORTED' });
+      throw unsupportedSubset(s, 'table aliases / multi-table FROM / subquery-FROM stay unsupported (join with JOIN ... ON)');
     }
     // Real SQLite semantics (verified against node:sqlite): a FROM-less
     // SELECT with bare column refs errors `no such column: seq`. Pure
     // param/literal projections (`SELECT ?, ?` inside INSERT..SELECT) are
     // legal - exactly one row.
-    const refWord = tokenize(selector.trim()).find(t =>
-      t.t === 'word'
-      && !['NULL', 'TRUE', 'FALSE', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END', 'COALESCE', 'MAX', 'MIN', 'COUNT', 'SUM', 'AVG'].includes(t.v.toUpperCase())
-      && !t.v.includes('.'));
+    const refWord = (() => {
+      const toks = tokenize(selector.trim());
+      for (let i = 0; i < toks.length; i++) {
+        const t = toks[i];
+        if (t.t !== 'word' || t.v.includes('.')) continue;
+        if (i > 0) {
+          const p = toks[i - 1];
+          if (p.t === 'word' && p.v.toUpperCase() === 'AS') continue; // aliases are not refs
+        }
+        if (['NULL', 'TRUE', 'FALSE', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END', 'AS', 'ASC', 'DESC', 'COALESCE', 'MAX', 'MIN', 'COUNT', 'SUM', 'AVG', 'UPPER', 'LOWER', 'LENGTH', 'TRIM', 'ABS', 'UNIXEPOCH', 'DATETIME', 'JULIANDAY', 'STRFTIME', 'JSON_EXTRACT', 'JSON_TYPE', 'JSON_QUOTE', 'SELECT', 'FROM', 'WHERE'].includes(t.v.toUpperCase())) continue;
+        return t;
+      }
+      return null;
+    })();
     if (refWord) {
       throw new D1Error(`crashtest-fake-d1: no such column: ${refWord.v} (FROM-less SELECT has no column scope; SQLite errors the same way)`, { code: 'NO_COLUMN' });
     }
@@ -764,7 +1334,10 @@ export function parseSelectClause(s, fallbackTable = null) {
   const orderByList = orderBy
     ? splitProjection(orderBy).map(chunk => {
         const parts = chunk.trim().split(/\s+/);
-        return { col: parts[0], dir: (parts[1] || 'ASC').toUpperCase() };
+        const src = (parts.length > 1 && ['ASC', 'DESC'].includes(String(parts[1]).toUpperCase()))
+          ? parts[0]
+          : chunk.trim();
+        return { col: parts[0], dir: (parts[1] || 'ASC').toUpperCase(), src };
       })
     : null;
   return {
@@ -773,18 +1346,26 @@ export function parseSelectClause(s, fallbackTable = null) {
     projection: selector.trim(),
     table: table ?? fallbackTable,
     fromLess: !table,
+    join,
+    groupBy,
+    having,
     where: where ? where.trim() : 'ALL',
     orderBy: orderByList,
-    limit: limit != null && limit !== '?' ? Number(limit) : null,
-    limitRaw: limit ?? null,
-    offset: offset != null && offset !== '?' ? Number(offset) : null,
-    offsetRaw: offset ?? null,
+    limit: limitRaw != null && limitRaw !== '?' ? Number(limitRaw) : null,
+    limitRaw: limitRaw ?? null,
+    offset: offsetRaw != null && offsetRaw !== '?' ? Number(offsetRaw) : null,
+    offsetRaw: offsetRaw ?? null,
   };
 }
 
 export function parseStatement(sql) {
   const s = sql.trim().replace(/;\s*$/, '');
 
+  if (/^(CREATE|ALTER)\b/i.test(s)) {
+    const ast = parseDdl(s);
+    if (!ast) throw unsupportedSubset(s, 'DDL beyond CREATE TABLE [IF NOT EXISTS] t (cols) / ALTER TABLE t ADD COLUMN col TYPE [NOT NULL] [DEFAULT <expr>] is a documented gap');
+    return ast;
+  }
   if (/^SELECT\s+/i.test(s)) return parseSelectClause(s);
 
   // strip a top-level RETURNING clause first (INSERT/UPDATE/DELETE may carry it)
@@ -863,9 +1444,9 @@ export function parseStatement(sql) {
     return { verb: 'DELETE', table, where: where ? where.trim() : 'ALL', returning };
   }
 
-  throw new D1Error(
-    `crashtest-fake-d1: unsupported statement: ${s.slice(0, 60)}... (v0.2 subset: SELECT/INSERT/UPDATE/DELETE; no JOIN/subquery/GROUP BY/trigger/CREATE-ALTER)`,
-    { code: 'UNSUPPORTED' });
+  throw unsupportedSubset(
+    s,
+    'v0.3 subset: SELECT/INSERT [OR IGNORE|REPLACE]/UPDATE/DELETE/CREATE/ALTER + RETURNING/ON CONFLICT/LIMIT ? - everything else (window-funcs, NOT, nested subqueries, triggers, DROP/RENAME, quoted identifiers) throws like this');
 }
 
 // ---------- the fake D1 ----------
@@ -952,6 +1533,14 @@ class FakeStatement {
       case 'DELETE': {
         const res = execDelete(this.db, ast, this._params);
         return ast.returning ? applyReturning(ast, res.returnRows, res) : { meta: res.meta };
+      }
+      case 'CREATE_TABLE': {
+        const res = execCreate(this.db, ast);
+        return { meta: res.meta };
+      }
+      case 'ALTER_TABLE': {
+        const res = execAlter(this.db, ast);
+        return { meta: res.meta };
       }
       default: throw new D1Error(`unhandled verb ${ast.verb}`, { code: 'INTERNAL' });
     }

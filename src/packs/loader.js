@@ -283,12 +283,12 @@ export function applyPackSeed(packs, env) {
       for (const [key, value] of Object.entries(entries)) {
         const stored = typeof value === 'string' ? value : JSON.stringify(value);
         if (bind._store.has(key)) {
-          if (bind._store.get(key) !== stored) {
+          if (bind._store.get(key)?.value !== stored) {
             throw new Error(`pack "${pack}" env.seed: kv[${binding}].${key} is already set by the run root with different content - env.seed may not overwrite run-root state`);
           }
           continue;
         }
-        bind._store.set(key, stored);
+        bind._store.set(key, { value: stored, metadata: null, expiresAt: null });
       }
     }
     for (const [binding, tables] of Object.entries(seed.d1 ?? {})) {

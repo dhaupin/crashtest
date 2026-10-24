@@ -7,6 +7,35 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.0.1 (unreleased)
 
+- faked1 v0.3 + fakekv v0.2 (issue #9, the ranked breadth gap list the
+  vant census measured):
+  - SQL: `IN (SELECT ...)` subqueries (depth one, exactly one projection
+    column, subquery `?`s rebind against the surrounding statement's
+    textual order), one-key INNER/LEFT/CROSS JOINs (table-qualified or
+    bare shared-key ON; RIGHT JOIN stays a loud rewrite hint),
+    GROUP BY/HAVING (plain column group keys; bare-aggregate HAVING stays
+    a named gap), aggregates scoped per-group with the bare columns of
+    the group's first row, multi-key ORDER BY (projection aliases +
+    group-key columns + raw refs), FROM-less scalar SELECT, and scalar
+    functions (UPPER/LOWER/LENGTH/TRIM/ABS). `CREATE TABLE [IF NOT
+    EXISTS]` / `ALTER TABLE ADD COLUMN` (the ensureSchema pattern -
+    declared UNIQUE column flags feed the standard constraint reading,
+    DEFAULT backfills existing rows, NOT NULL without DEFAULT stays
+    loud). The v0.2 relay contracts (UNIQUE message shape, meta shape,
+    counters, batch partial-apply, `count` key for unaliased COUNT(*))
+    carry over untouched in d1-v02.test.js.
+  - fake-clock date functions: UNIXEPOCH/DATETIME/JULIANDAY/STRFTIME read
+    ONE fixed epoch (FAKE_CLOCK_EPOCH; 'now' = that constant) - the v1.0
+    determinism law holds: same seed, same rows, no Date.now anywhere.
+    Day/hour/minute/second/week modifiers compose; month/year stay named
+    gaps. JSON: JSON_EXTRACT (paths degrade to NULL), JSON_TYPE,
+    JSON_QUOTE; double-quoted string literals now tokenize.
+  - FakeKV: deterministic TTLs (expiration/expirationTtl against the same
+    fixed clock; expired keys read as NOT PRESENT and vanish from
+    listings), getWithMetadata (metadata + expiration parity), and honest
+    cursor pagination (real name-position cursor, list_complete only when
+    true) + a loud per-value size cap (Workers-KV 25 MiB default).
+  Teeth: test/harness/d1-v03.test.js + test/harness/kv-v02.test.js.
 - the snapshot-diff oracle (issue #13 crate-tooling blocker 2):
   `harness.snapshotStore()` copies every fake binding's state
   (FakeD1.snapshot() per binding + the new FakeKV.snapshot()) and

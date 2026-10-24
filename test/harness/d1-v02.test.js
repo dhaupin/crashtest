@@ -276,7 +276,10 @@ test('v0.2 contract: unaliased COUNT(*) keeps the key `count`; MIN/SUM/AVG land'
 test('v0.2 contract: unsupported SQL stays loud naming the gap', async () => {
   const db = relayDb();
   await assert.rejects(db.prepare('SELECT * FROM chains c JOIN devices d ON 1=1').all(), /unsupported statement/);
-  await assert.rejects(db.prepare('INSERT INTO chains (name) VALUES (upper(id)) WHERE id > 1').run(), /cannot parse literal|unsupported/);
+  // repin (v0.3): upper() is supported now, so this malformed statement fails
+  // one parse step later - as "cannot parse expression ... (trailing tokens)"
+  // instead of the v0.2 "cannot parse literal ... (unsupported function)".
+  await assert.rejects(db.prepare('INSERT INTO chains (name) VALUES (upper(id)) WHERE id > 1').run(), /cannot parse|unsupported/);
   await assert.rejects(db.prepare('SELECT MAX(seq) OVER (ORDER BY id) FROM blobs').all(), /unsupported statement|cannot parse/);
   await assert.rejects(
     db.prepare('UPDATE blobs SET seq = MAX(seq) WHERE id = 1').run(),

@@ -72,7 +72,7 @@ test('harness integration: snapshotStore + diffSnapshots grade what the STORE di
   });
   harness._counter = counter; // observable
   const before = harness.snapshotStore();
-  harness.env.UPLOADS._store.set('b', '2');
+  harness.env.UPLOADS._store.set('b', { value: '2', metadata: null, expiresAt: null });
   harness.env.DB._t.get('notes').rows.push({ id: 2, name: 'y' });
   const after = harness.snapshotStore();
   const diff = harness.diffSnapshots(before, after);

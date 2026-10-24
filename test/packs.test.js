@@ -300,14 +300,14 @@ test('applyPackSeed: kv absent-or-identical, d1 seed tables NEW only, no counter
   // kv: absent keys set (non-strings JSON-stringify like buildEnv)
   const kv = new FakeKV('UPLOADS');
   applyPackSeed(pack({ kv: { UPLOADS: { canary: 'v1', obj: { a: 1 } } } }), { UPLOADS: kv });
-  assert.equal(kv._store.get('canary'), 'v1');
-  assert.equal(kv._store.get('obj'), JSON.stringify({ a: 1 }));
+  assert.equal(kv._store.get('canary')?.value, 'v1');
+  assert.equal(kv._store.get('obj')?.value, JSON.stringify({ a: 1 }));
   // identical values are a no-op (idempotent re-apply)
   applyPackSeed(pack({ kv: { UPLOADS: { canary: 'v1', obj: { a: 1 } } } }), { UPLOADS: kv });
-  assert.equal(kv._store.get('canary'), 'v1');
+  assert.equal(kv._store.get('canary')?.value, 'v1');
   // differing values fail loudly, naming the pack + binding + key
   const other = new FakeKV('UPLOADS');
-  other._store.set('canary', 'run-root-wrote-this');
+  other._store.set('canary', { value: 'run-root-wrote-this', metadata: null, expiresAt: null });
   assert.throws(
     () => applyPackSeed(pack({ kv: { UPLOADS: { canary: 'v1' } } }), { UPLOADS: other }),
     /pack "seed-pack" env\.seed: kv\[UPLOADS\]\.canary .* with different content/,

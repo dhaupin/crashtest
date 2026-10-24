@@ -1635,3 +1635,43 @@ t  (ct_create_user/ct_grant_role/ct_reset_users whitelist helpers),
 - Teeth: test/harness/diff.test.js (5 pins incl. determinism + harness
   integration + no-tick). Docs: scenario-contract #4 subsection. Suite
   252/252 after this lane.
+
+### 2026-10-23 - issues #9 + #13 closed: faked1 v0.3 + fakekv v0.2, the two-pod broker, expectation tables
+- faked1 v0.3 (issue #9's ranked breadth list, measured from the vant
+  census): `IN (SELECT ...)` subqueries (depth one, one projection column,
+  subquery ?s rebind against the surrounding statement's textual order),
+  one-key INNER/LEFT/CROSS JOINs (qualified or bare shared-key ON; RIGHT
+  JOIN stays a loud rewrite hint), GROUP BY/HAVING (plain-column group
+  keys; bare-aggregate HAVING a named gap; agg + first-row bare cols),
+  multi-key ORDER BY (aliases + group-key cols + raw refs), FROM-less
+  scalar SELECT, scalar fns (UPPER/LOWER/LENGTH/TRIM/ABS), fake-clock
+  date fns (UNIXEPOCH/DATETIME/JULIANDAY/STRFTIME on ONE fixed epoch -
+  FAKE_CLOCK_EPOCH; month/year modifiers stay named gaps), JSON fns
+  (EXTRACT/TYPE/QUOTE; doubles now tokenize for path literals), and
+  CREATE TABLE [IF NOT EXISTS] / ALTER TABLE ADD COLUMN (ensureSchema:
+  UNIQUE column flags feed the standard constraint reading, DEFAULT
+  backfills, NOT NULL without DEFAULT loud). v0.2 relay contracts carry
+  over untouched (d1-v02.test.js re-pinned; the `upper('x')` gap-pin moved
+  because the function landed).
+- fakekv v0.2: deterministic TTLs (expiration/expirationTtl against the
+  same fixed clock; expired = NOT PRESENT, scrubbed from listings),
+  getWithMetadata (metadata + expiration parity), honest cursor
+  pagination (real name-position cursor; list_complete true only when
+  true), loud per-value size cap (25 MiB KV default). Store shape is now
+  records { value, metadata, expiresAt } - applyPackSeed + tests swept.
+- Issue #13 blockers 1 + 4 landed, closing the census blocker list:
+  (1) `buildPods({ routes, pods, shared })` in src/harness/pods.js - two
+  or more declarative env specs as independent Harnesses sharing ONE
+  route table, the SAME fake binding instance across declared shared
+  seams (cross-talk by construction, no sockets), and cross-pod
+  `diff(a, b)`/`snapshot(name)` riding the blocker 2 comparator. (4)
+  `evalExpectations(rows, expected, { scopeName })` +
+  `renderExpectationResult` in src/expectations.js - the table-is-
+  complete property as a validator: dup table rows and identity-less
+  records fail at cause; flipped verdicts / uncovered rows / extra rows
+  all name both sides; deterministic sorted output.
+- Teeth: test/harness/d1-v03.test.js (20 rows) + test/harness/kv-v02.test.js
+  (7) + test/harness/pods.test.js (6: two-pod cross-talk, cross-pod diff,
+  loud gaps, expectation pass/flip/missing/extra/dup). Docs: run-roots
+  playbook v0.3 section + test links; changelog 1.0.1 entry. Suite 285/285
+  (was 252).

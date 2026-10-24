@@ -14,10 +14,14 @@ export function buildEnv(spec, counter) {
   const env = {};
 
   for (const [ns, def] of Object.entries(spec.kv ?? {})) {
-    env[ns] = new FakeKV(ns, counter);
+    env[ns] = new FakeKV(ns, counter, def?.opts ?? {});
     // Convenience seeding for takeover/secret-variant campaigns.
     for (const [k, v] of Object.entries(def?.seed ?? {})) {
-      env[ns]._store.set(k, typeof v === 'string' ? v : JSON.stringify(v));
+      env[ns]._store.set(k, {
+        value: typeof v === 'string' ? v : JSON.stringify(v),
+        metadata: null,
+        expiresAt: null,
+      });
     }
   }
 

@@ -65,6 +65,16 @@
   new SQL, unique-error shape (this one IS the contract), CREATE/ALTER.
   FakeKV: honest `list_complete: false` + cursor pagination, deterministic
   fake clock for TTLs, value-size cap, `get()` metadata parity.
+  **DONE 2026-10-23**: faked1 v0.3 + fakekv v0.2 - IN(SELECT) subqueries
+  (depth one, textual param rebind), one-key INNER/LEFT/CROSS JOINs,
+  GROUP BY/HAVING + aliased/multi-key ORDER BY, scalar fns + fake-clock
+  date fns (FAKE_CLOCK_EPOCH - no wall clock) + JSON fns, CREATE TABLE
+  [IF NOT EXISTS] / ALTER ADD COLUMN (ensureSchema), FakeKV TTLs /
+  getWithMetadata / honest cursor pagination / loud size cap; the v0.2
+  relay contracts carry over untouched (d1-v02.test.js re-pins). Batch()
+  + explicit transactions stay out (batch honesty already pinned; BEGIN
+  -shaped transactions have no census demand). Teeth:
+  test/harness/d1-v03.test.js + kv-v02.test.js.
 
 ### Lane 3 - harness primitives (the "crate tooling" lane)
 - **#14 chaining**: additive step-scoped attack shape (`steps: [...]`,
@@ -113,6 +123,20 @@ crashtest run is stability-green on both).
      sources (config scenarioDirs + packs roots, or explicit dirs) for the
      wall-clock / randomness token family; findings exit 2 naming
      file:line (src/lint.js, test/lint-determinism.test.js).
+   - **blocker 1 DONE 2026-10-23**: the two-pod fixture broker -
+     `buildPods({ routes, pods, shared })` (src/harness/pods.js): stages
+     2+ declarative env specs as independent Harnesses sharing ONE route
+     table, wires the SAME fake binding instance across declared
+     `shared` seams (cross-talk by construction, no sockets - one law
+     holds), and bridges `run/pod/snapshot` + the blocker 2 comparator
+     for cross-pod `diff(a, b)` grading. Teeth: test/harness/pods.test.js.
+   - **blocker 4 DONE 2026-10-23**: expectation tables as data -
+     `evalExpectations(rows, expected, { scopeName })` +
+     `renderExpectationResult` (src/expectations.js): the table-is-
+     complete property as a validator - dup table rows and identity-less
+     records fail loudly at cause; flipped verdicts (status 'verdict'),
+     uncovered rows ('missing') and extra rows ('extra') all name both
+     sides; deterministic sorted output. Teeth: test/harness/pods.test.js.
 
 ## Build order agreed
 

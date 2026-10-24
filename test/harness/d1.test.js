@@ -92,7 +92,10 @@ test('DELETE + meta.changes', async () => {
 test('unsupported SQL throws with a gap-naming message (DISCOVER will catch)', async () => {
   const { db } = mkdb(USERS);
   await assert.rejects(db.prepare('SELECT u.id FROM users u JOIN roles r ON 1=1').all(), /unsupported statement/);
-  await assert.rejects(db.prepare("INSERT INTO users (name) VALUES (upper('x'))").run(), /cannot parse literal/);
+  // repin (v0.3): scalar fns landed, so the fn-gap pin moved to one that
+  // STAYS unsupported; the v0.2 `upper('x')` statement now runs.
+  await assert.rejects(db.prepare("INSERT INTO users (name) VALUES (date('now'))").run(), /cannot parse literal/);
+  assert.ok(true, 'INSERT .. VALUES (upper(..)) is now accepted by v0.3 (pinned in d1-v03.test.js)');
 });
 
 test('op counters tick: query + materialized rows', async () => {

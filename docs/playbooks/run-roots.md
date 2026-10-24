@@ -113,19 +113,26 @@ directory of artifacts is.
 
 ## 4. When your handler speaks real SQL (the node:sqlite fixture)
 
-The built-in `FakeD1` speaks a real SQL subset (v0.2) - SELECT with the
+The built-in `FakeD1` speaks a real SQL subset (v0.3) - SELECT with the
 expression grammar (CASE, arithmetic, COALESCE, comparisons, `IS NULL`,
-`IN`, aliases), aggregates with whole-result-set scope, `INSERT OR
-IGNORE|REPLACE`, `ON CONFLICT(...) DO NOTHING|DO UPDATE` upserts with
-`excluded.*`, `INSERT..SELECT` (the seq-allocator shape), `RETURNING`, and
-`LIMIT ?/OFFSET ?` bound params - plus the behavior contracts campaigns
-depend on (`UNIQUE constraint failed: t.col`, `{meta:{changes,last_row_id}}`,
+params-bound `IN`, `IN (SELECT ...)` subqueries at depth one, aliases),
+scalar functions (UPPER/LOWER/LENGTH/TRIM/ABS), deterministic fake-clock
+date functions (`UNIXEPOCH/DATETIME/JULIANDAY/STRFTIME` - 'now' is the
+fixed harness epoch, never a wall clock) and JSON functions
+(`JSON_EXTRACT/JSON_TYPE/JSON_QUOTE`), aggregates with whole-result-set
+and GROUP BY/HAVING scope, one-key INNER/LEFT/CROSS JOINs, CREATE TABLE
+(IF NOT EXISTS) / ALTER TABLE ADD COLUMN (the ensureSchema pattern),
+`INSERT OR IGNORE|REPLACE`, `ON CONFLICT(...) DO NOTHING|DO UPDATE` upserts
+with `excluded.*`, `INSERT..SELECT` (the seq-allocator shape), `RETURNING`,
+multi-key `ORDER BY` (aliases included), and `LIMIT ?/OFFSET ?` bound
+params - plus the behavior contracts campaigns depend on
+(`UNIQUE constraint failed: t.col`, `{meta:{changes,last_row_id}}`,
 integer autoincrement, positional binding). It was verified against real
 SQLite (node:sqlite) for the eight relay statements that motivated it.
 That is still a deliberate subset, though: a handler speaking the rest
-(JOINs, GROUP BY/HAVING, subqueries, window functions, `unixepoch()`-class
-functions) hits the wall - and the documented fallback is to hand the
-harness a
+(window functions, `NOT`, nested subqueries, RIGHT JOIN, quoted
+identifiers, DROP/RENAME) hits the wall - and the documented fallback is
+to hand the harness a
 D1-shaped object backed by your own engine. `node:sqlite` does it in ~40
 lines (the shape gistory's run root proved first, per
 [dhaupin/gistory](https://github.com/dhaupin/gistory)):
@@ -166,8 +173,11 @@ Rules that keep this honest:
 - **Pin the Node version in CI** (`node-version: 24`) - `node:sqlite` is
   unflagged there; on older runners the import throws.
 - When FakeD1 covers your statements outright (v0.2 speaks the eight relay
-  shapes - see
-  [`test/harness/d1-v02.test.js`](https://github.com/dhaupin/crashtest/blob/main/test/harness/d1-v02.test.js)),
+  shapes -
+  see
+  [`test/harness/d1-v02.test.js`](https://github.com/dhaupin/crashtest/blob/main/test/harness/d1-v02.test.js);
+  v0.3 adds the census shapes -
+  [`test/harness/d1-v03.test.js`](https://github.com/dhaupin/crashtest/blob/main/test/harness/d1-v03.test.js)),
   this fixture gets deleted and the run root swaps back to the built-in -
   a byte-identical ledger is the acceptance gate for that swap.
 
