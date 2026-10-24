@@ -1690,3 +1690,119 @@ t  (ct_create_user/ct_grant_role/ct_reset_users whitelist helpers),
   data. No library growth, no pin-wall sweep (harness-layer test like
   diff.test.js); the twin's Date.now is the documented exploit, not a
   determinism surface. Suite 287/287.
+
+### 2026-10-24 - the packstruct offline fixture backfill, prepared (packstruct#1 ask #2)
+- The backfill is now a committed artifact folder, not a promise:
+  labs/packstruct-backfill/ holds corpus.json (byte-exact transcription
+  (+sha256) of all 8 shipped packs/public/*/pack.json), conformance-rows.json
+  (frozen-v1 facts re-derived from the SAME bytes: required keys, host-owned
+  keys, name==dir, entry exists; armedByKey on exactly 1, host-owned keys on
+  0), and refusal-matrix.json (19 refuse + 4 accept rows, every row citing
+  the packs/loader.js rule it derives from, applied to a REAL corpus
+  manifest - next-middleware-shapes - never an invented shape).
+- Determinism by construction: labs/packstruct-backfill/build.mjs is the
+  generator (no wall clock, inputs are the pack files only), re-run verified
+  byte-identical. A regenerate that changes bytes means a pack changed -
+  reviewed diff + count-pin move required in the SAME commit.
+- Sequencing honored with teeth instead of promises (crashtest#20): every
+  matrix row carries specKey: null and the pin test FORCES the conscious
+  later fill - assert names the packstruct-v1 section requirement, so a
+  casual edit trips. spec facts follow the data; the data follows the packs.
+- Teeth: test/packstruct-backfill.test.js (7) - transcription pin,
+  conformance re-derivation pin, matrix reproduction (refuse+accept through
+  the REAL validator, message-fragment pinned), three load-level refusals
+  (unreadable JSON / cross-surface name collision / un-importable entry,
+  temp-dir backed like packs.test.js), and the #19 census receipt re-verified
+  LIVE against the library (8 pack modules / 36 pack attacks / 44 ids, zero
+  collisions pack-vs-pack and pack-vs-library). Register: package.json check
+  chain gains the new file + generator. Suite 294/294, check 0, lint:docs 0.
+- Left deliberately open: when packstruct v1 pushes (0.9.0 scaffold with
+  the host-owned fold, per echo), same-commit work is: replace the specKey
+  placeholders with real spec references, run packstruct lint over
+  packs/public/ as the live-corpus receipt (packstruct#3), and wire the CI
+  lane (packstruct#1 ask #1).
+
+### 2026-10-24 - packstruct@1 adoption: the queued batch lands (CI lane + specKey fill + lint receipt + pin)
+- The week the repo came online for packstruct read/writes (crashtest#18
+  resolved), the deliberately-open list from the entry above lands in one
+  commit, exactly as sequenced:
+  1. **Live-corpus receipt (packstruct#3's half):** packstruct's own lint,
+     run from its repo at pinned SHA b0e305034c974ad133b83e3b1c3cb27094d1de46,
+     reports "8 pack(s) checked in packs", exit 0 - the transcripts' host is
+     a validator we do not own and yet the same 8/8 our own loader reports.
+  2. **specKey fill (packstruct#1 ask #2, completing):** SPEC v1 became
+     addressable at that SHA, so the fill transcribes it instead of
+     inventing: spec/SPEC.md is committed byte-exact as
+     labs/packstruct-backfill/SPEC-v1.md, matrix.spec records the pinned
+     SHA + the "<section>/<term>[...]" grammar, and all 23 specKeys are
+     deliberate fills (host-owned shape rows R08-R19/A01/A02/A04 cite
+     section 2's host-owned acknowledged-keys paragraph - the crashtest#19
+     fold is now IN the spec text, so the keys point at real words, never
+     summaries).
+  3. **Pin test flips the other way:** the null-placeholder assert becomes
+     a grammar assert, plus a NEW section resolution pin - every specKey's
+     section must exist in SPEC-v1.md and every /term must appear verbatim
+     in that section's text (never a paraphrase, never a memory-only cite);
+     the pinned-SHA note moves only with a deliberate bump.
+  4. **CI lane (packstruct#1 ask #1):** ci.yml's pack lane checks the
+     packstruct clone out fetch-by-SHA (GitHub allows it, so "same commit ->
+     same findings" holds here too), runs `packstruct lint packs/` (8/8
+     expected green; a version-drift refusal now names itself in CI
+     instead of in a human's session), then runs the new
+     labs/packstruct-backfill/verify-spec.mjs byte-compare - the
+     transcript pin gets teeth in CI where the clone is present on disk
+     (locally it is still an optional maintainers' check, zero sockets in
+     npm test stays true).
+  5. **Pin (packstruct#1 ask #4):** README carries the adopter's pin line
+     ("implements packstruct@1") with the SHA and the transcript pointer,
+     so the docs never claim more than the workflow runs.
+- Register: package.json check chain gains labs/packstruct-backfill/
+  verify-spec.mjs. Suite 295/295 (the +1 is the new SPEC v1 resolution
+  pin), check 0, lint:docs 0. No pack changes, no corpus/regenerate diff.
+- Still open (unchanged): packstruct#1's own repo-side asks (#2 deep-lint
+  collision census at lint time, #3 golden refusal-matrix exchange, #4's
+  spec-side semver decoupling paragraph + row receipts) live on the
+  packstruct repo, not here - crashtest's side of the handshake is done.
+
+### 2026-10-24 - the theme port lands (crashtest#23: packstruct's adopt list, all four items)
+- The packstruct side rebuilt its landing + docs on this repo's engine and
+  filed the diff back as an adopt list; everything ships here now, ported
+  from their commits (d8122f6 / b6fb870 / b0e3050) with the amber-lab
+  palette kept:
+  1. **LandingThemeSwitch (web/):** src/components/ThemeSwitch.jsx - theme
+     on <html data-theme>, persisted as `crashtest-theme`, every token
+     re-derived in one html[data-theme=light] block (amber ink on warm
+     paper: #f4f0e9 paper family, accent #dfa14f -> #8a5a17 on light).
+     Both sun/moon SVGs render at all times and CSS picks the visible one,
+     so prerendered and hydrated markup agree (no mismatch, no flash); the
+     index.html inline bootstrap applies persisted-light before first paint
+     and flips theme-color (#100d0a <-> #f4f0e9). --nav-bg and
+     --accent-contrast are now real tokens (the two hardcoded colors moved
+     into :root so the light block truly re-derives everything).
+  2. **Header-right order (web/):** GitHub icon (inline SVG) > theme switch
+     > menu links > burger; the GitHub text link left the header (navItems
+     filtered at render) and stays in the footer, which iterates
+     NAV_ITEMS untouched.
+  3. **Docs (docs/):** icon.svg (copy of web/public's shield) as brand
+     logo + the existing favicon href now backed by a real file; light
+     token block mirroring the landing; color-scheme dark light; the
+     switch renders in the packstruct-requested docs order (search >
+     GitHub > theme > menu) with the same no-flash bootstrap and toggle
+     handler shape. Follow-up same day: the web landing header now carries
+     the same 22px shield img (/icon.svg, the brand-logo class), so web +
+     docs brands are identical - and the two icon.svg copies are verified
+     byte-equal (web is the source, docs mirrors it).
+  4. **The Liquid trap (crashtest#23 item 5):** scripts/check-jekyll-
+     filters.cjs joins lint:docs - a two-argument call of a single-argument
+     Liquid string filter (remove/remove_first/append/prepend/
+     newline_to_br) is a BUILD-time crash that once killed packstruct's
+     docs deploy; the pass refuses it with file:line. Verified both ways
+     (clean docs pass; deliberate two-arg `remove` refuses exit 1) and the
+     refusal path is testable standalone (`node scripts/check-
+     jekyll-filters.cjs <dir>` for a quarantine root).
+- No pins moved: the shared-nav-source probes (web-docs-consistency) pass
+  unchanged because GitHub still lives in NAV_ITEMS for footer/sidebar;
+  the site pack runs against the rebuilt dist (theme-switch + nav-icon
+  present in the prerendered HTML). Suite 295/295, check/lint:docs 0,
+  web build 6/6 pages, dogfood reproduces the baseline byte-identical
+  (49/49 REFUSED, 0 new/regressed).

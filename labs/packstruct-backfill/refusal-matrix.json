@@ -1,0 +1,212 @@
+{
+  "schema": 1,
+  "source": "derived from the ENGINE's own validators: src/packs/loader.js validatePackManifest / validateEnvClaims (+ loadPacks rows live in the pin test). Mutations are applied to a REAL shipped manifest from corpus.json (next-middleware-shapes) - no invented shapes",
+  "spec": {
+    "title": "The packstruct spec, version 1",
+    "transcript": "labs/packstruct-backfill/SPEC-v1.md",
+    "source": "dhaupin/packstruct spec/SPEC.md at SHA b0e305034c974ad133b83e3b1c3cb27094d1de46 (2026-10-24), committed byte-exact; verify with node labs/packstruct-backfill/verify-spec.mjs <packstruct-clone>",
+    "specKeyGrammar": "\"<section>/<term>[/<term>...]\": the section cites a SPEC heading (1-7); every term must appear VERBATIM in that section of the committed transcript - the pin test resolves each key against SPEC-v1.md, never against memory"
+  },
+  "note": "specKey values were filled deliberately (2026-10-24) the moment SPEC v1 became addressable - transcribed against the committed transcript (SPEC-v1.md, pinned SHA) in the same review that landed them (dhaupin/crashtest#20 sequencing: fixtures transcribe the spec, never invent). Every host-owned shape row (R08-R19, A01, A02, A04) cites section 2's host-owned acknowledged-keys paragraph: the spec ACKNOWLEDGES the key and the HOST owns its shape rules - the granular engine cite stays in each row's hostRule. null is now a regression.",
+  "base": "next-middleware-shapes",
+  "rows": [
+    {
+      "id": "R01",
+      "kind": "refuse",
+      "hostRule": "packs/loader.js validatePackManifest - 'is not a JSON object'",
+      "specKey": "§2/pack.json",
+      "setup": { "whole": [] },
+      "throwsIncludes": "is not a JSON object",
+      "note": "array manifests (and null) never parse-validate."
+    },
+    {
+      "id": "R02",
+      "kind": "refuse",
+      "hostRule": "packs/loader.js validatePackManifest - REQUIRED_KEYS presence check",
+      "specKey": "§2/schemaVersion",
+      "setup": { "drop": ["schemaVersion"] },
+      "throwsIncludes": "missing \"schemaVersion\"",
+      "note": "the required-key family is checked before types (R05) and version (R06)."
+    },
+    {
+      "id": "R03",
+      "kind": "refuse",
+      "hostRule": "packs/loader.js validatePackManifest - REQUIRED_KEYS presence check",
+      "specKey": "§2/name",
+      "setup": { "drop": ["name"] },
+      "throwsIncludes": "missing \"name\""
+    },
+    {
+      "id": "R04",
+      "kind": "refuse",
+      "hostRule": "packs/loader.js validatePackManifest - REQUIRED_KEYS presence check",
+      "specKey": "§2/description",
+      "setup": { "drop": ["description"] },
+      "throwsIncludes": "missing \"description\""
+    },
+    {
+      "id": "R05",
+      "kind": "refuse",
+      "hostRule": "packs/loader.js validatePackManifest - string-typed required keys",
+      "specKey": "§2/description",
+      "setup": { "set": { "description": 42 } },
+      "throwsIncludes": "\"description\" must be a string"
+    },
+    {
+      "id": "R06",
+      "kind": "refuse",
+      "hostRule": "packs/loader.js validatePackManifest - schemaVersion must be 1",
+      "specKey": "§2/schemaVersion",
+      "setup": { "set": { "schemaVersion": 2 } },
+      "throwsIncludes": "unsupported schemaVersion 2 (have: 1)",
+      "note": "the message quotes BOTH sides - a spec echo already living in the host."
+    },
+    {
+      "id": "R07",
+      "kind": "refuse",
+      "hostRule": "packs/loader.js validatePackManifest - name grammar /^[a-z0-9][a-z0-9-]*$/",
+      "specKey": "§2/name",
+      "setup": { "set": { "name": "Nope!" } },
+      "throwsIncludes": "not kebab-case"
+    },
+    {
+      "id": "R08",
+      "kind": "refuse",
+      "hostRule": "packs/loader.js validatePackManifest - host-owned \"package\" must be a string when present",
+      "specKey": "§2/host-owned/package",
+      "setup": { "set": { "package": 42 } },
+      "throwsIncludes": "\"package\" must be a string",
+      "note": "host-owned key, acknowledged pre-freeze by packstruct#20 - shape-validated, never a spec violation."
+    },
+    {
+      "id": "R09",
+      "kind": "refuse",
+      "hostRule": "packs/loader.js validatePackManifest - host-owned \"plugins\" must be an array of non-empty strings",
+      "specKey": "§2/host-owned/plugins",
+      "setup": { "set": { "plugins": "x" } },
+      "throwsIncludes": "\"plugins\" must be an array"
+    },
+    {
+      "id": "R10",
+      "kind": "refuse",
+      "hostRule": "packs/loader.js validatePackManifest - plugins members must be non-empty strings",
+      "specKey": "§2/host-owned/plugins",
+      "setup": { "set": { "plugins": ["ok.js", ""] } },
+      "throwsIncludes": "non-empty ESM specifiers"
+    },
+    {
+      "id": "R11",
+      "kind": "refuse",
+      "hostRule": "packs/loader.js validateEnvClaims - env claims must be an object",
+      "specKey": "§2/host-owned/env",
+      "setup": { "set": { "env": [] } },
+      "throwsIncludes": "claims must be an object"
+    },
+    {
+      "id": "R12",
+      "kind": "refuse",
+      "hostRule": "packs/loader.js validateEnvClaims - claim kinds are d1/kv/routes/seed",
+      "specKey": "§2/host-owned/env",
+      "setup": { "set": { "env": { "storage": {} } } },
+      "throwsIncludes": "unrecognized claim \"storage\""
+    },
+    {
+      "id": "R13",
+      "kind": "refuse",
+      "hostRule": "packs/loader.js validateEnvClaims - binding names must match [A-Za-z_][A-Za-z0-9_]*",
+      "specKey": "§2/host-owned/env",
+      "setup": { "set": { "env": { "d1": { "db-tables": {} } } } },
+      "throwsIncludes": "binding names must match"
+    },
+    {
+      "id": "R14",
+      "kind": "refuse",
+      "hostRule": "packs/loader.js validateEnvClaims - kv claims take an empty object for now",
+      "specKey": "§2/host-owned/env",
+      "setup": { "set": { "env": { "kv": { "UPLOADS": { "ttl": 1 } } } } },
+      "throwsIncludes": "takes an empty object for now",
+      "note": "the forward-compat drawer is LOUD, not silently demanding: a future per-binding kv prop lands as a schema change, never a quiet accept."
+    },
+    {
+      "id": "R15",
+      "kind": "refuse",
+      "hostRule": "packs/loader.js validateEnvClaims - d1 claims accept only \"tables\"",
+      "specKey": "§2/host-owned/env",
+      "setup": { "set": { "env": { "d1": { "DB": { "sql": true } } } } },
+      "throwsIncludes": "accepts only \"tables\""
+    },
+    {
+      "id": "R16",
+      "kind": "refuse",
+      "hostRule": "packs/loader.js validateEnvClaims - d1 tables must be an array of table names",
+      "specKey": "§2/host-owned/env",
+      "setup": { "set": { "env": { "d1": { "DB": { "tables": "charges" } } } } },
+      "throwsIncludes": "must be an array of table names"
+    },
+    {
+      "id": "R17",
+      "kind": "refuse",
+      "hostRule": "packs/loader.js validateEnvClaims - routes must be an array of route names",
+      "specKey": "§2/host-owned/env/routes",
+      "setup": { "set": { "env": { "routes": "charge" } } },
+      "throwsIncludes": "\"routes\" must be an array"
+    },
+    {
+      "id": "R18",
+      "kind": "refuse",
+      "hostRule": "packs/loader.js validateEnvClaims - seed kinds are kv/d1",
+      "specKey": "§2/host-owned/env/seed",
+      "setup": { "set": { "env": { "seed": { "sql": {} } } } },
+      "throwsIncludes": "is not a seed kind"
+    },
+    {
+      "id": "R19",
+      "kind": "refuse",
+      "hostRule": "packs/loader.js validateEnvClaims - seed d1 rows must be an array of row objects",
+      "specKey": "§2/host-owned/env/seed",
+      "setup": { "set": { "env": { "seed": { "d1": { "DB": { "charges": { "rows": "x" } } } } } } },
+      "throwsIncludes": "must be an array of row objects"
+    },
+    {
+      "id": "A01",
+      "kind": "accept",
+      "hostRule": "packs/loader.js validatePackManifest - host-owned \"package\" shape-validated and preserved",
+      "specKey": "§2/host-owned/package",
+      "setup": { "set": { "package": "@vendor/crashtest-pack-next-mw" } },
+      "expect": { "package": "@vendor/crashtest-pack-next-mw" },
+      "note": "the linter-level hazard that motivated the pre-freeze fold: a future registry-joining pack carries this key and must PASS."
+    },
+    {
+      "id": "A02",
+      "kind": "accept",
+      "hostRule": "packs/loader.js validatePackManifest - host-owned \"plugins\" array of non-empty strings is accepted (shape only)",
+      "specKey": "§2/host-owned/plugins",
+      "setup": { "set": { "plugins": ["./lib/a.js"] } },
+      "expect": { "plugins": ["./lib/a.js"] },
+      "note": "manifest-level only; actual import resolution is pinned by test/packs.test.js + test/presets-plugins.test.js, never here."
+    },
+    {
+      "id": "A03",
+      "kind": "accept",
+      "hostRule": "packs/loader.js validatePackManifest - entry defaults to index.js when absent",
+      "specKey": "§2/entry",
+      "setup": { "drop": ["entry"] },
+      "expect": { "entry": "index.js" }
+    },
+    {
+      "id": "A04",
+      "kind": "accept",
+      "hostRule": "packs/loader.js validateEnvClaims - the full claims shape normalizes to { d1, kv, routes, seed }",
+      "specKey": "§2/host-owned/env",
+      "setup": { "set": { "env": { "d1": { "DB": { "tables": ["relay"] } }, "kv": { "SYNC": {} }, "routes": ["push", "pull"] } } },
+      "expect": {
+        "envNormalized": {
+          "d1": { "DB": { "tables": ["relay"] } },
+          "kv": { "SYNC": {} },
+          "routes": ["push", "pull"],
+          "seed": {}
+        }
+      }
+    }
+  ]
+}

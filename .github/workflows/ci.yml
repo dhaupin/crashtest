@@ -31,6 +31,21 @@ jobs:
       - name: Docs gates (frontmatter, links, style, fiction)
         run: npm run lint:docs
 
+      # The pack lane (packstruct#1 ask #1, adopted 2026-10-24): our shipped
+      # pack manifests are linted against packstruct SPEC v1, pinned to an
+      # exact commit so the same commit -> same findings rule holds here too.
+      # The verbatim transcript lives at labs/packstruct-backfill/SPEC-v1.md;
+      # verify-spec.mjs keeps the transcript and the pin honest in the same
+      # breath. Bumping the pinned SHA is a deliberate review: re-transcribe
+      # the spec + re-derive any moved specKey in the SAME commit.
+      - name: Pack lane - packstruct lint packs/ against SPEC v1 (pinned)
+        run: |
+          git clone --quiet --no-checkout --filter=blob:none https://github.com/dhaupin/packstruct.git packstruct
+          git -C packstruct fetch --quiet --depth 1 origin b0e305034c974ad133b83e3b1c3cb27094d1de46
+          git -C packstruct checkout --quiet FETCH_HEAD
+          node packstruct/bin/cli.mjs lint packs
+          node labs/packstruct-backfill/verify-spec.mjs packstruct
+
       # web/dist is gitignored (build-only), but it is real attack surface:
       # the site pack's HTML/sitemap attacks need the prerendered artifacts.
       # Build them so the suite exercises full artifact coverage; the pack

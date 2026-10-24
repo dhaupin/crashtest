@@ -1,0 +1,167 @@
+{
+  "schema": 1,
+  "source": "re-derived from the corpus bytes above (same commit, same facts)",
+  "rows": [
+    {
+      "name": "crashtest-site",
+      "dir": "packs/public/crashtest-site",
+      "sha256": "0d4a26effa357e156fa281f33d5d5d0295742cd6946a0294fdb9f3e06b1cb17e",
+      "declaredKeys": [
+        "description",
+        "entry",
+        "name",
+        "schemaVersion",
+        "version"
+      ],
+      "facts": {
+        "schemaVersionIs1": true,
+        "nameEqualsDir": true,
+        "declaredEntry": "attacks.js",
+        "entryFileIsPresent": true,
+        "declaresArmedByKey": false,
+        "hostOwnedKeysPresent": []
+      }
+    },
+    {
+      "name": "cve-feed",
+      "dir": "packs/public/cve-feed",
+      "sha256": "ad37c6d93050c374fb8384ea8a68d30fe034833f21cc29ff6dea07d484d7004b",
+      "declaredKeys": [
+        "description",
+        "entry",
+        "name",
+        "schemaVersion",
+        "version"
+      ],
+      "facts": {
+        "schemaVersionIs1": true,
+        "nameEqualsDir": true,
+        "declaredEntry": "index.js",
+        "entryFileIsPresent": true,
+        "declaresArmedByKey": false,
+        "hostOwnedKeysPresent": []
+      }
+    },
+    {
+      "name": "next-middleware-shapes",
+      "dir": "packs/public/next-middleware-shapes",
+      "sha256": "e0bafd5a4ad35fb2b9488a75b14256848ba125256e007431948f1cda21c2a4c8",
+      "declaredKeys": [
+        "description",
+        "entry",
+        "name",
+        "schemaVersion",
+        "version"
+      ],
+      "facts": {
+        "schemaVersionIs1": true,
+        "nameEqualsDir": true,
+        "declaredEntry": "index.js",
+        "entryFileIsPresent": true,
+        "declaresArmedByKey": false,
+        "hostOwnedKeysPresent": []
+      }
+    },
+    {
+      "name": "qs-shapes",
+      "dir": "packs/public/qs-shapes",
+      "sha256": "599b5739bee92c66737d6e84f02bf56a25a6aeed014916182a8291efe074e9c9",
+      "declaredKeys": [
+        "description",
+        "entry",
+        "name",
+        "schemaVersion",
+        "version"
+      ],
+      "facts": {
+        "schemaVersionIs1": true,
+        "nameEqualsDir": true,
+        "declaredEntry": "index.js",
+        "entryFileIsPresent": true,
+        "declaresArmedByKey": false,
+        "hostOwnedKeysPresent": []
+      }
+    },
+    {
+      "name": "vite-dev-shapes",
+      "dir": "packs/public/vite-dev-shapes",
+      "sha256": "d234b66d2dc203329cd4681e55a1460230e777ede15f4e5081bb7bd2b152485f",
+      "declaredKeys": [
+        "description",
+        "entry",
+        "name",
+        "schemaVersion",
+        "version"
+      ],
+      "facts": {
+        "schemaVersionIs1": true,
+        "nameEqualsDir": true,
+        "declaredEntry": "index.js",
+        "entryFileIsPresent": true,
+        "declaresArmedByKey": false,
+        "hostOwnedKeysPresent": []
+      }
+    },
+    {
+      "name": "wp-money-shapes",
+      "dir": "packs/public/wp-money-shapes",
+      "sha256": "fd954d9a4415f94f22a94400ef611475c18a07f70f1682ac5f847b4a3e355aeb",
+      "declaredKeys": [
+        "armedByKey",
+        "description",
+        "entry",
+        "name",
+        "schemaVersion",
+        "version"
+      ],
+      "facts": {
+        "schemaVersionIs1": true,
+        "nameEqualsDir": true,
+        "declaredEntry": "index.js",
+        "entryFileIsPresent": true,
+        "declaresArmedByKey": true,
+        "hostOwnedKeysPresent": []
+      }
+    },
+    {
+      "name": "wp-roles",
+      "dir": "packs/public/wp-roles",
+      "sha256": "4d6b7c9b4a3ebf244f5705cde59838afe413a3aba74cdd3ea10c99b621409c1d",
+      "declaredKeys": [
+        "description",
+        "entry",
+        "name",
+        "schemaVersion",
+        "version"
+      ],
+      "facts": {
+        "schemaVersionIs1": true,
+        "nameEqualsDir": true,
+        "declaredEntry": "index.js",
+        "entryFileIsPresent": true,
+        "declaresArmedByKey": false,
+        "hostOwnedKeysPresent": []
+      }
+    },
+    {
+      "name": "wp-stock-smoke",
+      "dir": "packs/public/wp-stock-smoke",
+      "sha256": "3c09715c186d0c532b7ccd55d25fc7017833ce91958a2575b153b4ebfc899bc4",
+      "declaredKeys": [
+        "description",
+        "entry",
+        "name",
+        "schemaVersion",
+        "version"
+      ],
+      "facts": {
+        "schemaVersionIs1": true,
+        "nameEqualsDir": true,
+        "declaredEntry": "index.js",
+        "entryFileIsPresent": true,
+        "declaresArmedByKey": false,
+        "hostOwnedKeysPresent": []
+      }
+    }
+  ]
+}

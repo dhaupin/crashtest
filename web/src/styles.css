@@ -15,6 +15,27 @@
   --err: #e07752;         /* ⚡ EXPLOITED red-orange */
   --line: #3a2e21;
   --code-bg: #14100c;
+  --nav-bg: rgba(16, 13, 10, 0.88);
+  --accent-contrast: #1a1206; /* ink on amber buttons (dark mode) */
+}
+
+/* Light theme: the same amber-lab identity, ink on pale warm paper.
+   Tokens only - the whole layout reads them, so one block re-themes the
+   site and no layout class ever branches on the theme. */
+html[data-theme="light"] {
+  --paper: #f4f0e9;
+  --surface: #ffffff;
+  --raised: #ebe3d5;
+  --ink: #241a10;
+  --ink-soft: #6b5d4c;
+  --accent: #8a5a17;      /* darker amber for contrast on pale paper */
+  --accent-deep: #6f4510;
+  --moss: #2e7d4f;
+  --err: #b4472c;
+  --line: #ddd1c0;
+  --code-bg: #ece4d5;
+  --nav-bg: rgba(244, 240, 233, 0.88);
+  --accent-contrast: #ffffff; /* ink on amber buttons (light mode) */
 }
 
 html {
@@ -24,6 +45,7 @@ html {
      it - and 'light initial painting then reskin' stays theme-coherent. */
   color-scheme: dark;
 }
+html[data-theme="light"] { color-scheme: light; }
 body {
   margin: 0;
   background: var(--paper);
@@ -40,11 +62,32 @@ body {
 /* --- nav (app shell: fixed header + burger + one shared sidebar) --- */
 .nav {
   position: sticky; top: 0; z-index: 10;
-  background: rgba(16, 13, 10, 0.88);
+  background: var(--nav-bg);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--line);
 }
 .nav-inner { display: flex; align-items: center; gap: 22px; height: 56px; }
+.nav-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.nav-icon {
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: none; border-radius: 6px; color: var(--ink-soft);
+  padding: 7px; cursor: pointer;
+}
+.nav-icon:hover { color: var(--accent); }
+.nav-icon svg { width: 19px; height: 19px; display: block; }
+.theme-switch {
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: 1px solid transparent; border-radius: 6px;
+  color: var(--ink-soft); cursor: pointer; padding: 7px;
+}
+.theme-switch:hover { color: var(--accent); }
+.theme-switch svg { width: 18px; height: 18px; display: block; }
+/* Moon shows in dark mode (click = go light); sun shows in light mode.
+   Both icons always render in the markup - CSS picks, which keeps the
+   prerendered output and the hydrated output identical. */
+.theme-switch .icon-sun { display: none; }
+html[data-theme="light"] .theme-switch .icon-moon { display: none; }
+html[data-theme="light"] .theme-switch .icon-sun { display: block; }
 .nav-burger {
   display: none; background: none; border: 1px solid var(--line); border-radius: 6px;
   color: var(--ink); cursor: pointer; padding: 7px; align-items: center; justify-content: center;
@@ -52,9 +95,10 @@ body {
 .nav-burger:hover { border-color: var(--ink-soft); }
 .nav-burger svg { width: 18px; height: 18px; display: block; }
 .brand { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--ink); font-weight: 700; letter-spacing: 0.02em; }
+.brand-logo { width: 22px; height: 22px; display: block; border-radius: 5px; }
 .brand-crash { color: var(--accent); }
 .brand-badge { font-size: 10px; color: var(--ink-soft); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
-.nav-links { display: flex; gap: 16px; margin-left: auto; }
+.nav-links { display: flex; gap: 16px; margin-right: 6px; }
 .nav-links a { color: var(--ink-soft); text-decoration: none; font-size: 14px; }
 .nav-links a:hover, .nav-links a.active { color: var(--accent); }
 
@@ -94,7 +138,7 @@ body {
 .lede { color: var(--ink-soft); font-size: 17px; max-width: 640px; margin: 0 0 26px; }
 .cta-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 30px; }
 .btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none; border: 1px solid transparent; }
-.btn-primary { background: var(--accent); color: #1a1206; }
+.btn-primary { background: var(--accent); color: var(--accent-contrast); }
 .btn-primary:hover { background: var(--accent-deep); }
 .btn-ghost { border-color: var(--line); color: var(--ink); }
 .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }

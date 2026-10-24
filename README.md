@@ -182,6 +182,14 @@ run command, package.json shape) - prints it to stdout (nothing is written),
 and names plainly what it could NOT resolve rather than guessing a handler
 from the builder's name.
 
+**Pack-shape spec (packstruct@1).** This repo implements
+[packstruct@1](https://github.com/dhaupin/packstruct) - the `/packs`
+manifest/entry/directory contract, frozen at SPEC v1 and transcribed
+byte-exact at `labs/packstruct-backfill/SPEC-v1.md` (pinned commit
+`b0e305034c974ad133b83e3b1c3cb27094d1de46`). The CI lane runs
+`packstruct lint packs/` at that same pin; bumping the pin is a deliberate
+review (re-transcribe + re-derive the moved specKeys in one commit).
+
 ## Docs map
 
 - **Full docs** -> [docs.creadev.org/crashtest](https://docs.creadev.org/crashtest/) (quick start, playbooks, catalog, ledger format - the same content crosslinked from the CLI help)

@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "source": "packs/public/*/pack.json at the worktree this commit pins (transcription, never invention; regenerate via node labs/packstruct-backfill/build.mjs)",
+  "packCount": 8,
+  "packs": [
+    {
+      "name": "crashtest-site",
+      "dir": "packs/public/crashtest-site",
+      "sha256": "0d4a26effa357e156fa281f33d5d5d0295742cd6946a0294fdb9f3e06b1cb17e",
+      "manifestJson": "{\n  \"schemaVersion\": 1,\n  \"name\": \"crashtest-site\",\n  \"description\": \"crashtest attacks the site it actually ships: headers claim audit, CSP canary bypass attempts, HTML secret leakage, sitemap truth audit, manifest icon checks, robots.txt self-sabotage, version-function robustness + cache poisoning + shape-flap burst, taxonomy probes (abuse never 5xx, sad-path bodies stay impersonal), + session probes (a cookie-less site must mint zero cookies; a forged cookie is never adopted or reflected), an authz probe (nothing ships advertising a privileged surface; role-claim bodies flip nothing), + a proto-hygiene battery (HEAD mirrors GET on every asset route; bare-shape query chaos never takes an asset serve down), a recursion depth sweep (deep-nested bodies and backtracking-shaped strings never take an asset serve down), a multipart hardening probe (hostile filenames and polyglot carriers never reflect or fault), + an asset-parity race burst (12 concurrent GETs of the same asset come back byte-identical). Self-contained: bundles its own attacks and registry double.\",\n  \"version\": \"0.1.0\",\n  \"entry\": \"attacks.js\"\n}\n"
+    },
+    {
+      "name": "cve-feed",
+      "dir": "packs/public/cve-feed",
+      "sha256": "ad37c6d93050c374fb8384ea8a68d30fe034833f21cc29ff6dea07d484d7004b",
+      "manifestJson": "{\n  \"schemaVersion\": 1,\n  \"name\": \"cve-feed\",\n  \"description\": \"Extended sources (PRD): attacks cross-referenced against a curated, committed KEV/NVD snapshot - banner disclosure audits and vulnerable-version range checks over every declared route. Offline by design: run time reads ONLY the committed snapshot file (zero sockets, same commit -> same findings); freshness is a maintainer-side sync + CI join.\",\n  \"version\": \"0.2.0\",\n  \"entry\": \"index.js\"\n}\n"
+    },
+    {
+      "name": "next-middleware-shapes",
+      "dir": "packs/public/next-middleware-shapes",
+      "sha256": "e0bafd5a4ad35fb2b9488a75b14256848ba125256e007431948f1cda21c2a4c8",
+      "manifestJson": "{\n  \"schemaVersion\": 1,\n  \"name\": \"next-middleware-shapes\",\n  \"description\": \"Next.js middleware wire shapes: x-middleware-subrequest bypass grammars and value-blindness probes swept over every declared route, with a gate-on/gate-off differential oracle. Zero dependencies, zero sockets: the harness is the fake transport.\",\n  \"version\": \"0.1.0\",\n  \"entry\": \"index.js\"\n}\n"
+    },
+    {
+      "name": "qs-shapes",
+      "dir": "packs/public/qs-shapes",
+      "sha256": "599b5739bee92c66737d6e84f02bf56a25a6aeed014916182a8291efe074e9c9",
+      "manifestJson": "{\n  \"schemaVersion\": 1,\n  \"name\": \"qs-shapes\",\n  \"description\": \"Bracket-notation parser shapes (the express extended-query / urlencoded wire, any qs-style parser): prototype-key canaries and deep-nesting floor checks swept over every declared route. Zero dependencies, zero sockets: the harness is the fake transport.\",\n  \"version\": \"0.1.0\",\n  \"entry\": \"index.js\"\n}\n"
+    },
+    {
+      "name": "vite-dev-shapes",
+      "dir": "packs/public/vite-dev-shapes",
+      "sha256": "d234b66d2dc203329cd4681e55a1460230e777ede15f4e5081bb7bd2b152485f",
+      "manifestJson": "{\n  \"schemaVersion\": 1,\n  \"name\": \"vite-dev-shapes\",\n  \"description\": \"Vite dev-server wire shapes: fs deny/allow bypass grammars (?raw?? / ?import&raw?? / traversal encodings) and deny-list (.env) leakage swept over every declared route. Zero dependencies, zero sockets: the harness is the fake transport.\",\n  \"version\": \"0.1.0\",\n  \"entry\": \"index.js\"\n}\n"
+    },
+    {
+      "name": "wp-money-shapes",
+      "dir": "packs/public/wp-money-shapes",
+      "sha256": "fd954d9a4415f94f22a94400ef611475c18a07f70f1682ac5f847b4a3e355aeb",
+      "manifestJson": "{\n  \"schemaVersion\": 1,\n  \"name\": \"wp-money-shapes\",\n  \"description\": \"Plugin-agnostic WP money-flow shapes (write-volley / txn-replay / gate-burst) for any install exposing a payment or registration flow\",\n  \"version\": \"0.3.0\",\n  \"entry\": \"index.js\",\n  \"armedByKey\": \"wp-money-shapes\"\n}\n"
+    },
+    {
+      "name": "wp-roles",
+      "dir": "packs/public/wp-roles",
+      "sha256": "4d6b7c9b4a3ebf244f5705cde59838afe413a3aba74cdd3ea10c99b621409c1d",
+      "manifestJson": "{\n  \"schemaVersion\": 1,\n  \"name\": \"wp-roles\",\n  \"description\": \"WP role-callback discipline (experimental per PRD section 10): the nopriv hook never performs the privileged write, low-privilege users cannot flip a capability gate, and body-declared roles never reach current_user_can.\",\n  \"version\": \"0.1.0\",\n  \"entry\": \"index.js\"\n}\n"
+    },
+    {
+      "name": "wp-stock-smoke",
+      "dir": "packs/public/wp-stock-smoke",
+      "sha256": "3c09715c186d0c532b7ccd55d25fc7017833ce91958a2575b153b4ebfc899bc4",
+      "manifestJson": "{\n  \"schemaVersion\": 1,\n  \"name\": \"wp-stock-smoke\",\n  \"description\": \"Stock-WordPress smoke: prove the WP subprocess harness end to end on any install (dispatch, real-SQL metering, call/option gates).\",\n  \"version\": \"0.1.0\",\n  \"entry\": \"index.js\"\n}\n"
+    }
+  ]
+}

@@ -1,9 +1,12 @@
 ---
 # Jekyll layout for Crashtest docs - same shape as vant's docs.creadev.org/vant:
-# fixed header (search trigger + hamburger), slide-out mobile sidebar, and a
-# pagefind modal search (Cmd+K). Search requires the pagefind index the docs
-# workflow builds (see .github/workflows/docs.yml); without it the modal
-# reports the index as unavailable instead of pretending to search.
+# fixed header (search trigger > GitHub icon > light/dark switch > hamburger),
+# slide-out mobile sidebar, and a pagefind modal search (Cmd+K). Search requires
+# the pagefind index the docs workflow builds (see .github/workflows/docs.yml);
+# without it the modal reports the index as unavailable instead of pretending
+# to search. Light/dark switch (crashtest#23): the amber-lab palette in both
+# modes, tokens only, no-flash bootstrap; the switch comes after the GitHub
+# icon and before the menu, per the packstruct-side request.
 ---
 <!DOCTYPE html>
 <html lang="en">
@@ -20,7 +23,7 @@
     <meta property="og:type" content="article">
     <meta property="og:site_name" content="Crashtest Docs">
     <link rel="icon" type="image/svg+xml" href="/crashtest/icon.svg">
-    <meta name="color-scheme" content="dark">
+    <meta name="color-scheme" content="dark light">
     <style>
         :root {
             --paper: #16130f; --surface: #100d0a; --raised: #201912;
@@ -29,8 +32,17 @@
             --line: #3a2e21; --code-bg: #14100c;
             --header-height: 54px; --sidebar-width: 240px;
         }
+        /* Light mode: the same amber-lab identity, ink on pale warm paper
+           (matches the landing site's html[data-theme="light"] tokens). */
+        html[data-theme="light"] {
+            --paper: #f4f0e9; --surface: #ffffff; --raised: #ebe3d5;
+            --ink: #241a10; --ink-soft: #6b5d4c; --ink-light: #6f614e;
+            --accent: #8a5a17; --moss: #2e7d4f; --err: #b4472c;
+            --line: #ddd1c0; --code-bg: #ece4d5;
+        }
         * { margin: 0; box-sizing: border-box; }
         html { background: var(--paper); color-scheme: dark; }
+        html[data-theme="light"] { color-scheme: light; }
         body { margin: 0; color: var(--ink); background: var(--paper);
             font-family: Inter, "SF Pro Text", system-ui, -apple-system, "Segoe UI", sans-serif;
             font-size: 15px; line-height: 1.65; }
@@ -56,7 +68,14 @@
         .search-trigger:hover { color: var(--ink); border-color: var(--ink-soft); }
         .search-key { border: 1px solid var(--line); border-radius: 4px;
             padding: 0 5px; font-size: 10.5px; line-height: 16px; }
+        .theme-switch svg { width: 18px; height: 18px; display: block; }
+        /* Moon shows in dark mode (click = go light); sun in light mode.
+           Both icons always render - CSS decides, markup stays constant. */
+        .theme-switch .icon-sun { display: none; }
+        html[data-theme="light"] .theme-switch .icon-moon { display: none; }
+        html[data-theme="light"] .theme-switch .icon-sun { display: block; }
         .hamburger { display: none; border: none; }
+        .brand-logo { width: 22px; height: 22px; display: block; border-radius: 5px; }
 
         /* Sidebar (vant shape: fixed under header, burger-toggled on mobile) */
         .sidebar-overlay { display: none; position: fixed; top: var(--header-height);
@@ -134,10 +153,24 @@
             .main { margin-left: 0; padding: 24px 16px 60px; }
         }
     </style>
+    <script>
+        // Theme bootstrap (before first paint): the default tokens are dark,
+        // so only a persisted light theme needs flipping. Keep the key and
+        // the palette in sync with the toggle handler below.
+        try {
+            if (localStorage.getItem('crashtest-theme') === 'light') {
+                document.documentElement.dataset.theme = 'light';
+            }
+        } catch (e) {}
+    </script>
 </head>
 <body>
     <header class="header">
-        <a href="/crashtest/" class="header-brand"><span class="brand-crash">crash</span>test <span class="docs-tag">docs</span></a>
+        <a href="/crashtest/" class="header-brand">
+            <img src="/crashtest/icon.svg" alt="" class="brand-logo" aria-hidden="true">
+            <span><span class="brand-crash">crash</span>test</span>
+            <span class="docs-tag">docs</span>
+        </a>
         <div class="header-right">
             <button class="header-btn search-trigger" id="searchTrigger" aria-label="Search docs">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -146,6 +179,10 @@
             <a href="https://github.com/dhaupin/crashtest" class="header-btn" aria-label="GitHub" target="_blank" rel="noopener">
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
             </a>
+            <button type="button" class="header-btn theme-switch" id="themeSwitch" aria-label="Toggle light/dark mode">
+                <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+            </button>
             <button class="header-btn hamburger" onclick="toggleSidebar()" aria-label="Toggle menu">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
             </button>
@@ -197,6 +234,14 @@
          static <script src> classic tag throws "Cannot use 'import.meta' outside
          a module" (pagefind 1.5.x contains import.meta) on every page. -->
     <script>
+    // Theme switch (amber-lab palette in both modes; see the CSS tokens).
+    document.getElementById('themeSwitch').addEventListener('click', function () {
+        var el = document.documentElement;
+        var next = el.dataset.theme === 'light' ? 'dark' : 'light';
+        el.dataset.theme = next;
+        try { localStorage.setItem('crashtest-theme', next); } catch (e) {}
+    });
+
     // Sidebar (vant shape)
     function toggleSidebar() {
         document.getElementById('sidebar').classList.toggle('open');
