@@ -1675,3 +1675,18 @@ t  (ct_create_user/ct_grant_role/ct_reset_users whitelist helpers),
   loud gaps, expectation pass/flip/missing/extra/dup). Docs: run-roots
   playbook v0.3 section + test links; changelog 1.0.1 entry. Suite 285/285
   (was 252).
+
+### 2026-10-24 - the v0.3 campaign-path seam pinned two-way (the probe folded in)
+- The throwaway live-campaign probe earned a permanent home:
+  test/harness/v03-campaign.test.js runs a real `runCampaign` over the v0.3
+  surface end-to-end - hardened run-root 5/5 REFUSED (scoped GROUP BY
+  rollup, owner-filtered one-key JOIN, fixed-epoch day bucket, idempotent
+  ensureSchema, honest KV cursor), naive twin 5/5 EXPLOITED (cross-owner
+  rollup rows, JOIN secret leak, wall-clock bucket, destructive DDL rerun,
+  lying list_complete). Covers the union nothing else touched:
+  campaign -> harness.run() -> handler -> FakeD1 v0.3. Paid-for trap pinned:
+  raw-array table seeding silently empties stores -> scope rows false-
+  negative to REFUSED, so the hardened run asserts the rollup saw real
+  data. No library growth, no pin-wall sweep (harness-layer test like
+  diff.test.js); the twin's Date.now is the documented exploit, not a
+  determinism surface. Suite 287/287.

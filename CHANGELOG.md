@@ -7,6 +7,21 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.0.1 (unreleased)
 
+- the campaign-path seam pinned two-way (test/harness/v03-campaign.test.js):
+  a live `runCampaign` walks the v0.3 engine surface end-to-end - the
+  disciplined run-root scores 5/5 REFUSED (scoped GROUP BY rollup,
+  owner-filtered one-key JOIN, fixed-epoch day bucket, idempotent
+  ensureSchema, honest KV cursor pagination) and the naive twin scores
+  5/5 EXPLOITED (cross-owner rollup rows, JOIN secret leak, wall-clock
+  bucket, destructive DDL rerun, lying `list_complete`). Closes the union
+  the unit rows (d1-v03/kv-v02) and the campaign rows deliberately don't
+  overlap: campaign -> harness.run() -> handler -> FakeD1 v0.3. Also pins
+  the paid-for seeded-fixture trap: tables written as raw arrays silently
+  produce EMPTY stores (scope rows then grade REFUSED from the outside),
+  so the hardened run asserts the rollup saw real data - a REFUSED can
+  never be a false negative. Zero library-attack growth (no census or
+  pin-wall sweep); the naive twin's wall clock is the documented exploit,
+  not a determinism surface.
 - faked1 v0.3 + fakekv v0.2 (issue #9, the ranked breadth gap list the
   vant census measured):
   - SQL: `IN (SELECT ...)` subqueries (depth one, exactly one projection
