@@ -185,10 +185,14 @@ from the builder's name.
 **Pack-shape spec (packstruct@1).** This repo implements
 [packstruct@1](https://github.com/dhaupin/packstruct) - the `/packs`
 manifest/entry/directory contract, frozen at SPEC v1 and transcribed
-byte-exact at `labs/packstruct-backfill/SPEC-v1.md` (pinned commit
-`b0e305034c974ad133b83e3b1c3cb27094d1de46`). The CI lane runs
-`packstruct lint packs/` at that same pin; bumping the pin is a deliberate
-review (re-transcribe + re-derive the moved specKeys in one commit).
+byte-exact at `labs/packstruct-backfill/SPEC-v1.md` (transcribed from the
+packstruct spec commit `b0e305034c974ad133b83e3b1c3cb27094d1de46`; the
+SHA is the transcript's provenance, no longer the install shape). The CI
+lane runs `packstruct lint packs/` from the npm package, installed as an
+EXACT devDependency (`"packstruct": "1.0.0"` in package.json, no float -
+same commit -> same findings applies to the linter too); bumping the pin
+is a deliberate review (re-transcribe + re-derive the moved specKeys in
+one commit).
 
 ## Docs map
 

@@ -31,27 +31,22 @@ jobs:
       - name: Docs gates (frontmatter, links, style, fiction)
         run: npm run lint:docs
 
-      # The pack lane (packstruct#1 ask #1, adopted 2026-10-24): our shipped
-      # pack manifests are linted against packstruct SPEC v1, pinned to an
-      # exact commit so the same commit -> same findings rule holds here too.
-      # The verbatim transcript lives at labs/packstruct-backfill/SPEC-v1.md;
-      # verify-spec.mjs keeps the transcript and the pin honest in the same
-      # breath. Bumping the pinned SHA is a deliberate review: re-transcribe
-      # the spec + re-derive any moved specKey in the SAME commit.
-      # CRITICAL: clone OUTSIDE the checkout (repo-root clones get walked by
-      # bare `node --test` discovery - it matches test/**/* recursively - and
-      # the FIRST lane commit (471a581) ran packstruct's own suite inside our
-      # npm test and failed.). /tmp is ephemeral on the runner.
-      - name: Pack lane - packstruct lint packs/ against SPEC v1 (pinned)
+      # The pack lane (packstruct#1 ask #1, adopted 2026-10-24; npm switch
+      # 2026-10-24 once packstruct published): our shipped pack manifests are
+      # linted against packstruct SPEC v1 via an EXACT devDependency
+      # ("packstruct": "1.0.0", no float - same commit -> same findings
+      # applies to the linter too). Bumping the pin is a deliberate review:
+      # re-transcribe the SPEC transcript + re-derive any moved specKey in
+      # the SAME commit. History: the lane ran from a GitHub clone pinned to
+      # the spec commit b0e305034c974ad133b83e3b1c3cb27094d1de46 until
+      # packstruct published; the byte-exact transcript + battery receipts
+      # stay tied to that SHA in labs/packstruct-backfill/. The npm wrapper
+      # ships the SAME spec path (spec/SPEC.md), so verify-spec.mjs reads it
+      # straight out of node_modules - no clone anywhere.
+      - name: Pack lane - packstruct lint packs/ against SPEC v1 (npm, exact-pinned)
         run: |
-          PIN=b0e305034c974ad133b83e3b1c3cb27094d1de46
-          LANE=/tmp/packstruct-lane
-          rm -rf "$LANE"
-          git clone --quiet --no-checkout --filter=blob:none https://github.com/dhaupin/packstruct.git "$LANE"
-          git -C "$LANE" fetch --quiet --depth 1 origin "$PIN"
-          git -C "$LANE" checkout --quiet FETCH_HEAD
-          node "$LANE/bin/cli.mjs" lint packs
-          node labs/packstruct-backfill/verify-spec.mjs "$LANE"
+          npx --no-install packstruct lint packs
+          node labs/packstruct-backfill/verify-spec.mjs node_modules/packstruct
 
       # web/dist is gitignored (build-only), but it is real attack surface:
       # the site pack's HTML/sitemap attacks need the prerendered artifacts.

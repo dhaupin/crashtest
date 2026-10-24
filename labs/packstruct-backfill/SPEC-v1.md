@@ -30,7 +30,7 @@ packs/public/<pack-name>/
 | `description` | one-line, human-readable |
 | `version` | dotted MAJOR.MINOR[.PATCH] |
 | `entry` | relative path inside the pack dir, MUST exist (missing entry = instant, nameable refusal - the crashtest#16 lesson is a norm now) |
-| `armedByKey` | OPTIONAL string. Present: the host MAY require an arming key before activation. Absent: the host's own default lifecycle governs |
+| `armedByKey` | OPTIONAL string. Present: the host MAY run its arming-key ceremony before activation - presence semantics only, so an EMPTY value is "present, not yet armed" (folded from the crashtest#25 matrix fold: the engine treats empty as valid, so a non-empty rule would be a check the SPEC never promised). Absent: the host's own default lifecycle governs |
 
 **Host-owned acknowledged keys.** The table above is the shared-facts column:
 fields every conforming loader assigns meaning to. Some hosts additionally
@@ -52,18 +52,56 @@ Extra manifest keys and extra files beside the entry are allowed as
 minimum-spec (the loader assigns no shared meaning to undeclared keys; e.g.
 crashtest's cve-feed ships a snapshot.json beside its entry, which is fine).
 
+**Receipts per frozen row** (added per dhaupin/packstruct#4: every row cites
+the engine evidence it mirrors, so "conforming to spec" and "what this one
+repo does" never blur). Engine rows are from crashtest `fc93ca6`,
+`src/packs/loader.js` - the packstruct#19-audited tree:
+
+- `schemaVersion` MUST be `1` — enforced: `loader.js:77-78` (unsupported
+  schemaVersion throws, "have: 1").
+- `name` kebab-case — enforced: `loader.js:98` throws on non-kebab names.
+- `name` MUST match its directory — the engine's narrower shape: packs are
+  loaded FROM their directories and the shared `seen` map keys identity by
+  manifest name (`loader.js:372, :389-391`), so a name/dir disagreement
+  surfaces as a loud collision or misattribution, never silent success. The
+  linter deliberately enforces the stricter contract (name == dir) at author
+  time; engine parity is tracked in dhaupin/packstruct#2.
+- `entry` MUST exist — the engine admits a default entry (`loader.js:101`)
+  and a declared file that doesn't ship fails at import with a one-line,
+  nameable error naming the pack (`loader.js:394-396`) — the crashtest#16
+  class, a norm either way. The linter runs the detection at author time via
+  file existence, so a broken manifest refuses before any host loads it.
+- `version` dotted semver-ish — pack-owned semver; the manifest reality is
+  the 8/8 #19 audit (every pack ships it), and the version is decoupled from
+  every host's and from packstruct's own release cadence (see section 6).
+- `description` non-empty — enforced: `loader.js:59, :71-73`
+  (REQUIRED_KEYS throws on missing fields).
+- `armedByKey` optional — engine shape contract: absent = unarmed-but-loadable
+  (crashtest#19 ruling folded into the table).
+- Host-owned `env`/`plugins`/`package` — acknowledged and shape-validated:
+  `loader.js:24-35` (comment block), `:110` (validateEnvClaims),
+  `:398-401` (bundled plugin imports), `:363-364` (seed passthrough).
+- Id collisions refuse at load — enforced: `loader.js:389-391` (shared
+  `seen` across surfaces: one loud error naming both origins).
+
 ## 3. Entry profiles (per host, declared here)
 
 An entry is an ES module with a default export. The manifest/dir/entry surface
 never forks between hosts; execution semantics are declared as profiles:
 
-- **`scenario` profile (crashtest):** default export = `register(ctx)`.
-  Contains hostile scenarios executed against a transport; hosts of this
-  profile provide isolation (fake transport, opt-out postures) and support
-  the `armedByKey` ceremony. The execution-semantics contract lives with the
-  host (crashtest's `reference/scenario-contract`); `profiles/scenario.md`
-  links to it rather than copying it - doc drift is worse than indirection
-  (ruled on crashtest#19).
+- **`scenario` profile (crashtest):** default export = a module object
+  carrying `name`, `description`, and an `attacks[]` array (attack names
+  kebab-case, each with a `run` function or a `steps` chain). Contains
+  hostile scenarios executed against a transport; hosts of this profile
+  provide isolation (fake transport, opt-out postures) and support the
+  `armedByKey` ceremony. The module-shape contract is HOST-OWNED in full:
+  it lives with the host (crashtest's `reference/scenario-contract`);
+  `profiles/scenario.md` links to it rather than copying it - doc drift is
+  worse than indirection (ruled on crashtest#19; the `register(ctx)` shape
+  in earlier drafts of this section was stale, deleted against the engine
+  truth at `fc93ca6` per the engine-first rule). The canonical profile
+  pages live with the spec (one address, same ruling):
+  `profiles/scenario.md` and `profiles/check.md`.
 - **`check` profile (poststruct):** default export = `{ checks: [Check] }`.
   Declarative pure-reading verifiers over files on disk. No transport, no
   network by default. Arming defaults to config enumeration: being listed in
@@ -98,10 +136,29 @@ never silent success.
 - Additive-first: v2 adds optional manifest fields; removing/renaming is a
   major spec bump requiring a migration note.
 - Hosts pin the spec they implement (`implements: packstruct@1` in host docs).
+- **Pack version is the pack's own semver, decoupled from every other release
+  cadence.** A `pack.json` `version` bumps only when that pack's own surface
+  changes - not when packstruct ships a new linter, not when a consumer ships
+  a new CLI or spec revision. House policy verbatim from crashtest's
+  AGENTS.md (where it is enforced by the governance suite): pack manifests
+  carry their own semver - never bump those for CLI-level releases. The
+  shipped-stable pack keeps its shape: a consumer adopting a newer linter or
+  a newer consumer build does not re-roll packs it already froze.
+- **Spec ↔ tool decoupling is the mirror image:** packstruct's own version
+  (0.9.x manual, 1.0.0 OIDC per its DEPLOY.md) tracks the linter and harness
+  surface only. A lint release that adds checks under the same frozen schema
+  is a TOOL semver bump that leaves this document's v1 number alone.
 
 ## 7. Conformance tooling
 
 - `packstruct lint <packs-dir>`: manifest validation + entry existence +
   name/dir match (section 2, plus directory-contract checks from section 1).
   Exit 0 conforming / 1 violations / 2 usage error.
-- Conformance harness (M2): fixture packs a loader must pass/fail as promised.
+- `packstruct audit-conformance <repo-dir> --loader "<cmd> {packs}"`: the
+  conformance harness. Bundled verdict-claiming cases (one clean bundle,
+  one per section-5 refusal norm, plus a name-collision pair) are
+  materialized into scratch roots and the HOST's own loader command runs
+  over each. A conforming loader exits 0 on the clean bundle and exits
+  non-zero AND names the offending pack on every violation bundle (section
+  5: nameable refusals; identity matches, refusal wording stays host-owned).
+  Same exit ladder: 0 all cases honored / 1 any case failed / 2 usage.

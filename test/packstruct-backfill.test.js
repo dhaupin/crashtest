@@ -168,7 +168,7 @@ test('cut: matrix packstruct-backfill every specKey resolves against the committ
   assert.match(
     matrix.spec?.source ?? '',
     /b0e305034c974ad133b83e3b1c3cb27094d1de46/,
-    'the pinned packstruct SHA on record moved or is missing - bump it ONLY with a re-transcribed SPEC-v1.md and a re-derived specKey review in the same commit (check: node labs/packstruct-backfill/verify-spec.mjs <packstruct-clone>)',
+    'the pinned packstruct SHA on record moved or is missing - bump it ONLY with a re-transcribed SPEC-v1.md and a re-derived specKey review in the same commit (check: node labs/packstruct-backfill/verify-spec.mjs node_modules/packstruct)',
   );
   const spec = await readFile(join(BACKFILL, 'SPEC-v1.md'), 'utf8');
   assert.ok(spec.startsWith('# The packstruct spec, version 1\n'), 'the committed transcript is not SPEC v1 - re-transcribe from the pinned clone, never hand-edit');

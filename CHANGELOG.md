@@ -7,6 +7,20 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.0.1 (unreleased)
 
+- the pack lane installs packstruct from npm (2026-10-24, armed for the
+  packstruct v1.0.0 publish): packstruct moves from a GitHub-clone pin at
+  the spec commit to an EXACT devDependency (`"packstruct": "1.0.0"` in
+  package.json, no float - same commit -> same findings applies to the
+  linter too). CI runs `npx --no-install packstruct lint packs` plus
+  verify-spec straight out of node_modules (the npm wrapper ships the same
+  spec/SPEC.md path), dropping the /tmp clone entirely; a `lint:packs`
+  script gives contributors the same two checks locally. The spec-commit
+  SHA b0e3050... stays as the byte-exact transcript's provenance in
+  labs/packstruct-backfill/ - that pin keeps its verify semantics, only the
+  install shape moved. This commit is the armed-but-dormant state: the
+  devDependency only resolves once packstruct v1.0.0 is on npm, so pushing
+  to main is gated on that publish (until then the lane fails loudly
+  naming the exact version it wants, the fail-at-cause norm).
 - pack self-audit fixtures backfilled for all 8 production packs
   (packs/public/<pack>/test/fixtures/, SPEC section 4 norm - closes
   dhaupin/crashtest#28): each fixture is hand-invocable

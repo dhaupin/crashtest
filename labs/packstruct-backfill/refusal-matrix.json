@@ -4,7 +4,7 @@
   "spec": {
     "title": "The packstruct spec, version 1",
     "transcript": "labs/packstruct-backfill/SPEC-v1.md",
-    "source": "dhaupin/packstruct spec/SPEC.md at SHA b0e305034c974ad133b83e3b1c3cb27094d1de46 (2026-10-24), committed byte-exact; verify with node labs/packstruct-backfill/verify-spec.mjs <packstruct-clone>",
+    "source": "dhaupin/packstruct spec/SPEC.md - transcribed byte-exact from the npm package @0.9.0 (2026-10-24, the lane's exact devDependency basis) whose spec state carries the b0e305034c974ad133b83e3b1c3cb27094d1de46 lineage plus the crashtest#25 armedByKey fold and the per-row engine receipts; earlier transcription came from the git SHA b0e305034c974ad133b83e3b1c3cb27094d1de46 itself. Verify with node labs/packstruct-backfill/verify-spec.mjs node_modules/packstruct",
     "specKeyGrammar": "\"<section>/<term>[/<term>...]\": the section cites a SPEC heading (1-7); every term must appear VERBATIM in that section of the committed transcript - the pin test resolves each key against SPEC-v1.md, never against memory"
   },
   "note": "specKey values were filled deliberately (2026-10-24) the moment SPEC v1 became addressable - transcribed against the committed transcript (SPEC-v1.md, pinned SHA) in the same review that landed them (dhaupin/crashtest#20 sequencing: fixtures transcribe the spec, never invent). Every host-owned shape row (R08-R19, A01, A02, A04) cites section 2's host-owned acknowledged-keys paragraph: the spec ACKNOWLEDGES the key and the HOST owns its shape rules - the granular engine cite stays in each row's hostRule. null is now a regression.",
