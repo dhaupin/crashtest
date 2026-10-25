@@ -15,6 +15,14 @@ WordPress's own hook surface - `admin_post` / `admin_post_nopriv` /
 `template_redirect` - with `wp_redirect` and `wp_die()` captured as
 structured transfers.
 
+The npm tarball ships that worker (and the `stub-wp/` harness): an npm
+install resolves its own `WORKER_DEFAULT` copy, version-locked to the
+adapter, and a run root pointed at a missing or unshipped worker script
+fails loud at boot with a named error instead of folding into a cfg verdict.
+If you need to pair an npm-installed adapter with a worker from elsewhere
+(a git checkout of a newer harness, say), mount it explicitly:
+`adapters: { wordpress: { wpRoot: '/srv/wordpress', script: '/abs/path/wp-worker.php' } }`.
+
 **No sockets, no live server, ever; the NDJSON stream is a wire format, not
 a transport** (PRD section 10 + section 14 still hold: the drone never dials anything).
 

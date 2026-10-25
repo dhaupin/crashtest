@@ -7,7 +7,29 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.1.1 (unreleased)
 
-(next unreleased build logs here)
+- npm tarball ships the WP adapter's worker (issue #34): the 1.1.0 tarball's
+  `files` whitelist (`bin`, `src`, `packs/public/*`) omitted `fixtures/`, so
+  the WP adapter could not boot under an npm install at all -
+  `WORKER_DEFAULT` resolves `fixtures/wordpress/wp-worker.php` from the
+  adapter's own location and `npm i crashtest` never shipped it; the spawn's
+  "Could not open input file" died silently into `cfgSent`'s catch and got
+  misdiagnosed as a stale-worker cfg rejection. The tarball now ships
+  `fixtures/wordpress` (worker + the `stub-wp/` harness, version-locked to
+  the installed adapter; `fixtures/demo` and the rest of `fixtures/` stay
+  repo-bound) and packaging drift is a suite row, not a first red-team run:
+  test/packaging.test.js gains a fixture-census row (WP subset ships,
+  nothing else under fixtures/ leaks) plus a REAL pack + local npm-install
+  smoke (temp workdir, `npm pack` tarball, `npm i`, then the packaged
+  tree's own `WORKER_DEFAULT` target must exist; zero-runtime-deps holds -
+  no registry touched, crashtest has no runtime deps). Boot now fails loud
+  + nameable (rule 3): `WPWorker` stats its script at construct and throws
+  "worker script not found at <path> - npm tarball omits fixtures/? mount
+  { script } from a git checkout...", reserving the `cfgSent` catch for
+  actual cfg rejection; the stale-worker error keeps its message and now
+  carries `{ cause }` so a start-level failure surfaces the real first
+  error. Docs: the WordPress playbook notes the tarball behavior and the
+  `{ script:` override mount pattern. Suite 319/319 (2 new rows; was
+  317/317).
 
 ## 1.1.0 (2026-10-25 on npm)
 

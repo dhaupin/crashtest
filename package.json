@@ -21,6 +21,7 @@
   "files": [
     "bin",
     "src",
+    "fixtures/wordpress",
     "packs/public/wp-money-shapes",
     "packs/public/wp-stock-smoke",
     "packs/public/wp-roles",

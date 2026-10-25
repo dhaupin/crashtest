@@ -21,6 +21,7 @@
 // and the next request transparently respawns a fresh wp-load.
 
 import { spawn } from 'node:child_process';
+import { statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -32,6 +33,14 @@ const WORKER_DEFAULT = join(
 class WPWorker {
   constructor({ wpRoot, phpBin = 'php', script = WORKER_DEFAULT, stderr = 'ignore' }) {
     if (!wpRoot) throw new TypeError('wordpress adapter needs { wpRoot } - the wp root to bootstrap');
+    // Fail loud + nameable at boot: a missing worker script is a packaging or
+    // mount problem, not a cfg-envelope problem - naming it here keeps the
+    // cfgSent catch-free diagnosis reserved for actual cfg rejection.
+    try {
+      statSync(script);
+    } catch {
+      throw new Error(`wordpress adapter: worker script not found at ${script} - npm tarball omits fixtures/? mount { script } from a git checkout or run from a checkout; this run root may be an npm install of an older tarball`);
+    }
     this.argv = [phpBin, script, wpRoot];
     this.stderr = stderr;
     this._child = this._spawn();
@@ -173,10 +182,13 @@ export function registerWordPress(harness, opts = {}) {
     try {
       await worker.exchange({ id: 'cfg0', kind: 'cfg', callAllow, allowOptions });
       return true;
-    } catch {
+    } catch (e) {
       // An older worker (pre-cfg) will fatal on the unknown kind and respawn
       // per request - surface it as a loud config error rather than silent skip.
-      throw new Error('wordpress adapter: worker rejected the cfg envelope (stale wp-worker.php next to an older adapter?)');
+      // The cause stays attached: a start-level failure (missing script, bad
+      // phpBin) is engine noise, not a stale-worker verdict, and the operator
+      // gets the real first error instead of a fold-in.
+      throw new Error('wordpress adapter: worker rejected the cfg envelope (stale wp-worker.php next to an older adapter?)', { cause: e });
     }
   })();
   // Cost hooks (PRD section 13): real-SQL ops tick the same ledger as fake backends.
