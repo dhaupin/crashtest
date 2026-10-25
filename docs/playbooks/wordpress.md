@@ -44,6 +44,7 @@ export default {
       // it knows NO plugin. You declare what your pack is allowed to touch:
       callAllow: { fm_mark_registration_paid: 3, wp_create_nonce: 1 }, // seeded whitelisted fns, fn => max args
       allowOptions: ['fm_settings'],                                  // option rows your pack may read/write
+      hookAllow: { fm_wc_payment_completed: 4, woocommerce_order_status_processing: 2 }, // internal hooks, hook => max args
     },
   },
   scenarioDirs: ['/abs/path/to/your/wp-scenarios'], // keep target scenarios outside the target repo
@@ -67,7 +68,23 @@ const rec = await harness.run('app', {
 await harness.wpState({ kind: 'state', op: 'post-meta', id: 42, key: '_acme_paid' });
 await harness.wpState({ kind: 'state', op: 'option', name: 'acme_settings', key: 'receiver' }); // gated by allowOptions
 await harness.wpState({ kind: 'call', fn: 'acme_mark_paid', args: [42] }); // gated by callAllow
+// internal-hook fire (issue #35) - gated by hookAllow, arg-bounded like callAllow:
+await harness.wpState({ kind: 'state', op: 'do-action', hook: 'fm_wc_payment_completed', args: [42, 'canary'] });
+// WooCommerce order fixtures (issue #35) - degrade LOUDLY where WC is not active;
+// the stub WP core (fixtures/wordpress/stub-wp) carries the same vocabulary for CI:
+const ord = await harness.wpState({ kind: 'state', op: 'wc-create-order', fee: { name: 'processing fee', amount: '5.00' }, meta: { _acme_binding: 'reg-42' } }); // -> {id, status, total}
+await harness.wpState({ kind: 'state', op: 'wc-order-set-status', id: ord.id, status: 'processing' }); // fires woocommerce_order_status_*
+await harness.wpState({ kind: 'state', op: 'wc-order-get-meta', id: ord.id, key: '_acme_binding' });   // WC meta API (HPOS + legacy)
+await harness.wpState({ kind: 'state', op: 'post-meta', id: ord.id, key: '_acme_binding' });           // legacy CPT path: order id IS the post id
+await harness.wpState({ kind: 'state', op: 'wc-order-get', id: ord.id });      // -> {id, status, total, currency}
+await harness.wpState({ kind: 'state', op: 'wc-order-delete', id: ord.id });   // teardown (rule 1)
 ```
+
+Playbook rule 1 (restore what you touch) covers orders too: seed, probe,
+`wc-order-delete` in the attack's own teardown. On a legacy (CPT-backed)
+store the order's meta ALSO lives in its own postmeta - the same values read
+back through the `post-meta` op on the order's id - which is exactly the
+cross-store surface a replaying completion hook attack has to grade
 
 Dispatch inference: an `admin-post.php` URL maps to `admin_post` (with its
 `?action=`), everything else to `template_redirect` - both overridable via

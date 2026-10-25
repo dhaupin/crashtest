@@ -99,6 +99,34 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
   capture, explicit-dir passthrough + header naming, run preflight +
   no-artifacts, preflight missing-packstruct). Docs: packs.md gains the
   "Spec lint" section; --help documents both surfaces.
+- the WP adapter grows the internal-hook + WooCommerce-order vocabulary
+  (issue #35, the live-fire khf-wp receipt): plugin-side payment bridges
+  complete money through INTERNAL hooks, not HTTP routes, and the worker's
+  op vocabulary had neither a hook fire nor order fixtures. The state ops
+  gain `do-action` (fires ONE hook through the real hook registry,
+  whitelist-gated by `hookAllow: { hook => max-args }` crossing the SAME
+  cfg-envelope trust model as callAllow; undeclared = loud fatal naming
+  hookAllow, args sliced at the bound like calls) and the `wc-*` order
+  fixtures: `wc-create-order` (fee line item + binding order meta; returns
+  { id, status, total }), `wc-order-set-status` (the money trigger -
+  set_status + save fires the real `woocommerce_order_status_*` hooks in
+  the target), `wc-order-get` (store-agnostic { id, status, total,
+  currency }), `wc-order-get-meta` (the WC meta API - the binding-meta
+  oracle on BOTH HPOS and legacy CPT stores), `wc-order-delete`
+  (playbook-rule-1 teardown). Degradation is loud where WooCommerce is
+  not active at the root; the generic-adapter rule holds (the worker knows
+  NO plugin - the funnel listeners live in target packs; the STUB WP core
+  carries the same vocabulary + a deterministic ct_wc_money_funnel
+  listener layer so CI teeth run with no WC install at all, and the stub
+  mirrors order meta onto the order's own post id = the legacy CPT read
+  path, so cross-store replay surfaces grade in CI). Unknown-op and
+  no-order reads stay loud fatal. The khf-money pack side (replay/pacing
+  shapes against the WC bridge) is the consumer's next PR per the issue.
+  Teeth: test/wp-hooks-wc.test.js (4 armed rows against the stub with
+  REAL php: dual read-path meta, hookAllow gate, status-hook relay
+  timing, arg bounds) - 337 tests run under php 8.3 in-session. Docs:
+  the WP playbook's config + scenario-surface blocks document hookAllow
+  and the full wc-* vocabulary.
 
 ## 1.1.0 (2026-10-25 on npm)
 

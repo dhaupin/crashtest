@@ -178,9 +178,12 @@ export function registerWordPress(harness, opts = {}) {
   // envelope. Packs declare what they need; the target config owns it.
   const callAllow = fix.callAllow ?? { wp_create_nonce: 1 };
   const allowOptions = fix.allowOptions ?? [];
+  // issue #35: internal completion hooks (woocommerce_order_status_* style
+  // money relays) cross the SAME trust model as callable fns - hook => max-args.
+  const hookAllow = fix.hookAllow ?? {};
   const cfgSent = (async () => {
     try {
-      await worker.exchange({ id: 'cfg0', kind: 'cfg', callAllow, allowOptions });
+      await worker.exchange({ id: 'cfg0', kind: 'cfg', callAllow, allowOptions, hookAllow });
       return true;
     } catch (e) {
       // An older worker (pre-cfg) will fatal on the unknown kind and respawn

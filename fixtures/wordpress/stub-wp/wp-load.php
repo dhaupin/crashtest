@@ -334,4 +334,110 @@ function ct_current_user_summary() {
 	return 'front-user:' . (int) $who['ID'] . ':' . implode( '|', (array) $who['roles'] );
 }
 
+/* --- WooCommerce-order vocabulary (issue #35): the same op surface the
+ generic worker speaks against a LIVE WooCommerce ships here deterministically
+ so CI teeth can drive order fixtures + internal completion hooks with no
+ WC install at all. The store is one flat table (HPOS-flavored) AND the
+ order meta is mirrored into ct_post_meta under the SAME id (the legacy
+ CPT-store read path: order id IS the post id, WC's meta API rides postmeta). */
+
+$GLOBALS['ct_wc_orders']       = array();
+$GLOBALS['ct_wc_next_order_id'] = 1000;
+
+class CT_WC_Item_Fee {
+	public $name = '';
+	public $amount = '0';
+	public function set_name( $n ) { $this->name = (string) $n; }
+	public function set_amount( $a ) { $this->amount = (string) $a; }
+}
+
+class CT_WC_Order {
+	public $id = 0;
+	public $status = 'pending';
+	public $fees = array();
+	public function get_id() { return (int) $this->id; }
+	public function get_status() { return (string) $this->status; }
+	public function set_status( $s ) {
+		$this->status = (string) $s;
+		return $this->status;
+	}
+	public function add_item( $item ) {
+		$this->fees[] = array( 'name' => (string) $item->name, 'amount' => (string) $item->amount );
+		return 1;
+	}
+	public function calculate_totals() {
+		$total = 0.0;
+		foreach ( $this->fees as $f ) { $total += (float) $f['amount']; }
+		$GLOBALS['ct_wc_orders'][ $this->id ]['total'] = (string) $total;
+		return $total;
+	}
+	public function save() {
+		$GLOBALS['ct_wc_orders'][ $this->id ]['status'] = $this->status;
+		$GLOBALS['wpdb']->queries[] = 'UPDATE order status ' . $this->id;
+		// money trigger: legacy WC completes money through status hooks
+		do_action( 'woocommerce_order_status_' . $this->status, $this->id );
+		return true;
+	}
+	public function get_total() { return (string) ( $GLOBALS['ct_wc_orders'][ $this->id ]['total'] ?? '0' ); }
+	public function get_currency() { return 'USD'; }
+	public function update_meta_data( $key, $value ) {
+		$GLOBALS['ct_wc_orders'][ $this->id ]['meta'][ (string) $key ] = $value;
+		// legacy CPT-store flavor: the same meta persists on the order's own
+		// post id (order id IS the post id there), so the post-meta op reads it.
+		$GLOBALS['ct_post_meta'][ (int) $this->id ][ (string) $key ] = $value;
+		return true;
+	}
+	public function get_meta( $key, $single = true ) {
+		return $GLOBALS['ct_wc_orders'][ (int) $this->id ]['meta'][ (string) $key ] ?? '';
+	}
+	public function delete( $force = false ) {
+		$GLOBALS['wpdb']->queries[] = 'DELETE order ' . $this->id;
+		unset( $GLOBALS['ct_wc_orders'][ (int) $this->id ], $GLOBALS['ct_post_meta'][ (int) $this->id ] );
+		return true;
+	}
+}
+
+function wc_create_order( $args = array() ) {
+	$wpdb = $GLOBALS['wpdb'];
+	$wpdb->queries[] = 'INSERT order';
+	$order          = new CT_WC_Order();
+	$order->id      = $GLOBALS['ct_wc_next_order_id']++;
+	// legacy CPT flavor: the order id owns a shop_order post row (deterministic;
+	// never collides with ct_insert_post ids this run because only ever seeded
+	// through this class or WIP teardown cleanup).
+	$GLOBALS['ct_posts'][ $order->id ] = array(
+		'ID' => $order->id, 'post_type' => 'shop_order', 'post_status' => 'wc-pending', 'post_title' => 'CT order ' . $order->id,
+	);
+	$GLOBALS['ct_post_meta'][ $order->id ] = array();
+	$GLOBALS['ct_wc_orders'][ $order->id ] = array( 'status' => 'pending', 'total' => '0', 'meta' => array() );
+	return $order;
+}
+
+function wc_get_order( $id ) {
+	$id = (int) $id;
+	if ( ! isset( $GLOBALS['ct_wc_orders'][ $id ] ) ) { return false; }
+	$order            = new CT_WC_Order();
+	$order->id        = $id;
+	$order->status    = (string) $GLOBALS['ct_wc_orders'][ $id ]['status'];
+	return $order;
+}
+
+class_alias( 'CT_WC_Item_Fee', 'WC_Order_Item_Fee' );
+
+/* The money-funnel listener layer: written like a well-built plugin bridge
+ (the khf-style consumer the issue describes). Options key ct_wc_money_funnel
+ accumulates every relayed event; packs read it through allowOptions. */
+add_action( 'woocommerce_order_status_processing', 'ct_wc_funnel_processing', 10, 1 );
+add_action( 'woocommerce_payment_complete', 'ct_wc_funnel_payment', 10, 1 );
+
+function ct_wc_funnel_record( $event, $id ) {
+	$row   = get_option( 'ct_wc_money_funnel', array() );
+	$row[] = array( 'event' => (string) $event, 'id' => (int) $id );
+	update_option( 'ct_wc_money_funnel', $row, false );
+	return count( (array) $row );
+}
+
+function ct_wc_funnel_processing( $id ) { return ct_wc_funnel_record( 'status-processing', $id ); }
+function ct_wc_funnel_payment( $id ) { return ct_wc_funnel_record( 'payment', $id ); }
+
 return true; // wp-load.php "boots"

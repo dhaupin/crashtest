@@ -109,13 +109,15 @@ function ct_emit( $id, array $fields ) {
 /** A non-transfer Throwable means the handler faulted - flush + die. The parent respawns. */
 
 /* --- run-config: whitelists arrive on the FIRST 'cfg' envelope (one JSON
- line) from the JS adapter - fn => max-args pairs, plus the option names the
- caller's pack may read/write. Defaults = stock-safe: nothing plugin-specific
- is known here, because the worker is GENERIC (targets teach it their own
- specifics; PRD section 10 note + the wp adapter docs 'who owns specifics'). --- */
+ line) from the JS adapter - fn => max-args pairs, hook => max-args pairs,
+ plus the option names the caller's pack may read/write. Defaults = stock-safe:
+ nothing plugin-specific is known here, because the worker is GENERIC (targets
+ teach it their own specifics; PRD section 10 note + the wp adapter docs
+ 'who owns specifics'). --- */
 $CT_CFG = array(
 	'callAllow'    => array( 'wp_create_nonce' => 1 ),
 	'allowOptions' => array(),
+	'hookAllow'    => array(),
 );
 
 function ct_options_allowed() {
@@ -156,10 +158,15 @@ function ct_run_cfg( $req ) {
 		(array) ( $req['callAllow'] ?? $CT_CFG['callAllow'] )
 	);
 	$CT_CFG['allowOptions'] = array_values( (array) ( $req['allowOptions'] ?? array() ) );
+	$CT_CFG['hookAllow'] = array_map(
+		'intval',
+		(array) ( $req['hookAllow'] ?? array() )
+	);
 	return ct_simple( 'cfg-ok' );
 }
 
 function ct_run_state( $req ) {
+	global $CT_CFG;
 	/* --- generic state ops over WP primitives (posts, meta, options). The
 	 plugin's OWN names - CPTs, meta keys, option rows, seeder functions -
 	 arrive via the caller's pack and the cfg envelope; the worker knows none
@@ -233,6 +240,123 @@ function ct_run_state( $req ) {
 			return ct_simple( (int) $pid );
 		case 'postmeta': // kept for pack compatibility: alias of post-meta
 			return ct_simple( get_post_meta( (int) ( $req['id'] ?? 0 ), (string) ( $req['key'] ?? '' ), true ) );
+
+		case 'do-action': // (issue #35) fire ONE internal hook - whitelist-gated exactly
+			                // like callAllow: plugin-side bridges complete money through
+			                // hooks (woocommerce_order_status_* relays), not HTTP routes,
+			                // and a hostile caller replaying completion hooks is the seam
+			                // a pack has to reach. Undeclared = loud fatal, never silent.
+			$hook = (string) ( $req['hook'] ?? '' );
+			$allow = (array) ( $CT_CFG['hookAllow'] ?? array() );
+			if ( '' === $hook || ! array_key_exists( $hook, $allow ) ) {
+				$f = ct_simple( null );
+				$f['fatal'] = 'hook not allowed (declare it via hookAllow in your run-root config): ' . $hook;
+				return $f;
+			}
+			$args = array_values( (array) ( $req['args'] ?? array() ) );
+			if ( count( $args ) > (int) $allow[ $hook ] ) { $args = array_slice( $args, 0, (int) $allow[ $hook ] ); }
+			call_user_func_array( 'do_action', array_merge( array( $hook ), $args ) );
+			return ct_simple( 'hook-fired' );
+
+		/* --- WooCommerce order fixtures (issue #35): plugin-side payment bridges
+		 bind + complete money on WC orders, so a pack needs the order vocabulary
+		 IN-PROCESS: create (fee line item + binding meta), set-status (fires the
+		 real woocommerce_order_status_* hooks), read meta the way the store
+		 persists it (WC meta API works on both HPOS and legacy CPT stores; on a
+		 legacy CPT store the same values ALSO read back through the post-meta op
+		 on the order's own id - the cross-store replay surface these ops exist to
+		 attack). They degrade LOUDLY where WooCommerce is not active; the stub WP
+		 core carries the same vocabulary so CI teeth run without a live WC. --- */
+		case 'wc-create-order':
+			if ( ! function_exists( 'wc_get_order' ) ) {
+				$f = ct_simple( null );
+				$f['fatal'] = 'woocommerce is not active at this wp root - the wc-* op vocabulary needs an active WooCommerce install';
+				return $f;
+			}
+			$ct_order = wc_create_order();
+			if ( is_wp_error( $ct_order ) || ! $ct_order ) {
+				$f = ct_simple( null );
+				$f['fatal'] = 'wc-create-order: wc_create_order failed';
+				return $f;
+			}
+			$ct_fee = (array) ( $req['fee'] ?? array() );
+			if ( isset( $ct_fee['name'], $ct_fee['amount'] ) && class_exists( 'WC_Order_Item_Fee' ) ) {
+				$ct_item = new WC_Order_Item_Fee();
+				$ct_item->set_name( (string) $ct_fee['name'] );
+				$ct_item->set_amount( (string) $ct_fee['amount'] );
+				$ct_order->add_item( $ct_item );
+			}
+			foreach ( (array) ( $req['meta'] ?? array() ) as $ct_mk => $ct_mv ) {
+				$ct_order->update_meta_data( (string) $ct_mk, $ct_mv );
+			}
+			if ( method_exists( $ct_order, 'calculate_totals' ) ) { $ct_order->calculate_totals(); }
+			$ct_order->save();
+			return ct_simple( array(
+				'id'    => $ct_order->get_id(),
+				'status' => $ct_order->get_status(),
+				'total' => (string) $ct_order->get_total(),
+			) );
+
+		case 'wc-order-set-status': // the money trigger: set_status + save fires woocommerce_order_status_*
+			if ( ! function_exists( 'wc_get_order' ) ) {
+				$f = ct_simple( null );
+				$f['fatal'] = 'woocommerce is not active at this wp root - the wc-* op vocabulary needs an active WooCommerce install';
+				return $f;
+			}
+			$ct_order = wc_get_order( (int) ( $req['id'] ?? 0 ) );
+			if ( ! $ct_order ) {
+				$f = ct_simple( null );
+				$f['fatal'] = 'wc-order-set-status: no order at id ' . (int) ( $req['id'] ?? 0 );
+				return $f;
+			}
+			$ct_order->set_status( (string) ( $req['status'] ?? 'processing' ) );
+			$ct_order->save();
+			return ct_simple( array( 'id' => $ct_order->get_id(), 'status' => $ct_order->get_status() ) );
+
+		case 'wc-order-get': // the oracle: id/status/total/currency via WC getters (store-agnostic)
+			if ( ! function_exists( 'wc_get_order' ) ) {
+				$f = ct_simple( null );
+				$f['fatal'] = 'woocommerce is not active at this wp root - the wc-* op vocabulary needs an active WooCommerce install';
+				return $f;
+			}
+			$ct_order = wc_get_order( (int) ( $req['id'] ?? 0 ) );
+			if ( ! $ct_order ) {
+				$f = ct_simple( null );
+				$f['fatal'] = 'wc-order-get: no order at id ' . (int) ( $req['id'] ?? 0 );
+				return $f;
+			}
+			return ct_simple( array(
+				'id'       => $ct_order->get_id(),
+				'status'   => $ct_order->get_status(),
+				'total'    => (string) $ct_order->get_total(),
+				'currency' => method_exists( $ct_order, 'get_currency' ) ? (string) $ct_order->get_currency() : '',
+			) );
+
+		case 'wc-order-get-meta': // binding-meta oracle - WC meta API, works on HPOS + legacy
+			if ( ! function_exists( 'wc_get_order' ) ) {
+				$f = ct_simple( null );
+				$f['fatal'] = 'woocommerce is not active at this wp root - the wc-* op vocabulary needs an active WooCommerce install';
+				return $f;
+			}
+			$ct_order = wc_get_order( (int) ( $req['id'] ?? 0 ) );
+			if ( ! $ct_order ) {
+				$f = ct_simple( null );
+				$f['fatal'] = 'wc-order-get-meta: no order at id ' . (int) ( $req['id'] ?? 0 );
+				return $f;
+			}
+			return ct_simple( $ct_order->get_meta( (string) ( $req['key'] ?? '' ), true ) );
+
+		case 'wc-order-delete': // fixture teardown (playbook rule 1: restore what you touch)
+			if ( ! function_exists( 'wc_get_order' ) ) {
+				$f = ct_simple( null );
+				$f['fatal'] = 'woocommerce is not active at this wp root - the wc-* op vocabulary needs an active WooCommerce install';
+				return $f;
+			}
+			$ct_order = wc_get_order( (int) ( $req['id'] ?? 0 ) );
+			if ( ! $ct_order ) { return ct_simple( 0 ); }
+			$ct_order->delete( true );
+			return ct_simple( 1 );
+
 	}
 	$f = ct_simple( null );
 	$f['fatal'] = 'unknown state op';
