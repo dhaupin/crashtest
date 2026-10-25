@@ -130,7 +130,7 @@ function writeBody(k, marker) {
 }
 
 function burstBody(k, nonce, ctx = {}) {
-  // Determinism (rule 4): no Date.now() anywhere in the shipped wire - the
+  // Determinism (rule 4): zero wall-clock reads anywhere in the shipped wire - the
   // ts field is seed-derived once per burst, so two runs of the same commit
   // post byte-identical payloads (the paced-wall oracle reads hints, not
   // this field, but the wire itself obeys the law).
