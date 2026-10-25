@@ -324,7 +324,18 @@ export function applyPackSeed(packs, env) {
  *   of its unmet env claims; omitted = claims stay load-only (unchecked).
  * @returns {Array<{ origin: string, module: object, visibility: string, manifest: object, prerequisites?: any[] }>}
  */
-export async function loadPacks(packsRoots = [], seen = new Map(), check = null) {
+export async function loadPacks(packsRoots = [], seen = new Map(), check = null, opts = {}) {
+  // Profile enforcement (issue #33, packstruct SPEC section 7): the ENTRY
+  // SHAPE is host-owned per profile - a manifest-conformant, entry-importable
+  // minimal pack of ANY profile must be loadable. The scenario contract
+  // ({ name, description, attacks }) is crashtest's profile and stays the
+  // STRICT default (validateProfile: true), so `crashtest run` / `crashtest
+  // packs` keep byte-identical behavior and every existing pin holds. Host
+  // faces that carry other profiles (packstruct audit-conformance, check-
+  // profile packs) pass { validateProfile: false }: the manifest contract
+  // (schemaVersion/name/entry) stays fully enforced - only the scenario-
+  // shape check is deferred to the host's own run-time validation.
+  const validateProfile = opts.validateProfile !== false;
   if (typeof packsRoots === 'string') packsRoots = [packsRoots];
   const out = [];
   for (const root of packsRoots) {
@@ -343,7 +354,7 @@ export async function loadPacks(packsRoots = [], seen = new Map(), check = null)
       const inPublic = root.includes('/public/');
       const inLocal = root.includes('/local/');
       const visibility = inPublic ? 'public' : inLocal ? 'local' : 'inline';
-      await loadPackDir(root, basename(root), visibility, seen, out, check);
+      await loadPackDir(root, basename(root), visibility, seen, out, check, validateProfile);
       continue;
     }
     // Otherwise: a packs ROOT - scan its public/ + local/ visibility dirs.
@@ -369,7 +380,7 @@ export async function loadPacks(packsRoots = [], seen = new Map(), check = null)
  * pack.json skips quietly - that is the local/ contract). Shared `seen`
  * keeps one name one origin across every load shape.
  */
-async function loadPackDir(packDir, name, visibility, seen, out, check) {
+async function loadPackDir(packDir, name, visibility, seen, out, check, validateProfile = true) {
   const origin = `${visibility}/${name}`;
   // dir without pack.json = not a pack (local dirs may carry loose WIP) - skip quietly
   let manifest;
@@ -406,6 +417,6 @@ async function loadPackDir(packDir, name, visibility, seen, out, check) {
     bundled,
     visibility,
     ...(check ? { prerequisites: evaluatePackEnv(spec, check) } : {}),
-    module: validateScenario(mod.default, `${origin}/${spec.entry}`),
+    module: validateProfile ? validateScenario(mod.default, `${origin}/${spec.entry}`) : mod.default,
   });
 }

@@ -105,6 +105,30 @@ test('loadPacks: a pack whose entry is contract-invalid fails LOUDLY naming the 
   await assert.rejects(() => loadPacks([root]), /invalid scenario module .*public\/snap\/index\.js/);
 });
 
+// --- issue #33: entry shape is host-owned per profile (packstruct SPEC section 7) ------------
+
+test('loadPacks: profile-minimal entries load with validateProfile:false - the SPEC section 7 clean case (issue #33)', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'packs-clean-'));
+  // The §7 clean fixture shape: manifest-conformant, entry-importable, NOT scenario-shaped.
+  const pk = await mkPack(root, 'public', 'clean-pack', { ...GOOD_MANIFEST, name: 'clean-pack' }, "export default { name: 'clean-pack' };\n");
+  const packs = await loadPacks([pk], new Map(), null, { validateProfile: false });
+  assert.equal(packs.length, 1);
+  assert.equal(packs[0].manifest.name, 'clean-pack', 'the manifest contract stays fully enforced');
+  assert.equal(packs[0].module.name, 'clean-pack', 'the host-owned entry shape surfaces as-is, no second validation added');
+});
+
+test('loadPacks: profile-deferred loading still enforces the manifest contract (bad manifest fails loudly either way, issue #33)', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'packs-clean-manifest-'));
+  const pk = await mkPack(root, 'public', 'clean-pack', { schemaVersion: 9, name: 'clean-pack', description: 'x' }, "export default { name: 'clean-pack' };\n");
+  await assert.rejects(() => loadPacks([pk], new Map(), null, { validateProfile: false }), /unsupported schemaVersion/);
+});
+
+test('loadPacks: the DEFAULT stays strict - profile-minimal entry refuses so the run path is byte-identical (issue #33)', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'packs-clean-default-'));
+  const pk = await mkPack(root, 'public', 'clean-pack', { ...GOOD_MANIFEST, name: 'clean-pack' }, "export default { name: 'clean-pack' };\n");
+  await assert.rejects(() => loadPacks([pk]), /invalid scenario module .*needs a one-line description/);
+});
+
 test('CLI: crashtest packs lists discovered packs with visibility + counts', async () => {
   const root = await mkdtemp(join(tmpdir(), 'packs-cli-'));
   const base = join(root, 'packs');

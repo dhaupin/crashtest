@@ -61,6 +61,20 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
   default preserved, armed-config irrelevance, packs symmetry). Docs:
   exit-rules.md gains "The opt-in exception", quick-start exit table
   notes it, --help documents the flag on both verbs.
+- the pack loader's entry-shape enforcement grows a defer option (issue
+  #33, packstruct SPEC section 7): `loadPacks(roots, seen, check,
+  { validateProfile: false })` defers ONLY the scenario-contract shape
+  check - the manifest contract (schemaVersion/name/description/entry
+  collision rules) stays fully enforced in every mode - so a manifest-
+  conformant, entry-importable profile-minimal pack (the SPEC's clean
+  fixture: `export default { name: 'clean-pack' }`) can exist under this
+  engine for host faces that carry other profiles. The strict default
+  (validateProfile: true, implicit) keeps `crashtest run` and `crashtest
+  packs` byte-identical and every existing refusal pin holds: a
+  contract-invalid entry still fails LOUDLY naming the pack origin on the
+  run path. Teeth: 3 new rows in test/packs.test.js (the clean case loads
+  deferred, the bad manifest still fails loudly deferred, the default
+  stays strict). Docs: packs reference documents the option.
 
 ## 1.1.0 (2026-10-25 on npm)
 

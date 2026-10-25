@@ -41,6 +41,15 @@ do (that contract is now on the site:
 
 `entry` points at an ESM file under the pack directory whose default export
 is a scenario module (`{ name, description, attacks: [{ name, run }] }`).
+The scenario shape is crashtest's own profile and `loadPacks()` enforces it
+by default. Host faces that carry OTHER entry profiles (the packstruct SPEC
+section 7 clean case - a manifest-conformant, entry-importable minimal pack
+of any profile) can defer just the shape check with
+`loadPacks(roots, seen, check, { validateProfile: false })`: the manifest
+contract (schemaVersion/name/description/entry) stays fully enforced, only
+the scenario-shape validation moves to the host's own run-time check. The
+CLI's `run` and `packs` surfaces keep the strict default - byte-identical
+behavior, never silently weaker.
 
 **`plugins` (optional, bundled imports)** - a pack can carry MORE scenario
 modules than its own files: the manifest lists import specifiers (npm
