@@ -5,7 +5,11 @@ Notable changes to the `crashtest` package. The released version lives in
 `test/version.test.js`); releases go out on `vX.Y.Z` git tags via npm
 Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
-## 1.1.0 (unreleased)
+## 1.1.1 (unreleased)
+
+(next unreleased build logs here)
+
+## 1.1.0 (2026-10-25 on npm)
 
 - the pack lane installs packstruct from npm (2026-10-24, armed for the
   packstruct v1.0.0 publish): packstruct moves from a GitHub-clone pin at
