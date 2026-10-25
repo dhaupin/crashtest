@@ -190,9 +190,12 @@ packstruct spec commit `b0e305034c974ad133b83e3b1c3cb27094d1de46`; the
 SHA is the transcript's provenance, no longer the install shape). The CI
 lane runs `packstruct lint packs/` from the npm package, installed as an
 EXACT devDependency (`"packstruct": "1.0.0"` in package.json, no float -
-same commit -> same findings applies to the linter too); bumping the pin
-is a deliberate review (re-transcribe + re-derive the moved specKeys in
-one commit).
+same commit -> same findings applies to the linter too). The pin now sits
+on the published [packstruct v1.0.0](https://www.npmjs.com/package/packstruct)
+release (OIDC-attested; `verify-spec` confirms the shipped `spec/SPEC.md`
+is byte-equal to the transcript, so the old provenance SHA still names the
+same bytes); any SPEC drift re-runs the same review rule - re-transcribe +
+re-derive the moved specKeys in one commit.
 
 ## Docs map
 
