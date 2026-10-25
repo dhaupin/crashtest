@@ -14,7 +14,7 @@ never opens a socket. That invariant is the whole safety story.
 
 ```bash
 npx crashtest init                 # labs/crashledger.json + labs/hardening.md stub - commit them
-# write crashtest.config.js: routes (your real handlers) + fake env   (see docs/DEPLOY.md)
+# write crashtest.config.js: routes (your real handlers) + fake env   (see DEPLOY.md)
 npx crashtest run --module-plan    # dry-run: which attacks WILL fire? which packs need arming?
 npx crashtest run                  # verdicts print live; report + ledger update
 # exit 0 unless a NEW EXPLOITED finding or a REFUSED->EXPLOITED regression
