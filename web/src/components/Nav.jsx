@@ -34,7 +34,7 @@ export default function Nav() {
           <Link to="/" className="brand" onClick={() => setOpen(false)}>
             <img src="/icon.svg" alt="" className="brand-logo" aria-hidden="true" />
             <span className="brand-crash">crash</span>test
-            <span className="brand-badge">v1.0</span>
+            <span className="brand-badge">v1.1</span>
           </Link>
           <div className="nav-right">
             <a

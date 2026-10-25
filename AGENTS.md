@@ -32,7 +32,7 @@ fixtures/demo/app.js    the self-dogfood target (hardened + vulnerable variants)
 fixtures/wordpress/     wp-worker.php + stub-wp/ (the generic subprocess worker
                         + the deterministic stub WP core the WP packs' teeth run on)
 fixtures/site/          second site shape the pack tests exercise
-test/                   176 tests; count pins live here - the guarantee -> pin
+test/                   317 tests; count pins live here - the guarantee -> pin
                         map is in the project brain's pins.md (see Project memory)
 web/                    the shipped site (prestruct-prerendered): Home, attack
                         catalog, dashboard (renders any ledger), FAQ; version
@@ -93,7 +93,7 @@ BOUNDED requires `owner` + `bound` or it is demoted to EXPLOITED. Drop modules
 into `labs/scenarios/` (or any dir via config `scenarioDirs`) and they load.
 Full semantics: `src/scenarios/contract.js` + tests in `test/scenarios/`.
 
-Library state at 1.0.0: **49 attacks across 14 modules** (auth, authz,
+Library state at 1.1.0: **49 attacks across 14 modules** (auth, authz,
 governance, guards, input, memory, proto-hygiene, recursion, upload,
 race, state, volume, taxonomy, session). Adding/renaming any attack means
 updating, in the SAME commit: the attacks doc + web catalog, the count
@@ -111,7 +111,7 @@ carry their own semver - never bump those for CLI-level releases.
 ## Common commands
 
 ```bash
-npm test             # full suite (node --test); 176 pass is the v1.0.0 floor
+npm test             # full suite (node --test); 317 pass is the 1.1.0 floor
 npm run check        # syntax check across every source/test file
 npm run lint:docs    # docs links + style + fiction-signature scan
 npx crashtest init
@@ -135,7 +135,7 @@ fiction):
    `labs/run-meta.json`, the sidecar cut stamp - it may move, the artifacts
    never do (pinned by the double-run test in test/cli.test.js).
 
-## Version surfaces (all 1.0.0 at release)
+## Version surfaces (one release, released as one number)
 
 `package.json` + `src/cli.js` VERSION (kept equal by `test/version.test.js`),
 `web/package.json`, nav badge + catalog eyebrow in web/. Pack manifest

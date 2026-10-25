@@ -17,7 +17,7 @@ import { buildModulePlan } from './plans.js';
 import { listPresets, scaffoldPreset, probeHandler } from './presets.js';
 import { collectSourceFiles, lintDeterminism } from './lint.js';
 
-const VERSION = '1.0.1';
+const VERSION = '1.1.0';
 const LEDGER_PATH = 'labs/crashledger.json';
 const META_BASENAME = 'run-meta.json';
 const META_PATH = `labs/${META_BASENAME}`;

@@ -59,8 +59,11 @@ that actually landed. Nothing to do by hand.
 ## Rules
 
 - Only publish from version tags, never from `main` directly.
-- The `files` field limits the tarball to `bin/` + `src/` + the two
-  self-contained reusable packs (`packs/public/wp-money-shapes`,
-  `packs/public/wp-stock-smoke`) - tests, labs, `web/` and the repo-bound
-  `crashtest-site` pack stay out (pinned by `test/packaging.test.js`).
+- The `files` field limits the tarball to `bin/` + `src/` + the seven
+  reusable packs (`wp-money-shapes`, `wp-stock-smoke`, `wp-roles`,
+  `cve-feed`, `qs-shapes`, `vite-dev-shapes`,
+  `next-middleware-shapes`) - tests, labs, `web/` and the repo-bound
+  `crashtest-site` self-dogfood pack stay out (pinned by
+  `test/packaging.test.js`, same surfaces the release job's guardrail
+  greps enforce on the GitHub Release asset).
 - Verify a release with `npm view crashtest@<version>` (or `npm pack --dry-run`).

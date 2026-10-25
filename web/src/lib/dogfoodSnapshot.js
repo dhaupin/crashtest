@@ -7,7 +7,7 @@
  * Re-run the generator after a dogfood run changes labs/, then commit.
  *
  * The dashboard renders this snapshot as its default, honest view:
- * a real ledger cut v1.0.1 - not demo data hand-typed for the page.
+ * a real ledger cut v1.1.0 - not demo data hand-typed for the page.
  */
 
 export const dogfood = {
@@ -569,8 +569,8 @@ export const dogfood = {
     ]
   },
   "meta": {
-    "version": "1.0.1",
-    "startedAt": "2026-10-23T21:38:04.126Z",
+    "version": "1.1.0",
+    "startedAt": "2026-10-25T03:11:59.804Z",
     "seed": 12648430
   }
 };

@@ -13,10 +13,13 @@ Byte-exact copies were verified with `cmp` at extraction time.
 | file                        | receipt                                                                                      |
 | --------------------------- | -------------------------------------------------------------------------------------------- |
 | `_config.yml`               | genericized from crashtest docs/_config.yml (same kramdown/rouge/permalink/excludes engine settings) |
+| `Gemfile`                   | byte-exact copy (generic deps: jekyll ~> 4.3 + jekyll-redirect-from) - `bundler-cache: true` in docs-deploy.yml REFUSES to run without it; extracted 2026-10-25 after the gap was caught land-side |
+| `_data/nav.yml`             | new starter (2026-10-25): the layout iterates `site.data.nav`, and an empty sidebar was the silent first-render gap - the starter links only pages the shell ships, with exemplar rows commented |
 | `_layouts/default.html`     | extracted; brand paths now ride `site.baseurl`, theme key `flowforge-theme`, tokens neutralized |
 | `icon.svg`                  | placeholder, byte-identical with `web/public/icon.svg` (the two-surface brand contract)        |
 | `index.md`                  | sample page; proves the frontmatter gate + Rouge highlighting                                  |
 | `_freestruct/inject-brand.html` | extracted shape, placeholders genericized (adds twitter/og:image/JSON-LD the layout lacks)  |
+| `discussions/index.md`      | new sample (2026-10-25), genericized from crashtest's release-post index: `announcing-vX.Y.Z.md` per release, the file's raw markdown IS the announcement (strip frontmatter, post), lint-gated like every page |
 
 ## web/ (prestruct landing shell)
 

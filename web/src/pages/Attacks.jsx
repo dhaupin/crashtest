@@ -130,7 +130,7 @@ export default function Attacks() {
   return (
     <section className="section" style={{ paddingTop: 56 }}>
       <div className="wrap">
-        <p className="eyebrow">Scenario catalog / v1.0</p>
+        <p className="eyebrow">Scenario catalog / v1.1</p>
         <h2>All shipped attacks</h2>
         <p className="sub">
           Drop extra modules into <code>labs/scenarios/</code> (or any dir via config
@@ -156,15 +156,18 @@ export default function Attacks() {
         </div>
         <h3 style={{ marginTop: 40 }}>Shipped packs ride the same ledger</h3>
         <p className="sub">
-          Beyond the 49 library attacks above, five public packs ship in the
-          package and load wherever <code>packs:</code> points: <code>crashtest-site</code>{' '}
-          (18 attacks - the release self-check that caught our own version
-          endpoint answering a malformed payload with a 200),{' '}
+          Beyond the 49 library attacks above, eight public packs ship - 36
+          pack attacks total - and load wherever <code>packs:</code> points.
+          Seven of them ride the npm package under{' '}
+          <code>packs/public/</code>; the eighth, <code>crashtest-site</code>,
+          stays repo-bound (18 attacks - the release self-check that dogfoodes
+          this website end to end and once caught our own version endpoint
+          answering a malformed payload with a 200). The npm-carried seven:{' '}
           <code>cve-feed</code> (2 attacks - <code>kev-banner-audit</code> and{' '}
           <code>kev-version-range-audit</code>, reading a curated, committed
           KEV/NVD snapshot instead of the network - the snapshot shape, its
-          27-row/8500-byte budget, and the word-boundary grammar of its match
-          tokens are pinned in{' '}
+          27-row budget, and the word-boundary grammar of its match tokens
+          are pinned in{' '}
           <a href="https://github.com/dhaupin/crashtest/blob/main/test/cve-feed.test.js" target="_blank" rel="noreferrer">test/cve-feed.test.js</a>),{' '}
           <code>qs-shapes</code> (2 attacks - <code>qs-bracket-canary</code> and{' '}
           <code>qs-depth-floor</code>, firing bracket-notation shapes at the
@@ -174,10 +177,19 @@ export default function Attacks() {
           bypass grammar differential plus the env-family content-shape
           oracle, pinned in{' '}
           <a href="https://github.com/dhaupin/crashtest/blob/main/test/vite-shapes.test.js" target="_blank" rel="noreferrer">test/vite-shapes.test.js</a>),
-          and <code>next-middleware-shapes</code> (2 attacks - the middleware
+          <code>next-middleware-shapes</code> (2 attacks - the middleware
           subrequest header's known bypass grammar plus a value-blindness
           canary that must never unlock a gated route, pinned in{' '}
-          <a href="https://github.com/dhaupin/crashtest/blob/main/test/next-mw-shapes.test.js" target="_blank" rel="noreferrer">test/next-mw-shapes.test.js</a>).
+          <a href="https://github.com/dhaupin/crashtest/blob/main/test/next-mw-shapes.test.js" target="_blank" rel="noreferrer">test/next-mw-shapes.test.js</a>),{
+          ' '}
+          and the three WordPress packs over the v0.3 subprocess wire{' '}
+          (NDJSON over stdio - a wire format, not a transport):
+          <code>wp-stock-smoke</code> (4 attacks - the stock-WordPress smoke:
+          dispatch, real-SQL metering, call/option gates),{' '}
+          <code>wp-money-shapes</code> (3 attacks - the armedByKey option
+          ceremony), and <code>wp-roles</code> (3 attacks, experimental -
+          role/capability shapes). Every shipped pack carries its own
+          self-audit fixtures (<code>test/fixtures/run.mjs</code> per pack).
           Same verdicts, same ledger, still zero sockets.
         </p>
         <p className="field-report">

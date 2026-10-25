@@ -30,6 +30,8 @@ bundle exec jekyll build
 
 ## The sidebar nav
 
-Sidebar sections come from `docs/_data/nav.yml` (create it: one group with
-a `title` and an `items` list of `{title, url}` entries). This shell ships
-with no `nav.yml` - add yours and the sidebar lights up.
+Sidebar sections come from `docs/_data/nav.yml`: a list of groups, each
+with a `title` and an `items` list of `{title, url}` entries. The shipped
+starter nav links only pages the shell actually carries (this page and the
+release-posts index) with exemplar rows commented - replace it with yours
+as your pages land.

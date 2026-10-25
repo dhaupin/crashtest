@@ -5,7 +5,7 @@ Notable changes to the `crashtest` package. The released version lives in
 `test/version.test.js`); releases go out on `vX.Y.Z` git tags via npm
 Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
-## 1.0.1 (unreleased)
+## 1.1.0 (unreleased)
 
 - the pack lane installs packstruct from npm (2026-10-24, armed for the
   packstruct v1.0.0 publish): packstruct moves from a GitHub-clone pin at
@@ -16,11 +16,38 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
   spec/SPEC.md path), dropping the /tmp clone entirely; a `lint:packs`
   script gives contributors the same two checks locally. The spec-commit
   SHA b0e3050... stays as the byte-exact transcript's provenance in
-  labs/packstruct-backfill/ - that pin keeps its verify semantics, only the
-  install shape moved. This commit is the armed-but-dormant state: the
-  devDependency only resolves once packstruct v1.0.0 is on npm, so pushing
-  to main is gated on that publish (until then the lane fails loudly
-  naming the exact version it wants, the fail-at-cause norm).
+  labs/packstruct-backfill/ - that pin keeps its verify semantics, only
+  the install shape moved. The lane rode out armed (staged commit, dormant
+  until the devDependency resolved) and verified clean on publish day
+  2026-10-25 (packstruct v1.0.0 on npm, OIDC-attested): verify-spec
+  byte-equal against the shipped spec/SPEC.md, `packstruct lint packs`
+  8/8, `package-lock.json` committed pinning the exact resolution, and
+  the cloud CI green on the new lane first try (README's packstruct
+  paragraph now cites the npm release as the pin).
+- refusal battery, permanent in-repo (crashtest#25, packstruct#3's shared
+  matrix): the 18-shape transcribed corpus (labs/refusal-battery/) plus a
+  self-verifying generator (scripts/gen-refusal-battery.cjs - materialize
+  each shape per its own instructions, run the loader over it, then a
+  column either gets written or re-observed with per-row drift lines),
+  the observed crashtest column (labs/refusal-matrix-crashtest.json,
+  every cell OBSERVED, not hand-derived), and 4 pins in
+  test/refusal-battery.test.js: byte-drift gate, the six documented
+  loader/linter disagreements locked (a silent flip is a finding, not
+  noise), cross-column parity, and the one upstream emitter anomaly held
+  on record to fire the day packstruct's generator fix lands (one copy +
+  one regenerate to re-ingest).
+- theme-switch icon direction flips family-wide (crashtest#26, mirrored
+  from packstruct; icon = action, not state): dark shows the sun (click
+  = light), light shows the moon (click = dark), on the landing nav
+  (ThemeSwitch) and the docs header - both SVGs always render in the
+  markup, CSS picks the visible one, so prerendered bytes and hydrated
+  output are identical, no flash.
+- the release-post system (docs/discussions/): one announcing-vX.Y.Z.md
+  per release, shaped like prestruct's, lint-gated like every docs page -
+  the file's raw markdown IS the announcement (view source, copy, strip
+  the frontmatter, post); the posting mechanics live in the index, and
+  the v1.0.0 post ships with this batch, paragraphs unwrapped for a
+  clean raw-markdown copy.
 - pack self-audit fixtures backfilled for all 8 production packs
   (packs/public/<pack>/test/fixtures/, SPEC section 4 norm - closes
   dhaupin/crashtest#28): each fixture is hand-invocable

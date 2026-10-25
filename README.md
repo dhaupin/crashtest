@@ -3,7 +3,7 @@
 > **We break it so they can't.**
 > In-process adversarial QA for agent-built software - no network, no bans, no invoice.
 >
-> [`npmjs.com/package/crashtest`](https://www.npmjs.com/package/crashtest) / MIT / v1.0.1
+> [`npmjs.com/package/crashtest`](https://www.npmjs.com/package/crashtest) / MIT / v1.1.0
 
 Crashtest attacks your project's **real handlers** - the way a security engineer
 would, minus the live server. Every attack is an in-process `Request` through
