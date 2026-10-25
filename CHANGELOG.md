@@ -75,6 +75,30 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
   run path. Teeth: 3 new rows in test/packs.test.js (the clean case loads
   deferred, the bad manifest still fails loudly deferred, the default
   stays strict). Docs: packs reference documents the option.
+- the host-lane convention becomes discoverable: `crashtest lint-packs
+  [--deep] [--json] [--against <lib>] [dir]` + `run --lint-packs`
+  (issue #32, the gistory wiring receipt) - opt-in passthrough to the
+  packstruct binary the repo has INSTALLED (node_modules/.bin first, then
+  PATH; never downloads or bundles one - the zero-deps law holds), so the
+  every-family-repo `packs/` spec-lint lane stops being folklore. Policy
+  pinned: explicitly invoked but packstruct missing = exit 2 naming the
+  fix (`npm i -D packstruct@<exact>` - requested-never-working is a broken
+  config, OFF not half-on); present but exiting non-zero = verdicts pass
+  through verbatim with the exit code riding (0/1/2; the loader's checks
+  stay the correctness ground truth, the lint is author-time DX + the id
+  census). Dir law pinned: the packs ROOT is the default and packstruct's
+  contract root (passing `packs/public` reads as 0 packs checked - the
+  live gistory footgun); an explicit dir passes through untouched and the
+  header line names the actual dir checked. `run --lint-packs` runs the
+  same lane INSTEAD of the campaign (no requests, no artifacts - mirrors
+  run --lint-determinism) and needs nothing from the config, resolving
+  before the import. This repo's `lint:packs` script collapses onto the
+  verb (`node bin/crashtest.js lint-packs`) - the crate eats its own
+  surface first. Teeth: test/lint-packs.test.js (missing-packstruct exit
+  2 + fix string, exit-code fidelity 0/1/2, ROOT-default argument
+  capture, explicit-dir passthrough + header naming, run preflight +
+  no-artifacts, preflight missing-packstruct). Docs: packs.md gains the
+  "Spec lint" section; --help documents both surfaces.
 
 ## 1.1.0 (2026-10-25 on npm)
 

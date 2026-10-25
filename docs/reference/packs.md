@@ -51,6 +51,39 @@ the scenario-shape validation moves to the host's own run-time check. The
 CLI's `run` and `packs` surfaces keep the strict default - byte-identical
 behavior, never silently weaker.
 
+## Spec lint (`crashtest lint-packs`)
+
+When your tree has packs, run the packstruct spec linter over them at
+author time - the failure classes it catches (bad schemaVersion, name/dir
+mismatch, missing entry, dotted-version rule) read better at edit time than
+at first red-team run:
+
+```bash
+npx crashtest lint-packs [--deep] [--json] [--against <lib>] [dir]
+crashtest run --lint-packs        # same lint INSTEAD of the campaign
+```
+
+Pin rules (issue #32):
+
+- **The lane is opt-in passthrough, zero deps kept.** It executes the
+  packstruct binary CURRENT REPO has installed (`node_modules/.bin` first,
+  then PATH) and never downloads or bundles one. Own it: packstruct is an
+  EXACT devDependency of the repo (`"packstruct": "1.0.0"`, no float -
+  same commit -> same findings applies to the linter too).
+- **Requested but not installed = exit 2** naming the fix
+  (`npm i -D packstruct@<exact>`). Explicitly asked and never-working reads
+  as a broken config, not as "skipped": OFF, not half-on. With no flag and
+  no install, `run` behaves byte-identically to before (the loader's own
+  checks stay the ground truth mid-run).
+- **Exit codes ride through verbatim** (0 clean / 1 findings / 2 config-
+  class); this lane is author-time DX + the id census + cross-host
+  uniformity, never a correctness gate over the loader.
+- **The dir is the packs ROOT**, with its `public`/`local` children - NOT
+  `packs/public` (packstruct's contract root; passing the public dir reads
+  as "0 packs checked, missing packs/public/public/"). An explicit dir
+  passes through untouched, and the header line names the actual dir
+  checked.
+
 **`plugins` (optional, bundled imports)** - a pack can carry MORE scenario
 modules than its own files: the manifest lists import specifiers (npm
 packages, or ESM files the pack itself ships, relative to the **pack

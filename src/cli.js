@@ -4,7 +4,9 @@
 // finding or a regression of a previously REFUSED check.
 
 import { mkdir, writeFile, readFile, access } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { buildHarness } from './harness/harness.js';
 import { registerAdapters } from './adapters/index.js';
@@ -62,6 +64,10 @@ COMMANDS
     --out-dir <dir>           ALSO write run-blob.json + crashledger.json +
                               hardening.md copies into dir (artifact fan-out;
                               the repo's labs/ rules are untouched)
+    --lint-packs              Preflight: run the packstruct lint over the
+                              packs root INSTEAD of the campaign (no requests,
+                              no artifacts; issue #32 - same lane as the
+                              crashtest lint-packs verb)
   crashtest packs             List discovered packs (public + local), env claims shown/unmet lines rendered
     --config <path>           Honor the config's packs knob
     --json                    Machine inventory (versions, armedByKey, npm pkg)
@@ -75,6 +81,18 @@ COMMANDS
                               unseeded-randomness tokens (Date.now, new Date(
                               , Math.random) - findings exit 2 naming file:line
                               (issue #13 blocker 3; also: run --lint-determinism)
+  crashtest lint-packs [--deep] [--json] [--against <lib>] [dir]
+                              Lint the packs ROOT against the packstruct packs
+                              spec (schemaVersion 1, name/dir match, entry
+                              ships, dotted version). Opt-in passthrough to
+                              the packstruct binary THIS REPO has installed
+                              (node_modules/.bin, then PATH) - never downloads
+                              one (issue #32). Default dir: the packs root,
+                              NEVER packs/public (packstruct's contract root
+                              is <dir>/ with its public/local children).
+                              packstruct not installed where the flag/verb is
+                              explicitly asked = exit 2 naming the fix:
+                              npm i -D packstruct@<exact>
   crashtest packs add <name> [--public]
                               Scaffold a fresh pack (local + gitignored by default)
   crashtest preset <name> [--root <dir>]
@@ -301,6 +319,63 @@ async function buildTargetHarness(target) {
   return harness;
 }
 
+/**
+ * `crashtest lint-packs [--deep] [--json] [--against <lib>] [dir]` (issue #32)
+ * - the opt-in packstruct passthrough: the lane (client-owned EXACT
+ *   devDependency of the packstruct spec linter - see packs.md) exists in
+ *   every family repo but was folklore. This verb makes it discoverable
+ *   WITHOUT adding a runtime dep: it runs the packstruct binary THIS REPO
+ *   has installed (node_modules/.bin first, then PATH), never downloads or
+ *   bundles one (same zero-deps law as everywhere).
+ *
+ * Policy (pinned, honest-skip vs loud):
+ *   - explicitly invoked (verb or run --lint-packs) with no packstruct
+ *     installed -> exit 2 naming the fix (a never-working requested lane
+ *     is a broken config, not a skip - OFF, not half-on).
+ *   - present but exits non-zero -> verdicts pass through verbatim; the
+ *     exit code rides (0/1/2...).
+ */
+const PACKSTRUCT_FIX = 'fix: npm i -D packstruct@<exact> - install packstruct as an EXACT devDependency (same commit -> same findings applies to the linter too; this lane never downloads one)';
+
+function packstructInstalled() {
+  if (existsSync(join(repoRoot(), 'node_modules', '.bin', 'packstruct'))) return 'local';
+  const probe = spawnSync('packstruct', ['--version'], { encoding: 'utf8' });
+  if (probe.error && probe.error.code === 'ENOENT') return null;
+  return 'path';
+}
+
+function spawnPackstruct(args) {
+  const source = packstructInstalled();
+  if (!source) return { error: { code: 'ENOENT' } };
+  if (source === 'local') {
+    return spawnSync(join(repoRoot(), 'node_modules', '.bin', 'packstruct'), args, { encoding: 'utf8', stdio: 'inherit' });
+  }
+  return spawnSync('packstruct', args, { encoding: 'utf8', stdio: 'inherit' });
+}
+
+async function cmdLintPacks(opts = {}) {
+  // The packs ROOT (with its public/ + local/ children) is packstruct's
+  // contract root - `packs/public` reads as "0 packs checked, missing
+  // packs/public/public/" (the live footgun from gistory's first wiring).
+  // Default dir: the root; an explicit dir passes through UNTOUCHED.
+  const dir = opts.dir ?? 'packs';
+  const args = ['lint', dir];
+  if (opts.deep) args.push('--deep');
+  if (opts.json) args.push('--json');
+  if (opts.against !== undefined) args.push('--against', opts.against);
+  console.log(`crashtest lint-packs: running packstruct over ${dir} (the repo's own install - never downloaded); ${args.join(' ')}`);
+  const res = spawnPackstruct(args);
+  if (res.error && res.error.code === 'ENOENT') {
+    console.error(`crashtest lint-packs: packstruct is not installed in this repo - ${PACKSTRUCT_FIX}`);
+    process.exitCode = 2;
+    return;
+  }
+  // Passthrough fidelity: the exit code IS the verdict (0 clean / 1 findings /
+  // 2 packstruct's own config-class). Loader checks stay the ground truth;
+  // this lane is author-time DX + the id census, never a correctness gate.
+  process.exitCode = res.status ?? 1;
+}
+
 async function cmdRun(opts = {}) {
   // PRD section 14 alignment: `run --json` appends the machine run blob (tally,
   // verdict rows, cost economics) as the LAST stdout line - the exact shape
@@ -337,6 +412,14 @@ async function cmdRun(opts = {}) {
     console.error('Directories: labs/scenarios/ is auto-scanned for extra scenario modules.');
     process.exitCode = 2;
     return;
+  }
+
+  // run --lint-packs (issue #32): the packstruct lane INSTEAD of the
+  // campaign - no requests, no artifacts; explicit request + missing
+  // packstruct = loud exit 2 (same policy as the lint-packs verb). It
+  // needs nothing from the config, so it runs before the import.
+  if (opts.lintPacks) {
+    return cmdLintPacks();
   }
 
   const target = (await import(pathToFileURL(configPath).href)).default;
@@ -750,6 +833,21 @@ export async function main(argv) {
     const dirs = argv.slice(1).filter((a) => !a.startsWith('-') && a !== argv[confIdx + 1]);
     return cmdLintDeterminism({ config: confIdx > -1 ? argv[confIdx + 1] : undefined, dirs });
   }
+  if (verb === 'lint-packs') {
+    const rest = argv.slice(1);
+    let dir;
+    let deep = false;
+    let json = false;
+    let against;
+    for (let i = 0; i < rest.length; i++) {
+      const a = rest[i];
+      if (a === '--deep') deep = true;
+      else if (a === '--json') json = true;
+      else if (a === '--against') against = rest[++i];
+      else if (!a.startsWith('-')) dir = a;
+    }
+    return cmdLintPacks({ dir, deep, json, against });
+  }
   if (verb === 'preset') {
     const name = argv[1];
     const rootIdx = argv.indexOf('--root');
@@ -766,7 +864,7 @@ export async function main(argv) {
     const outIdx = argv.indexOf('--out-dir');
     const outDir = outIdx > -1 ? argv[outIdx + 1] : undefined;
     const lintIdx = argv.indexOf('--lint-determinism');
-    return cmdRun({ config, json, modulePlan, expectBaseline, outDir, lintDeterminism: lintIdx > -1, allowVacuous: argv.includes('--allow-vacuous') });
+    return cmdRun({ config, json, modulePlan, expectBaseline, outDir, lintDeterminism: lintIdx > -1, lintPacks: argv.includes('--lint-packs'), allowVacuous: argv.includes('--allow-vacuous') });
   }
   console.error(`crashtest: unknown command "${verb}" (try --help)`);
   process.exitCode = 1;
