@@ -28,8 +28,19 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
   actual cfg rejection; the stale-worker error keeps its message and now
   carries `{ cause }` so a start-level failure surfaces the real first
   error. Docs: the WordPress playbook notes the tarball behavior and the
-  `{ script:` override mount pattern. Suite 319/319 (2 new rows; was
+  { script:` override mount pattern. Suite 319/319 (2 new rows; was
   317/317).
+- the docs layer's freestruct install moves to the npm-published release
+  (receipt for issue #36): the docs workflow's `github:dhaupin/freestruct#dfb30aa498`
+  source-tarball pin (last commit carrying `docs/lib/` at the documented
+  path) becomes the exact-version npm pin `freestruct@1.1.0` - published
+  2026-10-25 with provenance, proper bin (`bin/freestruct.mjs`), and a
+  tarball e2e hard gate. The run step follows the package: the old
+  `node node_modules/freestruct/docs/lib/inject.js` layout no longer ships;
+  the step now invokes the installed bin via node directly. Contract
+  checked before the landing: `freestruct validate` passes against this
+  repo's existing `docs/ssr-config.yml` unchanged. Exact pin ritual stands
+  (bump the number the day freestruct releases again - never float).
 
 ## 1.1.0 (2026-10-25 on npm)
 
