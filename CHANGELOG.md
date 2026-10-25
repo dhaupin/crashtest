@@ -41,6 +41,26 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
   checked before the landing: `freestruct validate` passes against this
   repo's existing `docs/ssr-config.yml` unchanged. Exact pin ritual stands
   (bump the number the day freestruct releases again - never float).
+- the opt-in vacuous run for configless roots (issue #37, the flowforge
+  CI shape): `run --allow-vacuous` in a root with no `crashtest.config.js`
+  prints ONE honest line (`crashtest: no <config> found - vacuous run, 0
+  handlers, 0 attacks, exit 0`) and exits 0, writing nothing - so a repo
+  in the pre-handler lifecycle state keeps the pinned install + the CI
+  step LIVE instead of parking them behind `hashFiles` arm-gates, and
+  install rot gets caught the day it happens, not the day the config
+  lands. The default stays strict byte-for-byte: a missing config without
+  the flag is the same hard exit 2 as before (it must never silently
+  green a broken run), and with a config present the flag is irrelevant
+  (the run is byte-normal). `crashtest packs --allow-vacuous` gets the
+  symmetric treatment (honest empty-listing line, exit 0; the plain
+  configless `packs` listing was already a quiet 0 and keeps its hint
+  line under the flag). `--json` keeps its LAST-stdout-line contract on a
+  vacuous run: an honest empty-shape blob (vacuous:true, handlers:0,
+  tally TOTAL:0) with the real run's field names. Teeth: 5 new rows in
+  test/cli.test.js (vacuous line + no artifacts, json blob shape, strict
+  default preserved, armed-config irrelevance, packs symmetry). Docs:
+  exit-rules.md gains "The opt-in exception", quick-start exit table
+  notes it, --help documents the flag on both verbs.
 
 ## 1.1.0 (2026-10-25 on npm)
 

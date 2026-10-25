@@ -55,6 +55,24 @@ cause), but a misconfigured repo is not evidence about your code. It's
 evidence about the run. Exit-2 keeps "your app is weak" semantically very far
 from "the run could not be trusted."
 
+### The opt-in exception: `--allow-vacuous` (issue #37)
+
+A repo in the pre-handler lifecycle state (a shell adopted the pinned
+install before it has handlers to attack) can keep its CI step LIVE instead
+of parking it behind `hashFiles` arm-gates:
+
+- `crashtest run --allow-vacuous` in a configless root prints one honest
+  line (`crashtest: no crashtest.config.js found - vacuous run, 0 handlers,
+  0 attacks, exit 0`) and exits 0 - writes nothing.
+- **Without the flag, a missing config stays a hard exit 2** - the default
+  is strict and must never silently green a broken run.
+- Config present: the flag is irrelevant, the run is byte-normal.
+- Same treatment for `crashtest packs --allow-vacuous` (list nothing,
+  exit 0), so one CI row can pass the flag to both steps.
+- `--json` keeps its contract either way: on a vacuous run the last stdout
+  line is an honest empty-shape blob (`{"vacuous":true,"handlers":0,...}`),
+  same field names as a real run.
+
 ## Bounded verdicts
 
 🔒 BOUNDED = "deliberate risk, named owner, explicit bound." Without the

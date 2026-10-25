@@ -50,6 +50,11 @@ COMMANDS
   crashtest init [--force]    Scaffold labs/ (+ packs/public + packs/local stubs)
   crashtest run               Attack the target declared in crashtest.config.js
     --config <path>           Target config (default ./crashtest.config.js)
+    --allow-vacuous           Configless root: one honest vacuous-run line +
+                              exit 0 (issue #37 - pre-handler shells adopt the
+                              pinned install BEFORE they have handlers).
+                              WITHOUT the flag a missing config stays a hard
+                              exit 2 - the default never silently greens.
     --json                    Append the machine run blob to stdout (LAST line)
     --module-plan             Dry-run: which attack ids WOULD fire (exit 0 always)
     --expect-baseline <path>  Diff against a given ledger WITHOUT touching labs/
@@ -60,6 +65,10 @@ COMMANDS
   crashtest packs             List discovered packs (public + local), env claims shown/unmet lines rendered
     --config <path>           Honor the config's packs knob
     --json                    Machine inventory (versions, armedByKey, npm pkg)
+    --allow-vacuous           Configless root: honest vacuous line + empty
+                              listing, exit 0 (same treatment the run verb
+                              gets, issue #37 - a CI row can pass the flag
+                              to both).
   crashtest lint-determinism [--config <path>] [dirs...]
                               Grep the DECLARED sources (config scenarioDirs +
                               packs roots, or explicit dirs) for wall-clock /
@@ -298,8 +307,30 @@ async function cmdRun(opts = {}) {
   // the dashboard bridge (/dashboard and web/src/lib/ledgerModel.js) and any
   // future hosted runner read. Human output is unchanged.
   const root = repoRoot();
-  const configPath = join(root, opts.config ?? 'crashtest.config.js');
+  const configName = opts.config ?? 'crashtest.config.js';
+  const configPath = join(root, configName);
   if (!(await exists(configPath))) {
+    // issue #37 - opt-in vacuous run: a repo in the pre-handler lifecycle
+    // state keeps the pinned install + the CI step LIVE instead of parking
+    // it behind hashFiles arm-gates. Opt-in by flag; a missing config with
+    // no flag stays the hard, correct exit 2 (never silently green).
+    if (opts.allowVacuous) {
+      console.log(`crashtest: no ${configName} found - vacuous run, 0 handlers, 0 attacks, exit 0`);
+      if (opts.json) {
+        // The --json contract (last stdout line is the machine blob) holds
+        // on a vacuous run too: an honest empty-shape, same field names.
+        console.log(JSON.stringify({
+          vacuous: true,
+          config: null,
+          handlers: 0,
+          attacks: 0,
+          rows: [],
+          tally: { TOTAL: 0, REFUSED: 0, EXPLOITED: 0, BOUNDED: 0 },
+          cost: { totals: { ops: 0, requests: 0 } },
+        }));
+      }
+      return; // exit 0 (process.exitCode untouched, default) - the one honest line IS the receipt
+    }
     console.error(`crashtest run: no ${configPath.split('/').pop()} in ${root}`);
     console.error('A target needs a config declaring its routes + env, e.g.:');
     console.error('  export default { routes: { enroll: handler }, env: { d1: {...}, secrets: {...} } }');
@@ -551,6 +582,15 @@ async function probeDetectedHandlers(name, repoRoot, presetOutput) {
 
 async function cmdPacks(opts = {}) {
   const root = repoRoot();
+  // Symmetric vacuous shape (issue #37): configless root + the flag = one
+  // honest empty-listing line, exit 0. Configless WITHOUT the flag keeps the
+  // plain "none found" hint (which already exits 0 - listing packs is a
+  // read-only verb).
+  if (opts.allowVacuous && !opts.config && !(await exists(join(root, 'crashtest.config.js')))) {
+    console.log('crashtest: no crashtest.config.js found - vacuous packs listing, 0 packs, exit 0');
+    if (opts.json) console.log(JSON.stringify({ packs: [] }));
+    return;
+  }
   const roots = [join(root, 'packs')];
   let target = null;
   if (opts.config) {
@@ -703,7 +743,7 @@ export async function main(argv) {
       return cmdPackAdd(name, { public: argv.includes('--public') });
     }
     const confIdx = argv.indexOf('--config');
-    return cmdPacks({ config: confIdx > -1 ? argv[confIdx + 1] : undefined, json: argv.includes('--json') });
+    return cmdPacks({ config: confIdx > -1 ? argv[confIdx + 1] : undefined, json: argv.includes('--json'), allowVacuous: argv.includes('--allow-vacuous') });
   }
   if (verb === 'lint-determinism') {
     const confIdx = argv.indexOf('--config');
@@ -726,7 +766,7 @@ export async function main(argv) {
     const outIdx = argv.indexOf('--out-dir');
     const outDir = outIdx > -1 ? argv[outIdx + 1] : undefined;
     const lintIdx = argv.indexOf('--lint-determinism');
-    return cmdRun({ config, json, modulePlan, expectBaseline, outDir, lintDeterminism: lintIdx > -1 });
+    return cmdRun({ config, json, modulePlan, expectBaseline, outDir, lintDeterminism: lintIdx > -1, allowVacuous: argv.includes('--allow-vacuous') });
   }
   console.error(`crashtest: unknown command "${verb}" (try --help)`);
   process.exitCode = 1;

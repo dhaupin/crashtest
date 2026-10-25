@@ -323,3 +323,105 @@ test('run --expect-baseline rejects a non-ledger JSON loudly (exit 2, schema-1 c
     process.exitCode = 0;
   });
 });
+
+// --- issue #37: the opt-in vacuous run for configless roots -----------------
+
+test('run --allow-vacuous: configless root prints one honest vacuous line, exit 0, labs/ untouched (issue #37)', async () => {
+  await inRepo('vacuous', async (dir) => {
+    const out = [];
+    const orig = console.log;
+    console.log = (...a) => out.push(a.join(' '));
+    process.exitCode = undefined; // prove the exit comes out 0 by default
+
+    try {
+      await main(['run', '--allow-vacuous']);
+    } finally {
+      console.log = orig;
+    }
+
+    assert.ok(process.exitCode === undefined || process.exitCode === 0, 'vacuous run exits 0 (got ' + process.exitCode + ')');
+    assert.match(
+      out.join('\n'),
+      /no crashtest\.config\.js found - vacuous run, 0 handlers, 0 attacks, exit 0/,
+      'the exact honest line the issue names',
+    );
+    // AND no artifacts: a vacuous run writes nothing (empty-but-real ledger stays the caller's cut).
+    await assert.rejects(readFile(join(dir, 'labs/crashledger.json')));
+    await assert.rejects(readFile(join(dir, 'labs/hardening.md')));
+    process.exitCode = 0;
+  });
+});
+
+test('run --allow-vacuous keeps the LAST-stdout-line machine blob contract under --json (issue #37)', async () => {
+  await inRepo('vacuous-json', async () => {
+    const out = [];
+    const orig = console.log;
+    console.log = (...a) => out.push(a.join(' '));
+    try {
+      await main(['run', '--allow-vacuous', '--json']);
+    } finally {
+      console.log = orig;
+    }
+    const blob = JSON.parse(out.at(-1));
+    assert.equal(blob.vacuous, true);
+    assert.equal(blob.handlers, 0);
+    assert.equal(blob.tally.TOTAL, 0, 'an empty-shape blob, same field names as a real run');
+    process.exitCode = 0;
+  });
+});
+
+test('missing config WITHOUT --allow-vacuous stays the hard exit 2 (the default never silently greens, issue #37)', async () => {
+  await inRepo('vacuous-strict', async () => {
+    const out = [];
+    const orig = console.error;
+    console.error = (...a) => out.push(a.join(' '));
+    try {
+      await main(['run']);
+    } finally {
+      console.error = orig;
+    }
+    assert.equal(process.exitCode, 2, 'strict default preserved byte-for-byte');
+    assert.match(out.join('\n'), /A target needs a config/);
+    process.exitCode = 0;
+  });
+});
+
+test('config present + --allow-vacuous: the flag is irrelevant, the run is byte-normal (issue #37)', async () => {
+  await inRepo('vacuous-armed', async () => {
+    await writeFile('crashtest.config.js',
+      "export default { routes: { burst: async () => new Response('accepted', { headers: { 'cache-control': 'no-store' } }) }, seed: 7 };\n");
+    const out = [];
+    const orig = console.log;
+    console.log = (...a) => out.push(a.join(' '));
+    try {
+      await main(['run', '--allow-vacuous']);
+    } finally {
+      console.log = orig;
+    }
+    assert.ok(!/vacuous/.test(out.join('\n')), 'armed config ignores the flag entirely');
+    assert.ok(out.join('\n').includes('\ntally:'), 'the real campaign ran');
+    const ledger = JSON.parse(await readFile(LEDGER_PATH, 'utf8'));
+    assert.equal(ledger.schemaVersion, 1);
+    process.exitCode = 0;
+  });
+});
+
+// --- issue #37: the symmetric vacuous shape for `crashtest packs` -------------
+
+test('packs --allow-vacuous: configless root lists nothing with the honest line, exit 0 (issue #37)', async () => {
+  await inRepo('vacuous-packs', async () => {
+    const out = [];
+    const orig = console.log;
+    console.log = (...a) => out.push(a.join(' '));
+    try {
+      await main(['packs', '--allow-vacuous']);
+    } finally {
+      console.log = orig;
+    }
+    assert.ok(
+      out.join('\n').includes('no crashtest.config.js found - vacuous packs listing, 0 packs, exit 0'),
+      'the symmetric vacuous line',
+    );
+    process.exitCode = 0;
+  });
+});
