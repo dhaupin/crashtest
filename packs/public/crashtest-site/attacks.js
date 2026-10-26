@@ -7,7 +7,16 @@
 // that holds is REFUSED with numbers, and the accepted-risk floor needs
 // owner+bound or it is a finding, never a shrug.
 
+import { stat } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { registry, installRegistryShim, restoreFetch } from './lib/registry-shim.js';
+
+// Committed-site file root, resolved from THIS module - the same walk the
+// route builder in index.js does. Icon presence is checked against
+// web/public/ commit truth, never web/dist (build-only, may be absent).
+const WEB_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..', 'web');
+const SITE_PUBLIC = join(WEB_ROOT, 'public');
 
 /** Call a route and normalize the record into { status, text, headers, threw, error }. */
 async function hit(harness, route, init = {}) {
@@ -237,8 +246,23 @@ export default {
         const icons = (manifest.icons ?? []);
         if (!icons.length) return { verdict: 'EXPLOITED', detail: 'manifest declares zero icons - install prompt is broken on every browser surface' };
         if (!manifest.name && !manifest.short_name) return { verdict: 'EXPLOITED', detail: 'manifest carries neither name nor short_name' };
+        // The description promises artifact presence, so honor it: an icon
+        // src advertised here but ABSENT from the committed web/public/ set
+        // is a broken install prompt (a manifest that ships 404 icons).
+        // Checked against commit truth (web/public/), never the dist mirror.
+        const missing = [];
+        for (const icon of icons) {
+          const src = typeof icon?.src === 'string' ? icon.src : '';
+          const rel = src && src.startsWith('/') ? src.slice(1) : src;
+          let present = false;
+          try { present = (await stat(join(SITE_PUBLIC, rel || ' '))).isFile(); } catch { present = false; }
+          if (!present) missing.push(src || '(icon without a usable src)');
+        }
+        if (missing.length) {
+          return { verdict: 'EXPLOITED', detail: 'manifest advertises icon file(s) missing from web/public/: ' + missing.join(', ') + ' - the install prompt points at 404 icons' };
+        }
         const iconList = icons.map((i) => i.src).join(', ');
-        return { verdict: 'REFUSED', detail: 'manifest well-formed: ' + icons.length + ' icon(s) declared (' + iconList + '), name = ' + (manifest.short_name ?? manifest.name) };
+        return { verdict: 'REFUSED', detail: 'manifest well-formed and honest: ' + icons.length + ' icon(s) declared and all present in web/public/ (' + iconList + '), name = ' + (manifest.short_name ?? manifest.name) };
       },
     },
 
@@ -486,12 +510,24 @@ export default {
           { name: 'site-manifest', label: 'webmanifest', optionalWhen404: false },
         ];
         // Privilege-surface words: a path-ish reference, not the English
-        // word - "admin" in prose is fine, "href=.../admin" is advertising.
+        // word - "admin" in prose is fine, 'href="/admin"' is advertising.
+        // (Sitemap <loc> elements are covered by sitemap-truth-audit's route
+        // list check - a non-route loc is already an EXPLOITED there.)
+        // The anchor matters: the first cut of this battery used
+        // ``\b\/admin\b`` which can NEVER match the canonical quoted case
+        // 'href="/admin"' - no word boundary exists between a quote and a
+        // slash, so every detection branch was vacuously green - and the
+        // tooth then caught a SECOND strike on the same lines: the scan loop
+        // destructured the on-call label as the regex (off-by-one [, rx, why])
+        // and searched for the literal label text instead of any regex at
+        // all. Both cuts found walking this pack; teeth in
+        // test/site-pack.test.js. The fixed shape anchors the noun on a real path separator and pins a
+        // terminator (quote, whitespace, >, ?, /) so that prose look-alikes
+        // like ~/debugger or /admin-theme stay clear.
         const SURFACES = [
-          [/((?:href|src|loc|url|path)\s*[=:])\s*["']?[^"'>\s]*\b\/admin(?:istrator)?\b/i, '/admin path reference'],
-          [/((?:href|src|loc|url|path)\s*[=:])\s*["']?[^"'>\s]*\b\/dev-check\b/i, '/dev-check path reference'],
-          [/((?:href|src|loc|url|path)\s*[=:])\s*["']?[^"'>\s]*\b\/debug\b/i, '/debug path reference'],
-          [/((?:href|src|loc|url|path)\s*[=:])\s*["']?[^"'>\s]*\b\/wp-admin\b/i, '/wp-admin path reference'],
+          [/(?:href|src|loc|url|path)\s*[=:]\s*["']?[^"'>\s]*\/(?:wp-)?admin(?:istrator)?(?=["'\/>?\s]|$)/i, 'admin/wp-admin path reference'],
+          [/(?:href|src|loc|url|path)\s*[=:]\s*["']?[^"'>\s]*\/dev-check(?=["'\/>?\s]|$)/i, '/dev-check path reference'],
+          [/(?:href|src|loc|url|path)\s*[=:]\s*["']?[^"'>\s]*\/debug(?=["'\/>?\s]|$)/i, '/debug path reference'],
         ];
         const advertised = [];
         for (const artifact of artifacts) {
@@ -501,7 +537,7 @@ export default {
           if (res.status === 404 && artifact.optionalWhen404) continue; // build-only artifact absent - config gap
           if (res.status >= 400) { advertised.push(artifact.label + ': missing from shipped artifacts (status ' + res.status + ')'); continue; }
           const text = String(res.text ?? '').slice(0, 40000);
-          for (const [, rx, why] of SURFACES) {
+          for (const [rx, why] of SURFACES) {
             const m = text.match(rx);
             if (m) { advertised.push(`${artifact.label}: advertises ${why} (${m[0].slice(0, 60)})`); break; }
           }
@@ -550,7 +586,11 @@ export default {
           if (get.threw || get.status >= 400) continue; // GET itself failing is other probes' floor
           const headRes = await hit(harness, route, { method: 'HEAD' });
           if (headRes.threw) { faults.push(`${route}: threw on HEAD`); continue; }
-          if (headRes.status !== get.status) {
+          // 405 is the HONEST no-HEAD answer this oracle statement grants
+          // (the description says "honest 405 allowed" - the first cut of
+          // the check flagged ANY status disagreement, contradicting its
+          // own oracle; tooth-pinned in test/site-pack.test.js).
+          if (headRes.status !== get.status && headRes.status !== 405) {
             faults.push(`${route}: GET ${get.status} but HEAD ${headRes.status} - asset parity broke`);
           }
         }

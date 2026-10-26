@@ -107,6 +107,70 @@ test('teeth: version-grammar-hostile-shapes EXPLOITEDs a porous version route, R
   }
 });
 
+test('teeth: authz advertising / manifest icon presence / HEAD-parity oracles all fire on their pre-fix shapes', async () => {
+  const attacks = (await import(new URL('../packs/public/crashtest-site/attacks.js', import.meta.url))).default.attacks;
+
+  // authz-no-privileged-surface: the first cut of the privilege-surface
+  // battery used ``\b\/admin\b`` patterns which can NEVER match the
+  // canonical quoted case 'href="/admin"' (no word boundary exists between
+  // a quote and a slash). The advertising half was vacuously green - found
+  // walking this pack; the fixed battery must EXPLOIT every canonical form
+  // and stay clear of prose look-alikes (a false EXPLOITED on shipped
+  // artifacts would be just as wrong as a false green).
+  const authz = attacks.find((a) => a.name === 'authz-no-privileged-surface');
+  const artifactHarness = (html, contentType = 'text/html') => {
+    const h = new Harness();
+    h.registerRoute('site-html', () => new Response(html, { status: 200, headers: { 'content-type': contentType, 'cache-control': 'no-store' } }));
+    return h;
+  };
+  for (const form of ['href="/admin"', 'path=/admin', "href='/wp-admin'", "href='/dev-check'", "href='/debug'"]) {
+    const verdict = await authz.run(artifactHarness(`<html><body><a ${form}>x</a></body></html>`), {});
+    assert.equal(verdict.verdict, 'EXPLOITED', `an artifact advertising ${form} is the exact class the battery exists for`);
+    assert.match(verdict.detail, /advertise a privileged surface/);
+  }
+  for (const clean of ['href="/admin-theme"', 'href="/debugger-tips"', 'url=admin@example.com', 'path=/dashboard']) {
+    const verdict = await authz.run(artifactHarness(`<p>${clean} is plain prose about tooling</p>`), {});
+    assert.equal(verdict.verdict, 'REFUSED', `prose look-alike ${clean} must never false-EXPLOIT`);
+  }
+
+  // manifest-declared-icons-resolve: the description promises icon-file
+  // presence in the shipped artifacts - the first cut checked only
+  // well-formedness and never opened the icon paths (an oracle that
+  // promises more than it checks). The fixed attack verifies every icon
+  // src against the committed web/public/ set.
+  const manifestAtk = attacks.find((a) => a.name === 'manifest-declared-icons-resolve');
+  const manifestHarness = (body) => {
+    const h = new Harness();
+    h.registerRoute('site-manifest', () => new Response(body, { status: 200, headers: { 'content-type': 'application/manifest+json', 'cache-control': 'no-store' } }));
+    return h;
+  };
+  const realManifest = await readFile(join(REPO, 'web', 'public', 'site.webmanifest'), 'utf8');
+  const honest = await manifestAtk.run(manifestHarness(realManifest), {});
+  assert.equal(honest.verdict, 'REFUSED', 'the real manifest declares only icons that exist on disk');
+  assert.match(honest.detail, /all present in web\/public\//);
+  const lying = await manifestAtk.run(manifestHarness(JSON.stringify({
+    name: 'Crashtest', short_name: 'crashtest',
+    icons: [{ src: '/icon-1024-missing.png', sizes: '1024x1024', type: 'image/png' }],
+  })), {});
+  assert.equal(lying.verdict, 'EXPLOITED', 'a manifest advertising an absent icon file is the broken-install-prompt class');
+  assert.match(lying.detail, /icon-1024-missing\.png/);
+
+  // proto-hygiene-shape-battery: the oracle text grants an "honest 405"
+  // answer for HEAD, but the first cut flagged ANY status disagreement -
+  // a method-honest route would have been read as a parity break. Pin the
+  // grant as written.
+  const proto = attacks.find((a) => a.name === 'proto-hygiene-shape-battery');
+  const headHarness = new Harness();
+  headHarness.registerRoute('site-manifest', (ctx) => {
+    if (ctx.request.method === 'HEAD') {
+      return new Response(null, { status: 405, headers: { allow: 'GET', 'cache-control': 'no-store' } });
+    }
+    return new Response('{}', { status: 200, headers: { 'content-type': 'application/manifest+json', 'cache-control': 'no-store' } });
+  });
+  const headVerdict = await proto.run(headHarness, {});
+  assert.equal(headVerdict.verdict, 'REFUSED', 'a 405 HEAD answer is the honest no-HEAD serve - not a parity fault');
+});
+
 test('dist-absent is a config gap, never a finding: HTML/sitemap attacks skip honestly', async () => {
   // The CI-fresh-checkout shape: web/dist is gitignored, so the artifact
   // routes answer the honest 404 marker. The routes must not throws and the

@@ -7,6 +7,22 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.1.1 (unreleased)
 
+- the shipped self-check pack stops promising more than it checks (walk
+  round 18): the `crashtest-site` pack's authz advertising battery was
+  vacuously green in two independent cuts - its word-boundary anchor can
+  never match the canonical quoted case `href="/admin"` (no word boundary
+  exists between a quote and a slash), and the scan loop then destructured
+  the on-call label as the regex (off-by-one pairs), searching for the
+  literal label text instead of any pattern at all. The battery is now
+  anchored on a real path separator with a terminator wall (quote,
+  whitespace, `>`, `?`, `/`) so prose look-alikes (`/admin-theme`,
+  `/debugger-tips`, `admin@example.com`) stay clear; the HEAD-mirror
+  battery now honors the honest-405 grant its own oracle statement makes;
+  and the manifest attack now actually verifies every declared icon src
+  against `web/public/` commit truth (the broken-install-prompt class it
+  always said it caught). Teeth for each pre-fix shape live in
+  test/site-pack.test.js; floor 394 -> 395.
+
 - npm tarball ships the WP adapter's worker (issue #34): the 1.1.0 tarball's
   `files` whitelist (`bin`, `src`, `packs/public/*`) omitted `fixtures/`, so
   the WP adapter could not boot under an npm install at all -
