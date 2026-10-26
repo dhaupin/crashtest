@@ -276,3 +276,74 @@ test('campaign state: vars/objects/groups die with the campaign (two runs share 
   assert.equal(alone.rows[0].detail, 'has=false');
   assert.deepEqual(alone.vars, []);
 });
+
+// ---- walk-13 teeth: the honest-skip flag ROUNDS THE RUNNER LOOP ---------
+// Every library module sets skipped: true on skip records; the old runner
+// record dropped it (nothing downstream read it), and a skipped-REFUSED row
+// was indistinguishable from a plain hold in the ledger - vacuous-green veil.
+
+test('walk-13: the skipped flag survives into run.rows and the built ledger findings (undefined JSON-drops otherwise)', async () => {
+  const harness = buildHarness({});
+  const mod = {
+    name: 'skipflag-lane', description: 'probe',
+    attacks: [
+      { name: 'skips', description: 'probe', run: (h, ctx) => refused('route not declared - skipped', { skipped: true }) },
+      { name: 'holds', description: 'probe', run: (h, ctx) => refused('held for real') },
+    ],
+  };
+  validateScenario(mod);
+  const run = await runCampaign(harness, [TAG(mod)]);
+  assert.equal(run.rows.find((r) => r.attack === 'skips').skipped, true);
+  assert.equal(run.rows.find((r) => r.attack === 'holds').skipped, undefined);
+  // JSON truth: only the skipping row carries the flag in artifact output.
+  const blob = JSON.stringify({ rows: run.rows });
+  assert.match(blob, /"skipped":true/);
+  assert.equal(blob.match(/"skipped"/g).length, 1);
+});
+
+test('walk-13: an ALL-SKIP chain skips honestly (flag + wording) instead of vacuous "chain held"', async () => {
+  const harness = buildHarness({}); // no routes - every step skips
+  const mod = {
+    name: 'allskip-chain', description: 'probe',
+    attacks: [{ name: 'vacuous', description: 'probe', steps: [
+      { name: 'a', route: 'ghost-a' },
+      { name: 'b', route: 'ghost-b' },
+    ] }],
+  };
+  validateScenario(mod);
+  const run = await runCampaign(harness, [TAG(mod)]);
+  const row = run.rows[0];
+  assert.equal(row.verdict, 'REFUSED');
+  assert.equal(row.skipped, true);
+  assert.match(row.detail, /chain skipped: all 2 steps skipped/);
+  // ...and a PARTIAL skip stays a plain hold (skips named in the summary).
+  const harness2 = buildHarness({ real: async () => new Response('ok') });
+  const mod2 = { ...mod, attacks: [{ ...mod.attacks[0], steps: [{ name: 'real', route: 'real' }, ...mod.attacks[0].steps] }] };
+  const run2 = await runCampaign(harness2, [TAG(mod2)]);
+  assert.equal(run2.rows[0].skipped, undefined);
+  assert.match(run2.rows[0].detail, /chain held: 3 steps/);
+});
+
+test('walk-13: a step init returning a non-object reqInit fails LOUDLY (was a silent GET on "/")', async () => {
+  const harness = buildHarness({ any: async () => new Response('ok') });
+  for (const junk of ['GET-me', 42, ['url']]) {
+    const mod = {
+      name: 'junk-init', description: 'probe',
+      attacks: [{ name: 'typo', description: 'probe', steps: [
+        { name: 's1', route: 'any', init: () => junk },
+      ] }],
+    };
+    validateScenario(mod);
+    const run = await runCampaign(harness, [TAG(mod)]);
+    const s1 = run.rows[0].evidence.steps[0];
+    assert.equal(s1.verdict, 'EXPLOITED', `${JSON.stringify(junk)} must trip loudly: ${s1.detail}`);
+    assert.match(s1.detail, /step "s1" init\(c\) returned a/);
+  }
+  // undefined/null still degrade honestly to {} (the default): no regression.
+  const mod = {
+    name: 'null-init-ok', description: 'probe',
+    attacks: [{ name: 'fine', description: 'probe', steps: [{ name: 's2', route: 'any', init: () => null }] }],
+  };
+  const run = await runCampaign(harness, [TAG(mod)]);
+  assert.equal(run.rows[0].evidence.steps[0].verdict, 'REFUSED');
+});

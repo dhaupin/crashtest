@@ -277,6 +277,44 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
   moves to the true numbers WITH the inflation arithmetic named in the
   comment (rule 7: the shipped site shows what the CLI actually
   measured, not what an old baseline said).
+- the walk continues through the campaign-lane primitives (round 13:
+  chains, vars/objects, and the flag nobody read) - the headline class:
+  THE HONEST-SKIP FLAG NEVER LEFT THE ATTACK. Every library row returns
+  `skipped: true` on a skip, the runner's record construction dropped it
+  (only verdict/detail/owner/bound/evidence were copied), and the ledger's
+  findings + report followed the same fields - so a skipped-REFUSED row
+  was INDISTINGUISHABLE from a plain hold downstream: same verdict glyph,
+  same ledger shape, no flag anywhere. The flag now survives the runner
+  boundary (`skipped: true` on run.rows), rides buildLedger's findings
+  (`skipped: true` - undefined JSON-drops, so only skipping rows gain the
+  field), and renderMarkdown annotates the REFUSED list (` ... (skipped)`);
+  the committed dogfood artifacts regenerate with the flag on the rows
+  that actually skip (storage-fill, the governance/memory/volume workers
+  the demo config doesn't arm).
+  - chains: an ALL-SKIP chain reported "chain held: N steps" with no flag -
+    nothing was graded but the row counted as armed coverage. Now it
+    returns skipped: true + "chain skipped: all N steps skipped their
+    route/guard - nothing was graded (declare the routes for coverage)";
+    partial skips stay plain holds (the skipped step names itself in the
+    summary, as before);
+  - chains: a step init returning a non-object reqInit (a string, a
+    number, an array) degraded SILENTLY inside harness.run into a GET on
+    "/" - a step that fired the wrong route with the wrong method and
+    still graded "held". init's runtime return shape is now contracted
+    (Request, request-init object, or nothing) and a junk return fails
+    loud NAMING THE STEP (`step "s1" init(c) returned a string - init
+    returns a Request, a request-init object, or nothing`), grading the
+    step EXPLOITED via the floor (an attack-authoring fault is never a
+    hidden pass).
+  Teeth: 3 new rows in test/primitives.test.js (the flag roundtrips into
+  run.rows AND the JSON truth - exactly one skipped:true on a 2-row
+  campaign; the all-skip chain pins flag + wording with the partial-skip
+  twin; the junk-init trio grades floor-EXPLOITED with the null-init
+  default preserved). Suite floor: 385/385 with PHP (was 382/382).
+  Dogfood artifacts regenerate with the skipped flag on the skipping
+  rows, byte-stable across the double run; the shipped dashboard
+  snapshot re-cuts from the new artifacts (6/6 pages prerendered);
+  gates: check, lint:docs, packstruct lint (8 packs) all clean.
 - the walk continues into the adapters lane + WP worker lifecycle
   (round 12 - the surfaces the library rows fire THROUGH):
   - wp worker: a broken phpBin used to end the run as a SILENT FOREVER-HANG -

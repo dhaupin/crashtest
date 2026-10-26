@@ -11,6 +11,9 @@ export function buildLedger(run, priorLedger = null) {
     detail: r.detail,
     owner: r.owner ?? undefined,
     bound: r.bound ?? undefined,
+    // Honesty rides the flag: a skipped-REFUSED row is identifiable in the
+    // ledger (undefined drops out of JSON, so only skipping rows carry it).
+    skipped: r.skipped === true || undefined,
   }));
   // Accepted risks get owner/bound straight from the attack record (BOUNDED verdicts).
   for (const f of findings) {
@@ -81,7 +84,7 @@ export function renderMarkdown(run, ledger, diff, opts = {}) {
   P(`## Findings`);
   P();
   P(`### 🛡 REFUSED (${run.refused.length})`);
-  for (const r of run.refused) P(`- ${r.id}: ${r.detail}`);
+  for (const r of run.refused) P(`- ${r.id}: ${r.detail}${r.skipped === true ? ' (skipped)' : ''}`);
   P();
   P(`### ⚡ EXPLOITED (${run.exploited.length + diff.acceptedHits.length})`);
   for (const r of run.exploited) {

@@ -137,6 +137,13 @@ export async function runCampaign(harness, scenarios, opts = {}) {
         detail: findResult.detail ?? '',
         owner: findResult.owner,
         bound: findResult.bound,
+        // The honest-skip flag the modules return (skipped: true) must SURVIVE
+        // the runner boundary: every library row sets it, nothing downstream
+        // could read it, and a skipped-REFUSED row was indistinguishable from
+        // a plain hold in the ledger - the exact vacuous-green veil the law
+        // (PRD section 7 / issue #37) forbids. undefined drops out of JSON,
+        // so committed artifacts only change for rows that actually skip.
+        skipped: findResult.skipped === true || undefined,
         evidence: findResult.evidence ?? findResult.violations ?? findResult.counts ?? undefined,
         ...(attack.group !== undefined ? { group: attack.group } : {}),
         costDelta: delta(harness.costTotals(), costBefore),
@@ -294,6 +301,13 @@ async function runChainAttack(attack, harness, ctx) {
     let rec;
     try {
       const reqInit = step.init ? step.init(c) ?? {} : {};
+      // The authoring shape contract: init returns a Request, a request-init
+      // object, or nothing. Anything else (a string, a number, an array) used
+      // to degrade SILENTLY into a GET on "/" inside harness.run - a step
+      // that fired the wrong route and still graded "held".
+      if (!(reqInit instanceof Request) && (typeof reqInit !== 'object' || Array.isArray(reqInit))) {
+        throw new TypeError(`step "${step.name}" init(c) returned a ${Array.isArray(reqInit) ? 'array' : typeof reqInit} - init returns a Request, a request-init object, or nothing (undefined/null)`);
+      }
       rec = await harness.run(step.route, reqInit);
     } catch (err) {
       rec = { route: step.route, status: null, ok: false, response: null, threw: true, error: err, durationMs: null, ops: null };
@@ -301,13 +315,19 @@ async function runChainAttack(attack, harness, ctx) {
     stepRows.push({ name: step.name, ...gradeExpect(step.expect, rec) });
   }
   const flipped = stepRows.filter((s) => s.verdict === 'EXPLOITED').map((s) => s.name);
+  const allSkipped = stepRows.length > 0 && stepRows.every((s) => s.skip);
   const verdict = flipped.length ? 'EXPLOITED' : 'REFUSED';
   const detail = flipped.length
     ? `chain EXPLOITED at step${flipped.length > 1 ? 's' : ''}: ${flipped.join(', ')}`
-    : `chain held: ${stepRows.length} step${stepRows.length === 1 ? '' : 's'} - ${stepRows.map((s) => `${s.name}${s.skip ? ' (skip)' : ''}`).join(', ')}`;
+    : allSkipped
+      ? `chain skipped: all ${stepRows.length} step${stepRows.length === 1 ? '' : 's'} skipped their route/guard - nothing was graded (declare the routes for coverage)`
+      : `chain held: ${stepRows.length} step${stepRows.length === 1 ? '' : 's'} - ${stepRows.map((s) => `${s.name}${s.skip ? ' (skip)' : ''}`).join(', ')}`;
   return {
     verdict,
     detail,
+    // An all-skip chain is honest skip, not "held": carry the same flag the
+    // other rows use, or a configless chain graded vacuous-green coverage.
+    ...(allSkipped ? { skipped: true } : {}),
     evidence: { steps: stepRows },
   };
 }

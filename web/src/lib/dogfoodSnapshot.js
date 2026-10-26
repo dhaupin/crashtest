@@ -47,52 +47,62 @@ export const dogfood = {
       {
         "id": "governance/succession-trust-floor",
         "verdict": "REFUSED",
-        "detail": "vocabulary knob(s) \"grantsRoute\", \"resolveRoute\" not declared on this target - governance skipped (export moduleCtx['governance'].grantsRoute/resolveRoute for coverage)"
+        "detail": "vocabulary knob(s) \"grantsRoute\", \"resolveRoute\" not declared on this target - governance skipped (export moduleCtx['governance'].grantsRoute/resolveRoute for coverage)",
+        "skipped": true
       },
       {
         "id": "governance/succession-single-heir",
         "verdict": "REFUSED",
-        "detail": "vocabulary knob(s) \"grantsRoute\", \"resolveRoute\" not declared on this target - governance skipped (export moduleCtx['governance'].grantsRoute/resolveRoute for coverage)"
+        "detail": "vocabulary knob(s) \"grantsRoute\", \"resolveRoute\" not declared on this target - governance skipped (export moduleCtx['governance'].grantsRoute/resolveRoute for coverage)",
+        "skipped": true
       },
       {
         "id": "governance/succession-revocation-carry",
         "verdict": "REFUSED",
-        "detail": "vocabulary knob(s) \"grantsRoute\", \"resolveRoute\" not declared on this target - governance skipped (export moduleCtx['governance'].grantsRoute/resolveRoute for coverage)"
+        "detail": "vocabulary knob(s) \"grantsRoute\", \"resolveRoute\" not declared on this target - governance skipped (export moduleCtx['governance'].grantsRoute/resolveRoute for coverage)",
+        "skipped": true
       },
       {
         "id": "governance/escrow-two-key-release",
         "verdict": "REFUSED",
-        "detail": "vocabulary knob(s) \"escrowRoute\" not declared on this target - escrow skipped (export moduleCtx['governance'].escrowRoute for coverage)"
+        "detail": "vocabulary knob(s) \"escrowRoute\" not declared on this target - escrow skipped (export moduleCtx['governance'].escrowRoute for coverage)",
+        "skipped": true
       },
       {
         "id": "governance/escrow-expiry-is-fail-closed",
         "verdict": "REFUSED",
-        "detail": "vocabulary knob(s) \"escrowRoute\" not declared on this target - escrow skipped (export moduleCtx['governance'].escrowRoute for coverage)"
+        "detail": "vocabulary knob(s) \"escrowRoute\" not declared on this target - escrow skipped (export moduleCtx['governance'].escrowRoute for coverage)",
+        "skipped": true
       },
       {
         "id": "governance/escrow-refusal-is-typed",
         "verdict": "REFUSED",
-        "detail": "vocabulary knob(s) \"escrowRoute\" not declared on this target - escrow skipped (export moduleCtx['governance'].escrowRoute for coverage)"
+        "detail": "vocabulary knob(s) \"escrowRoute\" not declared on this target - escrow skipped (export moduleCtx['governance'].escrowRoute for coverage)",
+        "skipped": true
       },
       {
         "id": "governance/grant-conflict-deterministic",
         "verdict": "REFUSED",
-        "detail": "vocabulary knob(s) \"grantsRoute\", \"resolveRoute\" not declared on this target - governance skipped (export moduleCtx['governance'].grantsRoute/resolveRoute for coverage)"
+        "detail": "vocabulary knob(s) \"grantsRoute\", \"resolveRoute\" not declared on this target - governance skipped (export moduleCtx['governance'].grantsRoute/resolveRoute for coverage)",
+        "skipped": true
       },
       {
         "id": "governance/capability-no-sideways",
         "verdict": "REFUSED",
-        "detail": "vocabulary knob(s) \"grantsRoute\", \"resolveRoute\" not declared on this target - governance skipped (export moduleCtx['governance'].grantsRoute/resolveRoute for coverage)"
+        "detail": "vocabulary knob(s) \"grantsRoute\", \"resolveRoute\" not declared on this target - governance skipped (export moduleCtx['governance'].grantsRoute/resolveRoute for coverage)",
+        "skipped": true
       },
       {
         "id": "governance/lock-ttl-honesty",
         "verdict": "REFUSED",
-        "detail": "governance knob(s) \"locksRoute\", \"ttlMode\" not declared on this target - lock-ttl-honesty skipped (declare locksRoute + the DOCUMENTED ttlMode for coverage)"
+        "detail": "governance knob(s) \"locksRoute\", \"ttlMode\" not declared on this target - lock-ttl-honesty skipped (declare locksRoute + the DOCUMENTED ttlMode for coverage)",
+        "skipped": true
       },
       {
         "id": "governance/lock-owner-fencing",
         "verdict": "REFUSED",
-        "detail": "governance knob(s) \"locksRoute\", \"staleToken\" not declared on this target - fencing skipped (declare locksRoute + staleToken for coverage)"
+        "detail": "governance knob(s) \"locksRoute\", \"staleToken\" not declared on this target - fencing skipped (declare locksRoute + staleToken for coverage)",
+        "skipped": true
       },
       {
         "id": "guards/hygiene-no-store",
@@ -122,47 +132,56 @@ export const dogfood = {
       {
         "id": "memory/drift-silent-overwrite",
         "verdict": "REFUSED",
-        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)"
+        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)",
+        "skipped": true
       },
       {
         "id": "memory/drift-stale-poisons-fresh",
         "verdict": "REFUSED",
-        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)"
+        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)",
+        "skipped": true
       },
       {
         "id": "memory/drift-contradiction-carry",
         "verdict": "REFUSED",
-        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)"
+        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)",
+        "skipped": true
       },
       {
         "id": "memory/hallucinated-fact-probe",
         "verdict": "REFUSED",
-        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)"
+        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)",
+        "skipped": true
       },
       {
         "id": "memory/citation-drift",
         "verdict": "REFUSED",
-        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\", \"deleteRoute\" not declared on this target - citation drift skipped (export moduleCtx['memory'].writeRoute/readRoute/deleteRoute for coverage)"
+        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\", \"deleteRoute\" not declared on this target - citation drift skipped (export moduleCtx['memory'].writeRoute/readRoute/deleteRoute for coverage)",
+        "skipped": true
       },
       {
         "id": "memory/phantom-scope",
         "verdict": "REFUSED",
-        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)"
+        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)",
+        "skipped": true
       },
       {
         "id": "memory/identity-merge-collision",
         "verdict": "REFUSED",
-        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)"
+        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)",
+        "skipped": true
       },
       {
         "id": "memory/resolution-order-stability",
         "verdict": "REFUSED",
-        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)"
+        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\" not declared on this target - memory skipped (export moduleCtx['memory'].writeRoute/readRoute for coverage)",
+        "skipped": true
       },
       {
         "id": "memory/delete-is-loud",
         "verdict": "REFUSED",
-        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\", \"deleteRoute\" not declared on this target - delete skip (export moduleCtx['memory'].writeRoute/readRoute/deleteRoute for coverage)"
+        "detail": "vocabulary knob(s) \"writeRoute\", \"readRoute\", \"deleteRoute\" not declared on this target - delete skip (export moduleCtx['memory'].writeRoute/readRoute/deleteRoute for coverage)",
+        "skipped": true
       },
       {
         "id": "proto-hygiene/head-get-parity",
@@ -252,7 +271,8 @@ export const dogfood = {
       {
         "id": "volume/storage-fill",
         "verdict": "REFUSED",
-        "detail": "route \"kvwrite\" not declared on this target - fill check skipped (declare a KV-writing route)"
+        "detail": "route \"kvwrite\" not declared on this target - fill check skipped (declare a KV-writing route)",
+        "skipped": true
       },
       {
         "id": "volume/cost-amplification",
@@ -570,7 +590,7 @@ export const dogfood = {
   },
   "meta": {
     "version": "1.1.0",
-    "startedAt": "2026-10-26T03:36:30.029Z",
+    "startedAt": "2026-10-26T20:34:26.885Z",
     "seed": 12648430
   }
 };
