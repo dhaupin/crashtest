@@ -67,6 +67,19 @@ test('wp adapter src is FLAT: no Math.random / Date.now in the shipped adapter s
   assert.doesNotMatch(src, /Date\.now\(/, 'wall-clock reads on a shipped surface break determinism');
 });
 
+// walk-17 tooth: the PHP fixture surface answers to the same law the JS
+// adapter's flat-source pin enforces - no wall-clock minting in the seeding
+// vocabulary (a time()-based seed title broke same-commit -> same fixture
+// state, invisible to the JS-side determinism gates).
+test('wp worker fixture is DETERMINISTIC: no wall-clock seeding in the worker source', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { dirname, join: joinPath } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const src = readFileSync(joinPath(dirname(fileURLToPath(import.meta.url)), '..', 'fixtures', 'wordpress', 'wp-worker.php'), 'utf8');
+  assert.doesNotMatch(src, /\btime\s*\(\s*\)/, 'wall-clock reads in the worker seeding vocabulary break same-commit -> same seed rows');
+  assert.doesNotMatch(src, /\bdate\s*\(/, 'wall-clock construction in the worker breaks determinism');
+});
+
 // walk-12 tooth: a broken phpBin fires the ChildProcess 'error' event and
 // NEVER 'exit' - the old listener set hung exchange() forever with zero
 // diagnostics (and the unguarded event itself could kill the run process).

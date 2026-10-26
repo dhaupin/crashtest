@@ -230,10 +230,17 @@ function ct_run_state( $req ) {
 			return ct_simple( array_key_exists( $key, $slice ) ? $slice[ $key ] : null );
 		case 'insert-post': // fixture seed: one post of the caller's type, with the caller's meta
 			$meta = (array) ( $req['meta'] ?? array() );
+			// Deterministic seed identity (house law 4 translated to the PHP lane):
+			// the title used to mint the wall clock - a moving value on a shipped
+			// surface, so the same commit could seed differently depending on
+			// when the campaign ran. A per-process counter instead: same run
+			// shape, same label order, every time.
+			static $ct_seed_seq = 0;
+			$ct_seed_seq++;
 			$pid = wp_insert_post( array_merge( array(
 				'post_type' => (string) ( $req['postType'] ?? 'post' ),
 				'post_status' => (string) ( $req['status'] ?? 'publish' ),
-				'post_title' => 'CT seed ' . $prefix . ' ' . time(),
+				'post_title' => 'CT seed ' . $prefix . ' #' . $ct_seed_seq,
 			), (array) ( $req['fields'] ?? array() ) ) );
 			if ( is_wp_error( $pid ) || ! $pid ) { return ct_simple( 0 ); }
 			foreach ( $meta as $mk => $mv ) { update_post_meta( (int) $pid, (string) $mk, $mv ); }

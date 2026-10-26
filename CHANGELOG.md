@@ -277,6 +277,21 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
   moves to the true numbers WITH the inflation arithmetic named in the
   comment (rule 7: the shipped site shows what the CLI actually
   measured, not what an old baseline said).
+- the walk reaches the WP worker lane in its own language (round 17:
+  fixtures/wordpress/php surfaces, armed rows green): ONE determinism-law
+  breach found and closed - the insert-post fixture seed minted its post
+  title from the wall clock (`'CT seed ' . $prefix . ' ' . time()`), the
+  exact PHP-side twin of the Date.now() class house law 4 (and the round-3
+  adapter catch) forbid: same commit, different campaign clock, different
+  seed rows - and INVISIBLE to every JS-side determinism gate, because the
+  PHP fixture is not in any JS lint or double-run artifact path. The
+  title now counts a per-process sequence (`CT seed <prefix> #N`) - same
+  run shape, same label order, every run. New pin: the worker fixture
+  source is wp-walled like the JS adapter (no time()/date( in the shipped
+  PHP surface) - the deterministic seal runs across BOTH languages now.
+  Teeth: 1 new row in test/wp-adapter.test.js; armed PHP rows re-run
+  green. Suite floor: 394/394 with PHP (was 393/393). Dogfood artifacts
+  byte-stable; gates: check, lint:docs, packstruct lint clean.
 - the ALTER-lane phantom closes (the round-16 walk's one honest note,
   built the same session): ALTER TABLE ... ADD COLUMN with a
   UNIQUE / PRIMARY KEY / CHECK / FOREIGN KEY / REFERENCES clause accepted
