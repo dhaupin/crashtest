@@ -241,3 +241,123 @@ test('two-way teeth: the fencing half goes the OTHER way too - the hardened lock
   assert.match(fence.detail, /refused loudly/);
   // and a stale holder GRANTED would be the EXPLOITED flip (pinned above via the vulnerable twin)
 });
+
+// ---- walk-nine teeth: the fuzz floor + refusal-honesty classes -----------
+// status-only gates (null >= 500 is false) graded crashed steps as later-step
+// findings with the wrong story; refused steps (4xx) graded DEFENSIVE apps as
+// findings. Each tooth names one of those two classes on a minimal fixture.
+
+const ROUTES3 = (write, read, del) => ({ 'note-write': write, 'note-read': read, 'note-delete': del });
+const ok200 = () => Response.json({ ok: true });
+
+test('walk-nine/memory: crashed writes grade the fuzz floor; refused first writers/prunes grade the DEFENSE honestly', async () => {
+  const { loadScenarios } = await import('../../src/scenarios/loader.js');
+  const mods = await loadScenarios([]);
+  const memory = mods.find((m) => m.module.name === 'memory').module;
+  const drift = memory.attacks.find((a) => a.name === 'drift-silent-overwrite');
+  const loud = memory.attacks.find((a) => a.name === 'delete-is-loud');
+  const citation = memory.attacks.find((a) => a.name === 'citation-drift');
+  const resolution = memory.attacks.find((a) => a.name === 'resolution-order-stability');
+  for (const a of [drift, loud, citation, resolution]) assert.ok(a);
+
+  // A crashed first write: the old path read into the blend oracle and pinned
+  // the vulnerable-store message "not found on read-back after a 2xx write".
+  const crashy = buildHarness(ROUTES3(
+    async () => { throw new Error('writer exploded'); }, ok200, ok200,
+  ), {});
+  const f1 = await drift.run(crashy, MEM_CTX);
+  assert.equal(f1.verdict, 'EXPLOITED', f1.detail);
+  assert.match(f1.detail, /first write broke the fuzz floor/);
+
+  // A first writer REFUSED (409) means the two-writer conflict never existed:
+  // the old path ran the blend oracle anyway and pinned "silently blended".
+  const denyFirst = buildHarness(ROUTES3(
+    async () => new Response('conflict policy', { status: 409 }), ok200, ok200,
+  ), {});
+  const f2 = await drift.run(denyFirst, MEM_CTX);
+  assert.equal(f2.verdict, 'REFUSED', f2.detail);
+  assert.match(f2.detail, /first writer refused with 409/);
+
+  // A refused PRUNE is an honest "we don't delete" - the old path pinned the
+  // residue oracle as "delete is silent" on history that was never erased.
+  const pruneRefuser = buildHarness(ROUTES3(
+    async () => Response.json({ stored: true }, { status: 201 }),
+    async () => Response.json({ id: 'note-prune-9', body: 'to be pruned' }),
+    async () => new Response('no deletes', { status: 403 }),
+  ), {});
+  const f3 = await loud.run(pruneRefuser, MEM_CTX);
+  assert.equal(f3.verdict, 'REFUSED', f3.detail);
+  assert.match(f3.detail, /prune refused with 403/);
+
+  // A crashed prune is floor-grade EXPLOITED, named by the step that crashed.
+  const pruneCrasher = buildHarness(ROUTES3(
+    async () => Response.json({ stored: true }, { status: 201 }), ok200,
+    async () => { throw new Error('prune exploded'); },
+  ), {});
+  const f4 = await loud.run(pruneCrasher, MEM_CTX);
+  assert.equal(f4.verdict, 'EXPLOITED', f4.detail);
+  assert.match(f4.detail, /prune broke the fuzz floor/);
+
+  // A refused anchor prune leaves the anchor LIVE: a citation to a live note
+  // is not dangling (the old path raced the drift oracle on nothing deleted).
+  const liveAnchor = buildHarness(ROUTES3(
+    async () => Response.json({ stored: true }, { status: 201 }),
+    async () => Response.json({}),
+    async () => new Response('anchor pinned', { status: 409 }),
+  ), {});
+  const f5 = await citation.run(liveAnchor, MEM_CTX);
+  assert.equal(f5.verdict, 'REFUSED', f5.detail);
+  assert.match(f5.detail, /still live/);
+
+  // An app that refuses ALL conflicting writes never staged the resolution
+  // problem - the old path pinned its deterministic refusal as an unstable winner.
+  const conflictRefuser = buildHarness(ROUTES3(
+    async () => new Response('conflict policy: no', { status: 409 }), ok200, ok200,
+  ), {});
+  const f6 = await resolution.run(conflictRefuser, MEM_CTX);
+  assert.equal(f6.verdict, 'REFUSED', f6.detail);
+  assert.match(f6.detail, /conflict-seed writes refused/);
+});
+
+test('walk-nine/governance: unreadable baselines skip honestly; crashed steps grade the fuzz floor (ttl free-mode no longer wears a refusal)', async () => {
+  const { loadScenarios } = await import('../../src/scenarios/loader.js');
+  const mods = await loadScenarios([]);
+  const governance = mods.find((m) => m.module.name === 'governance').module;
+  const carry = governance.attacks.find((a) => a.name === 'succession-revocation-carry');
+  const typed = governance.attacks.find((a) => a.name === 'escrow-refusal-is-typed');
+  const ttl = governance.attacks.find((a) => a.name === 'lock-ttl-honesty');
+  for (const a of [carry, typed, ttl]) assert.ok(a);
+
+  // A 2xx PLAIN-TEXT resolve is an unreadable BASELINE: the positive case was
+  // never staged (the old path barreled on and pinned the app for the
+  // post-revocation answer being unreadable).
+  const plaintext = buildHarness({
+    grants: async () => new Response('recorded', { status: 200 }),
+    resolve: async () => new Response('denied by policy', { status: 200 }),
+  }, {});
+  const g1 = await carry.run(plaintext, GOV_CTX);
+  assert.equal(g1.verdict, 'REFUSED', g1.detail);
+  assert.ok(g1.skipped === true, `unreadable baseline must skip, not fail: ${g1.detail}`);
+  assert.match(g1.detail, /unreadable/);
+
+  // A crashed escrow gate grades the floor, not "refusal is BLANK".
+  const crashyEscrow = buildHarness({
+    escrow: async () => { throw new Error('gate exploded'); },
+  }, {});
+  const g2 = await typed.run(crashyEscrow, { escrowRoute: 'escrow' });
+  assert.equal(g2.verdict, 'EXPLOITED', g2.detail);
+  assert.match(g2.detail, /unapproved-escrow attempt broke the fuzz floor/);
+
+  // A post-TTL write that THROWS: the old path graded null < 400 = "granted",
+  // so a documented-free app got REFUSED for behavior it never produced.
+  const postTtlCrasher = buildHarness({
+    locks: async ({ request }) => {
+      const body = await request.json();
+      if (body.ttl === 0) return Response.json({ acquired: true });
+      throw new Error('post-TTL untested path');
+    },
+  }, {});
+  const g3 = await ttl.run(postTtlCrasher, { locksRoute: 'locks', ttlMode: 'free' });
+  assert.equal(g3.verdict, 'EXPLOITED', g3.detail);
+  assert.match(g3.detail, /post-TTL writer broke the fuzz floor/);
+});

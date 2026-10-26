@@ -55,9 +55,6 @@ export default {
     async run(harness, ctx = {}) {
       const route = ctx.route ?? 'burst';
       if (!harness.listRoutes().includes(route)) {
-        return refused(`route "${route}" not declared on this target - attack skipped (declare it for coverage)`, { route, skipped: true });
-      }
-      if (!harness.listRoutes().includes(route)) {
         // Config gap, not a finding - zero false-positive CI failures (PRD section 12).
         return refused(`route "${route}" not declared on this target - wall check skipped (declare it for burst coverage)`, { route, skipped: true });
       }
@@ -73,10 +70,6 @@ export default {
           body: typeof body === 'string' ? body : JSON.stringify(body),
           headers: { 'content-type': 'application/json' },
         });
-        if (record.threw && /no route registered/.test(String(record.error?.message))) {
-          // Config gap, not a finding - zero false-positive CI failures (PRD section 12).
-          return refused(`route "${route}" not declared on this target - wall check skipped (declare it for burst coverage)`, { route, skipped: true });
-        }
         if (record.threw) {
           counts.broke++;
           breaks.push(`uncaught at ${i}: ${record.error?.name}: ${record.error?.message}`);

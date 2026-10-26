@@ -581,3 +581,160 @@ test('race: EXPLOITED on the TOCTOU charge + record-stomping writes, REFUSED on 
   assert.equal(skip.verdict, 'REFUSED');
   assert.ok(skip.skipped === true, `undeclared routes must skip, not fail: ${skip.detail}`);
 });
+
+// ---- walk-nine teeth: state crash/rename/move classes --------------------
+// The harness reports an uncaught handler throw as { status: null, threw };
+// `null >= 500` is false, so the old status-only gates graded crashed probes
+// as "denied". Each tooth below names one of the classes that slip through a
+// status-only gate, plus the row-move / non-fixture-table pairs the snapshot
+// diff used to miss.
+
+test('state/enumeration-oracle: a crashed foreign-id probe is a floor EXPLOITED, never "denied"', async () => {
+  const [state] = (await loadScenarios()).map(l => l.module).filter(m => m.name === 'state');
+  const attack = state.attacks.find(a => a.name === 'enumeration-oracle');
+
+  const crashy = buildHarness({ device: async () => { throw new Error('label boom'); } }, {});
+  const r = await attack.run(crashy, { route: 'device', mustDenyIds: ['alien-1'], param: 'key' });
+  assert.equal(r.verdict, 'EXPLOITED', r.detail);
+  assert.match(r.detail, /broke the fuzz floor/);
+  assert.match(r.detail, /a crash is not a deny/);
+});
+
+test('state/id-collision-alias: an uncaught constraint throw grades floor-EXPLOITED (never "the wall held")', async () => {
+  const [state] = (await loadScenarios()).map(l => l.module).filter(m => m.name === 'state');
+  const attack = state.attacks.find(a => a.name === 'id-collision-alias');
+
+  // No catch around the constraint: the second claim escapes as an uncaught
+  // throw - a crash, not a typed 409 refusal (which the hardened pair above pins).
+  const crashy = buildHarness({
+    enroll: async ({ request, env }) => {
+      const body = await request.json();
+      await env.DB.prepare('INSERT INTO devices (key, owner) VALUES (?, ?)').bind(body.key, body.owner).run();
+      return Response.json({ ok: true }, { status: 201 });
+    },
+  }, { env: { d1: { DB: { tables: { devices: { rows: [], uniques: { key_unique: ['key'] } } } } } } });
+  const r = await attack.run(crashy, { key: 'c-floor-1' });
+  assert.equal(r.verdict, 'EXPLOITED', r.detail);
+  assert.match(r.detail, /broke the fuzz floor/);
+  assert.match(r.detail, /a crash is not a conflict refusal/);
+});
+
+test('state/id-collision-alias: row-MOVE (id renumbered, tenant flipped) grades EXPLOITED, and the diff walks non-fixture table names', async () => {
+  const [state] = (await loadScenarios()).map(l => l.module).filter(m => m.name === 'state');
+  const attack = state.attacks.find(a => a.name === 'id-collision-alias');
+
+  // The classic reassignment: delete the first owner's row, insert a fresh one
+  // for owner-b. Same key count, no shared id, owner flipped - and stored in
+  // a table named TILES, proving the diff no longer reads only "devices".
+  const mover = buildHarness({
+    enroll: async ({ request, env }) => {
+      const body = await request.json();
+      await env.DB.prepare('DELETE FROM tiles WHERE key = ?').bind(body.key).run();
+      await env.DB.prepare('INSERT INTO tiles (key, owner) VALUES (?, ?)').bind(body.key, body.owner).run();
+      return Response.json({ ok: true }, { status: 200 });
+    },
+  }, { env: { d1: { DB: { tables: { tiles: { rows: [{ id: 1, key: 'c-move-1', owner: 'owner-a' }], uniques: {} } } } } } });
+  const r = await attack.run(mover, { key: 'c-move-1' });
+  assert.equal(r.verdict, 'EXPLOITED', r.detail);
+  assert.match(r.detail, /row-move, tenant flipped/);
+});
+
+// ---- walk-nine teeth: session refusal-honesty ---------------------------
+
+test('session: REFUSED logins grade honest refusals (hygiene 401, fixation pair, replay re-login) - never misgraded findings', async () => {
+  const [module] = (await loadScenarios()).map(l => l.module).filter(m => m.name === 'session');
+  const hygiene = module.attacks.find(a => a.name === 'cookie-hygiene');
+  const fixation = module.attacks.find(a => a.name === 'session-fixation');
+  const replay = module.attacks.find(a => a.name === 'token-replay-deny');
+  for (const a of [hygiene, fixation, replay]) assert.ok(a);
+
+  // A login route that refuses everything minted nothing: the row must say
+  // "refused with 401", not "bearer-token auth is outside this surface".
+  const login401 = buildHarness({
+    login: async () => new Response('no', { status: 401 }),
+    me: async () => new Response('ok'),
+    logout: async () => new Response(null, { status: 204 }),
+  }, {});
+  const r1 = await hygiene.run(login401, { loginRoute: 'login' });
+  assert.equal(r1.verdict, 'REFUSED', r1.detail);
+  assert.match(r1.detail, /login refused with 401/);
+
+  const r2 = await fixation.run(login401, { loginRoute: 'login', meRoute: 'me' });
+  assert.equal(r2.verdict, 'REFUSED', r2.detail);
+  assert.match(r2.detail, /no rotation pair to grade/);
+
+  // A session-limiting app refuses a re-login for an ACTIVE account - that is
+  // a defense, and the old zero-sid accounting pinned it as an open replay.
+  const seen = new Set();
+  let seq = 0;
+  const limitApp = buildHarness({
+    login: async ({ request }) => {
+      const body = await request.json();
+      if (body.user === 'rook' && seen.has('rook')) return new Response('already active', { status: 409 });
+      seen.add(body.user);
+      return new Response('ok', { status: 200, headers: { 'set-cookie': `sid=s${++seq}` } });
+    },
+  }, {});
+  const r3 = await replay.run(limitApp, { loginRoute: 'login' });
+  assert.equal(r3.verdict, 'REFUSED', r3.detail);
+  assert.match(r3.detail, /refused with 409/);
+  assert.match(r3.detail, /no sid was minted/);
+});
+
+// ---- walk-nine teeth: volume accounting honesty -------------------------
+
+test('volume/credential-stuffing: costPerRequest stays per-attempt when nothing is admitted', async () => {
+  const [volume] = (await loadScenarios()).map(l => l.module).filter(m => m.name === 'volume');
+  const stuffing = volume.attacks.find(a => a.name === 'credential-stuffing');
+
+  // 4 attempts x (1 route.invoke) = 4 total ops. Per-attempt = 1.00 - the old
+  // zero-admitted branch substituted the total ("~4 ops/request" on 4 requests).
+  const wallsUp = buildHarness({ enroll: async () => new Response('no', { status: 403 }) }, {});
+  const r = await stuffing.run(wallsUp, { route: 'enroll', rounds: 4, uniqueKeys: true });
+  assert.equal(r.verdict, 'REFUSED', r.detail);
+  assert.match(r.detail, /~1 ops\/request/);
+});
+
+test('volume/cost-amplification: a single replay over the bound grades even when the mean holds', async () => {
+  const [volume] = (await loadScenarios()).map(l => l.module).filter(m => m.name === 'volume');
+  const amp = volume.attacks.find(a => a.name === 'cost-amplification');
+
+  // One spiked replay (20 kv.put ops) then cheap replays: mean 6.00 under the
+  // bound 12, peak 21 over it.
+  let spiked = false;
+  const tail = buildHarness({
+    enroll: async ({ request, env }) => {
+      if (!spiked) {
+        spiked = true;
+        for (let i = 0; i < 20; i++) await env.DEVICE_CACHE.put(`spike-${i}`, 'x');
+      }
+      return Response.json({ ok: true }, { headers: { 'cache-control': 'no-store' } });
+    },
+  }, { env: { kv: { DEVICE_CACHE: {} } } });
+  const r = await amp.run(tail, { route: 'enroll', rounds: 4, maxOpsPerRequest: 12 });
+  assert.equal(r.verdict, 'EXPLOITED', `the spiked replay must trip the bound: ${r.detail}`);
+  assert.match(r.detail, /burned 21 ops on a single identical replay/);
+  assert.match(r.detail, /mean 6\b/); // exact 6.00 renders as "6" once a number
+});
+
+test('volume/storage-fill: growth reads the kvBinding the config names; mis-keyed targets say "unmeasured", not silent numbers', async () => {
+  const [volume] = (await loadScenarios()).map(l => l.module).filter(m => m.name === 'volume');
+  const fill = volume.attacks.find(a => a.name === 'storage-fill');
+
+  const h = buildHarness({
+    kvwrite: async ({ request, env }) => {
+      const body = await request.json();
+      await env.OTHER_CACHE.put(body.key, body.blob ?? 'x');
+      return Response.json({ ok: true }, { headers: { 'cache-control': 'no-store' } });
+    },
+  }, { env: { kv: { OTHER_CACHE: {} } } });
+
+  const r1 = await fill.run(h, { route: 'kvwrite', rounds: 4, kvBinding: 'OTHER_CACHE' });
+  assert.equal(r1.verdict, 'REFUSED', r1.detail);
+  assert.match(r1.detail, /storage 4 keys/, `the growth numbers must walk OTHER_CACHE: ${r1.detail}`);
+
+  const r2 = await fill.run(h, { route: 'kvwrite', rounds: 4 });
+  assert.equal(r2.verdict, 'REFUSED', r2.detail);
+  assert.match(r2.detail, /growth unmeasured/);
+  assert.match(r2.detail, /no "DEVICE_CACHE" KV binding/);
+});

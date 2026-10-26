@@ -71,6 +71,12 @@ export default {
       }
       const setCookie = record.response?.headers?.get('set-cookie');
       if (!setCookie) {
+        // A REFUSED login minted nothing: not a hygiene finding and not a
+        // bearer-token shape note - it is a refusal the row cannot grade
+        // (the old path folded it into the bearer-message, naming the wrong cause).
+        if (record.status >= 400) {
+          return refused(`login refused with ${record.status} on "${loginRoute}" - no cookie was minted, nothing to grade (arm the route for coverage)`, { loginRoute, status: record.status });
+        }
         return refused(`login "${loginRoute}" minted no Set-Cookie - bearer-token auth is outside this module's surface (arm with cookie auth for coverage)`, { loginRoute, armed: false });
       }
       const missing = missingFlags(setCookie);
@@ -132,6 +138,18 @@ export default {
         problems.push('"me" honored a FORGED cookie (status 200 for a sid the server never minted)');
       }
 
+      // A login the app REFUSES minted no session: pinning a session-limit
+      // refusal as "fixation-surface findings" (the old zero-sid problem row)
+      // punished a defense. With both attempts refused there is no pair to
+      // compare - the forged-sid phase still ran above and is reported in detail.
+      const refusedLogins = [first, second].filter((l) => !l.threw && l.status >= 400);
+      if (refusedLogins.length) {
+        return refused(
+          `login refused with ${refusedLogins[0].status} on "${loginRoute}" - no rotation pair to grade (${refusedLogins.length}/2 attempts refused); forged-sid denial held at ${forged.status}`,
+          { loginRoute, meRoute, forgedStatus: forged.status, status: refusedLogins[0].status },
+        );
+      }
+
       if (problems.length) {
         return exploited(`fixation-surface findings on "${loginRoute}"/"${meRoute}" - first: ${problems[0]}`, { problems });
       }
@@ -153,7 +171,7 @@ export default {
         });
         if (rec.threw) return { threw: true };
         const sid = sidFromCookie(rec.response?.headers?.get('set-cookie'));
-        return { sid, who };
+        return { status: rec.status, sid, who };
       };
       if (!harness.listRoutes().includes(loginRoute)) {
         return refused(`route "${loginRoute}" not declared on this target - session skipped (declare it for coverage)`, { loginRoute, skipped: true });
@@ -169,6 +187,16 @@ export default {
         return refused(`login minted no sid cookie - replay window unassessable (arm with cookie auth for coverage)`, { loginRoute, armed: false });
       }
       const logins = [first, second, again, third];
+      // A REFUSED mint minted nothing - "sids the server never minted cannot
+      // collide or replay". The old path counted a refused login in `zeroed`
+      // and pinned a session-limiting app as an open replay window.
+      const refusedMints = logins.filter((l) => (l.status ?? 0) >= 400);
+      if (refusedMints.length) {
+        return refused(
+          `login for account "${refusedMints[0].who}" refused with ${refusedMints[0].status} on "${loginRoute}" - no sid was minted, and the server never re-issued one to collide`,
+          { loginRoute, status: refusedMints[0].status },
+        );
+      }
       const zeroed = logins.filter((l) => !l.sid).length;
       const problems = [];
       if (zeroed) problems.push(`${zeroed}/4 logins minted no sid (analytics gap or lazy issuance)`);

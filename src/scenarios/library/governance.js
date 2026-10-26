@@ -27,7 +27,7 @@
 // a missing route is a skipped-REFUSED named by row; the fuzz floor applies
 // everywhere.
 
-import { refused, exploited } from '../contract.js';
+import { refused, exploited, fuzzFloorViolation } from '../contract.js';
 
 async function readJson(record) {
   const res = record?.response;
@@ -56,6 +56,16 @@ function isDeny(record, body) {
 
 const isObject = (b) => b && typeof b === 'object' && !Array.isArray(b);
 
+// floorHit: the fuzz-floor gate for a record the row just produced. A thrown
+// request (uncaught handler error - the harness reports status null) or a 5xx
+// is a crash-grade EXPLOITED, and the old `>= 500` gates never saw it
+// (null >= 500 is false), so crashed steps graded as later-step findings with
+// the wrong story. null means the record rode the wire honestly.
+const floorHit = (record, label) => {
+  const v = fuzzFloorViolation(record);
+  return v ? exploited(`${label} broke the fuzz floor: ${v}`) : null;
+};
+
 // name the missing KNOB, not its undefined value - a skip that says
 // `route "undefined"` names nothing (the honest-skip line is the docs).
 const missingKnobs = (ctx, knobs, routes) => knobs.filter((k) => !ctx[k] || !routes.includes(ctx[k]));
@@ -77,9 +87,11 @@ export default {
           return refused(`vocabulary knob(s) ${knobLine(missing)} not declared on this target - governance skipped (export moduleCtx['governance'].grantsRoute/resolveRoute for coverage)`, { missing, skipped: true });
         }
         const grant = await postJson(harness, grants, { principal: 'heir-floor-1', capability: 'estate:read', scope: 'surface', permit: 'allow', trust: 2, role: 'successor' });
-        if (grant.status >= 500) return exploited(`grants path 5xx while seating the successor (${grant.status})`, { principal: 'heir-floor-1' });
+        const grantFloor = floorHit(grant, 'succession grant');
+        if (grantFloor) return grantFloor;
         const ask = await postJson(harness, resolve, { principal: 'heir-floor-1', capability: 'estate:rewrite-roots', scope: 'deep-private' });
-        if (ask.status >= 500) return exploited(`resolve path 5xx below the trust floor (${ask.status})`, { principal: 'heir-floor-1' });
+        const askFloor = floorHit(ask, 'trust-floor resolve');
+        if (askFloor) return askFloor;
         const denied = isDeny(ask, await readJson(ask));
         if (denied === false) {
           return exploited(`trust floor breached: heir at trust 2 resolved ALLOW for deep-private estate:rewrite-roots (below their level)`, { principal: 'heir-floor-1' });
@@ -103,16 +115,18 @@ export default {
         }
         const cap = 'custodian:step-down';
         const first = await postJson(harness, grants, { principal: 'heir-alpha', capability: cap, permit: 'allow', precedence: 2, role: 'successor' });
+        const firstFloor = floorHit(first, 'successor-alpha grant');
+        if (firstFloor) return firstFloor;
         const second = await postJson(harness, grants, { principal: 'heir-beta', capability: cap, permit: 'allow', precedence: 1, role: 'successor' });
-        if (first.status >= 500 || second.status >= 500) {
-          return exploited(`grants path 5xx while seating two successors (${first.status}/${second.status})`, { capability: cap });
-        }
+        const secondFloor = floorHit(second, 'successor-beta grant');
+        if (secondFloor) return secondFloor;
         if (second.status >= 400) {
           return refused(`second declaration for the same role refused with ${second.status} - single-heir enforced at write time`, { capability: cap, status: second.status });
         }
         const winnerOf = async () => {
           const ask = await postJson(harness, resolve, { capability: cap });
-          if (ask.status >= 500) return { error: `resolve 5xx (${ask.status})` };
+          const askFloor = floorHit(ask, 'succession resolve');
+          if (askFloor) return { error: askFloor.detail };
           const body = await readJson(ask);
           const denied = isDeny(ask, body);
           return { denied, who: isObject(body) ? (body.principal ?? body.successor ?? body.who) : null };
@@ -143,20 +157,33 @@ export default {
         const heir = 'heir-revoke-3';
         const cap = 'estate:session-open';
         const grant = await postJson(harness, grants, { principal: heir, capability: cap, permit: 'allow', precedence: 1 });
-        if (grant.status >= 500) return exploited(`grants path 5xx while arming the revocation (${grant.status})`, { principal: heir });
+        const grantFloor = floorHit(grant, 'revocation arming');
+        if (grantFloor) return grantFloor;
         const before = await postJson(harness, resolve, { principal: heir, capability: cap });
-        if (isDeny(before, await readJson(before)) === true) {
+        const beforeFloor = floorHit(before, 'baseline resolve');
+        if (beforeFloor) return beforeFloor;
+        const baselineBody = await readJson(before);
+        if (isDeny(before, baselineBody) === true) {
           return refused(`baseline ask denied even BEFORE revocation - the positive case is unreachable on this target (nothing to carry)`, { principal: heir, skipped: true });
         }
+        // An UNREADABLE baseline means the positive case was never really
+        // staged (the old path barreled on and pinned the app for the
+        // post-revocation answer being unreadable - a lie about the same
+        // shape it could never read). Skip honestly.
+        if (isDeny(before, baselineBody) === null) {
+          return refused(`baseline resolve on "${cap}" is unreadable (${before.status}, body ${JSON.stringify(baselineBody)}) - the positive case is unverifiable, no carry to grade`, { principal: heir, skipped: true });
+        }
         const revoke = await postJson(harness, grants, { principal: heir, capability: cap, permit: 'deny', precedence: 9, revoke: true });
-        if (revoke.status >= 500) return exploited(`grants path 5xx while revoking (${revoke.status})`, { principal: heir });
+        const revokeFloor = floorHit(revoke, 'revocation write');
+        if (revokeFloor) return revokeFloor;
         if (revoke.status >= 400) {
           return refused(`revocation rejected with ${revoke.status} - app expects a different carry convention (document it in moduleCtx)`, { principal: heir, status: revoke.status });
         }
         // the "session opened after revocation": an ask from a FRESH round, not
         // a replay of the before-session answer
         const after = await postJson(harness, resolve, { principal: heir, capability: cap, session: 'post-revocation' });
-        if (after.status >= 500) return exploited(`resolve path 5xx after revocation (${after.status})`, { principal: heir });
+        const afterFloor = floorHit(after, 'post-revocation resolve');
+        if (afterFloor) return afterFloor;
         const denied = isDeny(after, await readJson(after));
         if (denied === false) {
           return exploited(`revocation did not carry: "${heir}" still resolves ALLOW for "${cap}" in the post-revocation session (cached capability map?)`, { principal: heir, capability: cap });
@@ -179,7 +206,8 @@ export default {
         }
         const escrowId = 'escrow-two-key-4';
         const selfTwice = await postJson(harness, escrow, { escrow: escrowId, approvals: ['approver-self-1', 'approver-self-1'] });
-        if (selfTwice.status >= 500) return exploited(`escrow path 5xx on the self-signed pair (${selfTwice.status})`, { escrow: escrowId });
+        const selfFloor = floorHit(selfTwice, 'self-signed escrow attempt');
+        if (selfFloor) return selfFloor;
         const released = selfTwice.status < 400 || isDeny(selfTwice, await readJson(selfTwice)) === false;
         if (released) {
           return exploited(`escrow failed the two-key gate: ONE principal signing twice released "${escrowId}" (self-approval must resolve to one principal)`, { escrow: escrowId });
@@ -199,9 +227,8 @@ export default {
         }
         const escrowId = 'escrow-expired-5';
         const request = await postJson(harness, escrow, { escrow: escrowId, approvals: ['approver-a'], ttl: 0, expired: true });
-        if (request.status >= 500) {
-          return exploited(`escrow path 5xx could not even REGISTER the expired escrow - fail-closed means a typed refusal, not a fault (${request.status})`, { escrow: escrowId });
-        }
+        const expiryFloor = floorHit(request, 'expired-escrow attempt');
+        if (expiryFloor) return expiryFloor;
         const released = request.status < 400 || isDeny(request, await readJson(request)) === false;
         if (released) {
           return exploited(`expiry is fail-OPEN: the ttl-0 escrow "${escrowId}" released (2xx/allow) - silent past-TTL release`, { escrow: escrowId });
@@ -221,15 +248,19 @@ export default {
         }
         const escrowId = 'escrow-refusal-6';
         const denied = await postJson(harness, escrow, { escrow: escrowId, approvals: [] }); // nothing approves -> must refuse
-        if (denied.status >= 500) {
-          return exploited(`refusal is UNtyped: the unapproved escrow "${escrowId}" answered ${denied.status} (raw 5xx) instead of a typed refusal`, { escrow: escrowId });
-        }
+        const denialFloor = floorHit(denied, 'unapproved-escrow attempt');
+        if (denialFloor) return denialFloor;
         const body = await readJson(denied);
         const typed = denied.status >= 400 && (body
           ? ['reason', 'blocked', 'by', 'who', 'why', 'error'].some((k) => isObject(body) && body[k] != null && String(body[k]).length > 0)
           : true); // a plain-text 4xx body still names what blocked it - typed enough
         if (!typed) {
-          return exploited(`refusal is BLANK: the denied escrow "${escrowId}" answered ${denied.status} with no reason payload naming the blocker`, { escrow: escrowId });
+          // A 2xx here is worse than a blank refusal - the approvals gate let a
+          // zero-approval release through. Name that story, not "blank".
+          return exploited(denied.status < 400
+            ? `approvals gate is open: the unapproved escrow "${escrowId}" answered ${denied.status} (released with zero approvals)`
+            : `refusal is BLANK: the denied escrow "${escrowId}" answered ${denied.status} with no reason payload naming the blocker`,
+            { escrow: escrowId });
         }
         return refused(`refusal typed (status ${denied.status} with a reason payload) on "${escrowId}"`, { escrow: escrowId });
       },
@@ -248,10 +279,15 @@ export default {
         // deny carries HIGHER declared precedence (2) and is written SECOND:
         // the winner must be the declared-precedence winner, not last-write
         // and not arrival order.
-        await postJson(harness, grants, { principal: 'p-conflict-7', capability: 'tenancy:write', permit: 'allow', precedence: 1 });
-        await postJson(harness, grants, { principal: 'p-conflict-7', capability: 'tenancy:write', permit: 'deny', precedence: 2 });
+        const allowGrant = await postJson(harness, grants, { principal: 'p-conflict-7', capability: 'tenancy:write', permit: 'allow', precedence: 1 });
+        const allowFloor = floorHit(allowGrant, 'conflict-allow grant');
+        if (allowFloor) return allowFloor;
+        const denyGrant = await postJson(harness, grants, { principal: 'p-conflict-7', capability: 'tenancy:write', permit: 'deny', precedence: 2 });
+        const denyFloor = floorHit(denyGrant, 'conflict-deny grant');
+        if (denyFloor) return denyFloor;
         const ask = await postJson(harness, resolve, { principal: 'p-conflict-7', capability: 'tenancy:write' });
-        if (ask.status >= 500) return exploited(`resolve path 5xx on the conflicting grants (${ask.status})`, { principal: 'p-conflict-7' });
+        const askFloor = floorHit(ask, 'conflict resolve');
+        if (askFloor) return askFloor;
         const denied = isDeny(ask, await readJson(ask));
         if (denied === false) {
           return exploited(`conflict resolved wrong: the precedence-2 DENY lost to the precedence-1 allow (declared precedence not honored)`, { principal: 'p-conflict-7' });
@@ -274,9 +310,11 @@ export default {
           return refused(`vocabulary knob(s) ${knobLine(missing)} not declared on this target - governance skipped (export moduleCtx['governance'].grantsRoute/resolveRoute for coverage)`, { missing, skipped: true });
         }
         const grant = await postJson(harness, grants, { principal: 'p-sideways-8', capability: 'notes:write', scope: 'brain/ledger-alpha', permit: 'allow' });
-        if (grant.status >= 500) return exploited(`grants path 5xx while arming the sideways probe (${grant.status})`, { principal: 'p-sideways-8' });
+        const grantFloor = floorHit(grant, 'sideways arming grant');
+        if (grantFloor) return grantFloor;
         const ask = await postJson(harness, resolve, { principal: 'p-sideways-8', capability: 'notes:write', scope: 'brain/ledger-beta' });
-        if (ask.status >= 500) return exploited(`resolve path 5xx on the sideways ask (${ask.status})`, { principal: 'p-sideways-8' });
+        const askFloor = floorHit(ask, 'sideways resolve');
+        if (askFloor) return askFloor;
         const denied = isDeny(ask, await readJson(ask));
         if (denied === false) {
           return exploited(`capability leaked sideways: ledger-alpha scope resolved ALLOW into brain/ledger-beta (shared parent, no isolation)`, { principal: 'p-sideways-8' });
@@ -300,8 +338,14 @@ export default {
         }
         const resource = 'lock-ttl-9';
         const hold = await postJson(harness, locks, { resource, op: 'write', ttl: 0 });
-        if (hold.status >= 500) return exploited(`locks path 5xx while arming the expired hold (${hold.status})`, { resource });
+        const holdFloor = floorHit(hold, 'ttl-0 latch');
+        if (holdFloor) return holdFloor;
         const fresh = await postJson(harness, locks, { resource, op: 'write' });
+        // A thrown post-TTL write graded freeNow = true (null < 400): a
+        // "held" app was pinned a refuser and a "free" app got a REFUSED
+        // verdict for behavior its handler never produced.
+        const freshFloor = floorHit(fresh, 'post-TTL writer');
+        if (freshFloor) return freshFloor;
         const freeNow = fresh.status < 400;
         if (ttlMode === 'held' && freeNow) {
           return exploited(`ttl dishonesty: "${resource}" documents held-past-TTL but a fresh writer GRANTED (${fresh.status}) after expiry`, { resource });
@@ -325,9 +369,8 @@ export default {
         }
         const resource = 'lock-fence-10';
         const stale = await postJson(harness, locks, { resource, op: 'write', token: staleToken });
-        if (stale.status >= 500) {
-          return exploited(`fencing gap: the stale token write faulted with ${stale.status} - refusal must be loud AND shaped, not a crash`, { resource });
-        }
+        const staleFloor = floorHit(stale, 'stale-token write');
+        if (staleFloor) return staleFloor;
         if (stale.status < 400 && isDeny(stale, await readJson(stale)) !== true) {
           return exploited(`fencing gap: writing through the expired fence token "${staleToken}" SUCCEEDED (${stale.status}) on "${resource}"`, { resource, staleToken });
         }

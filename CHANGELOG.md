@@ -277,6 +277,68 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
   moves to the true numbers WITH the inflation arithmetic named in the
   comment (rule 7: the shipped site shows what the CLI actually
   measured, not what an old baseline said).
+- the walk continues (round 10: the scenario ATTACK LIBRARY itself, all
+  14 modules re-read against the verdict-semantics contract) - the
+  headline class is CRASH INVISIBILITY: an uncaught handler throw
+  arrives at an attack as `{ status: null, threw }`, and every gate
+  written `status >= 500` is FALSE for null, so crashed steps walked
+  on and graded as later-step findings with the wrong story (a crashed
+  memory write read "not found on read-back after a 2xx write"; a
+  crashed delete read "delete is silent"; a crashed escrow read "the
+  two-key gate failed"; a crashed post-TTL lock write graded a
+  documented-free app REFUSED "behaved as documented" - and, the one
+  class graded the WRONG DIRECTION: state/id-collision-alias called an
+  uncaught constraint throw "the wall held" REFUSED). The fuzz-floor
+  oracle now gates every request a memory/governance/session/state row
+  makes (the `floorHit` helper, the discipline input/taxonomy already
+  had), each finding naming the step that broke it. The second class:
+  DEFENDER HONESTY - apps that REFUSE a step grade honest REFUSED
+  verdicts, never exploit-grade findings: memory rows grade a refused
+  first writer / refused fresh writer / refused alpha identity /
+  refused prunes ('nothing was deleted, so there is no history to
+  trace') / refused anchor prune ('the anchor is still live, so a
+  citation to it is not dangling') / refused conflict-seed burst, the
+  first-writer check ORDERED before the second-writer wording ('second
+  writer refused' would imply the first succeeded on a both-refused
+  app); session rows grade refusing logins (a session-limiting app is
+  a defense, not a zero-sid analytics gap / open replay window; a 401
+  login says "refused with 401", not "bearer-token auth is outside
+  this surface"); succession-revocation-carry skips on an UNREADABLE
+  BASELINE (the old path never read the baseline either, then pinned
+  the app for the post-revocation answer being unreadable).
+  - state: enumeration-oracle grades a crashed/5xx foreign-id probe as
+    a floor EXPLOITED ('a crash is not a deny') instead of a held wall;
+    id-collision-alias no longer hardcodes the `devices` table name
+    (the snapshot diff walks EVERY table carrying the claim key - a
+    non-fixture store name used to diff empty-vs-empty and silently
+    always refuse) and now catches the ROW-MOVE class it names in its
+    own header (delete-and-reinsert: owner-a's claim gone, owner-b
+    claiming the key at a new id - tenant flipped with no conflict);
+  - volume: cost-amplification grades the PER-ROUND OPS SHAPE (the old
+    code computed a `stable` identical-shape flag then discarded it -
+    a tail that burns N times the bound can hold the mean under it:
+    one 21-op spike + three cheap replays is mean 6 under bound 12 and
+    NOW grades peak-EXPLOITED); credential-stuffing's costPerRequest
+    is always per-attempt (the old zero-admitted branch substituted
+    the TOTAL: "~4 ops/request" on 4 all-refused requests); storage
+    fill reads the KV binding the CONFIG names (`kvBinding`) and
+    targets whose store lives elsewhere get honest "growth
+    unmeasured" instead of a silently empty growth array;
+  - governance: escrow-refusal-is-typed tells the right story for a
+    release with ZERO approvals (approvals gate open, not "refusal is
+    blank"); grant-conflict-deterministic now guards both conflict
+    grants it used to fire blindly (the same null-status blindness the
+    helper closes everywhere else).
+  - guards: burst-wall's duplicated (unreachable) route-skip branches
+    removed - the single entry gate already named the config gap.
+  Teeth: 9 new rows across test/scenarios (row-move + non-fixture
+  table names, crashed enumeration probe, collided-constraint floor,
+  refused-logins trio, per-attempt pin, peak-vs-mean pair, kvBinding
+  pair, memory floor+refusal sextet, governance baseline/floor trio).
+  Suite floor: 379/379 with PHP (was 370/370). Dogfood artifacts
+  byte-stable across the double run (0 new / 0 regressed - the honest
+  branches never fire on the hardened fixture); gates: check,
+  lint:docs fiction scan, packstruct lint (8 packs) all clean.
 
 ## 1.1.0 (2026-10-25 on npm)
 

@@ -47,7 +47,10 @@ export default {
       }
       const cost = harness.costTotals();
       const opsDelta = cost.__cost__ - before.__cost__;
-      const admittedOps = admitted > 0 ? +(opsDelta / rounds).toFixed(2) : opsDelta;
+      // costPerRequest is ALWAYS the per-request average (ops / attempts): the
+      // old zero-admitted branch substituted the TOTAL, so an all-refused app
+      // read "~40 ops/request" while it actually spent /40 per attempt.
+      const admittedOps = +(opsDelta / rounds).toFixed(2);
 
       if (broke > 0) {
         return exploited(`stuffing broke "${route}" ${broke}/${rounds}x - ${firstBreak}`,
@@ -68,6 +71,10 @@ export default {
       }
       const rounds = ctx.rounds ?? 30;
       const payloadSize = ctx.payloadSize ?? 8 * 1024;
+      // The growth reader walks the KV binding the CONFIG names (default is the
+      // lab fixture's) - a target keeping blobs under any other binding gets an
+      // honest "unmeasured" instead of a silently empty growth array.
+      const kvName = ctx.kvBinding ?? 'DEVICE_CACHE';
       let broke = 0, firstBreak = null, admitted = 0, refusedN = 0;
       const growth = [];
       const before = harness.costTotals();
@@ -78,7 +85,7 @@ export default {
         if (record.threw) { broke++; firstBreak = firstBreak ?? `${record.error?.name}: ${record.error?.message}`; continue; }
         if (record.status >= 500) { broke++; firstBreak = firstBreak ?? `${record.status}`; continue; }
         record.status < 400 ? admitted++ : refusedN++;
-        const kvList = await harness.env.DEVICE_CACHE?.list?.({}) ?? null;
+        const kvList = await harness.env[kvName]?.list?.({}) ?? null;
         if (kvList) growth.push(kvList.keys.length);
       }
       const cost = harness.costTotals();
@@ -91,7 +98,9 @@ export default {
       // Storage keeps growing without any cap signal? Numbers, not a verdict.
       const last = growth.at(-1);
       return refused(
-        `fill held on "${route}" (${admitted} admitted) / ${opsDelta} ops total / storage ${last} keys after ${rounds} rounds`,
+        growth.length
+          ? `fill held on "${route}" (${admitted} admitted) / ${opsDelta} ops total / storage ${last} keys after ${rounds} rounds`
+          : `fill held on "${route}" (${admitted} admitted) / ${opsDelta} ops total / storage growth unmeasured - no "${kvName}" KV binding declared (declare kvBinding for the growth numbers)`,
         { route, rounds, admitted, growth: growth.slice(-3), opsDelta },
       );
     },
@@ -120,8 +129,18 @@ export default {
       }
       const totalOps = cumulative.at(-1) ?? 0;
       const deltas = [cumulative[0] ?? 0, ...cumulative.slice(1).map((v, i) => v - cumulative[i])];
-      const stable = new Set(deltas.map(d => +d.toFixed(2))).size === 1; // identical request -> identical op shape
+      // Identical request -> identical op shape. The per-round delta BOTH pins
+      // the mean check (a tail that burns N times the bound can still hold the
+      // average under it) and grades the `stable` shape the old code computed
+      // and then discarded.
+      const worstOpShape = Math.max(...deltas);
       const opsPerRequest = +(totalOps / rounds).toFixed(2);
+      if (worstOpShape > maxOpsPerRequest) {
+        return exploited(
+          `"${route}" burned ${worstOpShape} ops on a single identical replay - ${worstOpShape} ops/request vs the bound ${maxOpsPerRequest} (mean ${opsPerRequest}) - the op shape is not bounded per request`,
+          { route, opsPerRequest, bound: maxOpsPerRequest, rounds, totalOps, worstOpShape },
+        );
+      }
       if (opsPerRequest > maxOpsPerRequest) {
         return exploited(
           `"${route}" burns ${opsPerRequest} ops/request sustained across ${rounds} identical replays (bound ${maxOpsPerRequest}) - amplification`,

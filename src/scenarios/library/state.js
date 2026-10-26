@@ -10,7 +10,7 @@
 //     spawn a SEPARATE row - never silently overwrite the first owner's row
 //     (verified by snapshot diff, not by verdict text).
 
-import { refused, exploited } from '../contract.js';
+import { refused, exploited, fuzzFloorViolation } from '../contract.js';
 
 export default {
   name: 'state',
@@ -46,7 +46,13 @@ export default {
               headers: { 'content-type': 'application/json' },
               params: { [param]: id },
             });
-        if (!record.threw && record.status < 400) {
+        // A crashed/5xx foreign-id probe is a fuzz-floor finding, not a deny:
+        // grading only `<400 = leak` graded a crashed route as a held wall.
+        const floor = fuzzFloorViolation(record);
+        if (floor) {
+          return exploited(`foreign-id probe for "${id}" broke the fuzz floor on "${route}": ${floor} - a crash is not a deny`, { route, id });
+        }
+        if (record.status < 400) {
           leaks.push({ id, status: record.status });
         }
       }
@@ -88,23 +94,47 @@ export default {
       const r2 = await harness.run(route, {
         method: 'POST', body: JSON.stringify(second), headers: { 'content-type': 'application/json' },
       });
-      if (r2.threw) {
-        // Uniqueness constraint cranked the route - that's REFUSED, the wall held.
-        return refused(`second-owner claim rejected by "${route}" (uncaught: ${r2.error?.name} - handler relies on checks, not constraints)`, { route });
+      // An uncaught throw (or a 5xx) on the collision claim is a fuzz-floor
+      // finding - the binding contract grades crashes/misbehavior EXPLOITED,
+      // never as "the wall held". A well-behaved handler catches the
+      // constraint violation and answers 409, which keeps grading below.
+      const claimFloor = fuzzFloorViolation(r2);
+      if (claimFloor) {
+        return exploited(`second-owner claim to [${key}] broke the fuzz floor on "${route}": ${claimFloor} - a crash is not a conflict refusal`, { route, key });
       }
 
       const after = harness.env.DB.snapshot();
-      const victimRows = (before.devices ?? []).filter(r => r.key === key);
-      const afterRows = (after.devices ?? []).filter(r => r.key === key);
+      // The identity claim lives wherever THIS target's D1 keeps rows, not in a
+      // fixture table name - a store tiled under any other name would diff an
+      // empty pair against an empty pair and silently always refuse. Walk every
+      // table in the snapshot and gather the rows carrying the claim key.
+      const claimRows = (snap) => {
+        const rows = [];
+        for (const table of Object.values(snap)) {
+          if (Array.isArray(table)) rows.push(...table.filter((r) => r && typeof r === 'object' && r.key === key));
+        }
+        return rows.sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
+      };
+      const victimRows = claimRows(before);
+      const afterRows = claimRows(after);
       const overwritten = victimRows.length > 0
         && afterRows.length === victimRows.length
         && afterRows.some((r, i) => r.id === victimRows[i].id && r.owner !== victimRows[i].owner);
+      // The row-MOVE class the module names: owner-a's claim vanished and
+      // owner-b holds the key in a different row id - the tenant flipped with
+      // no conflict, exactly as silent as the in-place overwrite.
+      const movedInPlace = victimRows.length === 1 && afterRows.length === 1
+        && victimRows[0].id !== afterRows[0].id
+        && afterRows[0].owner !== victimRows[0].owner;
 
       if (r2.status < 400 && overwritten) {
         return exploited(`"${route}" let owner-b silently overwrite owner-a's row [${key}] (no conflict, same id)`, { route, key });
       }
       if (overwritten) {
         return exploited(`"${route}" reported ${r2.status} for owner-b's claim, but the snapshot shows owner-a's row [${key}] was overwritten in place`, { route, key });
+      }
+      if (movedInPlace) {
+        return exploited(`"${route}" reported ${r2.status} for owner-b's claim, but owner-a's row [${key}] (id ${victimRows[0].id}) is gone - owner-b now claims the key at id ${afterRows[0].id} (row-move, tenant flipped)`, { route, key });
       }
       return refused(`owner-b's claim on [${key}] by "${route}" stayed separate (status ${r2.status}; owner-a row intact)`, { route, key });
     },

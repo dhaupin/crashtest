@@ -23,7 +23,7 @@
 // route is a skipped-REFUSED named by row; a 5xx anywhere is an EXPLOITED
 // via the fuzz floor story (never stateful).
 
-import { refused, exploited } from '../contract.js';
+import { refused, exploited, fuzzFloorViolation } from '../contract.js';
 
 async function readJson(record) {
   const res = record?.response;
@@ -59,6 +59,15 @@ function findNote(readBack, id) {
 
 const isObject = (n) => n && typeof n === 'object' && !Array.isArray(n);
 
+// floorHit: the fuzz-floor gate for a record the row just produced. A thrown
+// request (uncaught handler error - the harness reports status null) or a 5xx
+// is a crash-grade EXPLOITED, never provable via a later read. null means the
+// record rode the wire honestly and the row keeps grading its own oracle.
+const floorHit = (record, label) => {
+  const v = fuzzFloorViolation(record);
+  return v ? exploited(`${label} broke the fuzz floor: ${v}`) : null;
+};
+
 // name the missing KNOB, not its undefined value - a skip that says
 // `route "undefined"` names nothing (the honest-skip line is the docs).
 const missingKnobs = (ctx, knobs, routes) => knobs.filter((k) => !ctx[k] || !routes.includes(ctx[k]));
@@ -81,15 +90,25 @@ export default {
         }
         const id = 'note-drift-1';
         const w1 = await postJson(harness, writeRoute, { id, body: 'balance ledger: 300', writers: ['writer-a'] });
+        const firstFloor = floorHit(w1, 'first write');
+        if (firstFloor) return firstFloor;
         const w2 = await postJson(harness, writeRoute, { id, body: 'balance ledger: 825', writers: ['writer-b'] });
-        if (w1.status >= 500 || w2.status >= 500) {
-          return exploited(`write path 5xx during the two-writer update (${w1.status}/${w2.status})`, { id });
+        const secondFloor = floorHit(w2, 'second write');
+        if (secondFloor) return secondFloor;
+        // ...and a refusing FIRST writer is a defense too: no two-writer
+        // conflict ever existed, so a later single-provenance read is not a
+        // silent blend. This check runs FIRST - "second writer refused" would
+        // imply the first succeeded, which a both-refused app never did.
+        if (w1.status >= 400) {
+          return refused(`first writer refused with ${w1.status} - the two-writer conflict was never staged on "${id}"`, { id, status: w1.status });
         }
-        // A refusing write is a valid defense (second writer told no).
         if (w2.status >= 400) {
           return refused(`second writer refused with ${w2.status} - no silent overwrite possible`, { id, status: w2.status });
         }
-        const note = findNote(await readJson(await harness.run(readRoute, { method: 'POST', body: JSON.stringify({ id }), headers: { 'content-type': 'application/json' } })), id);
+        const readRec = await harness.run(readRoute, { method: 'POST', body: JSON.stringify({ id }), headers: { 'content-type': 'application/json' } });
+        const readFloor = floorHit(readRec, 'read-back');
+        if (readFloor) return readFloor;
+        const note = findNote(await readJson(readRec), id);
         if (!note) {
           return exploited(`note "${id}" not found on read-back after a 2xx write - the CURRENT content is unknowable (nothing hands back the conflict or the winner)`, { id });
         }
@@ -115,14 +134,23 @@ export default {
         }
         const id = 'note-stale-2';
         const fresh = await postJson(harness, writeRoute, { id, body: 'relay window: open', writers: ['writer-current'], active: true });
+        const freshFloor = floorHit(fresh, 'fresh-writer write');
+        if (freshFloor) return freshFloor;
         const stale = await postJson(harness, writeRoute, { id, body: 'relay window: closed', writers: ['writer-retired'], retired: true });
-        if (fresh.status >= 500 || stale.status >= 500) {
-          return exploited(`write path 5xx during the stale/fresh race (${fresh.status}/${stale.status})`, { id });
-        }
+        const staleFloor = floorHit(stale, 'retired-writer write');
+        if (staleFloor) return staleFloor;
         if (stale.status >= 400) {
           return refused(`retired writer's write refused with ${stale.status} - staleness can never win`, { id, status: stale.status });
         }
-        const note = findNote(await readJson(await harness.run(readRoute, { method: 'POST', body: JSON.stringify({ id }), headers: { 'content-type': 'application/json' } })), id);
+        // A refused FRESH writer means the race was never staged: the retired
+        // fact that remains is marked retired at the write, not a poison win.
+        if (fresh.status >= 400) {
+          return refused(`fresh writer refused with ${fresh.status} - no fresh/stale race was ever staged on "${id}"`, { id, status: fresh.status });
+        }
+        const readRec = await harness.run(readRoute, { method: 'POST', body: JSON.stringify({ id }), headers: { 'content-type': 'application/json' } });
+        const readFloor = floorHit(readRec, 'read-back');
+        if (readFloor) return readFloor;
+        const note = findNote(await readJson(readRec), id);
         if (!note) {
           return exploited(`note "${id}" not found on read-back after two 2xx writes - the stale/fresh rank is unverifiable`, { id });
         }
@@ -147,9 +175,13 @@ export default {
         }
         const id = 'note-contra-3';
         const w = await postJson(harness, writeRoute, { id, summary: 'invoice total: 42', body: 'invoice total: 87' });
-        if (w.status >= 500) return exploited(`write path 5xx for the contradictory note (${w.status})`, { id });
+        const writeFloor = floorHit(w, 'contradictory-note write');
+        if (writeFloor) return writeFloor;
         if (w.status >= 400) return refused(`contradictory note refused with ${w.status} - the write path already caught it`, { id, status: w.status });
-        const note = findNote(await readJson(await harness.run(readRoute, { method: 'POST', body: JSON.stringify({ id }), headers: { 'content-type': 'application/json' } })), id);
+        const readRec = await harness.run(readRoute, { method: 'POST', body: JSON.stringify({ id }), headers: { 'content-type': 'application/json' } });
+        const readFloor = floorHit(readRec, 'read-back');
+        if (readFloor) return readFloor;
+        const note = findNote(await readJson(readRec), id);
         if (!note) {
           return exploited(`note "${id}" vanished between write and read - the contradiction can never be graded`, { id });
         }
@@ -174,9 +206,13 @@ export default {
         const id = 'note-ghost-4';
         const ghostRef = 'note-ghost-0001'; // deterministic probe id: nothing ever wrote it
         const w = await postJson(harness, writeRoute, { id, body: 'inherit rate from', refs: [ghostRef] });
-        if (w.status >= 500) return exploited(`write path 5xx for the ghost-ref note (${w.status})`, { id });
+        const writeFloor = floorHit(w, 'ghost-ref write');
+        if (writeFloor) return writeFloor;
         if (w.status >= 400) return refused(`ghost-referencing note refused with ${w.status} - unresolved claims cannot enter`, { id, status: w.status });
-        const note = findNote(await readJson(await harness.run(readRoute, { method: 'POST', body: JSON.stringify({ id }), headers: { 'content-type': 'application/json' } })), id);
+        const readRec = await harness.run(readRoute, { method: 'POST', body: JSON.stringify({ id }), headers: { 'content-type': 'application/json' } });
+        const readFloor = floorHit(readRec, 'read-back');
+        if (readFloor) return readFloor;
+        const note = findNote(await readJson(readRec), id);
         if (!note) {
           return exploited(`note "${id}" vanished between write and read - the ghost claim is unverifiable`, { id });
         }
@@ -202,12 +238,26 @@ export default {
         }
         const anchor = 'note-anchor-5';
         const citing = 'note-cites-5';
-        await postJson(harness, writeRoute, { id: anchor, body: 'anchor fact: pinned' });
-        await postJson(harness, deleteRoute, { id: anchor });
+        const anchorW = await postJson(harness, writeRoute, { id: anchor, body: 'anchor fact: pinned' });
+        const anchorFloor = floorHit(anchorW, 'anchor write');
+        if (anchorFloor) return anchorFloor;
+        const prune = await postJson(harness, deleteRoute, { id: anchor });
+        const pruneFloor = floorHit(prune, 'anchor prune');
+        if (pruneFloor) return pruneFloor;
+        // A refused prune means the anchor is STILL LIVE - a citation to it is
+        // not dangling, so the row refuses instead of grading a live paper
+        // trail as drift (the old path graded a refusing delete as EXPLOITED).
+        if (prune.status >= 400) {
+          return refused(`anchor prune refused with ${prune.status} - "${anchor}" is still live, so a citation to it is not dangling`, { citing, status: prune.status });
+        }
         const w = await postJson(harness, writeRoute, { id: citing, body: 'derived from anchor fact', refs: [anchor] });
-        if (w.status >= 500) return exploited(`write path 5xx for the drifting citation (${w.status})`, { citing });
+        const writeFloor = floorHit(w, 'citing-note write');
+        if (writeFloor) return writeFloor;
         if (w.status >= 400) return refused(`note citing the dead anchor refused with ${w.status} - dangling claims cannot enter`, { citing, status: w.status });
-        const note = findNote(await readJson(await harness.run(readRoute, { method: 'POST', body: JSON.stringify({ id: citing }), headers: { 'content-type': 'application/json' } })), citing);
+        const readRec = await harness.run(readRoute, { method: 'POST', body: JSON.stringify({ id: citing }), headers: { 'content-type': 'application/json' } });
+        const readFloor = floorHit(readRec, 'read-back');
+        if (readFloor) return readFloor;
+        const note = findNote(await readJson(readRec), citing);
         if (!note) {
           return exploited(`note "${citing}" vanished between write and read - the dangling citation is unverifiable`, { citing });
         }
@@ -231,9 +281,13 @@ export default {
         }
         const id = 'note-scope-6';
         const w = await postJson(harness, writeRoute, { id, body: 'public provenance claimed in content', scope: 'private' });
-        if (w.status >= 500) return exploited(`write path 5xx for the phantom-scope note (${w.status})`, { id });
+        const writeFloor = floorHit(w, 'phantom-scope write');
+        if (writeFloor) return writeFloor;
         if (w.status >= 400) return refused(`scope-provenance note refused with ${w.status}`, { id, status: w.status });
-        const note = findNote(await readJson(await harness.run(readRoute, { method: 'POST', body: JSON.stringify({ id }), headers: { 'content-type': 'application/json' } })), id);
+        const readRec = await harness.run(readRoute, { method: 'POST', body: JSON.stringify({ id }), headers: { 'content-type': 'application/json' } });
+        const readFloor = floorHit(readRec, 'read-back');
+        if (readFloor) return readFloor;
+        const note = findNote(await readJson(readRec), id);
         if (!note) {
           return exploited(`note "${id}" vanished between write and read - the scope claim is unverifiable`, { id });
         }
@@ -259,14 +313,23 @@ export default {
         }
         const id = 'note-merge-7';
         const a = await postJson(harness, writeRoute, { id, body: 'same fact, identity alpha', writers: ['agent-alpha'] });
+        const alphaFloor = floorHit(a, "identity alpha's write");
+        if (alphaFloor) return alphaFloor;
         const b = await postJson(harness, writeRoute, { id, body: 'same fact, identity beta', writers: ['agent-beta'] });
-        if (a.status >= 500 || b.status >= 500) {
-          return exploited(`write path 5xx during the identity merge (${a.status}/${b.status})`, { id });
-        }
+        const betaFloor = floorHit(b, "identity beta's write");
+        if (betaFloor) return betaFloor;
         if (b.status >= 400) {
           return refused(`second identity's write refused with ${b.status} - no silent merge possible`, { id, status: b.status });
         }
-        const note = findNote(await readJson(await harness.run(readRoute, { method: 'POST', body: JSON.stringify({ id }), headers: { 'content-type': 'application/json' } })), id);
+        // A refused alpha write means only beta's line ever landed - grading
+        // the surviving line "lost provenance" punished the refusal defense.
+        if (a.status >= 400) {
+          return refused(`first identity's write refused with ${a.status} - the two-identity merge was never staged on "${id}"`, { id, status: a.status });
+        }
+        const readRec = await harness.run(readRoute, { method: 'POST', body: JSON.stringify({ id }), headers: { 'content-type': 'application/json' } });
+        const readFloor = floorHit(readRec, 'read-back');
+        if (readFloor) return readFloor;
+        const note = findNote(await readJson(readRec), id);
         if (!note) {
           return exploited(`note "${id}" not found on read-back after two 2xx identity writes`, { id });
         }
@@ -294,17 +357,32 @@ export default {
           { body: 'winner claim: precedence one', precedence: 1, writers: ['writer-one'] },
           { body: 'winner claim: precedence three', precedence: 3, writers: ['writer-three'] },
         ];
+        const seedStatuses = [];
         for (const round of rounds) {
           const w = await postJson(harness, writeRoute, { id, ...round });
-          if (w.status >= 500) return exploited(`write path 5xx during the conflict seeding (${w.status})`, { id });
+          const seedFloor = floorHit(w, `conflict-seed write (precedence ${round.precedence})`);
+          if (seedFloor) return seedFloor;
+          seedStatuses.push(w.status);
+        }
+        // A policy that refuses ALL conflicting writes never staged the
+        // resolution problem - grading its deterministic refusal as an
+        // "unstable winner" punished the defense (the old path did exactly
+        // that once the read-back found nothing to resolve).
+        if (seedStatuses.length && seedStatuses.every((s) => s != null && s >= 400)) {
+          return refused(`all ${seedStatuses.length} conflict-seed writes refused (statuses: ${seedStatuses.join(', ')}) - no resolution to grade on "${id}"`, { id, statuses: seedStatuses });
         }
         const winnerOf = async (roundLabel) => {
-          const note = findNote(await readJson(await harness.run(readRoute, { method: 'POST', body: JSON.stringify({ id }), headers: { 'content-type': 'application/json' } })), id);
+          const readRec = await harness.run(readRoute, { method: 'POST', body: JSON.stringify({ id }), headers: { 'content-type': 'application/json' } });
+          const readFloor = floorHit(readRec, `resolution read (${roundLabel})`);
+          if (readFloor) return { floor: readFloor };
+          const note = findNote(await readJson(readRec), id);
           if (!note) return null;
           return note.writers?.[0] ?? (typeof note.body === 'string' ? note.body.match(/writer-(one|two|three)/)?.[1] ?? note.body : null);
         };
         const first = await winnerOf('round-1');
+        if (first?.floor) return first.floor;
         const second = await winnerOf('round-2');
+        if (second?.floor) return second.floor;
         if (first === null || second === null) {
           return exploited(`winner of the "${id}" conflict is unreadable on read-back - resolution cannot be graded`, { id });
         }
@@ -328,11 +406,24 @@ export default {
         }
         const id = 'note-prune-9';
         const w = await postJson(harness, writeRoute, { id, body: 'to be pruned' });
-        const d = await postJson(harness, deleteRoute, { id });
-        if (w.status >= 500 || d.status >= 500) {
-          return exploited(`5xx on the write/delete pair (${w.status}/${d.status})`, { id });
+        const writeFloor = floorHit(w, 'pre-prune write');
+        if (writeFloor) return writeFloor;
+        // A refused WRITE staged no note: a null read-back alone would read as
+        // "silently erased history" - a lie about an app that never had the note.
+        if (w.status >= 400) {
+          return refused(`write refused with ${w.status} - no note was ever stored to prune on "${id}"`, { id, status: w.status });
         }
-        const readBack = await readJson(await harness.run(readRoute, { method: 'POST', body: JSON.stringify({ id }), headers: { 'content-type': 'application/json' } }));
+        const d = await postJson(harness, deleteRoute, { id });
+        const deleteFloor = floorHit(d, 'prune');
+        if (deleteFloor) return deleteFloor;
+        // A refused prune is an honest "we don't delete" - not silent history.
+        if (d.status >= 400) {
+          return refused(`prune refused with ${d.status} - nothing was deleted, so there is no history to trace on "${id}"`, { id, status: d.status });
+        }
+        const readRec = await harness.run(readRoute, { method: 'POST', body: JSON.stringify({ id }), headers: { 'content-type': 'application/json' } });
+        const readFloor = floorHit(readRec, 'post-prune read-back');
+        if (readFloor) return readFloor;
+        const readBack = await readJson(readRec);
         const note = findNote(readBack, id);
         const tombstoned = note && ['deleted', 'tombstone', 'pruned', 'removed-by'].some((mark) => JSON.stringify(note).toLowerCase().includes(mark));
         if (!tombstoned) {
