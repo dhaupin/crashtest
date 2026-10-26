@@ -7,6 +7,21 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.1.1 (unreleased)
 
+- the cve-feed token matcher escapes instead of mangles (walk round 19):
+  the first cut of `tokenFound` STRIPPED non-[a-z0-9-] characters out of
+  snapshot tokens, which only worked while the snapshot carried bare words.
+  At the next maintainer sync a dotted token (`next.js`) would have become
+  the unmatchable `nextjs` - a silent false-REFUSED oracle for as long as
+  the sync lived - and a version-shaped token (`2.0`) would have become
+  `20`, boundary-matching unrelated banner numerics (false-EXPLOITED
+  territory). Tokens are now regex-escaped so they match at their real
+  shape under the same word-ish boundaries, and a malformed/empty token in
+  a snapshot fails loudly at pack load (mirroring the broken-snapshot
+  guard). The matcher is exported for teeth: 7 matcher-shape assertions
+  pin the real shapes, the mid-word refusal, the numeric-strip landmine
+  and the empty-token refusal; per-token shape checks joined the snapshot
+  integrity pin. Floor 395 -> 396.
+
 - the shipped self-check pack stops promising more than it checks (walk
   round 18): the `crashtest-site` pack's authz advertising battery was
   vacuously green in two independent cuts - its word-boundary anchor can
