@@ -50,9 +50,14 @@ export default {
   // Tuning
   seed: 0xC0FFEE,                       // deterministic runs (any number)
   modules: ['auth', 'input'],           // subset of scenario modules
+                                        // (a filter that matches NOTHING fails
+                                        // loudly - a typo can never silently
+                                        // green a zero-row run)
   moduleCtx: { state: { mustDenyIds: ['ghost-1'] } },   // module-level ctx
   attackCtx: { 'volume/cost-amplification': { maxOpsPerRequest: 12 } }, // per-attack
-  scenarioDirs: ['test/attacks'],       // extra module dirs (labs/scenarios/ always loads)
+  scenarioDirs: ['test/attacks'],       // extra module dirs - REQUIRED paths, a
+                                        // missing one fails loudly naming it
+                                        // (only labs/scenarios/ is optional)
   cost: { opName: 1 },                  // extra ops for cost accounting
 };
 ```

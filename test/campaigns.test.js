@@ -186,3 +186,55 @@ test('campaign: a throwing beforeAll fails the campaign loudly at cause (rule 3,
   }];
   await assert.rejects(() => runCampaign(buildHarness({}, {}), scenarios, { seed: 1 }), /vocabulary gap: "enroll" route missing/);
 });
+
+// --- the silent-zero campaign guards (the same misfire class as packstruct#13) ------------
+
+test('campaign: a module filter that matches NOTHING refuses loudly (a typo can never green a zero-row run)', async () => {
+  const scenarios = [{
+    origin: 'filter-fixture',
+    module: {
+      name: 'real-module',
+      description: 'one real module',
+      attacks: [{ name: 'held-attack', description: 'a', run: async () => ({ verdict: 'REFUSED', detail: 'ok' }) }],
+    },
+  }];
+  // The classic typo: one dropped vowel, and every loaded module filters out.
+  await assert.rejects(
+    () => runCampaign(buildHarness({}, {}), scenarios, { modules: ['real-modul'] }),
+    (e) => /module filter matched nothing/.test(e.message)
+      && e.message.includes('"real-modul"')
+      && e.message.includes('loaded modules: real-module'),
+  );
+  // An EMPTY filter is the same misfire by construction.
+  await assert.rejects(() => runCampaign(buildHarness({}, {}), scenarios, { modules: [] }), /module filter matched nothing: \[\]/);
+});
+
+test('campaign: a filter that MATCHES a loaded module runs its rows - the guard narrows, never widens', async () => {
+  const scenarios = [{
+    origin: 'filter-fixture',
+    module: {
+      name: 'kept-module',
+      description: 'matched module',
+      attacks: [{ name: 'held-attack', description: 'a', run: async () => ({ verdict: 'REFUSED', detail: 'ok' }) }],
+    },
+  }];
+  const run = await runCampaign(buildHarness({}, {}), scenarios, { modules: ['kept-module'] });
+  assert.deepEqual(run.tally, { TOTAL: 1, REFUSED: 1, EXPLOITED: 0, BOUNDED: 0 });
+  assert.deepEqual(run.rows.map((r) => r.id), ['kept-module/held-attack']);
+});
+
+test('campaign: no filter at all keeps the full slate (unchanged default behavior)', async () => {
+  const scenarios = [{
+    origin: 'filter-fixture',
+    module: {
+      name: 'plain-module',
+      description: 'unfiltered module',
+      attacks: [
+        { name: 'held-attack', description: 'a', run: async () => ({ verdict: 'REFUSED', detail: 'ok' }) },
+        { name: 'kept-attack', description: 'b', run: async () => ({ verdict: 'REFUSED', detail: 'ok' }) },
+      ],
+    },
+  }];
+  const run = await runCampaign(buildHarness({}, {}), scenarios, {});
+  assert.equal(run.tally.TOTAL, 2);
+});

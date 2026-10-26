@@ -200,6 +200,13 @@ No shims, no config wiring, no copy-paste; the loaded rows still label which
 pack and repo they came from. Cross-repo name collisions fail the run
 loudly, the same as everywhere else.
 
+The ROOT-vs-visibility-dir footgun (the packstruct#13 family shape) is
+closed on this side too: a `packs:` root whose basename is `public/` or
+`local/` refuses LOUDLY (`pass the packs ROOT - the parent of public/`)
+instead of silently scanning `public/public/` and loading zero packs. The
+one-pack-dir shape above (a `pack.json` directly inside) stays legal -
+that is a named pack, not a visibility dir.
+
 This is how a pack *published in its own repo* (like a committed
 `packs/public/` in the prestruct repo) gets consumed: point the consuming
 run root's `packs:` at that repo's checkout - or, in CI, at the installed

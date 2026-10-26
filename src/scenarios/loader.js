@@ -11,12 +11,19 @@ import { validateScenario, attackIds } from './contract.js';
 
 const LIBRARY_DIR = join(dirname(fileURLToPath(import.meta.url)), 'library');
 
-async function loadFromDir(dir, seen = new Map()) {
+async function loadFromDir(dir, seen = new Map(), { optional = true } = {}) {
   let entries;
   try {
     entries = await readdir(dir);
   } catch {
-    return []; // optional dir
+    // optional dir (default): the labs/scenarios auto-scan may simply not
+    // exist yet. Declared dirs (config scenarioDirs marked optional: false)
+    // are config, not guesswork - a missing one is a config error, never a
+    // quiet no-op (rule 3: the module shelf you pointed at is gone).
+    if (!optional) {
+      throw new Error(`scenario dir "${dir}" does not exist - a declared dir is config, not optional; fix the path (the labs/scenarios auto-scan stays optional)`);
+    }
+    return [];
   }
   const loaded = [];
   for (const entry of entries.filter(f => f.endsWith('.js') && !f.endsWith('.test.js'))) {
@@ -41,7 +48,10 @@ export async function loadScenarios(userDirs = []) {
   const seen = new Map();
   const out = [
     ...(await loadFromDir(LIBRARY_DIR, seen)),
-    ...(await Promise.all((userDirs ?? []).map(d => loadFromDir(d, seen)))).flat(),
+    ...(await Promise.all((userDirs ?? []).map((d) => {
+      const spec = (d !== null && typeof d === 'object') ? d : { dir: d };
+      return loadFromDir(spec.dir, seen, { optional: spec.optional !== false });
+    }))).flat(),
   ];
   out.sort((a, b) => a.module.name.localeCompare(b.module.name));
   return out;

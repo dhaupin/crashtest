@@ -426,8 +426,11 @@ async function cmdRun(opts = {}) {
   const harness = await buildTargetHarness(target);
 
   const scenarios = await loadScenarios([
-    ...(target.scenarioDirs ?? []),
-    join(root, 'labs', 'scenarios'),
+    // Config-declared dirs are REQUIRED (optional: false): a typo'd path
+    // must never quietly zero out the run's user scenarios. The labs/
+    // scenarios auto-scan stays optional - fresh repos boot before init).
+    ...(target.scenarioDirs ?? []).map((d) => ({ dir: d, optional: false })),
+    { dir: join(root, 'labs', 'scenarios'), optional: true },
   ]);
   // Packs (PRD section 14 extension surface): `packs` config knob = true (default:
   // discover packs/public + packs/local), false (dogfooded targets opt out),

@@ -425,3 +425,34 @@ test('packs --allow-vacuous: configless root lists nothing with the honest line,
     process.exitCode = 0;
   });
 });
+
+// --- the config-footgun guards (packstruct#13's family shape, crashtest side) ---------------
+
+test('a DECLARED scenarioDir that does not exist fails loudly (config is not a guess, the labs/ scan stays optional)', async () => {
+  await inRepo('ghost-scenario-dir', async () => {
+    await writeFile('crashtest.config.js',
+      "export default { routes: { burst: async () => new Response('accepted', { headers: { 'cache-control': 'no-store' } }) }, scenarioDirs: ['./ghost-scenarios'], seed: 7 };\n");
+    await assert.rejects(
+      () => main(['run']),
+      (e) => /scenario dir ".*ghost-scenarios" does not exist/.test(e.message)
+        && e.message.includes('a declared dir is config, not optional'),
+    );
+    process.exitCode = 0;
+  });
+});
+
+test('config packs: pointing packs: at packs/public refuses loudly naming the packs root (the silent zero-pack typo is closed)', async () => {
+  await inRepo('footgun-packs-public', async () => {
+    await writeFile('crashtest.config.js',
+      "export default { routes: { burst: async () => new Response('accepted', { headers: { 'cache-control': 'no-store' } }) }, packs: ['packs/public'], seed: 7 };\n");
+    // No packs/public actually exists under the tmp root - but the guard fires on the
+    // NAME first (the misfire is config, not a filesystem accident).
+    await mkdir(join('packs', 'public'), { recursive: true });
+    await assert.rejects(
+      () => main(['run']),
+      (e) => /looks like the public directory itself/.test(e.message)
+        && e.message.includes('pass the packs ROOT (the parent of public/)'),
+    );
+    process.exitCode = 0;
+  });
+});

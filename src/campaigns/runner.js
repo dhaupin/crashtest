@@ -17,6 +17,18 @@ import { attackIds } from '../scenarios/contract.js';
 export async function runCampaign(harness, scenarios, opts = {}) {
   const campaignSeed = opts.seed ?? 0xC0FFEE;
   const moduleFilter = opts.modules ? new Set(opts.modules) : null;
+  // Zero-match refuses LOUDLY (rule 3): a typo'd or empty `modules:` filter
+  // would otherwise run a zero-row campaign and exit 0 - a silent green on a
+  // misfired config is the worst class of lie this tool exists to prevent.
+  // Filters that match real modules are unaffected (the honest-skip law
+  // governs attacks on matched modules that degrade, not the filter itself).
+  if (moduleFilter && !scenarios.some((s) => moduleFilter.has(s.module.name))) {
+    throw new Error(
+      `module filter matched nothing: ${JSON.stringify([...moduleFilter])}`
+      + ` (loaded modules: ${scenarios.map((s) => s.module.name).sort().join(', ')})`
+      + ' - a typo supports a zero-row run and exit 0; fix the filter or drop it',
+    );
+  }
   const startedAt = new Date().toISOString();
   const rows = [];
   // Cross-row state (issue #15): a campaign-scoped vars registry (JSON-

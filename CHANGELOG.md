@@ -127,6 +127,33 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
   timing, arg bounds) - 337 tests run under php 8.3 in-session. Docs:
   the WP playbook's config + scenario-surface blocks document hookAllow
   and the full wc-* vocabulary.
+- the packs-root/visibility-dir footgun closes on the crate side too
+  (the packstruct#13 family shape, mirrored inward): a `packs:` root whose
+  basename is `public/` or `local/` used to point the loader at
+  `<dir>/public/<name>/` - which does not exist - and SILENTLY load zero
+  packs (crashtest's variant of freestruct's confusing `public/public/`
+  error, but silent: a typo'd config just greens a no-pack run). The
+  loader now refuses loudly at cause naming the fix ("pass the packs ROOT
+  - the parent of public/"), and the escape hatch stays legal: a
+  `pack.json` directly inside a public/-named dir is a one-pack-dir load
+  and never trips the guard. Same-misfire class, two more silent-greens
+  closed while in there: a config `modules:` filter that matches NOTHING
+  (a typo'd subset, or `[]`) used to run a zero-row campaign and exit 0 -
+  it now refuses loudly with the unmatched names AND the loaded module
+  list (a matched filter still runs its rows; no-filter behavior is
+  byte-unchanged); and a declared config `scenarioDirs:` path that does
+  not exist used to quietly contribute no modules - it now fails loudly
+  naming the dir (the `labs/scenarios/` auto-scan stays optional: fresh
+  repos boot before `init`, and the vacuous shape from #37 depends on
+  it). Nothing is stricter than the honest-skip law needs: guards fire on
+  misfired CONFIG, never on honest degradations. Teeth: 2 new rows in
+  test/packs.test.js (guard fires on public/ + local/ + array members,
+  real root still loads beside it, oddly-named one-pack-dir loads), 3 new
+  rows in test/campaigns.test.js (zero-match typo + empty filter refuse,
+  matched filter runs, no-filter byte-unchanged), 2 new rows in
+  test/cli.test.js (ghost scenarioDir refuses, packs: ['packs/public']
+  refuses). Docs: config.md tuning block documents both loud guards,
+  packs.md documents the ROOT footgun closure.
 
 ## 1.1.0 (2026-10-25 on npm)
 

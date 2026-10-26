@@ -50,7 +50,7 @@
 // THE RUN loudly - a broken pack is a config error, never a silent gap.
 
 import { readdir, readFile } from 'node:fs/promises';
-import { join, basename } from 'node:path';
+import { join, dirname, basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { validateScenario } from '../scenarios/contract.js';
 import { FakeD1 } from '../harness/d1.js';
@@ -358,6 +358,16 @@ export async function loadPacks(packsRoots = [], seen = new Map(), check = null,
       continue;
     }
     // Otherwise: a packs ROOT - scan its public/ + local/ visibility dirs.
+    // Footgun guard (packstruct#13's family shape): a declared root whose
+    // basename is public/ or local/ is the classic misfire - packs live at
+    // <packs-root>/public/<name>/, and pointing AT the visibility dir scans
+    // <dir>/public/<name>/ which does not exist, so a typo would SILENTLY
+    // load zero packs. Refuse loudly at cause naming the fix (rule 3); the
+    // escape hatch stays legal below (a pack.json directly inside = a
+    // one-pack-dir load, visibility dirs are never named by us).
+    if (basename(root) === 'public' || basename(root) === 'local') {
+      throw new Error(`packs root "${root}" looks like the ${basename(root)} directory itself - pass the packs ROOT (the parent of public/), not the visibility dir: ${dirname(root)}`);
+    }
     for (const dir of [join(root, 'public'), join(root, 'local')]) {
       let entries;
       try {

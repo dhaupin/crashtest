@@ -129,6 +129,35 @@ test('loadPacks: the DEFAULT stays strict - profile-minimal entry refuses so the
   await assert.rejects(() => loadPacks([pk]), /invalid scenario module .*needs a one-line description/);
 });
 
+// --- the packs-root/visibility-dir footgun guard (packstruct#13's family shape) ------------
+
+test('loadPacks: a declared ROOT named public/ or local/ refuses LOUDLY naming the packs-root fix (the silent zero-pack typo is closed)', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'packs-footgun-'));
+  const pk = await mkPack(root, 'public', 'probe-pack', GOOD_MANIFEST, ENTRY_OK);
+  // The classic typo: pointing AT the visibility dir instead of the ROOT.
+  await assert.rejects(
+    () => loadPacks([join(root, 'public')]),
+    (e) => /looks like the public directory itself/.test(e.message)
+      && e.message.includes(`- pass the packs ROOT (the parent of public/), not the visibility dir: ${root}`),
+  );
+  // The local/ variant, and the same misfire inside an array of roots.
+  await assert.rejects(() => loadPacks([join(root, 'local'), pk]), /looks like the local directory itself/);
+  // The real root keeps working right next to it - the guard narrows, never widens.
+  const packs = await loadPacks([root]);
+  assert.equal(packs.length, 1);
+  assert.equal(packs[0].manifest.name, 'probe-pack');
+});
+
+test('loadPacks: the escape hatch stays legal - a pack.json directly inside a public/-named dir is a one-pack-dir load, not a misfire', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'packs-footgun-legal-'));
+  // A single pack dir may legitimately BE named public (pack.json directly inside).
+  const pk = await mkPack(root, 'public', 'public', { ...GOOD_MANIFEST, name: 'oddly-named' }, ENTRY_OK.replace(/probe-pack/g, 'oddly-named'));
+  const packs = await loadPacks([pk]);
+  assert.equal(packs.length, 1);
+  assert.equal(packs[0].visibility, 'public');
+  assert.equal(packs[0].manifest.name, 'oddly-named');
+});
+
 test('CLI: crashtest packs lists discovered packs with visibility + counts', async () => {
   const root = await mkdtemp(join(tmpdir(), 'packs-cli-'));
   const base = join(root, 'packs');
