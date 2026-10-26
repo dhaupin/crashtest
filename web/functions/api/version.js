@@ -68,7 +68,16 @@ export const onRequestGet = async () => {
     // floor-respecting version, 502 means say why".
     const why = rejectWhy(pkg);
     if (why !== undefined) {
-      throw new Error(`registry document rejected: ${why}`);
+      // A REJECTED document is not an unreachable registry - the round-23
+      // walk found the first shape rode the catch-all below, so the 502
+      // said 'registry unreachable: registry document rejected: ...' and
+      // the outage class it named was a lie about where the failure lived.
+      // Return here: same honest status class, the fault named at its
+      // actual cause (rule 3), no hostile bytes echoed.
+      return new Response(
+        JSON.stringify({ error: `registry document rejected: ${why}` }),
+        { status: 502, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } },
+      );
     }
     const version = pkg.version;
     const provenance = Boolean(pkg.dist?.attestations);

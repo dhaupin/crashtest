@@ -190,3 +190,47 @@ test('dist-absent is a config gap, never a finding: HTML/sitemap attacks skip ho
     assert.match(verdict.detail, /web\/dist not built/, `${name} must name the build as the coverage fix`);
   }
 });
+
+test('badge 502s name their ACTUAL cause: a rejected document is not an unreachable registry', async () => {
+  // Walk round 23: the first cut rode the catch-all for BOTH outage classes,
+  // so a hostile registry SHAPES 502 said 'unreachable' - a lie about where
+  // the failure lived. The two classes must name their causes, and an
+  // outage must never echo the registry's own bytes.
+  const fn = (await import(new URL('../web/functions/api/version.js', import.meta.url))).onRequestGet;
+  const { installRegistryShim: install, restoreFetch: restore } = await import(
+    new URL('../packs/public/crashtest-site/lib/registry-shim.js', import.meta.url)
+  );
+  install();
+  try {
+    // (a) reachable-but-hostile: a pollution key in the document.
+    const target = (await import(new URL('../packs/public/crashtest-site/lib/registry-shim.js', import.meta.url))).registry;
+    const prevReply = target.reply;
+    target.reply = async () => new Response('{"__proto__":{"canary":true},"version":"1.2.3"}', {
+      status: 200, headers: { 'content-type': 'application/json' },
+    });
+    try {
+      const res = await fn({});
+      assert.equal(res.status, 502, 'a rejected doc is an outage-class 502');
+      const body = await res.text();
+      assert.match(body, /registry document rejected: pollution key/, 'the failure class names the reject path');
+      assert.doesNotMatch(body, /canary/, 'the reject never echoes the hostile bytes');
+      assert.match(res.headers.get('cache-control'), /no-store/, 'the failure path is never cacheable');
+    } finally {
+      target.reply = prevReply;
+    }
+
+    // (b) genuinely unreachable: the transport fails.
+    target.reply = async () => { throw new Error('simulated network outage'); };
+    try {
+      const res = await fn({});
+      assert.equal(res.status, 502);
+      const body = await res.text();
+      assert.match(body, /unreachable|outage/, 'a real outage names the transport');
+      assert.doesNotMatch(body, /rejected/, 'an outage is not a shape rejection');
+    } finally {
+      target.reply = prevReply;
+    }
+  } finally {
+    restore();
+  }
+});

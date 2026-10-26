@@ -7,6 +7,20 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.1.1 (unreleased)
 
+- the badge oracle names the ACTUAL cause of its 502s (walk round 23): a
+  registry document that arrived but FAILED the floor (pollution key,
+  oversize/control-char/semver-hostile version) rode the catch-all branch,
+  so the 502 body said 'registry unreachable: registry document rejected:
+  ...' - a lie about where the failure lived (the registry was reachable;
+  the document was the problem). Rejected documents now return their own
+  502 naming the reject path ('registry document rejected: ...', still
+  no-store, still withholding the hostile bytes); a true outage keeps the
+  unreachable line. Walk also swept the rest of the shipped shell line by
+  line (usePageMeta, islands ladder, Nav/items, VersionBadge, NotFound,
+  the site-target double) - all clean; a new tooth in
+  test/site-pack.test.js pins both 502 classes and the no-echo/no-store
+  contract. Floor 408 -> 409.
+
 - the snapshot generator and the site catalog lose their fiction (walk round
   22): the dogfood-snapshot generator carried a dead `version === 'unknown'`
   reassignment branch (unreachable inside its own matched path) - removed;
