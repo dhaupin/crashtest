@@ -219,8 +219,9 @@ export default { listPresets, detect, scaffoldPreset, probeHandler };
  *   object; the probe reports `probed: false` with that reason instead of
  *   guessing at a wrapper.
  * - **Determinism**: a fixed GET on the module origin + `/__ct-probe`, no
- *   randomness, timeout-guarded long-poll-free (no instrumentation around a
- *   single await - the CLI's own clock is the only cost meter).
+ *   randomness, timeout-guarded - the fetch AND the body read both race a
+ *   timer (default 3000ms, opts.timeoutMs); a hung handler is a probe
+ *   finding, never a hang.
  *
  * @param {string} fnPath absolute path to the JS entry of a found handler
  * @param {{ timeoutMs?: number }} opts
@@ -237,7 +238,14 @@ export default { listPresets, detect, scaffoldPreset, probeHandler };
  */
 export async function probeHandler(fnPath, opts = {}) {
   const out = (r) => ({ probed: false, ...r });
-  if (!/\.(m?js)$/.test(fnPath)) {
+  // A probe that HANGS is worse than a probe that fails: without a cap the
+  // CLIverb never returns and the operator cannot even see the finding.
+  // (The doc always said "timeout-guarded"; the timer now exists to prove it.)
+  const timeoutMs = opts.timeoutMs ?? 3000;
+  const raceTimeout = (ms, what) => new Promise((_, reject) => {
+    const t = setTimeout(() => { clearTimeout(t); const e = new Error(`${what} hung past ${ms}ms (probe timeout)`); e.probeReason = e.message; reject(e); }, ms);
+  });
+  if (!/\.(m?js)$/i.test(fnPath)) {
     return out({ reason: 'not plain ESM JS (.ts/.deno cannot be probed - crashtest does not transpile)' });
   }
   let mod;
@@ -253,19 +261,24 @@ export async function probeHandler(fnPath, opts = {}) {
   const request = new Request('https://crashtest-probe.local/__ct-probe', { method: 'GET' });
   const started = performance.now();
   try {
-    const response = await candidate.fetch(request);
+    const response = await Promise.race([
+      candidate.fetch(request),
+      raceTimeout(timeoutMs, 'handler'),
+    ]);
     if (!response || typeof response.status !== 'number' || typeof response.headers?.get !== 'function') {
       return out({ reason: `default.fetch did not return a Response (got ${typeof response})` });
     }
-    const text = await response.text();
+    const text = await Promise.race([response.text(), raceTimeout(timeoutMs, 'response body')]);
     return {
       probed: true,
       status: response.status,
       ok: response.ok,
-      bodyBytes: text.length,
+      bodyBytes: new TextEncoder().encode(text).length, // BYTES, not JS chars (utf-8 bodies misreport by \u oversampling)
       ms: Math.round(performance.now() - started),
     };
   } catch (e) {
-    return out({ reason: `handler threw on a plain GET: ${e?.message ?? e}` });
+    // A genuine throw keeps its named evidence wording (pinned); a timer
+    // rejection carries its own probe reason through e.probeReason.
+    return out({ reason: e?.probeReason ?? `handler threw on a plain GET: ${e?.message ?? e}` });
   }
 }

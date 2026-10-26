@@ -82,3 +82,19 @@ test('rng determinism: same seed, same sequence; mixed seeds differ per name', (
   const list = [1, 2, 3, 4, 5];
   assert.deepEqual([...list].sort(), [...new Rng(9).shuffle(list)].sort());
 });
+
+test('validateScenario: a bad expect SPEC STRING fails at load time, never mid-campaign (round-8 walk)', () => {
+  // statusMatches() used to be the only place a spec-part typo ('2sc',
+  // '4xx-or-dead') was checked - and it throws at GRADING time, after the
+  // campaign armed. A contract error that loads is a config error.
+  const bad = {
+    name: 'spec-probe', description: 'd',
+    attacks: [{ name: 'chain', steps: [{ name: 's1', route: 'r', expect: '2xx-or-dead' }] }],
+  };
+  assert.throws(() => validateScenario(bad), /expect spec part "dead" is not a status class/);
+  // The legal shapes still load: single class, exact status, or the -or- pair.
+  assert.doesNotThrow(() => validateScenario({
+    name: 'spec-probe-ok', description: 'd',
+    attacks: [{ name: 'chain', steps: [{ name: 's1', route: 'r', expect: '2xx-or-429' }] }],
+  }));
+});

@@ -84,11 +84,21 @@ export async function loadPlugins(specifiers, fromDir, seen = new Map()) {
  */
 function toImportable(spec, fromDir) {
   if (spec.startsWith('file://')) return spec;
-  if (isAbsolute(spec)) return spec;
+  if (isAbsolute(spec) || spec.startsWith('.')) {
+    // Path specifiers resolve HERE - and an extension Node's ESM loader
+    // cannot honor must be refused at cause (the header's own promise):
+    // './plugins/my-thing' with no .js/.mjs tail would otherwise die at
+    // import() with a bare module-not-found for a resolved-with-no-
+    // extension path, and the author would debug the resolver instead of
+    // the actual typo.
+    if (!/\.(m?js)$/.test(spec) && !spec.startsWith('file://')) {
+      throw new TypeError(`config \`plugins\`: "${spec}" is a PATH specifier without a .js/.mjs extension (Node ESM imports need the extension; npm package names are the extensionless form)`);
+    }
+    return isAbsolute(spec) ? spec : resolve(fromDir, spec);
+  }
   // Bare specifier = npm package (or a Node builtin) - the runtime resolves
   // it and import() gives the honest error if it doesn't exist.
-  if (!spec.startsWith('.')) return spec;
-  return resolve(fromDir, spec);
+  return spec;
 }
 
 function importableHref(absOrFile) {

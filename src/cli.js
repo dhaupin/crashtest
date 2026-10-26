@@ -629,6 +629,13 @@ async function cmdPreset(name, opts = {}) {
     if (!name) console.log('usage: crashtest preset <lovable|bolt|replit> [--root <dir>]');
     return;
   }
+  // Unknown preset name: a named refusal at cause, not a stack trace - the
+  // verb's usage line is the fix direction (rule 3: fail loudly, name what).
+  if (!listPresets().some((p) => p.name === name)) {
+    console.error(`crashtest preset: unknown preset "${name}" (have: ${listPresets().map((p) => p.name).join(', ')})`);
+    process.exitCode = 1;
+    return;
+  }
   const out = await scaffoldPreset(name, opts.repoRoot);
   console.log(`preset ${name} - detection against ${opts.repoRoot}`);
   for (const n of out.notes) console.log(`  / ${n}`);

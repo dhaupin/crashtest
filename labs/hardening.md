@@ -62,13 +62,13 @@
 ### 🔒 BOUNDED (0)
 
 ## Cost economics
-- total: 842 backend ops across 1082 in-process requests from 49 attacks
+- total: 842 backend ops across 647 in-process requests from 49 attacks
   - auth/identity-spoof-headers: 55 ops / 55 requests
-  - auth/secret-watermark: 36 ops / 91 requests
-  - auth/privilege-escalation: 4 ops / 95 requests
+  - auth/secret-watermark: 36 ops / 36 requests
+  - auth/privilege-escalation: 4 ops / 4 requests
   - authz/method-matrix-privileged: 9 ops / 9 requests
-  - authz/role-body-spoof-family: 24 ops / 33 requests
-  - authz/handler-alias-confusion: 8 ops / 41 requests
+  - authz/role-body-spoof-family: 24 ops / 24 requests
+  - authz/handler-alias-confusion: 8 ops / 8 requests
   - governance/succession-trust-floor: 0 ops / 0 requests
   - governance/succession-single-heir: 0 ops / 0 requests
   - governance/succession-revocation-carry: 0 ops / 0 requests
@@ -80,10 +80,10 @@
   - governance/lock-ttl-honesty: 0 ops / 0 requests
   - governance/lock-owner-fencing: 0 ops / 0 requests
   - guards/hygiene-no-store: 3 ops / 1 requests
-  - guards/burst-wall: 50 ops / 51 requests
+  - guards/burst-wall: 50 ops / 50 requests
   - input/proto-pollution-body: 1 ops / 1 requests
-  - input/never-fail-mutations: 64 ops / 65 requests
-  - input/oversized-field: 1 ops / 66 requests
+  - input/never-fail-mutations: 64 ops / 64 requests
+  - input/oversized-field: 1 ops / 1 requests
   - memory/drift-silent-overwrite: 0 ops / 0 requests
   - memory/drift-stale-poisons-fresh: 0 ops / 0 requests
   - memory/drift-contradiction-carry: 0 ops / 0 requests
@@ -94,24 +94,24 @@
   - memory/resolution-order-stability: 0 ops / 0 requests
   - memory/delete-is-loud: 0 ops / 0 requests
   - proto-hygiene/head-get-parity: 24 ops / 24 requests
-  - proto-hygiene/request-shape-flood: 216 ops / 240 requests
+  - proto-hygiene/request-shape-flood: 216 ops / 216 requests
   - race/double-submit-idempotency: 9 ops / 3 requests
-  - race/concurrent-write-lost-update: 20 ops / 5 requests
+  - race/concurrent-write-lost-update: 20 ops / 2 requests
   - recursion/deep-nest-stack-overflow: 1 ops / 1 requests
-  - recursion/redos-catastrophic-pattern: 4 ops / 5 requests
+  - recursion/redos-catastrophic-pattern: 4 ops / 4 requests
   - session/cookie-hygiene: 7 ops / 1 requests
-  - session/session-fixation: 16 ops / 4 requests
-  - session/token-replay-deny: 28 ops / 8 requests
-  - session/logout-invalidates: 12 ops / 11 requests
+  - session/session-fixation: 16 ops / 3 requests
+  - session/token-replay-deny: 28 ops / 4 requests
+  - session/logout-invalidates: 12 ops / 3 requests
   - state/enumeration-oracle: 0 ops / 0 requests
   - state/id-collision-alias: 5 ops / 2 requests
   - taxonomy/abuse-not-5xx: 12 ops / 10 requests
-  - taxonomy/errors-stay-impersonal: 11 ops / 20 requests
+  - taxonomy/errors-stay-impersonal: 11 ops / 10 requests
   - upload/filename-traversal-family: 18 ops / 9 requests
-  - upload/mime-polyglot-family: 2 ops / 11 requests
+  - upload/mime-polyglot-family: 2 ops / 2 requests
   - volume/credential-stuffing: 121 ops / 60 requests
-  - volume/storage-fill: 0 ops / 60 requests
-  - volume/cost-amplification: 81 ops / 100 requests
+  - volume/storage-fill: 0 ops / 0 requests
+  - volume/cost-amplification: 81 ops / 40 requests
 
 ## Baseline diff
 - NEW: none / REGRESSED: none

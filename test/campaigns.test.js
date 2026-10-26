@@ -336,3 +336,23 @@ test('campaign: the SHIPPED wp-money-shapes pack arms through ctx.config - the h
   // config degrades to skipped-REFUSED, never a false-positive EXPLOITED row.
   assert.ok(run.rows.every((r) => r.verdict === 'REFUSED'), 'honest skips stay REFUSED (no false positives)');
 });
+
+test('campaign: per-attack REQUESTS are per-attack truth - a two-attack module no longer bills 1+2+...+n', async () => {
+  // The old baseline was module-level, so attack #2's `requests` counted
+  // attack #1's requests too: totals.requests inflated triangularly. The
+  // ledger's economics line is CI-facing - a doubled request count is a
+  // cost-accounting lie, the same silence class as a green gate.
+  const h = buildHarness({
+    hit: async () => new Response('ok'),
+    miss: async () => new Response('no', { status: 403 }),
+  });
+  const mod = { name: 'two-attacks', description: 'd', attacks: [
+    { name: 'first', async run(hc) { await hc.run('hit'); return { verdict: 'REFUSED', detail: 'held' }; } },
+    { name: 'second', async run(hc) { await hc.run('miss'); return { verdict: 'REFUSED', detail: 'held' }; } },
+  ] };
+  const run = await runCampaign(h, [{ origin: 'lib', module: mod }]);
+  assert.equal(run.rows[0].requests, 1, 'attack #1 made one request and must report one');
+  assert.equal(run.rows[1].requests, 1, 'attack #2 made one request and must report exactly one (not the cumulative 2)');
+  assert.equal(run.cost.totals.requests, 2, 'totals.requests counts actual requests, not cumulative rows');
+  assert.equal(run.cost.totals.ops, 2, 'ops stay route.invoke-counted');
+});

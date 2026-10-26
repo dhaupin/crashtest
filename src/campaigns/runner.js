@@ -83,7 +83,7 @@ export async function runCampaign(harness, scenarios, opts = {}) {
 
   for (const { module } of scenarios) {
     if (moduleFilter && !moduleFilter.has(module.name)) continue;
-    const beforeModule = { rowsBefore: harness.log().length };
+
     // Module-level lifecycle hooks. contract.js validates them (arity-1,
     // ctx-only); runCampaign is where they actually FIRE - once before the
     // module's first attack and once after its last, with the module's
@@ -94,6 +94,12 @@ export async function runCampaign(harness, scenarios, opts = {}) {
     if (typeof module.beforeAll === 'function') await module.beforeAll(hookCtx);
     for (const attack of module.attacks) {
       const id = `${module.name}/${attack.name}`;
+      // Per-ATTACK baseline: requests are per-attack truth, not cumulative-
+      // from-module-start. The old shape skewed when a module carries two
+      // attacks: attack #2's `requests` field counted attack #1's requests
+      // too, so `cost.totals.requests` (the ledger's economic line) INFLATED
+      // by triangular arithmetic with the per-attack rows.
+      const beforeAttack = { rowsBefore: harness.log().length };
       const costBefore = harness.costTotals();
       let findResult;
       try {
@@ -134,7 +140,7 @@ export async function runCampaign(harness, scenarios, opts = {}) {
         evidence: findResult.evidence ?? findResult.violations ?? findResult.counts ?? undefined,
         ...(attack.group !== undefined ? { group: attack.group } : {}),
         costDelta: delta(harness.costTotals(), costBefore),
-        requests: harness.log().length - beforeModule.rowsBefore,
+        requests: harness.log().length - beforeAttack.rowsBefore,
       };
       rows.push(record);
     }

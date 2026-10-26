@@ -91,6 +91,18 @@ function validateSteps(a, fail) {
       && typeof s.expect !== 'string' && typeof s.expect !== 'number' && typeof s.expect !== 'function') {
       fail(`attack "${a.name}" step "${s.name}": expect wants a status number, a spec string ('2xx', '4xx-or-429'), or a (record) => {ok, detail} grader`);
     }
+    // Validate expect SPEC STRINGS here, not mid-campaign: statusMatches()
+    // throws at grading time, which means a typo'd spec ('2sc'/'4xx-or-dead')
+    // survived load and detonated the campaign at the step - a contract error
+    // that loads is a config error, never a mid-run blowup.
+    if (typeof s.expect === 'string') {
+      for (const part of String(s.expect).split('-or-')) {
+        const p = part.trim();
+        if (!/^(\d)xx$/.test(p) && !/^\d{3}$/.test(p)) {
+          fail(`attack "${a.name}" step "${s.name}": expect spec part "${p}" is not a status class ('2xx') or exact status ('429')`);
+        }
+      }
+    }
   }
 }
 

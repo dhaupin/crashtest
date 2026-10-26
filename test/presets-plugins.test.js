@@ -11,6 +11,7 @@ import { join } from 'node:path';
 
 import { loadPlugins, configDir } from '../src/plugins/loader.js';
 import { listPresets, detect, scaffoldPreset, probeHandler } from '../src/presets.js';
+import { main } from '../src/cli.js';
 
 async function tempRepo(files) {
   const dir = await mkdtemp(join(tmpdir(), 'ct-v03-'));
@@ -345,4 +346,52 @@ test('pack: bundles resolve relative to the PACK dir (self-contained pack ships 
   const packs = await loadPacks([join(repo, 'packs')]);
   assert.equal(packs.length, 1);
   assert.equal(packs[0].bundled[0].module.name, 'canary-plugin');
+});
+
+// ---- round-6..8 walk teeth: silent hangs and doc-vs-code drift become loud ----
+
+test('probe: a HUNG handler is a probe finding with a timer, never an endless await (the doc always claimed this)', async () => {
+  const repo = await tempRepo({
+    'slow.js': `export default { fetch: async () => new Promise(() => {}) };\n`,
+  });
+  const p = await probeHandler(join(repo, 'slow.js'), { timeoutMs: 40 });
+  assert.equal(p.probed, false);
+  assert.match(p.reason, /hung past 40ms/);
+});
+
+test('probe: bodyBytes counts BYTES, not JS chars (a utf-8 body of 5 chars over utf8 = 6 bytes)', async () => {
+  const repo = await tempRepo({
+    'unicode.js': `export default { fetch: async () => new Response('h\u00e9llo') };\n`,
+  });
+  const p = await probeHandler(join(repo, 'unicode.js'));
+  assert.equal(p.probed, true);
+  assert.equal(p.bodyBytes, 6, 'h\u00e9llo encodes to 6 utf-8 bytes (5 chars)');
+});
+
+test('preset: an unknown preset name refuses at cause - a usage message, not a stack trace', async () => {
+  const out = [];
+  const orig = console.error;
+  console.error = (...a) => out.push(a.join(' '));
+  try {
+    await main(['preset', 'bogus']);
+  } finally {
+    console.error = orig;
+  }
+  assert.equal(process.exitCode, 1);
+  assert.match(out.join('\n'), /unknown preset "bogus" \(have: lovable, bolt, replit\)/);
+  process.exitCode = 0;
+});
+
+test('plugins: a PATH specifier without .js/.mjs is refused HERE (the header always promised this), naming the fix', async () => {
+  const repo = await tempRepo({});
+  await assert.rejects(
+    async () => loadPlugins(['./no-extension'], join(repo, 'plugins')),
+    /\.js\/\.mjs extension/,
+  );
+  // A bare npm specifier stays extensionless by contract and rides past the
+  // check into import() - where it fails with the honest resolution error.
+  await assert.rejects(
+    async () => loadPlugins(['this-package-does-not-exist-xyz'], join(repo, 'plugins')),
+    /failed to load from config/,
+  );
 });

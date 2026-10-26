@@ -238,6 +238,32 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
   changes keep documented contracts true; the LIMIT/OFFSET sign
   support is the SQL subset's existing `LIMIT ?|n [OFFSET ?|m]` row
   learning that `n` includes negatives, as SQLite does).
+- the walks continue (rounds 6-8: presets/plugins lane, campaign
+  state primitives, contract remainder) - the headline catch is a
+  COST-ACCOUNTING LIE in the campaign economics row: the per-attack
+  `requests` field used the MODULE-start baseline, so in a two-attack
+  module attack #2 reported attack #1's requests too and
+  `cost.totals.requests` (the ledger's economics line, CI-facing)
+  inflated triangularly (1+2+...+n). Requests are now per-attack
+  truth (captured live: rows [1, 2] totals 3 where the campaign made
+  exactly 2 -> now [1, 1] totals 2).
+  - presets: `probeHandler` gains the timer its own docstring always
+    claimed (fetch AND body-read race opts.timeoutMs, default 3000ms;
+    a hung handler is a probe FINDING, never an endless await) - a
+    rule-7 doc-vs-code drift closed; `bodyBytes` counts utf-8 BYTES,
+    not JS chars; an unknown preset name refuses at cause with the
+    usage direction instead of a stack trace;
+  - plugins: the extension check the loader header always promised
+    ("fails loudly HERE rather than at import time") actually exists
+    now - a relative/absolute PATH specifier without .js/.mjs refuses
+    at cause; bare npm specifiers stay extensionless by contract;
+  - contract: an invalid expect SPEC STRING ('2xx-or-dead') fails at
+    validateScenario (load) time instead of detonating the campaign at
+    the first step - a contract error that loads is a config error.
+  Teeth: 6 new rows across campaigns/presets-plugins/contract suites
+  (the probe-hang cap, the byte count, the unknown preset, the plugin
+  extension, the load-time spec validation, and the per-attack cost
+  pin). Suite floor: 370/370 with PHP (was 364/364).
 
 ## 1.1.0 (2026-10-25 on npm)
 
