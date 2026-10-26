@@ -357,3 +357,29 @@ npx crashtest packs add vant-core          # -> packs/local/vant-core/ (gitignor
 npx crashtest packs add my-shapes --public # -> packs/public/my-shapes/ (tracked)
 npx crashtest packs --json                 # machine inventory (LAST stdout line) - pair with `npm view <pkg> version` in CI for version joins
 ```
+
+## Family lanes (receipts, not asks)
+
+The packstruct@1 grammar is shared with the wider struct family, and
+this repo's lint lane is where the family's staged packs get grating
+receipts (files-on-disk, no runtime dependency, exact-pin receipt):
+
+- **eyestruct** (dhaupin/eyestruct-staging, staged on
+dhaupin/gistory@`19f1db8049ff8a030e8abab2bee03e1b6c988477`): 3 packs
+(`eye-ci-gate`, `eye-shapes`, `eye-text-leg`) lint CLEAN at both
+shallow and deep levels through this repo's exact-pinned packstruct
+1.0.0 - deep probes 3 modules, 0 census ids (check-profile shape:
+verifier modules carry cases, not attacks). Receipt cut 2026-10-26
+before eyestruct's npm debut, so the trifecta grammar (crashtest
+scenario / eyestruct visual / poststruct audit, packstruct
+orchestrating) was already true when it landed.
+- **poststruct**: staging lane still in flight (gistory's
+`poststruct-staging/`); its own `run-packs.mjs` loader already receipts
+8/8 on the packstruct conformance cases (gistory `labs/ecosystem.md`).
+No crashtest-side copy exists yet - this lane will add its receipt when
+the staging settles.
+
+Citation rule for every row here: the exact gistory sha (the staging
+trees move), grating receipt in THIS repo's lint lane unless the row
+says otherwise. Same-commit->same-findings applies to receipts too.
+

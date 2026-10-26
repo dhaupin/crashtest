@@ -183,6 +183,22 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
   and no row may claim the vocab is missing while the config arms it).
   Docs: config.md knob block now names both vocabularies. Suite floor:
   348/348 with PHP (was 344/344).
+- the family lanes receipt opens (early eyestruct support, in
+  receipt form rather than adapter form): dhaupin/eyestruct is staged
+  at 0.9.0 inside dhaupin/gistory (`eyestruct-staging/`), and THIS
+  repo's lint lane - the exact-pinned packstruct 1.0.0 passthrough -
+  already runs its three staged packs (`eye-ci-gate`, `eye-shapes`,
+  `eye-text-leg`) CLEAN at shallow and deep levels (3 modules probed,
+  0 census ids - the check-profile shape carries cases, not attacks).
+  Pinned in docs/reference/packs.md as a new "Family lanes" section
+  with the exact gistory sha citation rule (staging trees move; the
+  sha `19f1db8049ff8a030e8abab2bee03e1b6c988477` is the receipt) -
+  the packstruct#19 trifecta grammar (crashtest scenario / eyestruct
+  visual / poststruct audit, packstruct orchestrating) is thereby true
+  in a cited artifact BEFORE eyestruct's npm debut, and no adapter or
+  dependency lands before the surface exists for real (the
+  no-fiction rule holds: poststruct's staging lane is still in
+  flight - its row activates when it settles).
 
 ## 1.1.0 (2026-10-25 on npm)
 
