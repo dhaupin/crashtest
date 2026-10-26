@@ -22,10 +22,15 @@ test('dogfood snapshot parses as a ledger and reports a clean gate (exit 0)', ()
 
 test('snapshot cost economics survived generation (totals + per-attack rows)', () => {
   assert.equal(dogfood.cost.totals.ops, 842); // the 19 skipped rows add ids, not ops
-  assert.equal(dogfood.cost.totals.requests, 1082);
+  // Per-ATTACK truth (the runner fix): totals count actual requests, and the
+  // old pin (1082) carried the cumulative-baseline inflation (647 truth + 435
+  // triangular phantom rows across multi-attack modules).
+  assert.equal(dogfood.cost.totals.requests, 647);
   assert.ok(dogfood.cost.perAttack.length >= 49);
   const amp = dogfood.cost.perAttack.find((p) => p.id === 'volume/cost-amplification');
-  assert.deepEqual({ ops: amp.ops, requests: amp.requests }, { ops: 81, requests: 100 });
+  // 40: amplification's OWN replay count (the old 100 included the stuffing
+  // attack's 60 requests because the baseline was module-level).
+  assert.deepEqual({ ops: amp.ops, requests: amp.requests }, { ops: 81, requests: 40 });
 });
 
 test('new EXPLOITED finding flips the gate to fail with the offending ids', () => {

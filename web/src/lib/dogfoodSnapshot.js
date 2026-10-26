@@ -317,7 +317,7 @@ export const dogfood = {
   "cost": {
     "totals": {
       "ops": 842,
-      "requests": 1082,
+      "requests": 647,
       "distinctAttacks": 49
     },
     "perAttack": [
@@ -329,12 +329,12 @@ export const dogfood = {
       {
         "id": "auth/secret-watermark",
         "ops": 36,
-        "requests": 91
+        "requests": 36
       },
       {
         "id": "auth/privilege-escalation",
         "ops": 4,
-        "requests": 95
+        "requests": 4
       },
       {
         "id": "authz/method-matrix-privileged",
@@ -344,12 +344,12 @@ export const dogfood = {
       {
         "id": "authz/role-body-spoof-family",
         "ops": 24,
-        "requests": 33
+        "requests": 24
       },
       {
         "id": "authz/handler-alias-confusion",
         "ops": 8,
-        "requests": 41
+        "requests": 8
       },
       {
         "id": "governance/succession-trust-floor",
@@ -409,7 +409,7 @@ export const dogfood = {
       {
         "id": "guards/burst-wall",
         "ops": 50,
-        "requests": 51
+        "requests": 50
       },
       {
         "id": "input/proto-pollution-body",
@@ -419,12 +419,12 @@ export const dogfood = {
       {
         "id": "input/never-fail-mutations",
         "ops": 64,
-        "requests": 65
+        "requests": 64
       },
       {
         "id": "input/oversized-field",
         "ops": 1,
-        "requests": 66
+        "requests": 1
       },
       {
         "id": "memory/drift-silent-overwrite",
@@ -479,7 +479,7 @@ export const dogfood = {
       {
         "id": "proto-hygiene/request-shape-flood",
         "ops": 216,
-        "requests": 240
+        "requests": 216
       },
       {
         "id": "race/double-submit-idempotency",
@@ -489,7 +489,7 @@ export const dogfood = {
       {
         "id": "race/concurrent-write-lost-update",
         "ops": 20,
-        "requests": 5
+        "requests": 2
       },
       {
         "id": "recursion/deep-nest-stack-overflow",
@@ -499,7 +499,7 @@ export const dogfood = {
       {
         "id": "recursion/redos-catastrophic-pattern",
         "ops": 4,
-        "requests": 5
+        "requests": 4
       },
       {
         "id": "session/cookie-hygiene",
@@ -509,17 +509,17 @@ export const dogfood = {
       {
         "id": "session/session-fixation",
         "ops": 16,
-        "requests": 4
+        "requests": 3
       },
       {
         "id": "session/token-replay-deny",
         "ops": 28,
-        "requests": 8
+        "requests": 4
       },
       {
         "id": "session/logout-invalidates",
         "ops": 12,
-        "requests": 11
+        "requests": 3
       },
       {
         "id": "state/enumeration-oracle",
@@ -539,7 +539,7 @@ export const dogfood = {
       {
         "id": "taxonomy/errors-stay-impersonal",
         "ops": 11,
-        "requests": 20
+        "requests": 10
       },
       {
         "id": "upload/filename-traversal-family",
@@ -549,7 +549,7 @@ export const dogfood = {
       {
         "id": "upload/mime-polyglot-family",
         "ops": 2,
-        "requests": 11
+        "requests": 2
       },
       {
         "id": "volume/credential-stuffing",
@@ -559,18 +559,18 @@ export const dogfood = {
       {
         "id": "volume/storage-fill",
         "ops": 0,
-        "requests": 60
+        "requests": 0
       },
       {
         "id": "volume/cost-amplification",
         "ops": 81,
-        "requests": 100
+        "requests": 40
       }
     ]
   },
   "meta": {
     "version": "1.1.0",
-    "startedAt": "2026-10-25T03:11:59.804Z",
+    "startedAt": "2026-10-26T03:36:30.029Z",
     "seed": 12648430
   }
 };

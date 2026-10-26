@@ -264,6 +264,19 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
   (the probe-hang cap, the byte count, the unknown preset, the plugin
   extension, the load-time spec validation, and the per-attack cost
   pin). Suite floor: 370/370 with PHP (was 364/364).
+- the dashboard's shipped dogfood snapshot regenerates to the TRUE
+  economics (round-9 walk catch): per-attack requests were cumulative
+  pre-fix, so the bundled `web/src/lib/dogfoodSnapshot.js` (regenerated
+  from the real artifacts by web/scripts/make-ledger-snapshot.mjs)
+  still baked the inflated numbers - totals said 1082.requests where
+  the campaign made 647, and per-attack rows read as triangular sums
+  (secret-watermark 91 where it made 36; amplification 100 where it
+  replayed 40). The snapshot is now cut from the post-fix run
+  (842 ops / 647 requests / per-attack rows are per-attack), the
+  pre-built dashboard dist re-renders it, and the dashboard-ledger pin
+  moves to the true numbers WITH the inflation arithmetic named in the
+  comment (rule 7: the shipped site shows what the CLI actually
+  measured, not what an old baseline said).
 
 ## 1.1.0 (2026-10-25 on npm)
 
