@@ -277,6 +277,34 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
   moves to the true numbers WITH the inflation arithmetic named in the
   comment (rule 7: the shipped site shows what the CLI actually
   measured, not what an old baseline said).
+- the walk continues into the adapters lane + WP worker lifecycle
+  (round 12 - the surfaces the library rows fire THROUGH):
+  - wp worker: a broken phpBin used to end the run as a SILENT FOREVER-HANG -
+    a spawn failure fires the ChildProcess 'error' event and NEVER 'exit',
+    so exchange()'s listeners (data + exit) never settled, while the
+    UNGUARDED event itself could kill the run process as an uncaught
+    exception. exchange() now rejects loudly naming the bin (`wp-worker
+    spawn failed (ENOENT): ... check phpBin (...)`) with the cause
+    attached, and the spawn guard keeps the process alive for the
+    structured refusal; WPWorker is exported so the lifecycle is testable;
+  - adapter synthesis: an ARRAY-valued response header (multi set-cookie -
+    Node's getHeaders() and light-my-request's res.headers both store it)
+    crashed the WHATWG Response init mid-route with a TypeError, misgrading
+    a working handler's honest multi-value response as a transport fault.
+    New shared src/adapters/wire-headers.js normalizes (array ->
+    comma-joined, Buffer/Blob -> utf-8 text, null -> ''), used by the
+    express (both ServerResponse and dispatchNodeRequest paths) and
+    fastify adapters; hono needs none (it synthesizes Responses itself);
+  - run-boundary reap: the WP worker is a REAL subprocess per run and
+    nothing ever called WPWorker.kill() - a WP-target cmdRun left the php
+    child and its open stdio pipes holding the event loop past the
+    verdict. cmdRun reaps the worker in a finally around runCampaign (the
+    mid-campaign throw path included); the armed WP e2e rows exercise it.
+  Teeth: 3 new rows (wp-adapter spawn-error rejection naming the bin;
+  v02 row for the dispatchNodeRequest array header; fastify-stub row for
+  the injected reply's array header). Suite floor: 382/382 with PHP (was
+  379/379). Dogfood artifacts byte-stable across the double run; gates:
+  check, lint:docs, packstruct lint (8 packs) all clean.
 - the walk continues (round 10: the scenario ATTACK LIBRARY itself, all
   14 modules re-read against the verdict-semantics contract) - the
   headline class is CRASH INVISIBILITY: an uncaught handler throw

@@ -66,3 +66,21 @@ test('wp adapter src is FLAT: no Math.random / Date.now in the shipped adapter s
   assert.doesNotMatch(src, /Math\.random\(/, 'unseeded randomness on a shipped surface breaks same-commit -> same-wire');
   assert.doesNotMatch(src, /Date\.now\(/, 'wall-clock reads on a shipped surface break determinism');
 });
+
+// walk-12 tooth: a broken phpBin fires the ChildProcess 'error' event and
+// NEVER 'exit' - the old listener set hung exchange() forever with zero
+// diagnostics (and the unguarded event itself could kill the run process).
+test('wp worker: a broken phpBin REJECTS the exchange loudly naming the bin (was a silent forever-hang)', async () => {
+  const { WPWorker } = await import('../src/adapters/wordpress.js');
+  const worker = new WPWorker({ wpRoot: 'fixtures/wordpress/stub-wp', phpBin: 'definitely-not-php-xyz' });
+  await assert.rejects(
+    () => worker.exchange({ id: 'r0', kind: 'request', method: 'GET', url: '/', dispatch: 'template_redirect', action: '', remoteAddr: '', userId: 0, cookies: {}, body: '' }),
+    (e) => {
+      assert.match(e.message, /wp-worker spawn failed.*ENOENT/);
+      assert.match(e.message, /check phpBin/);
+      assert.match(e.message, /definitely-not-php-xyz/);
+      return true;
+    },
+    'the exchange must reject loudly, not hang: a spawn failure is a named config error',
+  );
+});

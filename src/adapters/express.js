@@ -10,6 +10,7 @@
 
 import { Readable, PassThrough } from 'node:stream';
 import { ServerResponse } from 'node:http';
+import { wireHeaders } from './wire-headers.js';
 
 class FakeRes {
   constructor() {
@@ -153,9 +154,7 @@ async function dispatchExpressHandle(app, request, timeout) {
   const raw = Buffer.concat(wire);
   const sep = raw.indexOf('\r\n\r\n');
   const body = sep >= 0 ? raw.subarray(sep + 4) : Buffer.alloc(0);
-  const headers = {};
-  for (const [k, v] of Object.entries(res.getHeaders())) headers[k.toLowerCase()] = v;
-  return new Response(body.length ? body : null, { status: res.statusCode, headers });
+  return new Response(body.length ? body : null, { status: res.statusCode, headers: wireHeaders(res.getHeaders()) });
 }
 
 /** Bounded drain until the handler has truly ended (event-style handlers
@@ -222,5 +221,5 @@ export async function dispatchNodeRequest(handle, request, { timeout = 2000 } = 
   } finally {
     clearTimeout(timerId); // a loser timer must not become an unhandled rejection
   }
-  return new Response(res.bodyText() || null, { status: res.statusCode, headers: res.headers() });
+  return new Response(res.bodyText() || null, { status: res.statusCode, headers: wireHeaders(res.headers()) });
 }

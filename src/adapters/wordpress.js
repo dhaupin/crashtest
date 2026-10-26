@@ -29,8 +29,12 @@ const WORKER_DEFAULT = join(
   dirname(fileURLToPath(import.meta.url)), '../../fixtures/wordpress/wp-worker.php',
 );
 
-/** One WordPress attack process: NDJSON request/reply over its stdio. */
-class WPWorker {
+/**
+ * One WordPress attack process: NDJSON request/reply over its stdio.
+ * Exported for hosts that own longer-lived WP runs (the CLI reaps it at the
+ * run boundary; unit tests pin the spawn-failure surface).
+ */
+export class WPWorker {
   constructor({ wpRoot, phpBin = 'php', script = WORKER_DEFAULT, stderr = 'ignore' }) {
     if (!wpRoot) throw new TypeError('wordpress adapter needs { wpRoot } - the wp root to bootstrap');
     // Fail loud + nameable at boot: a missing worker script is a packaging or
@@ -47,9 +51,15 @@ class WPWorker {
   }
 
   _spawn() {
-    return spawn(this.argv[0], this.argv.slice(1), {
+    const child = spawn(this.argv[0], this.argv.slice(1), {
       stdio: ['pipe', 'pipe', this.stderr],
     });
+    // A missing/broken phpBin fires the ChildProcess 'error' event and NEVER
+    // 'exit' - without a listener that event is an uncaught exception that
+    // kills the run process itself. Keep the guard here; exchange() adds its
+    // own once('error') to turn the PENDING exchange into the loud failure.
+    child.on('error', () => {});
+    return child;
   }
 
   /**
@@ -59,6 +69,17 @@ class WPWorker {
   async exchange(envelope) {
     const child = this.#exchangeLive();
     return new Promise((resolve, reject) => {
+      // Spawn-level failure (ENOENT phpBin, EACCES): the child neither writes
+      // nor exits - the old listener set hung this promise forever with zero
+      // diagnostics, while the persistent _spawn() guard only kept the
+      // process alive. Reject loudly naming the bin instead.
+      const onChildError = (err) => {
+        cleanup();
+        const e = new Error(`wp-worker spawn failed (${err?.code ?? '?'}): ${err?.message ?? err} - check phpBin ("${this.argv[0]}") and the user script mount`, { cause: err });
+        e.wpSpawn = true;
+        reject(e);
+      };
+      child.once('error', onChildError);
       let buf = '';
       const onData = (d) => {
         buf += d.toString('utf8');
@@ -85,6 +106,7 @@ class WPWorker {
       const cleanup = () => {
         child.stdout.off('data', onData);
         child.off('exit', onExit);
+        child.off('error', onChildError);
       };
       child.stdout.on('data', onData);
       child.once('exit', onExit);

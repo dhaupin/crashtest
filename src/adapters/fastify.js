@@ -7,6 +7,8 @@
 //   - fastify must be `await app.ready()` in the target config BEFORE
 //     crashtest run - routes only exist after ready resolves.
 
+import { wireHeaders } from './wire-headers.js';
+
 export function registerFastify(harness, { app, name = 'app' } = {}) {
   if (!app || typeof app.inject !== 'function') {
     throw new TypeError('registerFastify: fastify app needs await app.ready() + .inject()');
@@ -24,7 +26,9 @@ export function registerFastify(harness, { app, name = 'app' } = {}) {
     });
     return new Response(res.body ?? null, {
       status: res.statusCode,
-      headers: res.headers,
+      // light-my-request legitimately stores ARRAY header values (multi
+      // set-cookie); raw hand-off crashed the WHATWG init mid-route.
+      headers: wireHeaders(res.headers),
     });
   });
   return harness;

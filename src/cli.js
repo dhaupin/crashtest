@@ -521,12 +521,21 @@ async function cmdRun(opts = {}) {
     }
   }
 
-  const run = await runCampaign(harness, allScenarios, {
-    modules: target.modules,
-    attackCtx: target.attackCtx,
-    moduleCtx: target.moduleCtx,
-    seed: target.seed,
-  });
+  let run;
+  try {
+    run = await runCampaign(harness, allScenarios, {
+      modules: target.modules,
+      attackCtx: target.attackCtx,
+      moduleCtx: target.moduleCtx,
+      seed: target.seed,
+    });
+  } finally {
+    // The WP adapter's worker is a REAL subprocess per run - the run is done,
+    // the worker stops (no zombie php holding the event loop's pipes open past
+    // the verdict), success or mid-campaign throw. Adapters that hold no child
+    // surface no wpWorker and this is a no-op.
+    if (harness.wpWorker?.kill) harness.wpWorker.kill();
+  }
 
   const ledgerPath = join(root, LEDGER_PATH);
   let prior = null;

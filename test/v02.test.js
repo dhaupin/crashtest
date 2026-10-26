@@ -281,6 +281,44 @@ test('adapters/dispatchNodeRequest: raw server gets the event surface (on data/e
   assert.equal(seen.timedOut, false);
 });
 
+// walk-12 teeth: Node-side header storage legitimately holds ARRAY values
+// (multi set-cookie) - handing one raw to the WHATWG Response init crashed
+// synthesis mid-route with a TypeError, misgrading a working handler's
+// honest multi-value response as a transport fault.
+
+test('adapters/dispatchNodeRequest: an ARRAY-valued header rides as its comma-joined form (no mid-route TypeError crash)', async () => {
+  const { dispatchNodeRequest } = await import('../src/adapters/express.js');
+  const rawHandler = (_req, res) => {
+    res.setHeader('set-cookie', ['a=1', 'b=2']);
+    res.setHeader('content-type', 'text/plain');
+    res.end('ok');
+  };
+  const res = await dispatchNodeRequest(rawHandler, new Request('https://x.local/'));
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get('set-cookie'), 'a=1, b=2');
+  assert.equal(await res.text(), 'ok');
+});
+
+test('adapters/fastify: injected ARRAY header values survive synthesis (light-my-request legitimate storage)', async () => {
+  const { registerFastify } = await import('../src/adapters/fastify.js');
+  const { buildHarness } = await import('../src/harness/harness.js');
+  // Fake app replaying the light-my-request reply shape: statusCode/body/
+  // headers with array values allowed (the exact shape the adapter hit).
+  const injectedApp = {
+    inject: async () => ({
+      statusCode: 200,
+      body: '{"ok":1}',
+      headers: { 'set-cookie': ['a=1', 'b=2'], 'content-type': 'application/json' },
+    }),
+  };
+  const h = buildHarness({});
+  registerFastify(h, { app: injectedApp });
+  const rec = await h.run('app', { method: 'GET', url: '/api' });
+  assert.equal(rec.status, 200, `the injected reply must synthesize: ${rec.error?.message}`);
+  assert.equal(rec.response.headers.get('set-cookie'), 'a=1, b=2');
+  assert.equal(await rec.response.text(), '{"ok":1}');
+});
+
 test('scenarios/state id-collision-alias: missing DB binding REFUSES instead of crashing', async () => {
   const [state] = (await loadScenarios()).map(l => l.module).filter(m => m.name === 'state');
   const alias = state.attacks.find(a => a.name === 'id-collision-alias');
