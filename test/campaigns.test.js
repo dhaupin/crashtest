@@ -6,6 +6,13 @@ import assert from 'node:assert/strict';
 import { buildHarness } from '../src/harness/harness.js';
 import { loadScenarios } from '../src/scenarios/loader.js';
 import { runCampaign } from '../src/campaigns/runner.js';
+import { loadPacks } from '../src/packs/loader.js';
+import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const REPO = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 const envSpec = {
   d1: { DB: { tables: { devices: { rows: [{ id: 1, key: 'seed', owner: 'rook' }], uniques: { key_unique: ['key'] } } } } },
@@ -237,4 +244,95 @@ test('campaign: no filter at all keeps the full slate (unchanged default behavio
   }];
   const run = await runCampaign(buildHarness({}, {}), scenarios, {});
   assert.equal(run.tally.TOTAL, 2);
+});
+
+// --- the ctx.config arming contract + the ctx-knob census (the misfire class, round two) ------------
+
+test('campaign: ctx.config[<module>] carries the namespaced vocabulary - the scaffold arming contract is TRUE now, both read paths arm', async () => {
+  let seen = null;
+  const scenarios = [{
+    origin: 'config-probe',
+    module: {
+      name: 'probe-mod',
+      description: 'probe',
+      attacks: [{ name: 'probe-attack', description: 'p', async run(h, ctx) {
+        seen = {
+          flat: ctx.postType,
+          viaConfig: ctx?.config?.['probe-mod']?.postType ?? null,
+          scaffoldShape: (() => { const cfg = ctx?.config?.['probe-mod'] ?? null; return typeof cfg === 'object' && cfg !== null; })(),
+          otherModuleHidden: ctx?.config?.['other-mod'] ?? 'namespaced',
+        };
+        return { verdict: 'REFUSED', detail: 'ok' };
+      } }],
+    },
+  }];
+  await runCampaign(buildHarness({}, {}), scenarios, { moduleCtx: { 'probe-mod': { postType: 'shop_order' } } });
+  assert.equal(seen.flat, 'shop_order', 'the top-level spread stays (the wp-roles vocabulary)');
+  assert.equal(seen.viaConfig, 'shop_order', 'ctx.config[<name>] now arms exactly as the scaffolds teach');
+  assert.equal(seen.scaffoldShape, true, 'the scaffold stub read (ctx?.config?.[<name>] ?? null) resolves non-null');
+  assert.equal(seen.otherModuleHidden, 'namespaced', 'config is only reachable through the module key, never flattened across modules');
+});
+
+test('campaign: orphan moduleCtx/attackCtx keys refuse loud with both available target lists (census, rule 3)', async () => {
+  const scenarios = [{
+    origin: 'knob-fixture',
+    module: {
+      name: 'knob-mod',
+      description: 'knob module',
+      attacks: [{ name: 'held-attack', description: 'a', run: async () => ({ verdict: 'REFUSED', detail: 'ok' }) }],
+    },
+  }];
+  // A typo'd moduleCtx key: the pack would arm as "not armed" and skip - the veil.
+  await assert.rejects(
+    () => runCampaign(buildHarness({}, {}), scenarios, { moduleCtx: { 'knob-mo': { vocab: 'x' } } }),
+    (e) => /ctx knobs matched nothing: moduleCtx\['knob-mo'\]/.test(e.message)
+      && e.message.includes('loaded modules: knob-mod'),
+  );
+  // A typo'd attackCtx key: the override silently applies nothing (worst: cost knobs).
+  await assert.rejects(
+    () => runCampaign(buildHarness({}, {}), scenarios, { attackCtx: { 'knob-mod/held-atk': { maxOps: 5 } } }),
+    (e) => /ctx knobs matched nothing: attackCtx\['knob-mod\/held-atk'\]/.test(e.message)
+      && e.message.includes('attack ids: knob-mod/held-attack'),
+  );
+});
+
+test('campaign: matched knobs keep running beside the census (guards narrow, never widen)', async () => {
+  const scenarios = [{
+    origin: 'knob-fixture',
+    module: {
+      name: 'knob-mod',
+      description: 'knob module',
+      attacks: [{ name: 'held-attack', description: 'a', async run(h, ctx) { return { verdict: 'REFUSED', detail: `vocab:${ctx.vocab ?? 'none'}:ops:${ctx.maxOps ?? 'unset'}` }; } }],
+    },
+  }];
+  const run = await runCampaign(buildHarness({}, {}), scenarios, {
+    moduleCtx: { 'knob-mod': { vocab: 'enroll' } },
+    attackCtx: { 'knob-mod/held-attack': { maxOps: 5 } },
+  });
+  assert.equal(run.rows[0].detail, 'vocab:enroll:ops:5', 'both knob vocabularies apply on matched keys');
+});
+
+test('campaign: the SHIPPED wp-money-shapes pack arms through ctx.config - the honest-skip veil can never hide a dead arming contract again', async () => {
+  // Regression pin for the runner shape this batch fixed: the pack reads
+  // ctx.config['wp-money-shapes'] (per the scaffolds), the runner never set
+  // it, and every row graded "not armed" REFUSED forever - a misfire hidden
+  // behind the legitimate skip. Armed through the real loader + runner now.
+  const packs = await loadPacks([join(REPO, 'packs', 'public', 'wp-money-shapes')]);
+  assert.equal(packs.length, 1);
+  const vocab = {
+    postType: 'ct-shop-order', metaPaid: '_ct_paid', metaEmail: '_ct_email',
+    optionKey: 'ct_money_settings', action: 'ct_probe_checkout',
+    nonceAction: 'ct_probe_checkout', pacedHints: 'ct-paced',
+  };
+  const run = await runCampaign(buildHarness({}, {}), packs.map((p) => ({ origin: p.origin, module: p.module })), { moduleCtx: { 'wp-money-shapes': vocab } });
+  assert.equal(run.rows.length, 3, 'the three money shapes ran');
+  assert.ok(
+    !run.rows.some((r) => r.detail.includes('Declare the moduleCtx vocabulary')),
+    'no row may claim the vocab is missing while the config arms it: ' + run.rows.map((r) => r.detail).join(' | '),
+  );
+  // The target below has NO wordpress adapter - the mount gate now skips
+  // honestly (REFUSED) instead of throwing harness-wide faults graded
+  // EXPLOITED. That listener fix is the second half of this pin: a misfired
+  // config degrades to skipped-REFUSED, never a false-positive EXPLOITED row.
+  assert.ok(run.rows.every((r) => r.verdict === 'REFUSED'), 'honest skips stay REFUSED (no false positives)');
 });

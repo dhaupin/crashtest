@@ -29,6 +29,26 @@ export async function runCampaign(harness, scenarios, opts = {}) {
       + ' - a typo supports a zero-row run and exit 0; fix the filter or drop it',
     );
   }
+  // ctx-knob census (rule 3, same misfire class as the filter guard): a
+  // typo'd moduleCtx/attackCtx key silently applies NOTHING - for packs that
+  // arm through ctx.config[<name>] the miss reads as an honest "not armed"
+  // skip, which is exactly the veil a silent misfire wants. Unmatched keys
+  // refuse loudly naming both the orphan keys AND the loaded targets.
+  // Deliberate absence is config-free (omit the key); typos are config.
+  const moduleCtx = opts.moduleCtx ?? {};
+  const availableModules = new Set(scenarios.map((s) => s.module.name));
+  const availableAttackIds = new Set(scenarios.flatMap((s) => attackIds(s.module)));
+  const orphanKnobs = [
+    ...Object.keys(moduleCtx).filter((k) => !availableModules.has(k)).map((k) => `moduleCtx['${k}']`),
+    ...Object.keys(opts.attackCtx ?? {}).filter((k) => !availableAttackIds.has(k)).map((k) => `attackCtx['${k}']`),
+  ];
+  if (orphanKnobs.length) {
+    throw new Error(
+      `ctx knobs matched nothing: ${orphanKnobs.join(', ')}`
+      + ` (loaded modules: ${[...availableModules].sort().join(', ')}; attack ids: ${[...availableAttackIds].sort().join(', ')})`
+      + ' - a typo silently applies nothing; fix the key or drop it',
+    );
+  }
   const startedAt = new Date().toISOString();
   const rows = [];
   // Cross-row state (issue #15): a campaign-scoped vars registry (JSON-
@@ -70,7 +90,7 @@ export async function runCampaign(harness, scenarios, opts = {}) {
     // moduleCtx + seed (issue #7: a pack's one-loud arming check lives
     // here). A throw inside either hook fails the campaign loudly at cause
     // (rule 3) - never a half-run with a silently skipped module.
-    const hookCtx = { ...(opts.moduleCtx?.[module.name] ?? {}), seed: campaignSeed };
+    const hookCtx = { ...(opts.moduleCtx?.[module.name] ?? {}), config: moduleCtx, seed: campaignSeed };
     if (typeof module.beforeAll === 'function') await module.beforeAll(hookCtx);
     for (const attack of module.attacks) {
       const id = `${module.name}/${attack.name}`;
@@ -80,6 +100,14 @@ export async function runCampaign(harness, scenarios, opts = {}) {
         const ctx = {
           ...(opts.moduleCtx?.[module.name] ?? {}),
           ...(opts.attackCtx?.[id] ?? {}),
+          // The pack-module arming contract (the init/packs-add scaffolds and
+          // the shipped wp-money-shapes pack teach ctx.config[<name>]): the
+          // earlier runner shape never carried it, so packs written per the
+          // docs could NEVER arm - the honest-skip law then graded every row
+          // "not armed" and the misfire hid behind a legitimate skip. The
+          // namespaced bag rides alongside the flattened vocabulary now, and
+          // both read paths arm the same values.
+          config: moduleCtx,
           seed: campaignSeed,
           vars,
           objects,

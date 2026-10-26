@@ -154,6 +154,35 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
   test/cli.test.js (ghost scenarioDir refuses, packs: ['packs/public']
   refuses). Docs: config.md tuning block documents both loud guards,
   packs.md documents the ROOT footgun closure.
+- the runner's `ctx.config` arming contract becomes TRUE (config-class,
+  found by walking for #13-family footguns on our side): packs/public/
+  wp-money-shapes and BOTH CLI scaffolds teach `ctx.config['<name>']`,
+  but runCampaign built module ctx without any `config` key, so the
+  shipped pack's `vocab()` gate could never pass - every row graded
+  "not armed... Declare the moduleCtx vocabulary" REFUSED forever, a
+  dead arming contract hidden behind the legitimate skip (the exact
+  veil shape the honest-skip law must never be allowed to mask a
+  misfire with). Now the runner merges BOTH knob vocabularies onto ctx:
+  `ctx.config[module.name]` (documented + scaffolded) AND `ctx.moduleCtx`
+  / `ctx.attackCtx` (legacy in-tree readers), precedence moduleCtx >
+  attackCtx > config, extra keys stay whose-own so no cross-module leak.
+  The installed-knob census stays visible in the `run` transcript's
+  config knobs line. Structure of run rows is otherwise byte-unchanged.
+- the wp-money-shapes adapter gate: pointed at a target WITHOUT the
+  wordpress adapter, the pack armed past vocab and every attack threw
+  `harness.wpState is not a function`, graded EXPLOITED "attack itself
+  threw" - three fabricated findings from a misfired config. Each attack
+  now opens with an `unmounted(harness)` gate and degrades to skipped-
+  REFUSED naming the fix ("declare adapters: { wordpress: ... }")
+  (AGENTS.md rule 5: misfired config degrades to skipped-REFUSED, never
+  a false positive).
+  Teeth: 4 new rows in test/campaigns.test.js (dead-contract regression
+  probe on ctx.config precedence, order-independent knobs merge,
+  cross-module no-leak, and the ship-pin: the SHIPPED pack loads through
+  the real loader, arms through the real runner with a declared vocab,
+  and no row may claim the vocab is missing while the config arms it).
+  Docs: config.md knob block now names both vocabularies. Suite floor:
+  348/348 with PHP (was 344/344).
 
 ## 1.1.0 (2026-10-25 on npm)
 

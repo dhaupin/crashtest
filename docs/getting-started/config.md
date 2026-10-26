@@ -55,6 +55,12 @@ export default {
                                         // green a zero-row run)
   moduleCtx: { state: { mustDenyIds: ['ghost-1'] } },   // module-level ctx
   attackCtx: { 'volume/cost-amplification': { maxOpsPerRequest: 12 } }, // per-attack
+  // Packs read their knobs from this bag: attacks see ctx.moduleCtx spells
+  // AND the scaffold vocabulary ctx.config['<pack-name>'] (same values, two
+  // read paths; moduleCtx > attackCtx > config precedence, no cross-module
+  // leak), and the run transcript's config-knobs line shows what was armed.
+  // Example: moduleCtx: { 'wp-money-shapes': { postType: 'shop-order', ... } }
+  // arms the shipped pack's shapes on a WordPress target.
   scenarioDirs: ['test/attacks'],       // extra module dirs - REQUIRED paths, a
                                         // missing one fails loudly naming it
                                         // (only labs/scenarios/ is optional)

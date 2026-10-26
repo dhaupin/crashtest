@@ -25,6 +25,7 @@ export default {
     name: 'wp-write-volley',
     description: 'six anonymous writes with payment intent - surface must refuse them all',
     async run(harness, ctx) {
+      if (unmounted(harness)) return refusedSkip('the wordpress adapter is not mounted (harness.wpState missing) - declare adapters: { wordpress: ... } in crashtest.config.js');
       const k = vocab(ctx);
       if (!k) return refusedSkip();
       const probeTag = 'ctwv' + String(ctx.seed ?? 0);
@@ -50,6 +51,7 @@ export default {
     name: 'wp-txn-replay',
     description: 'one planted paid receipt - the SAME payment callback must not mint a second paid registration',
     async run(harness, ctx) {
+      if (unmounted(harness)) return refusedSkip('the wordpress adapter is not mounted (harness.wpState missing) - declare adapters: { wordpress: ... } in crashtest.config.js');
       const k = vocab(ctx);
       if (!k) return refusedSkip();
       const mark = 'ctreplay' + (ctx.seed % 10000);
@@ -80,6 +82,7 @@ export default {
     name: 'wp-gate-burst',
     description: '15 rapid flooder posts with a REAL nonce - the pacing wall must trip at least once with a clean denial',
     async run(harness, ctx) {
+      if (unmounted(harness)) return refusedSkip('the wordpress adapter is not mounted (harness.wpState missing) - declare adapters: { wordpress: ... } in crashtest.config.js');
       const k = vocab(ctx);
       if (!k) return refusedSkip();
       const ip = `203.0.113.${128 + (Math.abs((ctx.seed ?? 0xC0FFEE) % 100))}`;
@@ -119,6 +122,14 @@ function vocab(ctx) {
 
 function refusedSkip(why) {
   return { verdict: 'REFUSED', skip: true, detail: `wp-money-shapes not armed on this target${why ? ' - ' + why : '. Declare the moduleCtx vocabulary (postType, metaPaid, metaEmail, optionKey, action, nonceAction, pacedHints) to arm'}` };
+}
+
+// Adapter gate: every attack rides harness.wpState (WP adapter speak) - if the
+// wordpress adapter is not mounted, skip HONESTLY instead of throwing, so a
+// misfired config (this pack against a plain app) degrades to skipped-REFUSED,
+// never a fabricated EXPLOITED row from a harness-wide fault (AGENTS.md rule 5).
+function unmounted(harness) {
+  return typeof harness?.wpState !== 'function';
 }
 
 function writeBody(k, marker) {
