@@ -347,3 +347,36 @@ test('walk-13: a step init returning a non-object reqInit fails LOUDLY (was a si
   const run = await runCampaign(harness, [TAG(mod)]);
   assert.equal(run.rows[0].evidence.steps[0].verdict, 'REFUSED');
 });
+
+test('walk-14: a throwing expect GRADER or guard grades the STEP by name (was an anonymous attack-level throw)', async () => {
+  const harness = buildHarness(authRoutes);
+  const mod = {
+    name: 'faulty-grader', description: 'probe',
+    attacks: [{
+      name: 'grader-boom',
+      description: 'probe',
+      steps: [
+        { name: 'first', route: 'auth', init: () => ({ url: '/auth?stage=arm' }), expect: 200 },
+        { name: 'boom-grader', route: 'auth', init: () => ({ url: '/auth?stage=arm' }), expect: () => { throw new Error('grader bug'); } },
+        { name: 'last', route: 'auth', init: () => ({ url: '/auth?stage=arm' }), expect: '2xx' },
+      ],
+    }, {
+      name: 'guard-boom',
+      description: 'probe',
+      steps: [{ name: 'guarded', route: 'auth', guard: () => { throw new Error('guard bug'); } }],
+    }],
+  };
+  validateScenario(mod);
+  const run = await runCampaign(harness, [TAG(mod)]);
+  const graderRow = run.rows.find((r) => r.attack === 'grader-boom');
+  const steps = Object.fromEntries(graderRow.evidence.steps.map((s) => [s.name, s]));
+  assert.equal(steps['boom-grader'].verdict, 'EXPLOITED');
+  assert.match(steps['boom-grader'].detail, /expect grader threw at step "boom-grader".*grader bug/);
+  // the chain stays attributable: later steps keep grading, the first step held
+  assert.equal(steps['first'].verdict, 'REFUSED');
+  assert.equal(steps['last'].verdict, 'REFUSED');
+  assert.match(graderRow.detail, /chain EXPLOITED at step: boom-grader/);
+  const guardRow = run.rows.find((r) => r.attack === 'guard-boom');
+  assert.equal(guardRow.verdict, 'EXPLOITED');
+  assert.match(guardRow.evidence.steps[0].detail, /guard\(c\) threw on step "guarded".*guard bug/);
+});

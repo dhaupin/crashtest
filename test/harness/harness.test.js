@@ -159,6 +159,32 @@ test('harness: runFresh without an explicit at is a no-trace replay (fresh sandb
   assert.equal(rows2.results.length, 1, 'explicit-at replays restore to the shared freeze point too');
 });
 
+test('walk-15: freeze/restore deep-detach NESTED row values - a live mutation never reaches the frozen state (or back)', async () => {
+  // Each harness builds from its OWN spec copy - envspec-built rows would
+  // otherwise alias across harnesses through the SHARED spec object.
+  const nestedEnv = () => JSON.parse(JSON.stringify({ d1: { DB: { tables: { events: { rows: [{ id: 1, meta: { deep: 'v1' } }], uniques: {} } } } } }));
+  const h = buildHarness({}, { env: nestedEnv() });
+  const at = h.freezeTo();
+  // The live store preserves its entry identity (adapters close over it) -
+  // mutate the NESTED value in place: the old shallow spreads shared exactly
+  // this object between the frozen snapshot and the live row.
+  h.env.DB._t.get('events').rows[0].meta.deep = 'v2';
+  assert.equal(h.env.DB.snapshot().events[0].meta.deep, 'v2', 'the live store moved');
+  h.restoreTo(at);
+  assert.equal(h.env.DB.snapshot().events[0].meta.deep, 'v1', 'the frozen state deep-detached: restore undoes a nested mutation');
+
+  // Sequential runFresh on ONE snapshot stay independent: the handler's
+  // in-request nested mutation is wiped by restore and must never freeze
+  // itself back into the snapshot for the next replay.
+  const h2 = buildHarness({
+    poke: async ({ env }) => { env.DB._t.get('events').rows[0].meta.deep = 'poked'; return new Response('ok'); },
+  }, { env: nestedEnv() });
+  const at2 = h2.freezeTo();
+  await h2.runFresh('poke', {}, at2);
+  h2.restoreTo(at2);
+  assert.equal(h2.env.DB.snapshot().events[0].meta.deep, 'v1', 'the replay mutation never froze itself into the shared snapshot');
+});
+
 test('harness: restoreTo rejects junk snapshots loudly (rule 3)', () => {
   const h = buildHarness(makeRoutes(), { env: envSpec });
   assert.throws(() => h.restoreTo(null), /freezeTo\(\) snapshot/);

@@ -17,13 +17,38 @@
 // Pure module: no harness, no counter ticks, no I/O - diffing artifacts the
 // attack captured itself, before/after a campaign's requests.
 
-/** Structural fingerprint - stable across runs for the same row content. */
-const fingerprint = (row) => JSON.stringify(row);
+/**
+ * Structural fingerprint - stable across runs for the same row content.
+ * JSON.stringify's silent drops (house rule 6 / the hostileSerialize lesson)
+ * do NOT apply here: stringify quietly loses __proto__ own-keys and
+ * undefined-valued keys, so a row whose ONLY change was one of those
+ * fingerprinted IDENTICAL and the diff oracle missed the change - exactly
+ * the class the vars lane's sameShape comparator refuses. Own-key traversal
+ * instead (prototype never climbed), keys sorted so rebuild-order variance
+ * cannot fake a change, bounded depth failing loud on un-boundable shapes.
+ */
+function fingerprint(value, depth = 0) {
+  if (depth > 64) throw new TypeError('diff fingerprint: value nesting exceeds 64 levels - snapshots hold JSON-shaped rows');
+  if (value === undefined) return 'undefined';
+  if (value === null) return 'null';
+  if (typeof value !== 'object') return `${typeof value}:${String(value)}`; // "boolean:true" != "string:1"
+  if (Array.isArray(value)) return `[${value.map((v) => fingerprint(v, depth + 1)).join(',')}]`;
+  const keys = Object.keys(value).sort();
+  return `{${keys.map((k) => `${JSON.stringify(k)}:${fingerprint(value[k], depth + 1)}`).join(',')}}`;
+}
 
-/** Field names that differ between two row objects (sorted). */
+/** Field names that differ between two row objects (sorted). Presence is
+ * part of the answer: a key appearing/disappearing IS a change even when the
+ * value is undefined (undefined fingerprints the same as absent by value -
+ * only the key-set knows). */
 function changedFields(before, after) {
   const keys = new Set([...Object.keys(before ?? {}), ...Object.keys(after ?? {})]);
-  return [...keys].filter((k) => fingerprint(before?.[k]) !== fingerprint(after?.[k])).sort();
+  return [...keys].filter((k) => {
+    const inBefore = before ? k in before : false;
+    const inAfter = after ? k in after : false;
+    if (inBefore !== inAfter) return true;
+    return fingerprint(before?.[k]) !== fingerprint(after?.[k]);
+  }).sort();
 }
 
 /**
@@ -45,12 +70,12 @@ export function diffD1Snapshots(before, after) {
     const beforeRows = before?.[name] ?? null;
     const afterRows = after?.[name] ?? null;
     if (beforeRows === null) {
-      tables[name] = { status: 'added', added: afterRows.map((r) => ({ ...r })), removed: [], changed: [] };
+      tables[name] = { status: 'added', added: afterRows.map((r) => structuredClone(r)), removed: [], changed: [] };
       changed = true;
       continue;
     }
     if (afterRows === null) {
-      tables[name] = { status: 'removed', added: [], removed: beforeRows.map((r) => ({ ...r })), changed: [] };
+      tables[name] = { status: 'removed', added: [], removed: beforeRows.map((r) => structuredClone(r)), changed: [] };
       changed = true;
       continue;
     }
@@ -63,24 +88,27 @@ export function diffD1Snapshots(before, after) {
       const beforeById = new Map(beforeRows.map((r) => [r.id, r]));
       const afterById = new Map(afterRows.map((r) => [r.id, r]));
       for (const [id, row] of afterById) {
-        if (!beforeById.has(id)) added.push({ ...row });
+        if (!beforeById.has(id)) added.push(structuredClone(row));
         else if (fingerprint(beforeById.get(id)) !== fingerprint(row)) {
-          changedRows.push({ before: { ...beforeById.get(id) }, after: { ...row }, fields: changedFields(beforeById.get(id), row) });
+          changedRows.push({ before: structuredClone(beforeById.get(id)), after: structuredClone(row), fields: changedFields(beforeById.get(id), row) });
         }
       }
       for (const [id, row] of beforeById) {
-        if (!afterById.has(id)) removed.push({ ...row });
+        if (!afterById.has(id)) removed.push(structuredClone(row));
       }
     } else {
-      // structural matching: equal rows cancel, the residue is added/removed
-      const residue = [...beforeRows.map(fingerprint)];
+      // structural matching: equal rows cancel, the residue is added/removed.
+      // The residue carries ROW REFERENCES (the fingerprint string form is
+      // not JSON-invertible now that it records undefined - building removed
+      // rows by re-parsing it would have fabricated rows).
+      const residue = [...beforeRows];
       for (const row of afterRows) {
         const fp = fingerprint(row);
-        const at = residue.indexOf(fp);
+        const at = residue.findIndex((r) => fingerprint(r) === fp);
         if (at > -1) residue.splice(at, 1);
-        else added.push({ ...row });
+        else added.push(structuredClone(row));
       }
-      for (const fp of residue) removed.push(JSON.parse(fp));
+      for (const row of residue) removed.push(structuredClone(row));
     }
     const byKey = (a, b) => fingerprint(a.id !== undefined ? { id: a.id } : a).localeCompare(fingerprint(b.id !== undefined ? { id: b.id } : b));
     added.sort(byKey);
@@ -106,10 +134,10 @@ export function diffKvSnapshots(before, after) {
   for (const key of keys) {
     const had = before && key in before;
     const has = after && key in after;
-    if (!had) added.push({ key, value: after[key] });
-    else if (!has) removed.push({ key, value: before[key] });
+    if (!had) added.push({ key, value: structuredClone(after[key]) });
+    else if (!has) removed.push({ key, value: structuredClone(before[key]) });
     else if (fingerprint(before[key]) !== fingerprint(after[key])) {
-      changed.push({ key, before: before[key], after: after[key] });
+      changed.push({ key, before: structuredClone(before[key]), after: structuredClone(after[key]) });
     }
   }
   return { changed: added.length + removed.length + changed.length > 0, keys: { added, removed, changed } };
@@ -122,8 +150,14 @@ export function diffKvSnapshots(before, after) {
  * merges: { changed, bindings: { [name]: { kind, ...shapeDiff } } }.
  */
 export function diffSnapshots(before, after) {
-  const first = Object.values(before ?? {})[0];
-  if (Array.isArray(first)) return { ...diffD1Snapshots(before, after), kind: 'd1' };
+  // Shape default: an ALL-EMPTY map is an empty D1 store (FakeD1.snapshot()
+  // of a fresh db returns {}) - the first-value check fell through to 'kv',
+  // and a D1 store emptied mid-campaign diffed through the KV shape where
+  // whole tables submit as opaque values (still caught, named wrong).
+  const first = Object.values(before ?? {})[0] ?? Object.values(after ?? {})[0];
+  if (Array.isArray(first) || (first === undefined && Object.keys(before ?? {}).length === 0)) {
+    return { ...diffD1Snapshots(before, after), kind: 'd1' };
+  }
   return { ...diffKvSnapshots(before, after), kind: 'kv' };
 }
 
@@ -149,7 +183,27 @@ export function diffStoreSnapshots(before, after) {
       changed = true;
       continue;
     }
-    const kind = isD1Shape(b) && isD1Shape(a) ? 'd1' : isD1Shape(b) || isD1Shape(a) ? 'mixed' : 'kv';
+    // Shape disagreement between two NON-empty sides stays the loud oracle
+    // bug throw; shape ambiguity only exists for an EMPTY side ({}) - a KV
+    // binding that legitimately emptied itself (every key deleted) is
+    // isD1Shape-true and used to grade 'mixed' into that throw on a real
+    // deletion. One empty side adopts the other's shape; both-empty is an
+    // unobservable no-diff (d1).
+    const knowsShape = (v) => Object.keys(v ?? {}).length > 0;
+    const bKnows = knowsShape(b);
+    const aKnows = knowsShape(a);
+    let kind;
+    if (bKnows && aKnows) {
+      const bd = isD1Shape(b);
+      const ad = isD1Shape(a);
+      kind = bd !== ad ? 'mixed' : bd ? 'd1' : 'kv';
+    } else if (bKnows) {
+      kind = isD1Shape(b) ? 'd1' : 'kv';
+    } else if (aKnows) {
+      kind = isD1Shape(a) ? 'd1' : 'kv';
+    } else {
+      kind = 'd1';
+    }
     if (kind === 'd1') bindings[name] = { kind, ...diffD1Snapshots(b, a) };
     else if (kind === 'kv') bindings[name] = { kind, ...diffKvSnapshots(b, a) };
     else {

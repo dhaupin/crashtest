@@ -277,6 +277,53 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
   moves to the true numbers WITH the inflation arithmetic named in the
   comment (rule 7: the shipped site shows what the CLI actually
   measured, not what an old baseline said).
+- the walk reaches the STATE-CAPTURE lane + closes a chain edge (rounds
+  14/15):
+  - chains: a throwing expect GRADER (or guard) escaped
+    runChainAttack as an anonymous attack-level throw - "attack itself
+    threw - harness-wide fault" with no step attribution. The grader is
+    attack code; its fault now grades the STEP by name
+    (`expect grader threw at step "boom": ...`, same for `guard(c) threw
+    on step ...`), later steps keep grading, and the chain summary stays
+    attributable (per-step EXPLOITED, same crash law, named cause);
+  - freezeTo/restoreTo deep-detach NESTED row values: the old per-row
+    shallow spreads shared a row's nested objects by reference between
+    the frozen snapshot and the live store, so a handler mutating a
+    nested row value (a `meta` object) silently FROZE ITSELF into the
+    snapshot - the next runFresh on the same snapshot replayed the
+    MUTATED state as its "first-run" no-trace baseline (the exact
+    promise runFresh exists to keep, broken across sequential replays).
+    Both directions now structuredClone: the freeze isolates from the
+    live store (a non-cloneable row value fails loud, never aliases
+    silently) and the restore detaches the snapshot from the live store
+    (the next replay on the same snapshot stays first-run);
+  - the diff oracle's fingerprint was JSON.stringify - the house rule-6
+    trap byte-for-byte: stringify silently drops __proto__ OWN-keys and
+    undefined-valued keys, so a row whose ONLY change was one of those
+    fingerprinted IDENTICAL and the diff graded the store flat. Own-key
+    traversal (prototype never climbed, keys sorted against rebuild-order
+    variance, depth bounded at 64 loud) replaces it; changedFields counts
+    KEY PRESENCE as a field change (undefined fingerprints equal by
+    value - only the key-set knows); the structural residue branch
+    carries row REFERENCES (the fingerprint is no longer JSON-parsable
+    that rows were rebuilt from - undefined never survived stringify);
+  - every diff-returned row is a REAL copy now (structuredClone) - the
+    documented "mutating a diff never reaches the snapshots" held only
+    top-level for nested values; KV diff values stop referencing the
+    snapshots too;
+  - shape dispatch: a KV binding that emptied itself between snapshots
+    (every key deleted - a real, gradeable deletion) was isD1Shape-true
+    on the empty side and threw the 'mixed binding' oracle-bug error on
+    a legit finding; the non-empty side now decides the shape when the
+    other is blank, both-empty defaults d1 (FakeD1.snapshot() shape of a
+    fresh db), and a shape CHANGING between two non-empty sides still
+    throws loud
+  Teeth: 4 new rows (faulty-grader + guard step attribution; nested
+  freeze/restore detaching both directions; the fingerprint's
+  __proto__/undefined pair with a removed-row reconstruction pin; the
+  emptied KV binding + empty-map d1 default). Suite floor: 388/388 with
+  PHP (was 385/385). Dogfood artifacts byte-stable (0 new / 0
+  regressed); gates: check, lint:docs, packstruct lint (8 packs) clean.
 - the walk continues through the campaign-lane primitives (round 13:
   chains, vars/objects, and the flag nobody read) - the headline class:
   THE HONEST-SKIP FLAG NEVER LEFT THE ATTACK. Every library row returns

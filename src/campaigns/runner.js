@@ -288,9 +288,21 @@ async function runChainAttack(attack, harness, ctx) {
   const c = { ...ctx, state: {} };
   const stepRows = [];
   for (const step of attack.steps) {
-    if (step.guard && !step.guard(c)) {
-      stepRows.push({ name: step.name, verdict: 'REFUSED', skip: true, detail: 'guard(c) returned false - step skips honestly' });
-      continue;
+    if (step.guard) {
+      // A guard that THROWS is an authoring fault on this step - it names the
+      // step here rather than escaping runChainAttack as an anonymous
+      // attack-level throw (the crash still grades EXPLOITED: same law).
+      let guardOk;
+      try {
+        guardOk = step.guard(c);
+      } catch (err) {
+        stepRows.push({ name: step.name, verdict: 'EXPLOITED', detail: `guard(c) threw on step "${step.name}": ${err?.name}: ${err?.message}` });
+        continue;
+      }
+      if (!guardOk) {
+        stepRows.push({ name: step.name, verdict: 'REFUSED', skip: true, detail: 'guard(c) returned false - step skips honestly' });
+        continue;
+      }
     }
     if (!step.route || !harness.listRoutes().includes(step.route)) {
       // Honest-skip inherits: a route the run root never declared is a
@@ -312,7 +324,16 @@ async function runChainAttack(attack, harness, ctx) {
     } catch (err) {
       rec = { route: step.route, status: null, ok: false, response: null, threw: true, error: err, durationMs: null, ops: null };
     }
-    stepRows.push({ name: step.name, ...gradeExpect(step.expect, rec) });
+    // The expect GRADER is attack code too: a grader that throws names the
+    // step as a per-step finding instead of escaping as an anonymous
+    // harness-wide fault - the chain summary stays attributable.
+    let stepGrade;
+    try {
+      stepGrade = gradeExpect(step.expect, rec);
+    } catch (err) {
+      stepGrade = { verdict: 'EXPLOITED', detail: `expect grader threw at step "${step.name}": ${err?.name}: ${err?.message}`, status: rec?.status ?? null };
+    }
+    stepRows.push({ name: step.name, ...stepGrade });
   }
   const flipped = stepRows.filter((s) => s.verdict === 'EXPLOITED').map((s) => s.name);
   const allSkipped = stepRows.length > 0 && stepRows.every((s) => s.skip);

@@ -63,6 +63,36 @@ test('diffStoreSnapshots: mixed D1 + KV store maps dispatch per binding', () => 
   assert.equal(diffStoreSnapshots({}, { DB: { t: [] } }).bindings.DB.status, 'added');
   // a shape CHANGING between snapshots is an oracle bug, not a finding - loud
   assert.throws(() => diffStoreSnapshots({ DB: { t: [{ id: 1 }] } }, { DB: { k: 'v' } }), /changed shape between snapshots/);
+  // walk-15: a KV binding emptied between snapshots is a REAL DELETION - the
+  // empty side isD1Shape-true and used to grade 'mixed' into the codec throw.
+  const emptied = diffStoreSnapshots({ UPLOADS: { a: '1' } }, { UPLOADS: {} });
+  assert.equal(emptied.changed, true);
+  assert.equal(emptied.bindings.UPLOADS.kind, 'kv');
+  assert.deepEqual(emptied.bindings.UPLOADS.keys.removed.map((r) => r.key), ['a']);
+});
+
+test('walk-15: the fingerprint records __proto__ own-keys and undefined values (stringify dropped both - change invisible)', () => {
+  const protoKeyed = { id: 1, v: 1 };
+  Object.defineProperty(protoKeyed, '__proto__', { value: 'pwned', enumerable: true, writable: true, configurable: true });
+  const clean = { id: 1, v: 1 };
+  const d1 = diffD1Snapshots({ t: [clean] }, { t: [protoKeyed] });
+  assert.equal(d1.changed, true, 'a planted __proto__ own-key IS a changed row');
+  assert.deepEqual(d1.tables.t.changed[0].fields, ['__proto__']);
+
+  const withUndef = { id: 2, note: undefined };
+  const plain = { id: 2 };
+  const d2 = diffD1Snapshots({ t: [plain] }, { t: [withUndef] });
+  assert.equal(d2.changed, true, 'a key turning undefined IS a changed row');
+  assert.deepEqual(d2.tables.t.changed[0].fields, ['note']);
+
+  // the structural branch: a removed row carrying undefined survives intact
+  // (the old removal path rebuilt rows by JSON.parsing the fingerprint -
+  // undefined never survives stringify)
+  const d3 = diffD1Snapshots({ t: [withUndef] }, { t: [] });
+  assert.equal(d3.changed, true);
+  assert.equal(d3.tables.t.removed.length, 1);
+  assert.ok('note' in d3.tables.t.removed[0]);
+  assert.equal(d3.tables.t.removed[0].note, undefined);
 });
 
 test('harness integration: snapshotStore + diffSnapshots grade what the STORE did; no counter ticks', () => {

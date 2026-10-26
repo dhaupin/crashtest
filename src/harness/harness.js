@@ -164,22 +164,19 @@ export class Harness {
    * target's real code and never mutate during a campaign.
    */
   freezeTo() {
+    // Structure-deep clones, NOT per-row shallow spreads: a row with a nested
+    // object value shared by reference would keep mutating in the LIVE store
+    // after the freeze - the frozen "first-run state" was corrupted for every
+    // later runFresh on the same snapshot (the no-trace replay's core
+    // promise, broken silently). Rows are JSON-shaped data; a non-cloneable
+    // value (function etc.) fails LOUD here rather than silently aliasing.
     const kv = new Map();
     const d1 = new Map();
     for (const [name, binding] of Object.entries(this.env)) {
       if (binding instanceof FakeKV) {
-        kv.set(name, new Map(binding._store));
+        kv.set(name, structuredClone(binding._store));
       } else if (binding instanceof FakeD1) {
-        const tables = new Map();
-        for (const [tname, t] of binding._t) {
-          tables.set(tname, {
-            name: t.name,
-            rows: t.rows.map(r => ({ ...r })),
-            nextId: t.nextId,
-            uniques: new Map(t.uniques),
-          });
-        }
-        d1.set(name, { tables, drained: binding._drained });
+        d1.set(name, structuredClone({ tables: binding._t, drained: binding._drained }));
       }
       // vars/secrets are plain strings - buildEnv copies them by value, so
       // nothing to freeze. A non-fake binding (user-supplied adapter object)
@@ -228,19 +225,14 @@ export class Harness {
     }
     for (const [name, binding] of Object.entries(this.env)) {
       if (binding instanceof FakeKV && snapshot.kv.has(name)) {
-        const frozen = snapshot.kv.get(name);
-        binding._store = new Map(frozen);
+        // Detach on RESTORE too: assigning the frozen maps as-is would alias
+        // the snapshot into the live store, and the NEXT runFresh on the same
+        // snapshot would freeze live mutations into it (the no-trace replay
+        // promise, broken across sequential replays).
+        binding._store = structuredClone(snapshot.kv.get(name));
       } else if (binding instanceof FakeD1 && snapshot.d1.has(name)) {
         const frozen = snapshot.d1.get(name);
-        binding._t = new Map();
-        for (const [tname, t] of frozen.tables) {
-          binding._t.set(tname, {
-            name: t.name,
-            rows: t.rows.map(r => ({ ...r })),
-            nextId: t.nextId,
-            uniques: new Map(t.uniques),
-          });
-        }
+        binding._t = structuredClone(frozen.tables);
         binding._drained = frozen.drained;
       }
     }
