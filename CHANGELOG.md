@@ -277,6 +277,36 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
   moves to the true numbers WITH the inflation arithmetic named in the
   comment (rule 7: the shipped site shows what the CLI actually
   measured, not what an old baseline said).
+- the walk reaches the FakeD1 SQL subset (round 16, all ~1600 lines):
+  three silent-misfire classes closed:
+  - CREATE TABLE with a TABLE-LEVEL constraint line (UNIQUE(a, b),
+    CHECK(...), FOREIGN KEY (...), PRIMARY KEY(a, b), CONSTRAINT ...) used
+    to map the line into the column list as a PHANTOM column named after
+    the keyword - the declared compound unique simply did not exist, and
+    every duplicate row slid through (the loudest silent-misfire class in
+    the whole engine: schema you wrote that never armed). The lines now
+    refuse loud at CREATE time naming the unsupported declaration
+    (column-level UNIQUE flags and config-seeded uniques are the modeled
+    subset), and an odd/non-identifier column name refuses loudly too;
+  - INSERT ... VALUES tuple ARITY used to be silent: extra values became
+    rogue row keys (a JSON-visible junk field on the row), a short tuple
+    left missing columns that read as nulls - SQLite refuses both loudly
+    ("N values for M columns") and the fake now does the same;
+  - DISTINCT and GROUP BY keyed their dedupe on JSON.stringify - the
+    rule-6 trap one more time: stringify silently drops undefined-valued
+    keys (and __proto__ own-keys), so two DISTINCT rows or two GROUP BY
+    keys differing ONLY in an undefined-valued key collapsed into one row
+    or group (a silent repeating-count lie under aggregate surfaces).
+    Both now key on the rule-6-safe identity diff.js already defined
+    (exported as stableFingerprint - the harness has ONE definition of
+    "these two rows are the same"); uniques were already safe (?-null
+    mapped each key element first).
+  Teeth: 4 new rows in test/harness/d1.test.js (the four constraint
+  declarations refusing loud + the real subset still parsing; the extra
+  and short VALUES tuples refusing with the rogue-key check; DISTINCT
+  two-row truth; GROUP BY two-group truth). Suite floor: 392/392 with
+  PHP (was 388/388). Dogfood artifacts byte-stable (0 new / 0 regressed);
+  gates: check, lint:docs, packstruct lint (8 packs) clean.
 - the walk reaches the STATE-CAPTURE lane + closes a chain edge (rounds
   14/15):
   - chains: a throwing expect GRADER (or guard) escaped

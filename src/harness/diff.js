@@ -37,6 +37,11 @@ function fingerprint(value, depth = 0) {
   return `{${keys.map((k) => `${JSON.stringify(k)}:${fingerprint(value[k], depth + 1)}`).join(',')}}`;
 }
 
+/** The same rule-6-safe identity, shared: the fake D1's DISTINCT/GROUP BY/
+ * unique keying used bare JSON.stringify, which drops undefined keys and
+ * __proto__ own-keys - collapsing truly-distinct rows and groups. */
+export const stableFingerprint = fingerprint;
+
 /** Field names that differ between two row objects (sorted). Presence is
  * part of the answer: a key appearing/disappearing IS a change even when the
  * value is undefined (undefined fingerprints the same as absent by value -

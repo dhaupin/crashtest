@@ -53,6 +53,10 @@
 //     applied when a later one fails)
 //   - every statement ticks the counter's d1.query (+ d1.rows on materialize)
 
+// The rule-6-safe row identity lives in diff.js (the harness has ONE
+// definition of "these two rows are the same"); DISTINCT/GROUP BY key on it.
+import { stableFingerprint } from './diff.js';
+
 class D1Error extends Error {
   constructor(message, options = {}) {
     super(message);
@@ -148,6 +152,7 @@ const CMP_FNS = {
 };
 
 // ---------- fake-clock date/JSON helpers (issue #9) ----------
+// (comment preserved; imports live at the top)
 // The harness has ONE clock: FAKE_CLOCK_EPOCH. Date functions never touch
 // Date.now(); 'now' evaluates to that constant, so the same seed gives the
 // same output no matter when the campaign runs (determinism, house law 4).
@@ -810,7 +815,10 @@ function execSelectRows(db, ast, params, fallbackTable = null) {
     const groups = new Map();
     for (const { p, rc } of matched) {
       const keyVals = groupKeyCols.map((c) => rc.get(c));
-      const key = JSON.stringify(keyVals);
+      // stableFingerprint, not stringify: a group key [a, undefined]
+      // stringified to just ["a"] and collapsed into the missing-key group
+      // (the rule-6 drop, once per key element).
+      const key = stableFingerprint(keyVals);
       if (!groups.has(key)) groups.set(key, { keyVals, members: [] });
       groups.get(key).members.push({ p, rc });
     }
@@ -857,9 +865,13 @@ function execSelectRows(db, ast, params, fallbackTable = null) {
 
   let outRows = orderItems.map((e) => e.out);
   if (ast.distinct) {
+    // Rule-6 identity, not JSON.stringify: stringify silently drops
+    // undefined-valued keys and __proto__ own-keys, so two DISTINCT rows
+    // differing only in one of those collapsed into one row (a silent
+    // repeating-count lie in aggregate surfaces).
     const seen = new Set();
     orderItems = orderItems.filter((e) => {
-      const key = JSON.stringify(e.out);
+      const key = stableFingerprint(e.out);
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -992,6 +1004,12 @@ function execInsert(db, ast, params) {
     const compiled = ast.source.tuples.map(tuple =>
       tuple.map(src => compileExpr(src, { params, consumed, allowAgg: false, hasExcluded: false, binding })));
     for (const cells of compiled) {
+      // Tuple arity is a REAL SQLite error ("N values for M columns") that
+      // the fake silently accepted: extra values became rogue row keys, a
+      // short tuple left missing columns to read as nulls. Fail loud.
+      if (cells.length !== ast.columns.length) {
+        throw new D1Error(`crashtest-fake-d1: INSERT INTO ${ast.table} has ${ast.columns.length} columns but a VALUES tuple carries ${cells.length} values (${cells.length} values for ${ast.columns.length} columns)`, { code: 'PARSE' });
+      }
       const vals = cells.map(fn => fn({ get: () => undefined }));
       candidates.push(mkRow(table, ast.columns, vals.map(serialize)));
     }
@@ -1195,6 +1213,21 @@ export function parseDdl(sql) {
   let m = sql.match(/^CREATE\s+TABLE\s+(IF\s+NOT\s+EXISTS\s+)?(\w+)\s*\(([\s\S]+)\)$/i);
   if (m) {
     const [, ineRaw, table, colText] = m;
+    // A TABLE-LEVEL constraint line (UNIQUE(a, b), CHECK(...), FOREIGN KEY
+    // ..., PRIMARY KEY(a, b), CONSTRAINT name ...) used to map into the
+    // column list as a PHANTOM column named after the keyword - the declared
+    // compound unique simply did not exist, and every silent-misfire class
+    // the crates dies by lands there. Fail loud naming the unsupported
+    // declaration instead.
+    for (const line of splitProjection(colText)) {
+      const trimmed = line.trim();
+      if (/^(UNIQUE\s*\(|CHECK\s*\(|FOREIGN\s+KEY\b|CONSTRAINT\b|PRIMARY\s+KEY\b)/i.test(trimmed)) {
+        throw new D1Error(`crashtest-fake-d1: table-level constraint "${trimmed.slice(0, 30)}" is unsupported (column-level UNIQUE flags and config-seeded uniques are the modeled subset)`, { code: 'UNSUPPORTED' });
+      }
+      if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(trimmed.split(/\s+/)[0])) {
+        throw new D1Error(`crashtest-fake-d1: cannot parse column definition "${trimmed.slice(0, 30)}" (column names are bare identifiers; quoted/odd names are a documented gap)`, { code: 'PARSE' });
+      }
+    }
     const columns = splitProjection(colText).map((c) => {
       const parts = c.trim().split(/\s+/);
       const name = parts[0];

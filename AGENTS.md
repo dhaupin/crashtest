@@ -32,7 +32,7 @@ fixtures/demo/app.js    the self-dogfood target (hardened + vulnerable variants)
 fixtures/wordpress/     wp-worker.php + stub-wp/ (the generic subprocess worker
                         + the deterministic stub WP core the WP packs' teeth run on)
 fixtures/site/          second site shape the pack tests exercise
-test/                   388 tests; count pins live here - the guarantee -> pin
+test/                   392 tests; count pins live here - the guarantee -> pin
                         map is in the project brain's pins.md (see Project memory)
 web/                    the shipped site (prestruct-prerendered): Home, attack
                         catalog, dashboard (renders any ledger), FAQ; version
@@ -111,7 +111,7 @@ carry their own semver - never bump those for CLI-level releases.
 ## Common commands
 
 ```bash
-npm test             # full suite (node --test); 317 pass was the 1.1.0 floor,                      # 388 pass is the current-tree floor when PHP is available
+npm test             # full suite (node --test); 317 pass was the 1.1.0 floor,                      # 392 pass is the current-tree floor when PHP is available
                      # (the 2 armed wp e2e rows skip on PHP-less hosts)
 npm run check        # syntax check across every source/test file
 npm run lint:docs    # docs links + style + fiction-signature scan

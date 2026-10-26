@@ -111,3 +111,54 @@ test('parseStatement: WHERE inside string literal survives tokenization', () => 
   const ast = parseStatement("SELECT * FROM users WHERE email = 'a$order@x.example'");
   assert.equal(ast.verb, 'SELECT');
 });
+
+// ---- walk-16 teeth: the silent schema/arity/identity classes --------------
+
+test('walk-16: a TABLE-LEVEL constraint in CREATE TABLE refuses loudly (was a phantom column - the compound unique simply never existed)', () => {
+  for (const ddl of [
+    'CREATE TABLE pairs (a TEXT, b TEXT, UNIQUE(a, b))',
+    'CREATE TABLE guards (id INT, odd INT, CHECK (odd > 0))',
+    'CREATE TABLE links (id INT, t INT, FOREIGN KEY (t) REFERENCES t (id))',
+    'CREATE TABLE duo (a TEXT, b TEXT, PRIMARY KEY (a, b))',
+  ]) {
+    assert.throws(
+      () => parseStatement(ddl),
+      /table-level constraint|unsupported/,
+      `${ddl.slice(0, 40)} must name the unsupported declaration`,
+    );
+  }
+  // per-column flags and odd names keep parsing (the REAL subset)
+  assert.equal(parseStatement('CREATE TABLE t (a INTEGER, b TEXT UNIQUE PRIMARY KEY NOT NULL)').verb, 'CREATE_TABLE');
+});
+
+test('walk-16: VALUES arity mismatch refuses loud, per SQLite (extra values became rogue row keys; short tuples read nulls silently)', async () => {
+  const counter = newBackendCounter();
+  const db = new FakeD1({ tables: { t: { rows: [], uniques: {} } }, counter });
+  await assert.rejects(
+    db.prepare('INSERT INTO t (a, b, c) VALUES (1, 2, 3, 4)').run(),
+    /4 columns but a VALUES tuple carries 4|values for 3 columns/,
+  );
+  await assert.rejects(
+    db.prepare('INSERT INTO t (a, b, c) VALUES (1, 2)').run(),
+    /3 columns but a VALUES tuple carries 2/,
+  );
+  // equal arity still inserts, junk-key free
+  await db.prepare('INSERT INTO t (a, b, c) VALUES (1, 2, 3)').run();
+  const snap = db.snapshot();
+  assert.equal(snap.t[0].a, 1);
+  assert.ok(!('3' in snap.t[0]), 'no rogue positional key on the row, ever');
+});
+
+test('walk-16: DISTINCT records an undefined-valued key as REAL difference (stringify dropped it - rows collapsed)', async () => {
+  const { db } = mkdb({ t: { rows: [{ id: 1, kind: 'a' }, { id: 2, kind: 'a', note: undefined }], uniques: {} } });
+  const res = await db.prepare('SELECT DISTINCT kind, note FROM t').all();
+  assert.equal(res.results.length, 2, 'a present-but-undefined key IS a distinct row shape');
+});
+
+test('walk-16: GROUP BY keys keep undefined-valued groups separate (stringify collapsed them into the missing-key group)', async () => {
+  const { db } = mkdb({ t: { rows: [{ id: 1, kind: 'a' }, { id: 2, kind: 'a', tag: undefined }], uniques: {} } });
+  const res = await db.prepare('SELECT kind, tag, COUNT(*) AS n FROM t GROUP BY kind, tag').all();
+  assert.equal(res.results.length, 2, '[a] and [a, undefined] are two groups');
+  const counts = res.results.map((r) => r.n).sort();
+  assert.deepEqual(counts, [1, 1]);
+});
