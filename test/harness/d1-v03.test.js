@@ -219,6 +219,28 @@ test('v0.3: ALTER TABLE ADD COLUMN backfills DEFAULT and stays NOT-NULL-loud; d1
   assert.equal(counter.count('d1.ddl'), 2, 'd1.ddl ticks on EXECUTED ddl (parse-time refusals name the gap before the engine sees them)');
 });
 
+// walk-ALT teeth: ADD COLUMN constraint declarations the REAL SQLite also
+// refuses - the fake used to accept the words and then NON-MODEL them
+// (phantom schema: a constraint you wrote that never armed).
+test('walk-ALT: ADD COLUMN + UNIQUE/PK/CHECK/FK refuses loud (real-SQLite parity; the working DEFAULT path still backfills)', async () => {
+  const counter = newBackendCounter();
+  const db = new FakeD1({ tables: { t: { rows: [{ id: 1 }], uniques: {} } }, counter });
+  for (const [ddl, want] of [
+    ['ALTER TABLE t ADD COLUMN u TEXT UNIQUE', /ADD COLUMN u with UNIQUE is refused/],
+    ['ALTER TABLE t ADD COLUMN id INTEGER PRIMARY KEY', /with PRIMARY KEY is refused/],
+    ["ALTER TABLE t ADD COLUMN c TEXT DEFAULT 'x' CHECK (c > 'a')", /CHECK is refused/],
+    ['ALTER TABLE t ADD COLUMN f INTEGER REFERENCES t (id)', /REFERENCES is refused/],
+    ['ALTER TABLE t ADD COLUMN g INTEGER FOREIGN KEY (g) REFERENCES t (id)', /FOREIGN KEY is refused/],
+  ]) {
+    await assert.rejects(db.prepare(ddl).run(), want, `${ddl.slice(0, 40)} must refuse the un-modelable constraint`);
+  }
+  // the LEGIT add-column paths keep working end to end (backfill + counter)
+  await db.prepare("ALTER TABLE t ADD COLUMN note TEXT DEFAULT 'clean'").run();
+  const row = await db.prepare('SELECT note FROM t WHERE id = 1').first('note');
+  assert.equal(row, 'clean', 'the modeled subset (plain add, DEFAULT backfill) still works');
+  assert.equal(counter.count('d1.ddl'), 1, 'only the executed DDL ticks');
+});
+
 // ---- v0.2 contracts never regressed by the v0.3 growth ----
 test('v0.3: LIMIT/OFFSET params + textual binding still read WHERE-first, LIMIT-second', async () => {
   const { db } = mkdb(CENSUS);

@@ -1246,6 +1246,16 @@ export function parseDdl(sql) {
     const rawTail = (m[3] ?? '').trim();
     const restParts = rawTail.split(/\s+/);
     const rest = restParts.join(' ').toUpperCase();
+    // Real-SQLite parity for ADD COLUMN (verified grammar): UNIQUE and
+    // PRIMARY KEY are UN-ADDABLE on SQLite too ("Cannot add a UNIQUE
+    // column") - the fake used to accept the declaration and then NON-MODEL
+    // it, the phantom-schema class again: a constraint you wrote that never
+    // armed. CHECK/FK/REFERENCES clauses are rejected as the un-modeled
+    // subset (loud, so a declaration never silently disappears).
+    const unaddable = rest.match(/\b(UNIQUE|PRIMARY\s+KEY|CHECK|FOREIGN\s+KEY|REFERENCES)\b/);
+    if (unaddable) {
+      throw new D1Error(`crashtest-fake-d1: ALTER TABLE ${m[1]} ADD COLUMN ${m[2]} with ${unaddable[0]} is refused (SQLite cannot ADD a ${unaddable[0] === 'UNIQUE' ? 'UNIQUE' : unaddable[0] === 'PRIMARY KEY' ? 'PRIMARY KEY' : 'constrained'} column, and the fake engine models no CHECK/FK enforcement - declare it in the seeded tables schema instead)`, { code: 'UNSUPPORTED' });
+    }
     if (rest.includes('NOT NULL') && !rest.includes('DEFAULT')) {
       throw new D1Error(`crashtest-fake-d1: ALTER TABLE ${m[1]} ADD COLUMN ${m[2]} NOT NULL without DEFAULT (SQLite refuses it on a non-empty table)`, { code: 'PARSE' });
     }

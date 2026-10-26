@@ -277,6 +277,22 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
   moves to the true numbers WITH the inflation arithmetic named in the
   comment (rule 7: the shipped site shows what the CLI actually
   measured, not what an old baseline said).
+- the ALTER-lane phantom closes (the round-16 walk's one honest note,
+  built the same session): ALTER TABLE ... ADD COLUMN with a
+  UNIQUE / PRIMARY KEY / CHECK / FOREIGN KEY / REFERENCES clause accepted
+  the WORDS and then NON-MODELED them - a constraint you wrote at alter
+  time that never armed, the exact phantom-schema class the CREATE-side
+  guard had just refused. Real-SQLite parity: UNIQUE and PK are not
+  ADD-able on SQLite either ("Cannot add a UNIQUE column"), and the fake
+  models no CHECK/FK enforcement - every one of the five clauses now
+  refuses loud naming the clause and the working alternative (declare it
+  in the seeded tables schema); NOT NULL without DEFAULT keeps its
+  existing SQLite-matched refusal; the legit paths (plain add, DEFAULT
+  constant backfill) stay green end to end, and the d1.ddl counter keeps
+  ticking on EXECUTED ddl only. Teeth: 1 new row in test/harness/d1-
+  v03.test.js (five refusals + the backfill-with-counter positive path).
+  Suite floor: 393/393 with PHP (was 392/392). Dogfood artifacts byte-
+  stable; gates: check, lint:docs, packstruct lint clean.
 - the walk reaches the FakeD1 SQL subset (round 16, all ~1600 lines):
   three silent-misfire classes closed:
   - CREATE TABLE with a TABLE-LEVEL constraint line (UNIQUE(a, b),
