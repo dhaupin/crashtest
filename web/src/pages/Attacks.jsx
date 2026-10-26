@@ -188,8 +188,10 @@ export default function Attacks() {
           dispatch, real-SQL metering, call/option gates),{' '}
           <code>wp-money-shapes</code> (3 attacks - the armedByKey option
           ceremony), and <code>wp-roles</code> (3 attacks, experimental -
-          role/capability shapes). Every shipped pack carries its own
-          self-audit fixtures (<code>test/fixtures/run.mjs</code> per pack).
+          role/capability shapes). Pack oracles are pinned where their teeth
+          live: the per-pack files linked above, the shared census in{' '}
+          <a href="https://github.com/dhaupin/crashtest/blob/main/test/pack-fixtures.test.js" target="_blank" rel="noreferrer">test/pack-fixtures.test.js</a>, and the tarball-shape pins in{' '}
+          <a href="https://github.com/dhaupin/crashtest/blob/main/test/packaging.test.js" target="_blank" rel="noreferrer">test/packaging.test.js</a>.
           Same verdicts, same ledger, still zero sockets.
         </p>
         <p className="field-report">

@@ -7,6 +7,24 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.1.1 (unreleased)
 
+- the snapshot generator and the site catalog lose their fiction (walk round
+  22): the dogfood-snapshot generator carried a dead `version === 'unknown'`
+  reassignment branch (unreachable inside its own matched path) - removed;
+  and nothing gated staleness of the committed `web/src/lib/dogfoodSnapshot.js`,
+  so a dogfood run that changed `labs/` without a regen would drift the site's
+  default view into rendering stale receipts as the current baseline; the new
+  test/dogfood-snapshot.test.js re-derives the snapshot from the committed
+  `labs/crashledger.json` + `labs/hardening.md` (the full ledger deep-equals,
+  cost totals/per-attack rows/seed+version pin the header) and fails with the
+  regen command named; `startedAt` stays the blessed moving stamp (run-meta
+  sidecar, artifacts never move). And the /attacks page advertised a reality
+  that does not exist - 'Every shipped pack carries its own self-audit
+  fixtures (test/fixtures/run.mjs per pack)': there is no `test/fixtures/`
+  directory; the prose now points at the pins that DO exist (the per-pack
+  teeth files, the shared census in test/pack-fixtures.test.js, and the
+  tarball-shape pins in test/packaging.test.js). Floor 406 -> 408; site build
+  6/6 prerendered.
+
 - the dashboard-ledger bridge stops dropping honest flags and stops taking a
   blob's own tally claim over its rows (walk round 21): skipped-REFUSED rows
   lost their `skipped` flag in the view model, so the site dashboard rendered

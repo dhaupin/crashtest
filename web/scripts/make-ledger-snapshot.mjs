@@ -42,9 +42,12 @@ if (headNew) {
   const metaPath = path.join(ROOT, 'labs', 'run-meta.json');
   try {
     const meta = JSON.parse(await readFile(metaPath, 'utf8'));
-    if (meta.crashtestVersion && version === 'unknown') version = meta.crashtestVersion;
+    // The report header's version is written by the CLI in the same run, so
+    // it never arrives 'unknown' here; run-meta only supplies the cut stamp
+    // + seed (the first cut carried a dead 'if version === unknown'
+    // reassignment branch that could never fire).
     startedAt = meta.generatedAt ?? null;
-    seed = meta.seed ?? Number(seed);
+    seed = meta.seed != null ? Number(meta.seed) : Number(seed);
   } catch { /* run-meta is a sidecar; missing it leaves startedAt null */ }
 } else if (headOld) {
   [, version, startedAt, seed] = headOld;
