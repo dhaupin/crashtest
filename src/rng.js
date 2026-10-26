@@ -26,12 +26,19 @@ export class Rng {
     return this.next() / 0x100000000;
   }
 
-  /** integer in [min, max] inclusive */
+  /** integer in [min, max] inclusive - inverted bounds are a caller bug,
+   * not a roll (silent nonsense is the same class as a silent green). */
   int(min, max) {
+    if (!Number.isInteger(min) || !Number.isInteger(max) || max < min) {
+      throw new TypeError(`rng.int(${min}, ${max}) needs two integers with max >= min`);
+    }
     return min + (this.next() % (max - min + 1));
   }
 
   pick(list) {
+    if (!Array.isArray(list) || list.length === 0) {
+      throw new TypeError(`rng.pick needs a non-empty array (got ${Array.isArray(list) ? 'an empty one' : String(list)})`);
+    }
     return list[this.next() % list.length];
   }
 

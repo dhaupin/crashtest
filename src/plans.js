@@ -41,10 +41,21 @@ function statusFor({ name, armedKey }, { filter, moduleCtx }) {
 export function buildModulePlan(target, packs = [], scenarios = []) {
   const filter = Array.isArray(target?.modules) ? new Set(target.modules) : null;
   const moduleCtx = (typeof target?.moduleCtx === 'object' && target.moduleCtx !== null) ? target.moduleCtx : {};
-  const packByName = new Map(packs.map((p) => [p.manifest.name, p]));
+  // Pack resolution: keyed by PACK ORIGIN first (a pack-loaded scenario's
+  // origin IS the pack's origin), plus the manifest-name alias for configs
+  // that pass packs by name. Module-NAME equality would be wrong: a pack
+  // may legitimately ship an entry whose scenario name differs from the
+  // pack name (shared entries, bundled plugins) - resolving pack-level
+  // facts (armedByKey, prerequisites) by module name would silently miss
+  // those and mark NEEDS-ARMING manifests as WILL-FIRE.
+  const packByKey = new Map();
+  for (const p of packs) {
+    packByKey.set(p.origin, p);
+    packByKey.set(p.manifest.name, p);
+  }
 
   const modules = scenarios.map(({ origin, module }) => {
-    const pack = packByName.get(module.name) ?? null;
+    const pack = packByKey.get(origin) ?? packByKey.get(module.name) ?? null;
     const armedKey = (module.armedByKey !== undefined ? module.armedByKey : pack?.manifest.armedByKey ?? null);
     const decided = statusFor({ name: module.name, armedKey }, { filter, moduleCtx });
     return {

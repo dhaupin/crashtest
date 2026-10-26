@@ -413,6 +413,12 @@ async function loadPackDir(packDir, name, visibility, seen, out, check, validate
   } catch (err) {
     throw new Error(`pack "${spec.name}" (${origin}): entry "${spec.entry}" failed to import: ${err.message}`);
   }
+  // NOTE on manifest-module name: the ENTRY module's scenario name is its
+  // own contract field (validateScenario owns it for profile packs) and a
+  // pack may legitimately ship an entry whose scenario name differs from
+  // the pack name (shared entries, bundled plugins). Plans resolve pack-
+  // level facts (armedByKey, prerequisites) by the PACK origin, never by
+  // module-name equality - see buildModulePlan.
   // Bundled plugin imports: resolved against the PACK dir (the manifest
   // lifelines its own imports), shared `seen` keeps cross-surface name
   // collisions one loud error with the earlier origin.

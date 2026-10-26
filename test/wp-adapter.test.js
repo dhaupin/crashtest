@@ -54,3 +54,15 @@ test('reply: redirect + wp_die map to honest statuses', () => {
   assert.equal(d.status, 403);
   assert.equal(d.headers.get('x-ct-wp-die'), '1');
 });
+
+// edge-walk tooth (determinism, rule 4): the adapter is a shipped surface -
+// the wire ids that ride every envelope must not come from unseeded
+// randomness. Generator: process-monotonic counter (deterministic per run).
+test('wp adapter src is FLAT: no Math.random / Date.now in the shipped adapter surface', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { dirname, join: joinPath } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const src = readFileSync(joinPath(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'adapters', 'wordpress.js'), 'utf8');
+  assert.doesNotMatch(src, /Math\.random\(/, 'unseeded randomness on a shipped surface breaks same-commit -> same-wire');
+  assert.doesNotMatch(src, /Date\.now\(/, 'wall-clock reads on a shipped surface break determinism');
+});

@@ -2,6 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Harness, buildHarness } from '../../src/harness/harness.js';
 import { FakeKV } from '../../src/harness/kv.js';
+import { Rng } from '../../src/rng.js';
+import { buildEnv } from '../../src/harness/env.js';
+import { newBackendCounter } from '../../src/harness/counters.js';
 
 // A tiny target app fixture - Pages-Functions-shaped handler. This is what
 // scenarios will attack in v0.1 dogfooding.
@@ -160,4 +163,57 @@ test('harness: restoreTo rejects junk snapshots loudly (rule 3)', () => {
   const h = buildHarness(makeRoutes(), { env: envSpec });
   assert.throws(() => h.restoreTo(null), /freezeTo\(\) snapshot/);
   assert.throws(() => h.restoreTo({ hello: 1 }), /freezeTo\(\) snapshot/);
+});
+
+// ---- edge-walk teeth (round-1 catches): silent fills become loud refusals ----
+
+test('rng: pick on an empty list is a caller bug, not a silent undefined', () => {
+  const r = new Rng(7);
+  assert.throws(() => r.pick([]), /non-empty array/);
+  assert.equal(r.pick(['a']), 'a');
+});
+
+test('rng: inverted int bounds are a caller bug, not a silent nonsense roll', () => {
+  const r = new Rng(7);
+  assert.throws(() => r.int(5, 3), /max >= min/);
+  assert.throws(() => r.int(1.5, 3), /two integers/);
+  assert.equal(r.int(3, 3), 3);
+});
+
+test('kv: unimplemented delivery types refuse loudly (type honesty)', async () => {
+  const kv = new FakeKV('T');
+  await kv.put('k', 'v');
+  await assert.rejects(() => kv.get('k', 'arrayBuffer'), /not implemented by the fake/);
+  await assert.rejects(() => kv.get('k', 'stream'), /not implemented by the fake/);
+  assert.equal(await kv.get('k', 'text'), 'v');
+  assert.equal(await kv.get('k', 'json'), null); // 'v' does not parse as json -> null (the KV contract)
+});
+
+test('kv: list limit outside 1..1000 refuses - a 0 page would stall pagination forever', async () => {
+  const kv = new FakeKV('T');
+  await kv.put('a', '1');
+  await assert.rejects(() => kv.list({ limit: 0 }), /1\.\.1000/);
+  await assert.rejects(() => kv.list({ limit: 1001 }), /1\.\.1000/);
+  assert.equal((await kv.list({ limit: 1 })).keys.length, 1);
+});
+
+test('kv: a NaN expiration refuses loudly instead of silently never expiring', async () => {
+  const kv = new FakeKV('T');
+  await assert.rejects(() => kv.put('bad', 'v', { expiration: NaN }), /not a number/);
+  // past/at-clock expiration stays legal BY DESIGN: it is the fake-clock scrub
+  await kv.put('scrub', 'v', { expiration: 1 });
+  assert.equal(await kv.get('scrub'), null);
+});
+
+test('kv: an unserializable put value refuses instead of storing undefined', async () => {
+  const kv = new FakeKV('T');
+  const circular = {}; circular.self = circular;
+  await assert.rejects(() => kv.put('x', circular), /not JSON-serializable/);
+});
+
+test('env: a name declared as BOTH var and secret is a config bug, not a silent last-write', () => {
+  assert.throws(
+    () => buildEnv({ var: { KEY: 'a' }, secrets: { KEY: 'b' } }, newBackendCounter()),
+    /one name, one owner/,
+  );
 });

@@ -199,6 +199,45 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
   dependency lands before the surface exists for real (the
   no-fiction rule holds: poststruct's staging lane is still in
   flight - its row activates when it settles).
+- the full-tree edge walk lands (round-1..4 sweep, silent-fill to loud
+  refusal class + one determinism leak):
+  (a) `run`/`packs`/`lint-packs`/`lint-determinism` REJECT unknown flags
+  with exit 2 naming each (the packstruct#18 class; the worst instance:
+  a typo'd `--expec-baseline` used to silently run WRITTEN where a
+  read-only CI diff was asked for - a gate semantic dropped without a
+  word);
+  (b) D1: `LIMIT ?` with a missing bound param is now a named NO_PARAM
+  error instead of silently returning EVERY row; negative LIMIT/OFFSET
+  take SQLite semantics (LIMIT -1 = no limit, OFFSET < 0 = zero skip)
+  and the LIMIT clause grammar learns the optional sign; a projection
+  split no longer breaks on a comma inside a double-quoted string;
+  (c) KV: unimplemented delivery types (arrayBuffer/stream) refuse
+  loudly instead of returning the string; list limits are validated
+  1..1000 (a 0 would stall pagination forever with no cursor); NaN
+  expirations and non-JSON-serializable values refuse at the fake's
+  boundary - while past-expiration PUTs stay legal BY DESIGN (the
+  fake-clock scrub contract from v0.2, deliberately re-pinned);
+  (d) rng: `pick([])` and inverted `int()` bounds are caller bugs,
+  not silent undefineds;
+  (e) env: a name declared as BOTH var and secret fails loudly (one
+  name, one owner);
+  (f) the WP adapter's envelope ids leave `Math.random()` for a
+  process-monotonic counter (rule 4: no unseeded randomness on a
+  shipped surface; ids are wires, not findings, but the surface stays
+  flat for the determinism law);
+  (g) plans: pack-level facts (armedByKey, version, prerequisites)
+  resolve by the pack ORIGIN, not module-name equality - a pack may
+  legitimately ship an entry whose scenario name differs from the pack
+  name (shared entries, bundled plugins), and a module-name lookup
+  silently missed those and marked WILL-FIRE where the manifest
+  demanded arming.
+  Teeth: 16 new rows across the harness/cli/packs/d1/wp-adapter/plan
+  suites (each guard gets its misfire pinned; the kv past-expiration
+  legality and the wp-adapter flat-surface rows ride along). Suite
+  floor: 364/364 with PHP (was 348/348). Docs: none needed here (all
+  changes keep documented contracts true; the LIMIT/OFFSET sign
+  support is the SQL subset's existing `LIMIT ?|n [OFFSET ?|m]` row
+  learning that `n` includes negatives, as SQLite does).
 
 ## 1.1.0 (2026-10-25 on npm)
 

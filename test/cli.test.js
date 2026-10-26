@@ -456,3 +456,84 @@ test('config packs: pointing packs: at packs/public refuses loudly naming the pa
     process.exitCode = 0;
   });
 });
+
+// ---- edge-walk teeth: silent flag fills become loud refusals (the #18 class) ----
+
+test('run: an unknown flag is a usage error (exit 2) - a typo that silently drops a gate is the exact misfire class this CLI exists to kill', async () => {
+  await inRepo('run-uflag', async () => {
+    const out = [];
+    const orig = console.error;
+    console.error = (...a) => out.push(a.join(' '));
+    try {
+      await main(['run', '--allow-vacuous', '--jsox']);
+    } finally {
+      console.error = orig;
+    }
+    assert.equal(process.exitCode, 2);
+    assert.match(out.join('\n'), /run: unknown flag\(s\) "--jsox"/);
+    process.exitCode = 0;
+  });
+});
+
+test('run: --expec-baseline typo is refused loudly, never a strict-vs-read-only coin flip', async () => {
+  await inRepo('run-baseline-typo', async () => {
+    await main(['init']);
+    const out = [];
+    const orig = console.error;
+    console.error = (...a) => out.push(a.join(' '));
+    try {
+      await main(['run', '--expec-baseline', 'labs/crashledger.json']);
+    } finally {
+      console.error = orig;
+    }
+    assert.equal(process.exitCode, 2);
+    assert.match(out.join('\n'), /unknown flag\(s\) "--expec-baseline"/);
+    process.exitCode = 0;
+  });
+});
+
+test('packs: an unknown flag is a usage error (exit 2), same contract', async () => {
+  await inRepo('packs-uflag', async () => {
+    await main(['init']);
+    const out = [];
+    const orig = console.error;
+    console.error = (...a) => out.push(a.join(' '));
+    try {
+      await main(['packs', '--jso']);
+    } finally {
+      console.error = orig;
+    }
+    assert.equal(process.exitCode, 2);
+    assert.match(out.join('\n'), /packs: unknown flag\(s\) "--jso"/);
+    process.exitCode = 0;
+  });
+});
+
+test('run --lint-packs on a CONFIGLESS root serves the explicitly requested lane - not a missing-config exit, not a vacuous skip', async () => {
+  await inRepo('run-lintpacks-configless', async () => {
+    const out = [];
+    const origLog = console.log;
+    const origErr = console.error;
+    console.log = (...a) => out.push(a.join(' '));
+    console.error = (...a) => out.push(a.join(' '));
+    try {
+      // No config, no labs/, no packs/ dir - the lane is explicitly asked for,
+      // so it must RUN (here: refuse at the install check), never answer with
+      // "no crashtest.config.js" or the vacuous one-liner.
+      await main(['run', '--lint-packs', '--allow-vacuous']);
+    } finally {
+      console.log = origLog;
+      console.error = origErr;
+    }
+    const text = out.join('\n');
+    // The explicit lane is SERVICED (the packstruct call happens; its own
+    // output rides stdio: 'inherit', so it lands on the real stdout - the
+    // assertions below watch what the CLI itself answers).
+    assert.match(text, /running packstruct over packs/);
+    // ...and the configless-root shape stays out of the lane's way: no
+    // missing-config exit text, no vacuous run line.
+    assert.doesNotMatch(text, /no crashtest\.config\.js found|vacuous run/);
+    assert.doesNotMatch(text, /no crashtest\.config\.js in /);
+    process.exitCode = 0;
+  });
+});

@@ -597,7 +597,10 @@ function splitProjection(src) {
   for (let i = 0; i < src.length; i++) {
     const ch = src[i];
     if (quoted) { if (ch === quoted) quoted = null; continue; }
-    if (ch === `'`) { quoted = ch; continue; }
+    // BOTH quote shapes split-protect: the tokenizer accepts double-quoted
+    // strings (JSON path literals arrive quoted), so a ',' inside "a,b"
+    // must not split the projection list.
+    if (ch === `'` || ch === `"`) { quoted = ch; continue; }
     if (ch === `(`) { depth++; continue; }
     if (ch === `)`) { depth--; continue; }
     if (depth !== 0) continue;
@@ -888,11 +891,24 @@ function execSelectRows(db, ast, params, fallbackTable = null) {
   }
 
   // LIMIT / OFFSET - bound by parameter allowed ('?' consumed in TEXTUAL
-  // order: LIMIT's param is read before OFFSET's, matching the SQL text)
-  if (ast.limitRaw === '?') ast.limit = params[consumed.v++];
+  // order: LIMIT's param is read before OFFSET's, matching the SQL text).
+  // A bound-but-missing LIMIT param must fail loudly: falling through as
+  // `undefined` silently drops the LIMIT and returns every row (a silent
+  // row-flood, the misfire class that finds nothing by finding too much).
+  if (ast.limitRaw === '?') {
+    if (params[consumed.v] === undefined) {
+      throw new D1Error(`crashtest-fake-d1: LIMIT ? has no bound parameter at position ${consumed.v + 1} (bind all ?s positionally)`, { code: 'NO_PARAM' });
+    }
+    ast.limit = params[consumed.v++];
+  }
   if (ast.offsetRaw === '?') ast.offset = params[consumed.v++];
-  if (ast.offset != null) outRows = outRows.slice(ast.offset);
-  if (ast.limit != null) outRows = outRows.slice(0, ast.limit);
+  // SQLite semantics: a negative OFFSET evaluates to zero (no skip) -
+  // slice(-n) would instead keep the LAST n rows, which is a different
+  // (wrong) answer on the same query.
+  if (ast.offset != null) outRows = outRows.slice(Math.max(0, ast.offset));
+  // SQLite semantics: a negative LIMIT means NO limit (not slice(0, -n)'s
+  // "everything except the tail").
+  if (ast.limit != null && ast.limit >= 0) outRows = outRows.slice(0, ast.limit);
 
   db._counter?.increment('d1.rows', outRows.length);
   return outRows;
@@ -1237,7 +1253,9 @@ export function parseSelectClause(s, fallbackTable = null) {
   if (limIdx > -1) {
     const lim = s.slice(limIdx + 5).trim();
     s = s.slice(0, limIdx).trim();
-    const m2 = lim.match(/^(\?|\d+)(?:\s+OFFSET\s+(\?|\d+))?$/i);
+    // Negative literals ride along (SQLite: LIMIT -1 = no limit, OFFSET n<0
+    // = zero skip); the runtime clamps below give them those exact semantics.
+    const m2 = lim.match(/^(\?|-?\d+)(?:\s+OFFSET\s+(\?|-?\d+))?$/i);
     if (!m2) {
       throw new D1Error(`crashtest-fake-d1: cannot parse literal "LIMIT ${lim.slice(0, 30)}" (wants LIMIT ?|n [OFFSET ?|m])`, { code: 'PARSE' });
     }

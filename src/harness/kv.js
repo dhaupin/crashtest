@@ -44,10 +44,25 @@ export class FakeKV {
       if (bytes > this._maxBytes) {
         throw new Error(`crashtest-fake-kv[${this.name}]: value for "${key}" is ${bytes} bytes (cap: ${this._maxBytes} - the real Workers KV would refuse it; trim the payload or raise opts.maxBytes for the fake)`);
       }
+    } else if (typeof value === 'object' && value !== null) {
+      try {
+        JSON.stringify(value);
+      } catch {
+        // circular blobs stringify as 'undefined' on real JSON paths too - refuse
+        throw new TypeError(`crashtest-fake-kv[${this.name}]: value for "${key}" is not JSON-serializable - KV stores strings`);
+      }
     }
     const expiresAt = opts.expiration != null
       ? Number(opts.expiration)
       : (opts.expirationTtl != null ? this._clock + Number(opts.expirationTtl) : null);
+    if (expiresAt != null && !Number.isFinite(expiresAt)) {
+      throw new TypeError(`crashtest-fake-kv[${this.name}]: expiration for "${key}" is not a number (got ${String(opts.expiration ?? opts.expirationTtl)}) - the real KV would refuse it`);
+    }
+    // NOTE: expiration at/before the fake clock is DELIBERATELY accepted -
+    // it is how a campaign scrubs a key deterministically (the v0.2
+    // fake-clock contract: get() past expiry reads as NOT PRESENT). The
+    // real KV refuses past writes, but the fake is the time-standin for
+    // that behavior, not a re-implementation of its form validation.
     return {
       value: typeof value === 'string' ? value : JSON.stringify(value),
       metadata: opts.metadata ?? null,
@@ -70,6 +85,12 @@ export class FakeKV {
     this._counter?.increment('kv.get');
     const opts = typeof typeOrOpts === 'object' && typeOrOpts !== null ? typeOrOpts : {};
     const type = (typeof typeOrOpts === 'string' ? typeOrOpts : opts.type) ?? undefined;
+    // Type honesty: the fake implements the string-world types only - an
+    // unimplemented delivery shape must refuse loudly instead of returning
+    // the decoded string (a silent wrong shape reads as a correct one).
+    if (type !== undefined && !['text', 'string', 'json'].includes(type)) {
+      throw new TypeError(`crashtest-fake-kv[${this.name}]: get type "${type}" is not implemented by the fake (supported: text|string|json) - the fake's string-world contract is not the wire contract for this type`);
+    }
     const v = this._valueOf(key);
     if (v === null) return null;
     if (type === 'json') {
@@ -106,6 +127,12 @@ export class FakeKV {
 
   async list({ prefix = '', limit = 1000, cursor, include } = {}) {
     this._counter?.increment('kv.list');
+    // Pagination honesty: limit 0 would return an empty page with
+    // list_complete: false and NO cursor - a caller loop would stall forever.
+    // The real KV cap is 1000; the fake accepts 1..1000 and refuses the rest loudly.
+    if (!Number.isInteger(limit) || limit < 1 || limit > 1000) {
+      throw new TypeError(`crashtest-fake-kv[${this.name}]: list limit must be an integer in 1..1000 (got ${String(limit)}) - the real Workers KV page range`);
+    }
     const keys = [...this._store.keys()]
       .filter(k => k.startsWith(prefix))
       .sort();

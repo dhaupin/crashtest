@@ -241,3 +241,27 @@ test('v0.3: RIGHT JOIN rewrite hint stays loud', async () => {
     /RIGHT JOIN is not modeled/,
   );
 });
+
+// ---- edge-walk teeth (round-1 fixes): silent fills become loud refusals ----
+
+test('v0.3: LIMIT ? with a missing bound param is NO_PARAM, not silently-returns-everything', async () => {
+  const { db } = mkdb(CENSUS);
+  await assert.rejects(
+    db.prepare('SELECT id FROM devices LIMIT ?').all(),
+    (e) => /LIMIT \? has no bound parameter/.test(e.message) && e.code === 'NO_PARAM',
+  );
+});
+
+test('v0.3: negative LIMIT/OFFSET follow SQLite (offset -> zero, limit -> no limit)', async () => {
+  const { db } = mkdb(CENSUS);
+  const all = await db.prepare('SELECT id FROM devices ORDER BY id').all();
+  const neg = await db.prepare('SELECT id FROM devices ORDER BY id LIMIT -1 OFFSET -3').all();
+  assert.equal(neg.results.length, all.results.length,
+    'negative OFFSET must skip nothing and negative LIMIT must clamp nothing - slice(-n) would answer with the TAIL instead');
+});
+
+test('v0.3: a double-quoted string containing a comma does not split the projection', async () => {
+  const { db } = mkdb(CENSUS);
+  const rows = await db.prepare('SELECT "a,b" AS seg, id FROM devices ORDER BY id LIMIT 1').all();
+  assert.deepEqual(rows.results[0], { seg: 'a,b', id: 1 });
+});

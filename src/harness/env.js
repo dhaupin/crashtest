@@ -29,6 +29,15 @@ export function buildEnv(spec, counter) {
     env[db] = new FakeD1({ tables: def.tables ?? {}, counter });
   }
 
+  // var/secrets share one env object in the real runtime - a silent
+  // overwrite between the two spec maps hides a config mistake (the run
+  // root would never know which map it was reading). One name, one owner.
+  const varNames = new Set(Object.keys(spec.var ?? {}));
+  for (const k of Object.keys(spec.secrets ?? {})) {
+    if (varNames.has(k)) {
+      throw new TypeError(`buildEnv: "${k}" is declared BOTH as env var and as secret - one name, one owner; drop one of the two declarations`);
+    }
+  }
   for (const [k, v] of Object.entries(spec.var ?? {})) env[k] = v;
   for (const [k, v] of Object.entries(spec.secrets ?? {})) env[k] = v;
 

@@ -384,6 +384,18 @@ async function cmdRun(opts = {}) {
   const root = repoRoot();
   const configName = opts.config ?? 'crashtest.config.js';
   const configPath = join(root, configName);
+
+  // run --lint-packs (issue #32): the packstruct lane INSTEAD of the
+  // campaign - no requests, no artifacts; explicit request + missing
+  // packstruct = loud exit 2 (same policy as the lint-packs verb). It
+  // needs NOTHING from the config, so it runs BEFORE the config-existence
+  // check: an explicitly requested lane must be serviced, not silently
+  // skipped behind a vacuous line or a missing-config exit on a configless
+  // root (the misfire class: a deep-gate CI step that never actually ran).
+  if (opts.lintPacks) {
+    return cmdLintPacks();
+  }
+
   if (!(await exists(configPath))) {
     // issue #37 - opt-in vacuous run: a repo in the pre-handler lifecycle
     // state keeps the pinned install + the CI step LIVE instead of parking
@@ -412,14 +424,6 @@ async function cmdRun(opts = {}) {
     console.error('Directories: labs/scenarios/ is auto-scanned for extra scenario modules.');
     process.exitCode = 2;
     return;
-  }
-
-  // run --lint-packs (issue #32): the packstruct lane INSTEAD of the
-  // campaign - no requests, no artifacts; explicit request + missing
-  // packstruct = loud exit 2 (same policy as the lint-packs verb). It
-  // needs nothing from the config, so it runs before the import.
-  if (opts.lintPacks) {
-    return cmdLintPacks();
   }
 
   const target = (await import(pathToFileURL(configPath).href)).default;
@@ -826,15 +830,22 @@ export async function main(argv) {
   if (verb === 'packs') {
     if (argv[1] === 'add') {
       const name = argv[2];
+      const rest = argv.slice(2).filter((a) => !a.startsWith('-') || a === name);
+      if (rejectUnknownFlags('packs add', argv.slice(2), ['--public', ...(name && name.startsWith('-') ? [name] : []), ...rest])) return;
       return cmdPackAdd(name, { public: argv.includes('--public') });
     }
     const confIdx = argv.indexOf('--config');
-    return cmdPacks({ config: confIdx > -1 ? argv[confIdx + 1] : undefined, json: argv.includes('--json'), allowVacuous: argv.includes('--allow-vacuous') });
+    const confVal = confIdx > -1 ? argv[confIdx + 1] : undefined;
+    if (rejectUnknownFlags(verb, argv.slice(1), confVal !== undefined ? ['--config', confVal, '--json', '--allow-vacuous'] : ['--config', '--json', '--allow-vacuous'])) return;
+    return cmdPacks({ config: confVal, json: argv.includes('--json'), allowVacuous: argv.includes('--allow-vacuous') });
   }
   if (verb === 'lint-determinism') {
     const confIdx = argv.indexOf('--config');
-    const dirs = argv.slice(1).filter((a) => !a.startsWith('-') && a !== argv[confIdx + 1]);
-    return cmdLintDeterminism({ config: confIdx > -1 ? argv[confIdx + 1] : undefined, dirs });
+    const confVal = confIdx > -1 ? argv[confIdx + 1] : undefined;
+    const rest = argv.slice(1);
+    if (rejectUnknownFlags(verb, rest, confVal !== undefined ? ['--config', confVal] : ['--config'])) return;
+    const dirs = rest.filter((a) => !a.startsWith('-') && a !== confVal);
+    return cmdLintDeterminism({ config: confVal, dirs });
   }
   if (verb === 'lint-packs') {
     const rest = argv.slice(1);
@@ -842,13 +853,15 @@ export async function main(argv) {
     let deep = false;
     let json = false;
     let against;
+    const known = ['--deep', '--json'];
     for (let i = 0; i < rest.length; i++) {
       const a = rest[i];
       if (a === '--deep') deep = true;
       else if (a === '--json') json = true;
-      else if (a === '--against') against = rest[++i];
+      else if (a === '--against') { known.push(a); against = rest[++i]; if (against !== undefined) known.push(against); }
       else if (!a.startsWith('-')) dir = a;
     }
+    if (rejectUnknownFlags(verb, rest, known)) return;
     return cmdLintPacks({ dir, deep, json, against });
   }
   if (verb === 'preset') {
@@ -858,8 +871,11 @@ export async function main(argv) {
     return cmdPreset(name, { repoRoot: resolve(root) });
   }
   if (verb === 'run') {
-    const confIdx = argv.indexOf('--config');
-    const config = confIdx > -1 ? argv[confIdx + 1] : undefined;
+    const confIdx2 = argv.indexOf('--config');
+    const confVal = confIdx2 > -1 ? argv[confIdx2 + 1] : undefined;
+    if (rejectUnknownFlags(verb, argv.slice(1), confVal !== undefined
+      ? ['--config', confVal, '--json', '--module-plan', '--expect-baseline', '--out-dir', '--lint-determinism', '--lint-packs', '--allow-vacuous']
+      : ['--config', '--json', '--module-plan', '--expect-baseline', '--out-dir', '--lint-determinism', '--lint-packs', '--allow-vacuous'])) return;
     const json = argv.includes('--json');
     const modulePlan = argv.includes('--module-plan');
     const baseIdx = argv.indexOf('--expect-baseline');
@@ -867,13 +883,36 @@ export async function main(argv) {
     const outIdx = argv.indexOf('--out-dir');
     const outDir = outIdx > -1 ? argv[outIdx + 1] : undefined;
     const lintIdx = argv.indexOf('--lint-determinism');
-    return cmdRun({ config, json, modulePlan, expectBaseline, outDir, lintDeterminism: lintIdx > -1, lintPacks: argv.includes('--lint-packs'), allowVacuous: argv.includes('--allow-vacuous') });
+    return cmdRun({ config: confVal, json, modulePlan, expectBaseline, outDir, lintDeterminism: lintIdx > -1, lintPacks: argv.includes('--lint-packs'), allowVacuous: argv.includes('--allow-vacuous') });
   }
   console.error(`crashtest: unknown command "${verb}" (try --help)`);
   process.exitCode = 1;
 }
 
 const cliDir = dirname(fileURLToPath(import.meta.url));
+
+/** Unknown-flag rejection (the packstruct#18 class): every verb special-cases
+ * the flags it knows; any other `-`-leading token arrives EVERYWHERE - so on
+ * `run`, a typo'd `--expec-baseline` silently opts into a WRITTEN run where a
+ * read-only CI diff was asked for - a gate semantic silently dropped. Usage
+ * errors exit 2 (config class - the run is wrong, not your code's verdicts). */
+function rejectUnknownFlags(verb, rest, known) {
+  const VALUE_FLAGS = ['--config', '--expect-baseline', '--out-dir', '--against'];
+  const unknown = rest.filter((a) => {
+    if (!a.startsWith('-') || a === '-') return false;
+    if (known.includes(a)) return false;
+    const at = rest.indexOf(a);
+    const prev = at > 0 ? rest[at - 1] : null;
+    if (prev && VALUE_FLAGS.includes(prev) && known.includes(prev)) return false;
+    return true;
+  });
+  if (unknown.length) {
+    console.error(`crashtest ${verb}: unknown flag(s) ${unknown.map((f) => JSON.stringify(f)).join(', ')} - a typo'd flag must not silently change what this verb does (a dropped gate is the exact misfire class this CLI exists to kill); try --help`);
+    process.exitCode = 2;
+    return true;
+  }
+  return false;
+}
 
 // Exposed for tests.
 export { LEDGER_PATH, REPORT_PATH, META_PATH, VERSION, EMPTY_LEDGER, REPORT_STUB, cliDir };

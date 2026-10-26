@@ -104,9 +104,17 @@ class WPWorker {
   }
 }
 
+// Envelope ids: a process-monotonic counter, NOT Math.random. The wire id
+// rides every envelope and reply - unseeded randomness on a shipped surface
+// breaks the determinism law (same commit -> same wire, finding-overhead
+// free), and the fake-transport purity of the NDJSON channel means ids only
+// need to be unique-per-process, which the counter provides deterministically.
+let seqEnvelopeId = 0;
+const nextEnvelopeId = (kind) => `${kind}${++seqEnvelopeId}`;
+
 /** Serialize one harness Request into a worker attack envelope. */
 export async function ctRequestToEnvelope(req, {
-  id = 'r' + Math.random().toString(16).slice(2),
+  id = nextEnvelopeId('r'),
   data = {},
 } = {}) {
   const url = new URL(req.url);
@@ -216,7 +224,7 @@ export function registerWordPress(harness, opts = {}) {
   // generic ops + this run's cfg whitelist).
   harness.wpState = async (payload) => {
     await cfgSent;
-    const envelope = { id: 's' + Math.random().toString(16).slice(2), ...payload };
+    const envelope = { id: nextEnvelopeId('s'), ...payload };
     const reply = await worker.exchange(envelope);
     const ops = reply.ops ?? { queries: 0 };
     harness._counter.increment('wp.query', ops.queries ?? 0);

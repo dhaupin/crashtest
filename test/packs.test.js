@@ -418,3 +418,32 @@ test('CLI: run --module-plan prints the unmet env-claim row per pack (pure dry-r
   // env claims do NOT flip attack statuses - WILL-FIRE stays, the skip question is runtime
   assert.equal(row.prerequisites.length, 1);
 });
+
+// ---- edge-walk teeth: pack-level plan facts resolve by ORIGIN, not module-name equality ----
+
+test('pack: a module may ship a scenario name of its own - the plan still honors the manifest armedByKey via the pack ORIGIN', async () => {
+  // A pack manifest name and its entry module's scenario name are TWO
+  // contracts (the pack name is dir-parity, the module name is scenario
+  // contract); a module may legitimately differ (shared entries, bundled
+  // plugins). Equality was never a loader rule - but plans must not MISS
+  // pack-level facts because of it: buildModulePlan resolves armedByKey
+  // through the pack ORIGIN (pack-loaded scenarios' origins ARE pack origins).
+  const root = await mkdtemp(join(tmpdir(), 'packs-parity-'));
+  const mismatch = "export default { name: 'other-ships-name', description: 'd', attacks: [{ name: 'a', description: 'p', async run() { return { verdict: 'REFUSED', detail: 'held' }; } }] };\n";
+  await mkPack(root, 'public', 'pack-ships-name', { ...GOOD_MANIFEST, name: 'pack-ships-name', armedByKey: 'pack-ships-name' }, mismatch);
+  const loaded = await loadPacks([root]);
+  assert.equal(loaded.length, 1);
+  assert.equal(loaded[0].module.name, 'other-ships-name');
+
+  const { buildModulePlan } = await import('../src/plans.js');
+  const scenarios = loaded.map((p) => ({ origin: p.origin, module: p.module }));
+  // No moduleCtx: the manifest says NEEDS-ARMING, and the ORIGIN-keyed
+  // pack lookup must find it (a module-name lookup would silently miss and
+  // mark WILL-FIRE - the exact overstate the plan exists to prevent).
+  const planUnarmed = buildModulePlan({ moduleCtx: {} }, loaded, scenarios);
+  assert.equal(planUnarmed.modules[0].status, 'NEEDS-ARMING');
+  assert.equal(planUnarmed.modules[0].armedKey, 'pack-ships-name');
+  // Armed through the pack name: WILL-FIRE resolves the same way.
+  const planArmed = buildModulePlan({ moduleCtx: { 'pack-ships-name': { k: 1 } } }, loaded, scenarios);
+  assert.equal(planArmed.modules[0].status, 'WILL-FIRE');
+});
