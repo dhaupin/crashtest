@@ -161,6 +161,8 @@ function FindingRow({ f, acceptedById }) {
       <div className="dash-row-body">
         <span className="dash-row-id">{f.id}</span>
         {f.unknownVerdict && <span className="dash-row-flag">unknown verdict</span>}
+        {f.skipped && <span className="dash-row-flag">skipped - no coverage graded</span>}
+        {f.incompleteBound && <span className="dash-row-flag">BOUNDED without owner/bound - the runner would grade this a hit (PRD principle 6)</span>}
         {accepted && <span className="dash-row-flag dash-row-flag-owner">accepted / owner {accepted.owner}{accepted.bound != null ? `, bound ${accepted.bound}` : ''}</span>}
         {f.detail && <span className="dash-row-detail">{f.detail}</span>}
       </div>
@@ -246,9 +248,13 @@ function Loader({ onSnapshot, onParse, onError }) {
     try {
       let obj = textOrObj
       if (typeof obj === 'string') {
-        // The CLI writes markdown next to the ledger - refuse it with a pointer
-        // to the JSON file, never silently mis-read it.
-        if (obj.trimStart().startsWith('#') || /https:\/\/schema\.json/.test(obj)) {}
+        // The CLI writes markdown next to the ledger - refuse it with a
+        // pointer to the JSON file, never silently mis-read it. (The first
+        // cut of this check was an EMPTY block: the promised pointer never
+        // fired and markdown pastes surfaced a raw SyntaxError instead.)
+        if (obj.trimStart().startsWith('#') || /https:\/\/schema\.json/.test(obj)) {
+          throw new Error('That looks like the markdown hardening report - paste labs/crashledger.json (or run --json) instead')
+        }
         obj = JSON.parse(obj)
       }
       onParse(obj, label)
@@ -396,6 +402,12 @@ export default function Dashboard() {
                 cost={model.cost}
                 meta={model.kind === 'ledger' ? { cutLabel, sourceLabel: model.sourceLabel } : null}
               />
+              {model.tallyMismatch && (
+                <p className="sub">
+                  The artifact's own tally disagrees with its rows - the counts ride what the rows say,
+                  never what a tally claims. A tally in a shared blob stays a claim, not truth.
+                </p>
+              )}
             </>
           )}
         </div>

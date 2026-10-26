@@ -7,6 +7,28 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.1.1 (unreleased)
 
+- the dashboard-ledger bridge stops dropping honest flags and stops taking a
+  blob's own tally claim over its rows (walk round 21): skipped-REFUSED rows
+  lost their `skipped` flag in the view model, so the site dashboard rendered
+  every skipped row (the dogfood snapshot carries ~15) as a plain hold - the
+  exact skipped-row-indistinguishable-from-a-hold veil the ledger flag was
+  added to prevent (round 13); the flag now survives into the view model and
+  the row UI chips it ('skipped - no coverage graded'). The single-run gate
+  derived its verdict from a provided `tally` claim, not the normalized rows -
+  the CLI computes its tally itself (trusted), but the dashboard's inputs are
+  user-supplied artifacts, and a lying tally ({ rows: [EXPLOITED row], tally:
+  { EXPLOITED: 0 } }) rendered PASS; the gate now derives from the rows and a
+  tally-vs-rows mismatch surfaces loudly instead of winning. A BOUNDED claim
+  without owner/bound - the shape the runner demotes to a hit per PRD
+  principle 6 - no longer renders as a clean accepted lock; it is chipped
+  ('the runner would grade this a hit'). And the Loader's markdown-refusal
+  branch was an EMPTY block: the promised pointer to the JSON file never
+  fired, markdown pastes surfaced a raw SyntaxError; it now refuses with the
+  pointer it always promised. Teeth: skip-flag survival (both artifact
+  shapes), the lying-tally gate, and the incomplete-bound flag in
+  test/dashboard-ledger.test.js. Floor 403 -> 406; site build 6/6
+  prerendered.
+
 - the wp-money-shapes pack actually REACHES the wire now (walk round 20):
   every write envelope rode `kind: 'post'` - a dispatch kind the WP worker
   never had, so each write fataled silently (`bad kind: post`) with an

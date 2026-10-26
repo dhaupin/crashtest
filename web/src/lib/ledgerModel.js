@@ -40,6 +40,18 @@ function normalizeFinding(id, verdict, detail, extra = {}) {
     detail: String(detail ?? ''),
     owner: extra.owner ?? undefined,
     bound: extra.bound ?? undefined,
+    // The honest-skip flag survives into the VIEW model: a skipped-REFUSED
+    // row must stay distinguishable from a hold that graded (the vacuous-
+    // green veil, PRD section 7 / issue #37). The first cut dropped the
+    // flag here, so the dashboard rendered every skipped row as a plain
+    // hold (found walking the lane, round 21; teeth in
+    // test/dashboard-ledger.test.js).
+    skipped: extra.skipped === true || undefined,
+    // A BOUNDED claim without owner + bound is hit-grade in the CLI (the
+    // runner demotes it per PRD principle 6). The dashboard never re-grades,
+    // but it must not render the demotion as a clean accepted lock - flag
+    // the incomplete bound for the row UI.
+    incompleteBound: verdict === 'BOUNDED' && !(extra.owner && extra.bound) || undefined,
   };
 }
 
@@ -95,7 +107,7 @@ export function parseArtifact(obj, opts = {}) {
 
   if (Array.isArray(obj.findings)) {
     const findings = obj.findings.map((f) =>
-      normalizeFinding(f.id, f.verdict, f.detail, { owner: f.owner, bound: f.bound }),
+      normalizeFinding(f.id, f.verdict, f.detail, { owner: f.owner, bound: f.bound, skipped: f.skipped }),
     );
     const acceptedRisks = (obj.acceptedRisks ?? []).filter((a) => a && a.id);
     const baseline = (obj.baseline ?? []).map(String);
@@ -127,18 +139,18 @@ export function parseArtifact(obj, opts = {}) {
     const findings = obj.rows
       .filter((r) => r && r.id)
       .map((r) => normalizeFinding(r.id, r.verdict, r.detail, {
-        module: r.module, attack: r.attack, owner: r.owner, bound: r.bound,
+        module: r.module, attack: r.attack, owner: r.owner, bound: r.bound, skipped: r.skipped,
       }));
+    // The gate derives from the NORMALIZED rows, never from the blob's own
+    // tally claim: the CLI computes its tally itself (trusted), but this
+    // page's inputs are user-supplied artifacts, and a tally that hides an
+    // EXPLOITED row would rank a lie over the findings. A provided tally
+    // is still checked - and a mismatch surfaces loudly instead of winning.
     const rowCounts = counts(findings);
     const t = obj.tally ?? null;
-    const theCounts = t
-      ? {
-          total: t.TOTAL ?? rowCounts.total,
-          refused: t.REFUSED ?? rowCounts.refused,
-          exploited: t.EXPLOITED ?? rowCounts.exploited,
-          bounded: t.BOUNDED ?? rowCounts.bounded,
-        }
-      : rowCounts;
+    const tallyMismatch = t && ['TOTAL', 'REFUSED', 'EXPLOITED', 'BOUNDED']
+      .some((k) => t[k] !== undefined && t[k] !== rowCounts[k.toLowerCase()]) || undefined;
+    const theCounts = rowCounts;
     return {
       kind: 'run',
       sourceLabel,
@@ -146,6 +158,7 @@ export function parseArtifact(obj, opts = {}) {
       generatedAt: obj.startedAt ?? obj.finishedAt ?? null,
       findings,
       counts: theCounts,
+      tallyMismatch,
       acceptedRisks: (obj.acceptedRisks ?? []).filter((a) => a && a.id),
       baseline: [],
       groupings: groupByModule(findings),

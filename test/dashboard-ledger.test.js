@@ -172,3 +172,69 @@ test('prettyDate normalizes an ISO stamp and rejects junk', () => {
   assert.equal(prettyDate('garbage'), null);
   assert.equal(prettyDate(undefined), null);
 });
+
+// walk round 21 teeth - the ledger bridge never drops honest flags or takes
+// a blob's own tally claim over the rows it carries.
+
+test('skipped-REFUSED rows keep their skip flag into the view model (the vacuous-green veil)', () => {
+  // The dogfood snapshot carries skipped: true on its un-armed governance
+  // rows. The first cut of normalizeFinding DROPPED that flag, so the
+  // dashboard rendered every skipped row as a plain hold - a skipped row
+  // indistinguishable from a graded one, in the same vein the ledger flag
+  // was added to prevent (round 13). Truth: carry the flag; renderers decide.
+  const vm = parseArtifact(dogfood.ledger, { sourceLabel: 'test' });
+  const skipped = vm.findings.find((f) => f.id === 'governance/succession-trust-floor');
+  assert.equal(skipped.skipped, true, 'a skipped row must carry the flag into the view model');
+  const graded = vm.findings.find((f) => f.id === 'auth/identity-spoof-headers');
+  assert.equal(graded.skipped, undefined, 'a graded hold must carry NO skip flag');
+
+  const runLike = parseArtifact({
+    rows: [
+      { id: 'guards/burst-wall', verdict: 'REFUSED', detail: 'ok' },
+      { id: 'governance/succession-trust-floor', verdict: 'REFUSED', detail: 'knob not declared - skip', skipped: true },
+    ],
+  });
+  assert.equal(runLike.findings.find((f) => f.id === 'governance/succession-trust-floor').skipped, true,
+    'run blobs carry the flag through the same bridge');
+});
+
+test('a lying tally never wins: the single-run gate derives from the rows, mismatch flags', () => {
+  // The CLI computes its tally itself - trusted. The dashboard's inputs are
+  // user-supplied blobs, and the first cut let a provided tally OVERRIDE the
+  // row truth everywhere INCLUDING the gate: { rows: [EXPLOITED row],
+  // tally: { EXPLOITED: 0 } } rendered PASS. Rows are truth; a mismatched
+  // tally surfaces loudly instead.
+  const vm = parseArtifact({
+    rows: [
+      { id: 'guards/burst-wall', verdict: 'REFUSED', detail: 'ok' },
+      { id: 'volume/storage-fill', verdict: 'EXPLOITED', detail: 'filled' },
+    ],
+    tally: { TOTAL: 2, REFUSED: 2, EXPLOITED: 0, BOUNDED: 0 },
+  });
+  assert.equal(vm.counts.exploited, 1, 'counts come from the rows');
+  assert.equal(vm.gate.status, 'fail', 'a lying tally cannot gate a PASS over an EXPLOITED row');
+  assert.equal(vm.gate.exitCode, 1);
+  assert.equal(vm.tallyMismatch, true, 'the mismatch surfaces for the row UI');
+
+  const honest = parseArtifact({
+    rows: [{ id: 'guards/burst-wall', verdict: 'REFUSED', detail: 'ok' }],
+    tally: { TOTAL: 1, REFUSED: 1, EXPLOITED: 0, BOUNDED: 0 },
+  });
+  assert.equal(honest.gate.status, 'pass');
+  assert.equal(honest.tallyMismatch, undefined, 'a matching tally stays quiet');
+});
+
+test('BOUNDED without owner/bound is flagged, never rendered as a clean accepted lock', () => {
+  // The runner demotes that shape to EXPLOITED at run time (PRD principle
+  // 6: an accepted risk without a bound is a finding). The dashboard never
+  // re-grades, but a pasted ledger carrying the malformed shape must not
+  // render the lock unchip-marked.
+  const vm = parseArtifact({
+    findings: [
+      { id: 'volume/storage-fill', verdict: 'BOUNDED', detail: 'filled' },
+      { id: 'volume/cost-amplification', verdict: 'BOUNDED', detail: 'amp', owner: 'rook', bound: 12 },
+    ],
+  });
+  assert.equal(vm.findings[0].incompleteBound, true, 'the demotion-able shape is flagged');
+  assert.equal(vm.findings[1].incompleteBound, undefined, 'a real accepted risk stays clean');
+});
