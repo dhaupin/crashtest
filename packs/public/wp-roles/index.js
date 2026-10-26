@@ -154,7 +154,13 @@ export default {
         if (adminRec.threw) return exploited(`admin probe faulted the worker: ${String(adminRec.error).slice(0, 80)}`, { action });
         const adminBody = await adminRec.response.text();
         if (adminRec.status !== 200 || !adminBody.includes('probe-ok')) {
-          return exploited(`the ADMIN probe did not pass on "${action}" (status ${adminRec.status}, body ${adminBody.slice(0, 60)}) - the fixture vocabulary is not wired; this dock cannot yet grade capability flips`, { action, status: adminRec.status, skipped: true });
+          // Honest skip, not EXPLOITED: on a miswired fixture vocabulary the
+          // dock cannot GRADE capability flips at all - grading a "finding"
+          // here would ride the exit rules as a false positive while the
+          // real problem is wiring. (The first cut returned
+          // exploited(..., { skipped: true }) - EXPLOITED rows may never
+          // carry the skip flag; the runner now fails loud on that shape.)
+          return refused(`the ADMIN probe did not pass on "${action}" (status ${adminRec.status}, body ${adminBody.slice(0, 60)}) - the fixture vocabulary is not wired; this dock cannot yet grade capability flips (skip - wire the vocabulary for coverage)`, { action, status: adminRec.status, skipped: true });
         }
 
         // (b) body-declared role on a low-priv user must NOT flip the gate

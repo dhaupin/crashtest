@@ -194,6 +194,28 @@ test('campaign: a throwing beforeAll fails the campaign loudly at cause (rule 3,
   await assert.rejects(() => runCampaign(buildHarness({}, {}), scenarios, { seed: 1 }), /vocabulary gap: "enroll" route missing/);
 });
 
+test('campaign: a skipped EXPLOITED record fails loud at cause (the honest-skip contract)', async () => {
+  // `skipped` is the no-coverage marker for REFUSED rows only (PRD section 7
+  // / issue #37). A skipped EXPLOITED would ride the exit rules as a fake
+  // finding WHILE claiming nothing was graded - the first cut of
+  // wp-roles' vocabulary-miswire branch shipped exactly that shape, found
+  // on walk round 20. The runner fails loud with the offending name, and
+  // the check sits outside the attack try/catch so the fault cannot be
+  // re-advertised as an "attack itself threw" finding row.
+  const scenarios = [{
+    origin: 'skip-shape',
+    module: {
+      name: 'bad-skip-pack',
+      description: 'contract-violating verdict shape',
+      attacks: [{ name: 'fake-skip', description: 'f', run: async () => ({ verdict: 'EXPLOITED', detail: 'claims a skip', skipped: true }) }],
+    },
+  }];
+  await assert.rejects(
+    () => runCampaign(buildHarness({}, {}), scenarios, { seed: 1 }),
+    /bad-skip-pack\/fake-skip.*verdict EXPLOITED carrying skipped: true/,
+  );
+});
+
 // --- the silent-zero campaign guards (the same misfire class as packstruct#13) ------------
 
 test('campaign: a module filter that matches NOTHING refuses loudly (a typo can never green a zero-row run)', async () => {

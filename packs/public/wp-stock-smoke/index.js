@@ -51,8 +51,9 @@ export default {
         const before = harness.costTotals();
         await harness.wpState({ kind: 'call', fn: 'wp_create_nonce', args: ['ct_probe'] });
         const after = harness.costTotals();
-        const wpq = after.__cost__ !== undefined ? undefined : undefined;
-        // The adapter declares wp.query@2; the delta we care about is ops.
+        // costTotals returns the counter snapshot ({ __cost__, ... }); the
+        // delta is the weighted-op movement (wp.query is priced at 2), the
+        // honest "work happened on real DB" signal.
         const opsDelta = (after.ops ?? after.__cost__ ?? 0) - (before.ops ?? before.__cost__ ?? 0);
         if (opsDelta <= 0) return exploited('real-SQL metering dead: wp.query never ticked (SAVEQUERIES missing or adapter counters miswired)');
         return refused(`cost economics on real SQLite: probe consumed ${opsDelta} wp-shaped ops across boot+call`);
@@ -65,8 +66,9 @@ export default {
         if (noWpTarget(harness)) return refused('WordPress harness (wpState) not declared on this run root - whitelist check skipped (declare adapters.wordpress for coverage)', { skipped: true });
         const rec = await harness.wpState({ kind: 'call', fn: 'wp_delete_post', args: [1, true] });
         if (!rec.fatal) {
-          // Whitelist breach: the destructive call EXECUTED. Prove damage.
-          const meta = await harness.wpState({ kind: 'state', op: 'postmeta', id: 1, key: '_ct_probe_absent' });
+          // Whitelist breach: the destructive call EXECUTED - the breach
+          // itself is the finding (the first cut fired a follow-up postmeta
+          // read whose result was discarded, a wasted envelope).
           return exploited('CALL_ALLOW breach: wp_delete_post executed against the target (destructive seeder allowed)', { reply: rec });
         }
         const meta = await harness.wpState({ kind: 'state', op: 'postmeta', id: 1, key: '_wp_page_template' });

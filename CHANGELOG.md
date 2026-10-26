@@ -7,6 +7,42 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.1.1 (unreleased)
 
+- the wp-money-shapes pack actually REACHES the wire now (walk round 20):
+  every write envelope rode `kind: 'post'` - a dispatch kind the WP worker
+  never had, so each write fataled silently (`bad kind: post`) with an
+  honest 200 status - the volley graded 'held' on writes that never
+  happened, and gate-burst graded a stock target EXPLOITED ('wall never
+  tripped') on writes that never happened either. The fused seed envelope
+  (`kind: 'call'` carrying an `op`) was always a call-allow fatal, so the
+  txn-replay seed silently skipped forever; the option envelopes keyed the
+  row by `key` where the wire keys the ROW by `name` (`key` slices inside
+  it), so the receipt plant never happened; both volley oracles graded for
+  marker TEXT inside posts-query bodies that answer POST IDS; and seedId
+  looked for `body.id` where the wire answers a scalar id body - a real
+  successful insert graded as a null seed. Writes are now real form POSTs
+  (`kind: 'request'`, urlencoded bodies, the action named by the vocab,
+  `remoteAddr` for the burst); the seed is a STATE-lane insert-post with
+  fields + meta and a paid read-back that skips honestly when the plant
+  cannot grade; options key rows by `name`; the volley oracles grade the
+  ids ARRAY length under LIKE/compare semantics; seedId parses the scalar
+  (a wp_error zero still grades no-seed). Also fixed: the pack's skips
+  returned `skip: true` - a field nothing reads - so every honest skip
+  graded as a plain hold in the ledger (the exact vacuous-green veil,
+  PRD section 7 / issue #37); they now carry `skipped: true`. Same class
+  of row verified everywhere: wp-roles' vocabulary-miswire branch was the
+  one skipped-EXPLOITED shape in the tree (a fake finding riding the exit
+  rules while claiming no coverage) - it now skips honestly, and the
+  runner fails loud at cause if any module ever returns verdict EXPLOITED
+  or BOUNDED carrying the skip flag again, with the offending module/
+  attack named (teeth in test/campaigns.test.js). wp-stock-smoke lost two
+  dead lines (a const that could never be anything but undefined; a
+  damage-proof probe whose result was discarded). Teeth: a WP-speak fake
+  harness grades the three packs verdicts (+ the envelope-shape law that
+  rejects kind 'post' at the source) in the new test/wp-money-shapes.test.js,
+  plus an armed stub row proving the oracle wire grades end to end on the
+  real PHP worker; the wp-roles miswire shape has its own unit row.
+  Floor 396 -> 403.
+
 - the cve-feed token matcher escapes instead of mangles (walk round 19):
   the first cut of `tokenFound` STRIPPED non-[a-z0-9-] characters out of
   snapshot tokens, which only worked while the snapshot carried bare words.

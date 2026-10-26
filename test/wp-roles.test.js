@@ -62,6 +62,30 @@ test('wp-roles armed e2e: pack REFUSED exit 0 against the stub WP root', { skip:
   }
 });
 
+test('wp-rows: a miswired fixture vocabulary skips honestly (never an EXPLOITED+skipped shape)', async () => {
+  // The capability-constants dock GRADES only when the admin probe passes;
+  // its first cut returned exploited(..., { skipped: true }) on the miswire
+  // - a fake finding riding the exit rules while claiming no coverage (the
+  // only skipped-EXPLOITED shape in the tree, found on walk round 20; the
+  // runner now rejects that shape outright). Pin the honest shape directly:
+  const miswired = {
+    listRoutes: () => ['app'],
+    wpState: async () => ({ body: 'ok', id: 1 }),
+    run: async (route, init) => ({
+      route,
+      status: 403,
+      response: new Response('nice try', { status: 403 }),
+      threw: false,
+    }),
+  };
+  const pack = (await import('../packs/public/wp-roles/index.js')).default;
+  const dock = pack.attacks.find((a) => a.name === 'capability-constants-hold');
+  const verdict = await dock.run(miswired, {});
+  assert.equal(verdict.verdict, 'REFUSED', 'a miswired dock cannot grade - it must skip, never fabricate');
+  assert.equal(verdict.skipped, true, 'the skip flag rides the REFUSED row');
+  assert.match(verdict.detail, /cannot yet grade capability flips/);
+});
+
 test('stock smoke armed e2e: the stockwp pack runs against the stub WP root', { skip: !php ? 'PHP not available in this environment' : false }, async () => {
   // Bonus armed exercise: the stockwp smoke pack against the stub. The stub
   // walks enough of the WP primitive surface (options, posts, wpdb query

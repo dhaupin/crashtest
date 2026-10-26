@@ -129,6 +129,20 @@ export async function runCampaign(harness, scenarios, opts = {}) {
         findResult = { verdict: 'EXPLOITED', detail: `attack itself threw - harness-wide fault: ${err?.name}: ${err?.message}` };
       }
 
+      // The honest-skip contract (PRD section 7 / issue #37): `skipped` is
+      // the no-coverage marker for REFUSED rows only. A skipped EXPLOITED or
+      // BOUNDED record is a module contract violation, not a finding - it
+      // would ride the exit rules as a fake finding while claiming nothing
+      // was graded. Found as the one violating shape in the tree on the
+      // wp-roles vocabulary-miswire branch (walk round 20; that branch now
+      // skips honestly). Fail loud at cause: the MODULE is broken, not the
+      // target (rule 3), and this check sits OUTSIDE the attack try/catch
+      // above so the fault cannot masquerade as an "attack itself threw"
+      // EXPLOITED row in its own right.
+      if (findResult?.skipped === true && findResult?.verdict !== 'REFUSED') {
+        throw new Error(`runner: attack "${module.name}/${attack.name}" returned verdict ${findResult.verdict} carrying skipped: true - the honest-skip contract allows skipped on REFUSED rows only; return refused(..., { skipped: true }) for a no-coverage verdict`);
+      }
+
       const record = {
         id,
         module: module.name,
