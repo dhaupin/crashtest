@@ -7,6 +7,18 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.2.0 (unreleased)
 
+- the announcing-v1.2.0 release post is DRAFTED (docs/discussions/announcing-v1.2.0.md,
+  filed as reaching the same voice as the 1.0/1.1 posts): the body is
+  written against the CURRENT tree, but the release-post timing rule
+  ("draft the post against the released version, not the dev tree") is
+  honored with a pre-publication banner ON the draft + a DRAFT row in the
+  discussions index table + a (draft) nav label - every one flips the
+  moment the v1.2.0 tag lands; nothing claims npm before npm can carry
+  it. One unsourced claim drafted, then cut and verified-replaced before
+  commit: the "default keys derive from ctx.seed" line is the house RULE,
+  not a released behavior - the dual-language determinism-seal claim from
+  the round-17 walk took its place.
+
 - the two release posts join the docs nav (About > Release Posts >
   Announcing v1.0.0 / v1.1.0): every permalinked docs page except the
   domain-root index and the maintainer runbook is now nav-reachable - the

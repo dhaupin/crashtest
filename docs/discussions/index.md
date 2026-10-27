@@ -24,5 +24,6 @@ One post per release, shaped like prestruct's [announcing-v1.0.0](https://github
 | --- | --- | --- |
 | [Announcing crashtest v1.0.0](/crashtest/discussions/announcing-v1.0.0) | 1.0.0 | 2026-10-21 on npm |
 | [Announcing crashtest v1.1.0](/crashtest/discussions/announcing-v1.1.0) | 1.1.0 | 2026-10-25 on npm |
+| [Announcing crashtest v1.2.0](/crashtest/discussions/announcing-v1.2.0) | 1.2.0 | DRAFT - staged, tag pending (the post carries the pre-publication banner) |
 
 History: prestruct pioneered the format ([v1.0.0](https://github.com/dhaupin/prestruct/blob/main/docs/discussions/announcing-v1.0.0.md), [v1.1.0](https://github.com/dhaupin/prestruct/blob/main/docs/discussions/announcing-v1.1.0.md)); crashtest adopts the same shape so approaches to the community discussion stay uniform across the creadev family.
