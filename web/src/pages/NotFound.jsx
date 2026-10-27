@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from '../router-interop.js'
 
 export default function NotFound() {
   return (

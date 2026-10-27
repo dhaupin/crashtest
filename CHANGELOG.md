@@ -19,6 +19,29 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
   not a released behavior - the dual-language determinism-seal claim from
   the round-17 walk took its place.
 
+- the dependency belt modernizes: the web toolchain leaves the vulnerable
+  floor - vite (^5.4.0 -> ^6.4.5, the esbuild dev-server advisory
+  GHSA-67mh escapes via the 6.4.4+ line) and react-router-dom (^6 ->
+  ^7.18.4, clearing both router advisories: the Link-backslash open
+  redirect and the SSR deserializeErrors constructor injection) - npm
+  audit web: 4 findings (1 high) -> 0. react 18 -> 19 is the one DEFERRED
+  major (component-level QA, not a dependency bump; recorded here as the
+  honest deferral) and plugin-react stays ^4.7.0 (its peer range covers
+  vite ^6; v6 wants vite ^8 only). The router upgrade carried its own
+  integration cost and it is DOCUMENTED where the next toolchain bump
+  will read it: vite's SSR lane cannot lift named exports off
+  react-router v7's externalized CJS main, prestruct's prerender
+  native-imports StaticRouter OUTSIDE the vite graph, and the router
+  context needs ONE instance across both loaders - so the app's named
+  imports go through web/src/router-interop.js (one namespace-aware
+  door), the config carries the never-alias warning, and the build was
+  exercised until the prerender came back 6/6 on the upgraded pair. The
+  site rewrite also enforces vite 6's stricter JSX: bare -> inside text
+  nodes are now wrapped expressions in Home.jsx. Version-hygiene
+  alignment: web/package.json now declares engines (>=20,
+  react-router v7's own floor), and action.yml pins a DEFAULT
+  node-version (22, matching the repo's own ci lane) so consumer gates
+  are reproducible instead of riding the runner's installed node.
 - the two release posts join the docs nav (About > Release Posts >
   Announcing v1.0.0 / v1.1.0): every permalinked docs page except the
   domain-root index and the maintainer runbook is now nav-reachable - the

@@ -9,7 +9,7 @@
  * homepage with no error message. See AGENTS.md for the full explanation.
  */
 
-import { BrowserRouter } from 'react-router-dom'
+import { BrowserRouter } from './router-interop.js'
 import AppLayout from './AppLayout.jsx'
 
 export default function App() {

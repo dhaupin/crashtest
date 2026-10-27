@@ -9,14 +9,17 @@
     "build": "prestruct build",
     "preview": "vite preview"
   },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.23.1"
+    "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.1",
-    "prestruct": "^1.0.0",
-    "vite": "^5.4.0"
+    "@vitejs/plugin-react": "^4.7.0",
+    "prestruct": "^1.1.0",
+    "vite": "^6.4.5"
   }
 }

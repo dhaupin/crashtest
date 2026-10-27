@@ -10,6 +10,7 @@ branding:
 inputs:
   node-version:
     description: Node version to run crashtest with
+    default: '22'
     required: false
     default: '22'
   version:

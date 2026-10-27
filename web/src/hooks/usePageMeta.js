@@ -43,7 +43,7 @@
  */
 
 import { useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation } from '../router-interop.js'
 
 export default function usePageMeta({ title, description, path, siteUrl }) {
   const base = siteUrl || import.meta.env?.VITE_SITE_URL || ''

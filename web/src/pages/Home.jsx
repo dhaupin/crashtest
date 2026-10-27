@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from '../router-interop.js'
 import usePageMeta from '../hooks/usePageMeta.js'
 
 const SITE_URL = 'https://crashtest.creadev.org'
@@ -21,11 +21,10 @@ export default function Home() {
           <p className="lede">
             Crashtest drives a seeded adversarial suite against your real handlers -
             routing, guards, state, volume - through a fake transport. The output is a
-            hardening ledger your CI fails on new EXPLOITED findings or REFUSED->EXPLOITED
-            regressions. Same commit, same findings, forever.
+            hardening ledger your CI fails on new {'EXPLOITED'} findings or a{'\n'}            {'REFUSED->EXPLOITED'} regression. Same commit, same findings, forever.
           </p>
           <div className="cta-row">
-            <a className="btn btn-primary" href="https://docs.creadev.org/crashtest/getting-started/quick-start">Read the quick start -></a>
+            <a className="btn btn-primary" href="https://docs.creadev.org/crashtest/getting-started/quick-start">Read the quick start {'->'}</a>
             <a className="btn btn-ghost" href="/dashboard">See the ledger dashboard</a>
             <pre-island data-pre-island="version-badge" data-pre-load="visible">
               <a className="btn btn-ghost" href="https://www.npmjs.com/package/crashtest" target="_blank" rel="noreferrer">npm / crashtest</a>
@@ -34,7 +33,7 @@ export default function Home() {
             <a className="btn btn-ghost" href="https://github.com/dhaupin/crashtest" target="_blank" rel="noreferrer">View on GitHub</a>
             <a className="btn btn-ghost" href="https://docs.creadev.org/crashtest/">Full docs</a>
           </div>
-          <pre className="code"><span className="cm"># 60 seconds - point it at your handlers</span>{'\n'}npx <span className="k">crashtest</span> <span className="k">init</span>{'\n'}<span className="cm"># edit crashtest.config.js - routes list your handlers, env the fake d1/kv/secrets</span>{'\n'}npx <span className="k">crashtest</span> <span className="k">run</span>{'\n'}<span className="cm"># -> labs/hardening.md / labs/crashledger.json / exit 0 = hold, exit 1 = a finding regressed</span>{'\n\n'}<span className="ok">🛡 EFF.</span> auth/secret-watermark  <span className="ok">🛡</span> guards/burst-wall      <span className="ok">🛡</span> state/enumeration-oracle{'\n'}<span className="bad">⚡</span> guards/hygiene-no-store <span className="dim">(2xx write with no Cache-Control - real findings look like this)</span></pre>
+          <pre className="code"><span className="cm"># 60 seconds - point it at your handlers</span>{'\n'}npx <span className="k">crashtest</span> <span className="k">init</span>{'\n'}<span className="cm"># edit crashtest.config.js - routes list your handlers, env the fake d1/kv/secrets</span>{'\n'}npx <span className="k">crashtest</span> <span className="k">run</span>{'\n'}<span className="cm">{'# -> labs/hardening.md / labs/crashledger.json / exit 0 = hold, exit 1 = a finding regressed'}</span>{'\n\n'}<span className="ok">🛡 EFF.</span> auth/secret-watermark  <span className="ok">🛡</span> guards/burst-wall      <span className="ok">🛡</span> state/enumeration-oracle{'\n'}<span className="bad">⚡</span> guards/hygiene-no-store <span className="dim">(2xx write with no Cache-Control - real findings look like this)</span></pre>
         </div>
       </section>
 
