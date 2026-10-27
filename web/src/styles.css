@@ -213,6 +213,14 @@ table.attacks td .why { color: var(--ink-soft); font-size: 12.5px; }
 .field-report .bad { color: var(--err); }
 .field-report .ok { color: var(--moss); }
 
+/* Collapsible explainer blocks (FAQ-style details) - used on /attacks.
+ Sampling a closed Summary only, so an open block reads like a quiet card. */
+.dash-faq { border: 1px solid var(--line); border-radius: 10px; padding: 0 14px; margin-top: 14px; background: transparent; }
+.dash-faq summary { cursor: pointer; padding: 10px 0; font-weight: 600; color: var(--ink); }
+.dash-faq[open] summary { border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.dash-faq > p { font-size: 13px; }
+.dash-faq > p:last-child { margin-bottom: 12px; }
+
 /* --- legal pages --- */
 .legal h3 { margin: 26px 0 8px; font-size: 16px; }
 .legal ul { color: var(--ink-soft); padding-left: 22px; }

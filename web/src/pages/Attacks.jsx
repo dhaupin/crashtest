@@ -2,6 +2,20 @@ import usePageMeta from '../hooks/usePageMeta.js'
 
 const SITE_URL = 'https://crashtest.creadev.org'
 
+/** The eight shipped packs, with their real arming contract and the teeth
+ * file that grades each oracle - the shorts came out of the packs' own
+ * sources (round-23 walk): nothing on this page rests on Prose lore. */
+const PACKS = [
+  { name: 'wp-money-shapes', dir: 'wp-money-shapes', attacks: 3, arming: "moduleCtx['wp-money-shapes'] - declare the target's payment vocabulary", pin: 'test/wp-money-shapes.test.js' },
+  { name: 'wp-roles', dir: 'wp-roles', attacks: 3, arming: "moduleCtx['wp-roles'] - declare the gated admin-post action + identity seeds", pin: 'test/wp-roles.test.js' },
+  { name: 'wp-stock-smoke (module stockwp)', dir: 'wp-stock-smoke', attacks: 4, arming: 'any WordPress root - degrades to honest skips off-target', pin: 'test/wp-roles.test.js' },
+  { name: 'cve-feed', dir: 'cve-feed', attacks: 2, arming: 'always-on - grades against the committed offline KEV/NVD snapshot', pin: 'test/cve-feed.test.js' },
+  { name: 'qs-shapes', dir: 'qs-shapes', attacks: 2, arming: 'any route whose parser expands bracket keys', pin: 'test/qs-shapes.test.js' },
+  { name: 'vite-dev-shapes', dir: 'vite-dev-shapes', attacks: 2, arming: 'any route serving vite dev-file paths', pin: 'test/vite-shapes.test.js' },
+  { name: 'next-middleware-shapes', dir: 'next-middleware-shapes', attacks: 2, arming: 'middleware-gated routes', pin: 'test/next-mw-shapes.test.js' },
+  { name: 'crashtest-site', dir: 'crashtest-site', attacks: 18, arming: 'repo-bound self-check (not in the npm tarball)', pin: 'test/site-pack.test.js' },
+]
+
 const MODULES = [
   {
     mod: 'auth',
@@ -156,57 +170,67 @@ export default function Attacks() {
         </div>
         <h3 style={{ marginTop: 40 }}>Shipped packs ride the same ledger</h3>
         <p className="sub">
-          Beyond the 49 library attacks above, eight public packs ship - 36
-          pack attacks total - and load wherever <code>packs:</code> points.
-          Seven of them ride the npm package under{' '}
-          <code>packs/public/</code>; the eighth, <code>crashtest-site</code>,
-          stays repo-bound (18 attacks - the release self-check that dogfoodes
-          this website end to end and once caught our own version endpoint
-          answering a malformed payload with a 200). The npm-carried seven:{' '}
-          <code>cve-feed</code> (2 attacks - <code>kev-banner-audit</code> and{' '}
-          <code>kev-version-range-audit</code>, reading a curated, committed
-          KEV/NVD snapshot instead of the network - the snapshot shape, its
-          27-row budget, and the word-boundary grammar of its match tokens
-          are pinned in{' '}
-          <a href="https://github.com/dhaupin/crashtest/blob/main/test/cve-feed.test.js" target="_blank" rel="noreferrer">test/cve-feed.test.js</a>),{' '}
-          <code>qs-shapes</code> (2 attacks - <code>qs-bracket-canary</code> and{' '}
-          <code>qs-depth-floor</code>, firing bracket-notation shapes at the
-          qs-style parser wire, pinned in{' '}
-          <a href="https://github.com/dhaupin/crashtest/blob/main/test/qs-shapes.test.js" target="_blank" rel="noreferrer">test/qs-shapes.test.js</a>),{' '}
-          <code>vite-dev-shapes</code> (2 attacks - the vite dev-file wire's
-          bypass grammar differential plus the env-family content-shape
-          oracle, pinned in{' '}
-          <a href="https://github.com/dhaupin/crashtest/blob/main/test/vite-shapes.test.js" target="_blank" rel="noreferrer">test/vite-shapes.test.js</a>),
-          <code>next-middleware-shapes</code> (2 attacks - the middleware
-          subrequest header's known bypass grammar plus a value-blindness
-          canary that must never unlock a gated route, pinned in{' '}
-          <a href="https://github.com/dhaupin/crashtest/blob/main/test/next-mw-shapes.test.js" target="_blank" rel="noreferrer">test/next-mw-shapes.test.js</a>),{
-          ' '}
-          and the three WordPress packs over the v0.3 subprocess wire{' '}
-          (NDJSON over stdio - a wire format, not a transport):
-          <code>wp-stock-smoke</code> (4 attacks - the stock-WordPress smoke:
-          dispatch, real-SQL metering, call/option gates),{' '}
-          <code>wp-money-shapes</code> (3 attacks - the armedByKey option
-          ceremony), and <code>wp-roles</code> (3 attacks, experimental -
-          role/capability shapes). Pack oracles are pinned where their teeth
-          live: the per-pack files linked above, the shared census in{' '}
-          <a href="https://github.com/dhaupin/crashtest/blob/main/test/pack-fixtures.test.js" target="_blank" rel="noreferrer">test/pack-fixtures.test.js</a>, and the tarball-shape pins in{' '}
-          <a href="https://github.com/dhaupin/crashtest/blob/main/test/packaging.test.js" target="_blank" rel="noreferrer">test/packaging.test.js</a>.
+          Beyond the 49 library attacks above, <strong>eight public packs ship - 36 pack
+          attacks total</strong>. Seven of them ride the npm package under{' '}
+          <code>packs/public/</code>; the eighth, <code>crashtest-site</code>, stays
+          repo-bound. Every pack also carries a self-audit fixture
+          (<code>packs/public/&lt;pack&gt;/test/fixtures/run.mjs</code>) that
+          pins each pack's documented shape - discovered and run 8/8 by{' '}
+          <a href="https://github.com/dhaupin/crashtest/blob/main/test/pack-fixtures.test.js" target="_blank" rel="noreferrer">test/pack-fixtures.test.js</a>.
           Same verdicts, same ledger, still zero sockets.
         </p>
-        <p className="field-report">
-          Field-report from the target we trust least: our own code. This repo
-          dogfoods itself in CI - runs we did on ourselves. The committed ledger
-          holds <span className="ok">49 REFUSED findings</span> on our own hardened demo
-          app, and the self-site run paid for one real bug: the shipped version endpoint
-          once answered a malformed registry payload with <span className="bad">200 and no
-          version key</span>. Found, fixed, never regressing again - pinned by the
-          version-grammar probe (plus the session probes: a cookie-less site
-          must mint zero cookies, and a forged cookie is never adopted) pinned in{' '}
-          <a href="https://github.com/dhaupin/crashtest/blob/main/test/site-pack.test.js" target="_blank" rel="noreferrer">test/site-pack.test.js</a>.{' '}
-          <span className="ok">That&apos;s the product working:</span> your handlers - ours -
-          paying for their own bugs with hardening receipts.
-        </p>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Pack</th><th>Attacks</th><th>How it arms</th><th>Self-audit fixture</th><th>Oracle teeth</th></tr>
+            </thead>
+            <tbody>
+              {PACKS.map((p) => (
+                <tr key={p.dir}>
+                  <td><code>{p.name}</code></td>
+                  <td>{p.attacks}</td>
+                  <td><span className="what">{p.arming}</span></td>
+                  <td><a href={`https://github.com/dhaupin/crashtest/blob/main/packs/public/${p.dir}/test/fixtures/run.mjs`} target="_blank" rel="noreferrer">run.mjs</a></td>
+                  <td><a href={`https://github.com/dhaupin/crashtest/blob/main/${p.pin}`} target="_blank" rel="noreferrer"><code>{p.pin}</code></a></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <details className="dash-faq">
+          <summary>Pack pins: what each oracle is held to</summary>
+          <p className="sub">
+            Every pack's oracles are graded by their own teeth: <code>wp-money-shapes</code>'s
+            three verdicts plus the envelope-shape law (a "kind: post" envelope can never
+            ride the wire) and an armed stub-WP grade are pinned in{' '}
+            <a href="https://github.com/dhaupin/crashtest/blob/main/test/wp-money-shapes.test.js" target="_blank" rel="noreferrer">test/wp-money-shapes.test.js</a>{' '}
+            and <a href="https://github.com/dhaupin/crashtest/blob/main/test/wp-roles.test.js" target="_blank" rel="noreferrer">test/wp-roles.test.js</a> (whose stock smoke exercises
+            <code>wp-stock-smoke</code> against the stub WP root); <code>cve-feed</code>'s
+            snapshot shape, its 27-row budget and its token-boundary grammar are pinned in{' '}
+            <a href="https://github.com/dhaupin/crashtest/blob/main/test/cve-feed.test.js" target="_blank" rel="noreferrer">test/cve-feed.test.js</a> and{' '}
+            <a href="https://github.com/dhaupin/crashtest/blob/main/test/cve-feed-roundtrip.test.js" target="_blank" rel="noreferrer">test/cve-feed-roundtrip.test.js</a>;{' '}
+            <code>qs-shapes</code>, <code>vite-dev-shapes</code> and{' '}
+            <code>next-middleware-shapes</code> each carry differential-oracle teeth in their
+            own test file, and the self-site lane is graded by{' '}
+            <a href="https://github.com/dhaupin/crashtest/blob/main/test/site-pack.test.js" target="_blank" rel="noreferrer">test/site-pack.test.js</a>.
+            The tarball-shape pins (what ships, what stays repo-bound) live in{' '}
+            <a href="https://github.com/dhaupin/crashtest/blob/main/test/packaging.test.js" target="_blank" rel="noreferrer">test/packaging.test.js</a>.
+          </p>
+        </details>
+        <details className="dash-faq">
+          <summary>Field report: the target we trust least is our own code</summary>
+          <p className="field-report">
+            This repo dogfoods itself in CI: the committed ledger holds{' '}
+            <span className="ok">49 REFUSED findings</span> on our own hardened demo
+            app. The self-site run paid for one real bug: the shipped version
+            endpoint once answered a malformed registry payload with{' '}
+            <span className="bad">200 and no version key</span> - found, fixed, and pinned by the
+            version-grammar probe. Plus the session probes: a cookie-less site must mint
+            ZERO cookies, and a forged cookie is never adopted.
+            <span className="ok">That is the product working:</span> your handlers - and ours -
+            paying for their own bugs with hardening receipts.
+          </p>
+        </details>
       </div>
     </section>
   )

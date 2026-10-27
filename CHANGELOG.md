@@ -21,7 +21,23 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
   test/site-pack.test.js pins both 502 classes and the no-echo/no-store
   contract. Floor 408 -> 409.
 
-- the snapshot generator and the site catalog lose their fiction (walk round
+- the /attacks page stops being a text wall (walk round 24): the bottom used
+  to be two long prose paragraphs in two text sizes - the pack rundown and
+  the field report. It now leads with a PACKS TABLE (all 8 shipped packs,
+  36 pack attacks total, with their real arming contract, their per-pack
+  self-audit fixture and the teeth file that grades each oracle), and the
+  two walls moved into collapsible explainer blocks (details/summary,
+  styled like the FAQ's quiet cards). Record correction, filed honestly
+  (rule 7 applies to us too): the round-22 entry claimed the page's
+  'self-audit fixtures (test/fixtures/run.mjs per pack)' line was fiction -
+  it was NOT: those fixtures live inside each pack's own directory
+  (packs/public/<pack>/test/fixtures/run.mjs), discovered and run 8/8 by
+  test/pack-fixtures.test.js; the misread is corrected here, and the page
+  prose now names the pack-relative fixture path directly. Site build 6/6
+  prerendered.
+
+- the snapshot generator's dead branch leaves, the snapshot gets a
+  staleness gate (walk round
   22): the dogfood-snapshot generator carried a dead `version === 'unknown'`
   reassignment branch (unreachable inside its own matched path) - removed;
   and nothing gated staleness of the committed `web/src/lib/dogfoodSnapshot.js`,
@@ -31,12 +47,7 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
   `labs/crashledger.json` + `labs/hardening.md` (the full ledger deep-equals,
   cost totals/per-attack rows/seed+version pin the header) and fails with the
   regen command named; `startedAt` stays the blessed moving stamp (run-meta
-  sidecar, artifacts never move). And the /attacks page advertised a reality
-  that does not exist - 'Every shipped pack carries its own self-audit
-  fixtures (test/fixtures/run.mjs per pack)': there is no `test/fixtures/`
-  directory; the prose now points at the pins that DO exist (the per-pack
-  teeth files, the shared census in test/pack-fixtures.test.js, and the
-  tarball-shape pins in test/packaging.test.js). Floor 406 -> 408; site build
+  sidecar, artifacts never move). Floor 406 -> 408; site build
   6/6 prerendered.
 
 - the dashboard-ledger bridge stops dropping honest flags and stops taking a
