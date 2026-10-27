@@ -7,6 +7,19 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.2.0 (unreleased)
 
+- the docs crosslinks audit closes its own gaps: the nav pointed at
+  /crashtest/discussions/ (a trailing-slash form matching no permalink);
+  the discussions index used extensionless .md-relative links
+  (./announcing-v1.0.0, ../about/style) against the repo's own
+  /crashtest/<permalink> convention - all three now use the permalink
+  form; and the release posts claimed a `version` frontmatter field in
+  their own contract prose but carried none - both posts now do. A
+  beyond-the-gate audit (frontmatter completeness, permalink uniqueness,
+  every link resolved against the repo tree - relative, /crashtest/-
+  prefixed, and GitHub blob/tree targets, headings for anchor links)
+  went 4 problems -> 0; the official lint:docs gates all stay green
+  (29 pages, fiction pass).
+
 - the docs belt gets its CLI reference and its second-truth callees lose
   (walk round 25): docs had NO CLI reference page (the nav pointed the
   attack catalog and presets but the verbs lived only in --help); the new

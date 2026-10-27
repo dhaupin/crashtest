@@ -3,6 +3,7 @@ permalink: discussions/announcing-v1.0.0
 layout: default
 title: Announcing crashtest v1.0.0
 description: The crashtest v1.0.0 release post - the file IS the announcement; copy the raw markdown from GitHub into Discussions. Technical, changelog-style.
+version: 1.0.0
 ---
 
 # crashtest v1.0.0
