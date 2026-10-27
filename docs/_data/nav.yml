@@ -62,6 +62,10 @@
     url: /crashtest/about/style
   - title: Release Posts
     url: /crashtest/discussions
+  - title: Announcing v1.0.0
+    url: /crashtest/discussions/announcing-v1.0.0
+  - title: Announcing v1.1.0
+    url: /crashtest/discussions/announcing-v1.1.0
   - title: Site Terms
     url: https://crashtest.creadev.org/terms
   - title: Site Privacy

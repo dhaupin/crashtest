@@ -7,6 +7,14 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.2.0 (unreleased)
 
+- the two release posts join the docs nav (About > Release Posts >
+  Announcing v1.0.0 / v1.1.0): every permalinked docs page except the
+  domain-root index and the maintainer runbook is now nav-reachable - the
+  posts were full themed pages already, they were just orphans of the
+  menu; the posting mechanics text also drops its "strip the FOUR
+  frontmatter lines" phrasing (the `version` field makes the block
+  five, and the rule cites the block, not a count).
+
 - the docs crosslinks audit closes its own gaps: the nav pointed at
   /crashtest/discussions/ (a trailing-slash form matching no permalink);
   the discussions index used extensionless .md-relative links
