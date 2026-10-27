@@ -227,10 +227,68 @@ test('badge 502s name their ACTUAL cause: a rejected document is not an unreacha
       const body = await res.text();
       assert.match(body, /unreachable|outage/, 'a real outage names the transport');
       assert.doesNotMatch(body, /rejected/, 'an outage is not a shape rejection');
+
     } finally {
       target.reply = prevReply;
     }
   } finally {
     restore();
   }
+});
+
+// Walk round 25 teeth: the second-truth and self-satisfied-check classes.
+
+test('teeth: sitemap-truth-audit DERIVES its route vocabulary from navItems.js, never a hand copy', async () => {
+  // The first cut hard-copied ['attacks','dashboard','faq','terms','privacy']
+  // - drift the moment a page ships. The fixed oracle parses the ONE nav
+  // list. Pin both directions: a ghost loc (not in navItems) EXPLOITS, and
+  // every CURRENTLY shipped route refuses because navItems itself carries
+  // them. Also pin the exact hardcode's removal: the detail must name the
+  // derived vocabulary, not a frozen route enumeration.
+  const attacks = (await import(new URL('../packs/public/crashtest-site/attacks.js', import.meta.url))).default.attacks;
+  const sitemap = attacks.find((a) => a.name === 'sitemap-truth-audit');
+  const navSrc = await readFile(new URL('../web/src/components/navItems.js', import.meta.url), 'utf8');
+  const declaredLocs = [...navSrc.matchAll(/(?:to|href):\s*'([^']+)'/g)]
+    .map((m) => m[1])
+    .filter((h) => h.startsWith('/') && !h.startsWith('//'));
+  assert.ok(declaredLocs.includes('/'), 'navItems must declare the root itself');
+  const xml = (locs) => `<?xml version="1.0" encoding="UTF-8"?>\n<urlset>${locs.map((l) => `<url><loc>https://crashtest.creadev.org${l === '/' ? '' : l}</loc></url>`).join('')}</urlset>`;
+
+  const okHarness = new Harness();
+  okHarness.registerRoute('site-sitemap', async () => new Response(xml(declaredLocs), { status: 200 }));
+  const ok = await sitemap.run(okHarness, {});
+  assert.equal(ok.verdict, 'REFUSED', 'every nav-declared loc refuses');
+  assert.doesNotMatch(ok.detail, /home, attacks, dashboard/, 'the frozen enumeration left the detail');
+  assert.match(ok.detail, /declared nav vocabulary/);
+
+  const ghostHarness = new Harness();
+  ghostHarness.registerRoute('site-sitemap', async () => new Response(xml([...declaredLocs, '/ghost-page']), { status: 200 }));
+  const ghost = await sitemap.run(ghostHarness, {});
+  assert.equal(ghost.verdict, 'EXPLOITED', 'a route the nav never declared is a phantom');
+  assert.match(ghost.detail, /\/ghost-page/);
+});
+
+test('teeth: csp-canary catches the strict-none-with-no-fallback posture (the optional group cannot self-satisfy anymore)', async () => {
+  // First cut: the 'self-or-https' regex left its group OPTIONAL, so a bare
+  // default-src 'none' passed the very breakage check it carried. Pin the
+  // fixed oracle both ways:
+  //   (a) 'none' + NO per-directive fallback => EXPLOITED (own assets have
+  //       no allowed source; the page serves nothing it needs),
+  //   (b) the shipped posture ('none' + script/style/base-uri/frame
+  //       fallbacks) => REFUSED, and 'self' in the default-src line is NOT
+  //       required - the fallbacks ARE the allowed sources.
+  const attacks = (await import(new URL('../packs/public/crashtest-site/attacks.js', import.meta.url))).default.attacks;
+  const canary = attacks.find((a) => a.name === 'csp-canary-bypass-attempts');
+  const harnessWith = (csp) => {
+    const h = new Harness();
+    h.registerRoute('site-headers', async () => new Response(`/ *\n  Content-Security-Policy: ${csp}\n`, { status: 200 }));
+    return h;
+  };
+
+  const broken = await canary.run(harnessWith("default-src 'none'"), {});
+  assert.equal(broken.verdict, 'EXPLOITED', 'strict-none with no fallbacks breaks own assets');
+  assert.match(broken.detail, /per-directive fallback/);
+
+  const good = await canary.run(harnessWith("default-src 'none'; script-src 'self'; style-src 'self'; base-uri 'self'; frame-ancestors 'none'"), {});
+  assert.equal(good.verdict, 'REFUSED', 'strict-none WITH fallbacks is the correct posture');
 });

@@ -184,9 +184,11 @@ Bursts are deterministic by microtask order - same inputs, same schedule.
 
 ## Shipped packs (belt with suspenders)
 
-The core package also ships two public packs, loaded per run root with
+The core package also ships eight public packs, loaded per run root with
 `packs:` and enumerated with `crashtest packs` - they ride the same
-contract, so their verdicts land in the same ledger:
+contract, so their verdicts land in the same ledger (full schema, arming
+contract and the packstruct lint in
+[Scenario Packs](/crashtest/reference/packs)):
 
 - `crashtest-site` (18 attacks) - the self-check every crashtest release
   must survive: it sweeps everything the project itself ships
@@ -207,6 +209,37 @@ contract, so their verdicts land in the same ledger:
   are word-boundary-disciplined, so `ws` never matches inside
   `answer` - both teeth and the no-false-positive case are pinned in
   `test/cve-feed.test.js`.
+- `qs-shapes` (2 attacks: `qs-bracket-canary`, `qs-depth-floor`) - the
+  bracket-notation parser wire (the express extended-query /
+  urlencoded lane, any qs-style parser): prototype-key canaries and a
+  parser-depth floor, endpoint-agnostic shapes graded by a
+  terminus-clamped differential oracle in
+  [`test/qs-shapes.test.js`](../../test/qs-shapes.test.js).
+- `vite-dev-shapes` (2 attacks: `vite-fs-deny-bypass`,
+  `vite-env-canary`) - the Vite dev-server file wire: fs deny/allow
+  bypass grammars (`?raw??` / `?import&raw??` / traversal encodings)
+  and deny-list value blindness; a differential terminator-blind
+  oracle in [`test/vite-shapes.test.js`](../../test/vite-shapes.test.js).
+- `next-middleware-shapes` (2 attacks: `mw-bypass-grammar`,
+  `mw-value-blindness`) - the Next.js middleware subrequest header:
+  bypass grammars and value-blindness probes swept over every declared
+  route in [`test/next-mw-shapes.test.js`](../../test/next-mw-shapes.test.js).
+- `wp-money-shapes` (3 attacks: `wp-write-volley`, `wp-txn-replay`,
+  `wp-gate-burst`) - plugin-agnostic WP money-flow shapes. ARMED pack:
+  it needs the WordPress surface (route `app` + `harness.wpState`, i.e.
+  `adapters.wordpress`) AND the
+  `moduleCtx['wp-money-shapes']` vocabulary (`postType`, `metaPaid`,
+  `metaEmail`, `optionKey`, `action`, `nonceAction`, `pacedHints`);
+  without - a polite refuse-skip, never a false positive.
+- `wp-roles` (3 attacks: `nopriv-callback-denied`,
+  `low-privilege-callback-blocked`, `capability-constants-hold`) - WP
+  role-callback discipline, experimental per PRD section 10; armed by
+  `moduleCtx['wp-roles']` on the same WordPress surface.
+- `wp-stock-smoke` (4 attacks) - stock-WordPress smoke: prove the WP
+  subprocess harness end to end on any install; it needs ONLY the
+  WordPress surface (route `app` + `harness.wpState`) - no vocabulary
+  to declare, so it is the natural first lane once `adapters.wordpress`
+  exists.
 
 ## Writing your own
 

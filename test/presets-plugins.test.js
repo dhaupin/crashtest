@@ -8,10 +8,15 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { execFile } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 import { loadPlugins, configDir } from '../src/plugins/loader.js';
 import { listPresets, detect, scaffoldPreset, probeHandler } from '../src/presets.js';
 import { main } from '../src/cli.js';
+
+const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 
 async function tempRepo(files) {
   const dir = await mkdtemp(join(tmpdir(), 'ct-v03-'));
@@ -366,6 +371,52 @@ test('probe: bodyBytes counts BYTES, not JS chars (a utf-8 body of 5 chars over 
   const p = await probeHandler(join(repo, 'unicode.js'));
   assert.equal(p.probed, true);
   assert.equal(p.bodyBytes, 6, 'h\u00e9llo encodes to 6 utf-8 bytes (5 chars)');
+});
+
+test('probe: a fast probe leaves NO live timer behind (the preset verb exits when the answer is in hand)', async () => {
+  // Subprocess pin: inside this process, node --test holds its own timers, so
+  // a leaked probe timer would be invisible here. The child process does ONLY
+  // an import + a fast probe; if the probe leaked its 3000ms watcher, the
+  // child could not exit until the timer fired. Threshold 2000ms leaves three
+  // digits of clearance over a healthy exit (~instant) and only tips on the
+  // actual leak (exit rides the 3000ms timer).
+  const repo = await tempRepo({
+    'fast.js': 'export default { fetch: async () => new Response("ok") };\n',
+  });
+  const script = [
+    'const { probeHandler } = await import(' + JSON.stringify(pathToFileURL(join(ROOT, 'src', 'presets.js')).href) + ');',
+    'const r = await probeHandler(' + JSON.stringify(join(repo, 'fast.js')) + ');',
+    'console.log(JSON.stringify({ probed: r.probed, status: r.status }));',
+  ].join('\n');
+  const started = Date.now();
+  const { stdout } = await new Promise((resolve, reject) => {
+    execFile(process.execPath, ['--input-type=module', '-e', script], { timeout: 20000 }, (err, stdout, stderr) => {
+      if (err && !stdout.trim()) reject(err); else resolve({ stdout: String(stdout), stderr: String(stderr) });
+    });
+  }).then((r) => r);
+  const result = JSON.parse(stdout.trim());
+  assert.equal(result.probed, true);
+  assert.equal(result.status, 200);
+  assert.ok(Date.now() - started < 2000, `probe subprocess took ${Date.now() - started}ms to exit - a probe timer is holding the event loop`);
+});
+
+test('preset: the TS/Deno warning is honest only when there is NO JS neighbor (a probed index.js is not fiction)', async () => {
+  // Both files present: the warning that says "needs a JS shim OR a compiled
+  // copy" would be fiction - the compiled copy is HERE and the probe ran it.
+  const repo = await tempRepo({
+    'supabase/functions/p/index.ts': 'export default { fetch: () => new Response() };\n',
+    'supabase/functions/p/index.js': 'export default { fetch: async () => new Response("ok") };\n',
+  });
+  const out = await scaffoldPreset('lovable', repo);
+  assert.ok(out.notes.some((n) => n.includes('probe p:') && n.includes('WORKS in-process')));
+  assert.ok(!out.warnings.some((w) => w.includes('TypeScript/Deno')), `warning fired despite the JS neighbor: ${out.warnings}`);
+
+  // And the .ts-only repo keeps the warning (pinned elsewhere too).
+  const tsRepo = await tempRepo({
+    'supabase/functions/single/index.ts': 'export default { fetch: () => new Response() };\n',
+  });
+  const tsOut = await scaffoldPreset('lovable', tsRepo);
+  assert.ok(tsOut.warnings.some((w) => w.includes('TypeScript/Deno')));
 });
 
 test('preset: an unknown preset name refuses at cause - a usage message, not a stack trace', async () => {

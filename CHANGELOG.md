@@ -7,6 +7,51 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.1.1 (unreleased)
 
+- the docs belt gets its CLI reference and its second-truth callees lose
+  (walk round 25): docs had NO CLI reference page (the nav pointed the
+  attack catalog and presets but the verbs lived only in --help); the new
+  docs/reference/cli.md covers every verb and flag verified against the
+  shipped binary, the docs nav gains the entry, and
+  test/web-docs-consistency.js pins that every dispatched verb is NAMED
+  there (a new verb must land on the reference page in the same commit).
+  Two stale numeric claims died: attacks.md's 'two public packs' section
+  (it named 2 of the 8 shipped packs; now all 8 with real attack names,
+  versions and the exact arming vocabulary), and the --help MODULES line
+  (named 5 modules of the shipped 14; now the full census).
+
+- the preset belt walks clean of two liars and a dead claim (walk round
+  25): probeHandler's timeout races left both timers alive on success, so
+  a preset over N edge functions held the CLI's event loop open up to
+  timeoutMs apiece after the answer was in hand (the preset verb exits
+  seconds late); timers are now cleared in finally and unref'd, pinned by
+  a subprocess exit-latency tooth (a fast probe child must exit inside
+  2000ms - leaked, it rides the 3000ms watcher). The TS/Deno warning
+  fired even when a compiled index.js neighbor existed AND the probe had
+  just successfully run it - the warning told the user to create what the
+  repo already contains; it now fires only when the JS neighbor is
+  absent, both directions pinned. And PRESETS[x].detect lambdas claimed
+  detection semantics no code ever invoked (the real detection is
+  detect()); deleted, not dressed up.
+
+- the crashtest-site pack stops hand-copying the truth it polices (walk
+  round 25): sitemap-truth-audit hard-coded the SPA route list
+  ['attacks','dashboard','faq','terms','privacy'] - a second truth that
+  drifts the moment a page ships, EXPLOITING an honest new page or
+  missing a phantom; the oracle now parses web/src/components/navItems.js
+  (the ONE list the header/sidebar/footer render from) and EXPLOITEDs
+  loudly if it cannot, both directions tooth-pinned (ghost loc EXPLOITS,
+  every nav-declared loc refuses). Also: csp-canary's self-or-https
+  regex left its group OPTIONAL so a bare default-src 'none' line
+  self-satisfied the breakage check (fixed: breakage only when default-src
+  bars everything AND no per-directive fallback exists - the shipped
+  strict-none-plus-fallbacks posture is the correct shape, both ways
+  pinned); html-secret-leakage's backslashed-Users pattern lost its
+  over-broad match and the redundant standalone /home/ alternative; the
+  headers oracle dropped a no-op replace;  version-grammar's REFUSED
+  detail computes its shape counts instead of claiming them. Floor
+  409 -> 414; dogfood double-run byte-identical, matches the committed
+  baseline; lint:docs fiction-signature pass over the new pages.
+
 - the badge oracle names the ACTUAL cause of its 502s (walk round 23): a
   registry document that arrived but FAILED the floor (pollution key,
   oversize/control-char/semver-hostile version) rode the catch-all branch,

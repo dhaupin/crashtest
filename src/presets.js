@@ -26,20 +26,16 @@ import { pathToFileURL } from 'node:url';
 const PRESETS = {
   lovable: {
     oneLine: 'Lovable export (Supabase Edge Functions / TanStack Start / static SPA)',
-    // Detection keys are REPO FEATURES, never the builder's name alone.
-    detect: (exists, read) => exists('supabase/config.toml')
-      || exists('supabase/functions') // dir entries only; shapes checked below
-      || exists('src/routeTree.gen.ts'), // TanStack Start codegen marker
+    // Detection is detect()'s job (repo features, never the builder's name
+    // alone); nothing is claimed here that the CLI does not run.
   },
   bolt: {
     oneLine: 'Bolt.new export (Bolt Cloud / Supabase-backed or bolt-managed functions)',
-    detect: (exists) => exists('supabase/config.toml') || exists('supabase/functions'),
     // No unconditional Bolt marker found: bolt.new exports are ZIP/npm
     // outlines, no documented universal backend filename.
   },
   replit: {
     oneLine: 'Replit export (project-specific server; entry named by .replit run command)',
-    detect: (exists) => exists('.replit') || exists('replit.nix'),
   },
 };
 
@@ -162,7 +158,13 @@ export async function scaffoldPreset(name, repoRoot, probeHarness = null) {
         } else if (probe.reason) {
           notes.push(`probe ${fn}: not executed - ${probe.reason}`);
         }
-        warnings.push(`${tsRel} is TypeScript/Deno - the in-process adapter needs the handler imported as JS. Options: a JS shim in your repo exporting { fetch }, OR a compiled copy. crashtest does not transpile and never runs Deno APIs in Node.`);
+        // The TS/Deno warning is honest ONLY when there is no JS neighbor:
+        // a compiled index.js that the probe just ran IS the JS entry this
+        // warning would tell the user to create (fiction by omission).
+        const hasJsNeighbor = await existsSafe(repoRoot, `supabase/functions/${fn}/index.js`);
+        if (!hasJsNeighbor) {
+          warnings.push(`${tsRel} is TypeScript/Deno - the in-process adapter needs the handler imported as JS. Options: a JS shim in your repo exporting { fetch }, OR a compiled copy. crashtest does not transpile and never runs Deno APIs in Node.`);
+        }
       }
       configParts.push(`// Supabase Edge Functions found: ${d.supabase.functions.join(', ')}`);
       configParts.push('// Mark the USE of the fetch interface explicitly in your config - example shape:');
@@ -241,10 +243,20 @@ export async function probeHandler(fnPath, opts = {}) {
   // A probe that HANGS is worse than a probe that fails: without a cap the
   // CLIverb never returns and the operator cannot even see the finding.
   // (The doc always said "timeout-guarded"; the timer now exists to prove it.)
+  // Timers are tracked and cleared in the finally below + unref'd: a probe
+  // over N edge functions must not hold the CLI's event loop open for
+  // timeoutMs apiece after the answer is already in hand (the preset verb
+  // would exit seconds late - a real exit-latency bug, not style).
   const timeoutMs = opts.timeoutMs ?? 3000;
-  const raceTimeout = (ms, what) => new Promise((_, reject) => {
+  const timers = [];
+  const raceTimeout = (ms, what) => {
+    let reject;
+    const p = new Promise((_, rej) => { reject = rej; });
     const t = setTimeout(() => { clearTimeout(t); const e = new Error(`${what} hung past ${ms}ms (probe timeout)`); e.probeReason = e.message; reject(e); }, ms);
-  });
+    t.unref?.();
+    timers.push(t);
+    return p;
+  };
   if (!/\.(m?js)$/i.test(fnPath)) {
     return out({ reason: 'not plain ESM JS (.ts/.deno cannot be probed - crashtest does not transpile)' });
   }
@@ -280,5 +292,11 @@ export async function probeHandler(fnPath, opts = {}) {
     // A genuine throw keeps its named evidence wording (pinned); a timer
     // rejection carries its own probe reason through e.probeReason.
     return out({ reason: e?.probeReason ?? `handler threw on a plain GET: ${e?.message ?? e}` });
+  } finally {
+    closeProbeTimers(timers);
   }
+}
+
+function closeProbeTimers(timers) {
+  for (const t of timers) clearTimeout(t);
 }

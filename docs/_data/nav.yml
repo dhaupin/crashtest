@@ -37,6 +37,8 @@
   items:
   - title: The Attack Catalog
     url: /crashtest/reference/attacks
+  - title: CLI Reference
+    url: /crashtest/reference/cli
   - title: The Hardening Ledger
     url: /crashtest/reference/ledger
   - title: Exit Rules

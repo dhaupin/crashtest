@@ -77,6 +77,29 @@ test('tone: both surfaces use the same exit-code contract (0 held / 1 finding / 
   assert.ok(/baseline held/.test(cli), 'CLI help lost the exit-code phrasing');
 });
 
+test('nav: the docs CLI reference names every shipped verb (rule 7: docs = the binary\'s truth)', async () => {
+  const cli = await read('src/cli.js');
+  const ref = await read('docs/reference/cli.md');
+  const navYml = await read('docs/_data/nav.yml');
+  // The verbs the binary answers on, as dispatched in src/cli.js main(). A
+  // NEW verb must land on the reference page in the same commit - the pin
+  // wall finds you otherwise.
+  const verbs = ['init', 'run', 'packs', 'lint-determinism', 'lint-packs', 'preset'];
+  for (const v of verbs) {
+    assert.ok(referenceHas(ref, v), `docs/reference/cli.md missing the \`crashtest ${v}\` verb`);
+  }
+  assert.ok(/verb === '--version'/.test(cli), 'CLI dispatcher lost the version verb - reference page is now stale');
+  assert.ok(navYml.includes('/crashtest/reference/cli'), 'docs nav lost the CLI Reference entry');
+});
+
+/** The page must NAME the verb as a command, not merely contain the word:
+ *  a heading like `crashtest init [--force]` names it; prose containing the
+ *  bare word 'init' does not. Verb token must open a code span and be
+ *  followed by a flag-bracket, space or closing backtick. */
+function referenceHas(ref, verb) {
+  return new RegExp('`crashtest ' + verb + '(?=[`\\s\\[])').test(ref);
+}
+
 test('voice: web prose obeys the docs\' enforced style rules (hyphen-voice + cliches)', async () => {
   // Run the docs style rules against web prose pages (not code identifiers).
   const pages = ['web/src/pages/FAQ.jsx', 'web/src/pages/Home.jsx'];

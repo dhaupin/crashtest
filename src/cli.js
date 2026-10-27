@@ -108,8 +108,11 @@ EXIT CODES (the CI contract)
   2  config problem (missing/bad config or baseline) - the run is wrong,
      not your code
 
-MODULES  auth - guards - input - state - volume (plus your own via packs/,
-labs/scenarios/, or config plugins: [npm-package-or-path]). Every attack
+MODULES  auth, authz, governance, guards, input, memory,
+         proto-hygiene, race, recursion, session, state, taxonomy,
+         upload, volume - 14 shipped modules, 49 attacks (plus your own
+         via packs/, labs/scenarios/, or config plugins:
+         [npm-package-or-path]). Every attack
 returns one verdict:
   REFUSED   the defense held
   EXPLOITED you got hit (CI fails the FIRST time this is new)

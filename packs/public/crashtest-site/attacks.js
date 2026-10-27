@@ -7,7 +7,7 @@
 // that holds is REFUSED with numbers, and the accepted-risk floor needs
 // owner+bound or it is a finding, never a shrug.
 
-import { stat } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { registry, installRegistryShim, restoreFetch } from './lib/registry-shim.js';
@@ -50,7 +50,7 @@ export default {
         ];
         const missing = [];
         for (const [name, matcher, why] of required) {
-          const value = res.headers?.get(name) ?? hdr.text?.match(new RegExp(name.replace(/-/g, '-') + ':\\s*(.+)', 'i'))?.[1];
+          const value = res.headers?.get(name) ?? hdr.text?.match(new RegExp(name + ':\\s*(.+)', 'i'))?.[1];
           // String matchers compare a matched wire value (often mixed-case,
           // e.g. "DENY") - compare on both sides lowercased.
           const ok = value !== undefined && value !== null && (typeof matcher === 'string' ? String(value).toLowerCase().includes(String(matcher).toLowerCase()) : matcher.test(String(value)));
@@ -73,7 +73,7 @@ export default {
         if (res.status === 404) return { verdict: 'REFUSED', detail: 'shipped HTML absent from the checkout (web/dist not built) - skip (run the web build for artifact coverage)', skipped: true };
         const html = res.text;
         const leaks = [];
-        if (/\/\/\/?'?[A-Za-z]:\\\\?|\/home\/\w+|\Users\/|\/home\//.test(html)) leaks.push('absolute filesystem path');
+        if (/\/\/\/?'?[A-Za-z]:\\?|\/home\/[A-Za-z0-9._-]+|[\\]Users[\\]/.test(html)) leaks.push('absolute filesystem path');
         const deployMatch = html.match(/<meta name="deploy-id" content="([^"]+)"/);
         if (deployMatch && !/[0-9a-f]{7,}/.test(deployMatch[1])) leaks.push('deploy-id present but malformed: ' + deployMatch[1]);
         if (deployMatch) leaks.push('#INFO deploy-id present: ' + deployMatch[1]);
@@ -102,11 +102,17 @@ export default {
         if (/style-src[^;]*\bhttp:/.test(csp)) fails.push('style-src allows plain http:');
         if (!/base-uri/.test(csp)) fails.push('base-uri unrestricted (a <base> injection rewrites every relative URL)');
         if (!/frame-ancestors/.test(csp)) fails.push('frame-ancestors absent (clickjacking dread)');
-        if (/default-src\s+'none'/.test(csp)) { /* the claim is strong; verify the escapes */ }
-        const hasSelfOrHttps = /default-src\s+'none'([^;]*(?:'self'|https:))?/.test(csp) || csp.includes("'self'");
-        if (!hasSelfOrHttps) fails.push('default-src pins neither self nor a pinned https source (would break own assets)');
+        // Own-asset breakage ONLY when default-src bars everything AND no
+        // per-directive fallback exists: default-src 'none' + script-src
+        // 'self' is the correct strict posture (own assets ride the
+        // fallback), never a finding. The first cut's regex made its
+        // self-or-https group OPTIONAL, so a bare default-src 'none' line
+        // self-satisfied the very check it was written to carry.
+        const perDirectiveSrc = /(script|style|img|font|connect|manifest|media|frame|worker|object)-src/.test(csp);
+        const defaultServesOwn = /default-src\s+(?![^;]*'none')[^;]*(?:'self'|https:)/.test(csp);
+        if (!defaultServesOwn && !perDirectiveSrc) fails.push('default-src pins neither self/https directly nor the per-directive fallback a strict-none posture needs (the site would own no allowed source)');
         if (fails.length) return { verdict: 'EXPLOITED', detail: 'CSP is theater: ' + fails.join('; ') };
-        return { verdict: 'REFUSED', detail: 'CSP holds: default-src none, no plain-http script/style sources, base-uri + frame-ancestors pinned' };
+        return { verdict: 'REFUSED', detail: 'CSP holds: no plain-http script/style sources, base-uri + frame-ancestors pinned, and the strict posture still names its own allowed sources' };
       },
     },
 
@@ -176,7 +182,8 @@ export default {
           }
         }
         if (lies) return { verdict: 'EXPLOITED', detail: lies + '/' + shapes.length + ' hostile shapes broke the badge contract: ' + evidence.join(' | ') };
-        return { verdict: 'REFUSED', detail: 'all 5 registry shapes behaved: 4 hostile floored to honest 502 with zero echo, healthy-semver shape served with provenance accurate' };
+        const hostileShapes = shapes.filter((s) => s.expect === 'reject').length;
+        return { verdict: 'REFUSED', detail: 'all ' + shapes.length + ' registry shapes behaved: ' + hostileShapes + ' hostile floored to honest 502 with zero echo, ' + (shapes.length - hostileShapes) + ' healthy shape(s) served with provenance accurate' };
       },
     },
 
@@ -220,16 +227,29 @@ export default {
           return { verdict: 'EXPLOITED', detail: 'sitemap.xml is not parseable as XML: ' + String(e).slice(0, 100) };
         }
         if (!locs.length) return { verdict: 'EXPLOITED', detail: 'sitemap.xml carried ZERO <loc> entries (crawlers treat it as broken)' };
-        // Confirm each non-origin path exists in the sitemap surface: a bare
-        // origin loc (https://host, no trailing slash) counts as the root.
+        // The SPA's route vocabulary - ONE truth, not a hand copy: parsed from
+        // navItems.js (the ONE list the header, sidebar and footer all
+        // render from). A hand-copied route list drifts the moment a page
+        // ships - exactly the second-truth class this pack polices.
+        const navSrc = await readFile(join(WEB_ROOT, 'src', 'components', 'navItems.js'), 'utf8')
+          .catch(() => null);
+        if (!navSrc) {
+          return { verdict: 'EXPLOITED', detail: 'web/src/components/navItems.js unreadable from this run root - the sitemap oracle refuses to guess the route vocabulary (fail at cause, never drift)' };
+        }
+        const declared = new Set();
+        for (const m of navSrc.matchAll(/(?:to|href):\s*'([^']+)'/g)) {
+          if (m[1].startsWith('/') && !m[1].startsWith('//')) declared.add(m[1]);
+        }
+        // Confirm each sitemap path exists in that declared vocabulary: a
+        // bare origin loc (https://host, no trailing slash) counts as the
+        // root route.
         const badRoutes = [];
         for (const loc of locs) {
           const path = loc.replace(/^https?:\/\/[^/]+/, '') || '/';
-          const isKnown = path === '/' || ['attacks','dashboard','faq','terms','privacy'].some((r) => path === '/' + r);
-          if (!isKnown) badRoutes.push(path);
+          if (!declared.has(path)) badRoutes.push(path);
         }
         if (badRoutes.length) return { verdict: 'EXPLOITED', detail: 'sitemap advertises route(s) the SPA does not declare: ' + badRoutes.join(', ') };
-        return { verdict: 'REFUSED', detail: 'sitemap advertises ' + locs.length + ' route(s) that all map to declared SPA routes (home, attacks, dashboard, faq, terms, privacy)' };
+        return { verdict: 'REFUSED', detail: 'sitemap advertises ' + locs.length + ' route(s) that all resolve to the declared nav vocabulary (' + [...declared].sort().join(', ') + ')' };
       },
     },
 
