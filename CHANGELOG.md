@@ -5,7 +5,7 @@ Notable changes to the `crashtest` package. The released version lives in
 `test/version.test.js`); releases go out on `vX.Y.Z` git tags via npm
 Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
-## 1.1.1 (unreleased)
+## 1.2.0 (unreleased)
 
 - the docs belt gets its CLI reference and its second-truth callees lose
   (walk round 25): docs had NO CLI reference page (the nav pointed the

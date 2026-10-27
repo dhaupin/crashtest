@@ -1,6 +1,6 @@
 {
   "name": "crashtest",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "In-process adversarial QA for agent-built app code - seeded redteam/fuzz/guard campaigns against real handlers, no sockets, CI-fails-on-regression ledger.",
   "license": "MIT",
   "type": "module",
