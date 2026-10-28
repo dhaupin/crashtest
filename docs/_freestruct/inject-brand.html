@@ -1,28 +1,41 @@
-<!-- freestruct SEO template - crashtest docs edition.
+<!-- freestruct SEO template - crashtest docs edition (ENGINE edition,
+     crashtest#39: upgraded from the shell edition so identity comes from
+     the config, not the template).
      The Jekyll layout (_layouts/default.html) already emits canonical,
      og:title/description/url/type/site_name, so this template adds ONLY the
      layer the layout lacks - keeping inject output dupe-free:
-       twitter card + title, an og:image (resolved to the main site card),
-       and one SoftwareApplication JSON-LD.
-     Placeholders honored: {{siteUrl}}, {{siteName}}, {{siteDescription}}. -->
+       twitter card + title, an og:image (config-resolved to the main site
+       card), the built-in Organization block on the {{authorJson}} seam,
+       and the built-in WebSite block on the {{searchActionJson}} seam.
+     Placeholders honored: {{siteUrl}}, {{siteName}}, {{siteDescription}},
+     {{ogImage}}, {{siteNameJson}}, {{siteUrlJson}}, {{siteDescriptionJson}},
+     {{authorJson}}, {{searchActionJson}}. -->
 
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{siteName}} Docs">
 <meta name="twitter:description" content="{{siteDescription}}">
-<meta property="og:image" content="https://crashtest.creadev.org/og-image.png">
+<meta property="og:image" content="{{ogImage}}">
 
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  "name": "{{siteName}}",
-  "applicationCategory": "DeveloperApplication",
-  "operatingSystem": "Node.js",
-  "url": "{{siteUrl}}",
-  "description": "{{siteDescription}}",
-  "offers": { "@type": "Offer", "price": 0, "priceCurrency": "USD" },
-  "author": { "@type": "Person", "name": "dhaupin", "url": "https://github.com/dhaupin" }
+  "@type": "Organization",
+  "name": "{{siteNameJson}}",
+  "url": "{{siteUrlJson}}",
+  "description": "{{siteDescriptionJson}}"{{authorJson}}
 }
 </script>
 
-<!-- injected by freestruct: https://github.com/dhaupin/freestruct -->
+<!-- The WebSite block rides the {{searchActionJson}} seam - empty unless the
+     config wires a search endpoint (no fake ?s action for a pagefind modal). -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "{{siteNameJson}}",
+  "url": "{{siteUrlJson}}"{{searchActionJson}}
+}
+</script>
+
+<!-- injected by freestruct: https://github.com/dhaupin/freestruct (PINNED
+     install in the deploy workflow - never float a github:-install) -->

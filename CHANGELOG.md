@@ -26,6 +26,29 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
   staging settles; no staging citation remains for eyestruct anywhere in
   the tree.
 
+- the ops queue sweep lands (the family's per-repo receipts to the
+  ten open asks): #44 wires prepublishOnly (`npm test && npm run check`) -
+  and the REAL `npm publish --dry-run` gate converts into a caught bug
+  (test/packaging.test.js: the parent npm's dry-run env leaked into the
+  nested pack/install children; children now filter the inherited
+  npm_config family, hermetic under any npm-driven invocation). #41 ships
+  the mobile table guard (eyestruct 138fda9 worked example: wide kramdown
+  tables scroll in their own box and stop pinning the page). #39 lands the
+  engine-edition inject-brand + identity blocks in ssr-config.yml
+  (Organization + founder, WebSite, the crashtest-maintainer Person -
+  locally probed through the pinned freestruct 1.1.0). #40 opens
+  docs/reference/ci.md, the operator battery flow + when-red triage map.
+  #42 lands the gitignore belt + records the Ruby-capable-host preview
+  recipe on the TASKS log (the dark+light capture stays pending). #46
+  copies eyestruct's generic ship-from-download publish lane as-is into
+  scripts/ (named refusals + the offline token-shape smoke receipts).
+  #38 converges this repo's docs.yml copy toward the proven pins
+  (checkout v6, ruby 3.4, upload-pages-artifact v5) until the reusable
+  workflow_call lane lands on flowforge#9. #47 is CLOSED from the
+  crashtest side: family-status@1 adopted end to end (see the status
+  bullet above). #43 stays an eyestruct-consumer ask with a scoping note
+  (the bundle-class scenarios need the subprocess scenario lane decision,
+  WP-spike precedent).
 - the PASSED verdict opens - the safe-path POSITIVE probe joins the verdict
   census, aligned with the family taxonomy (eyestruct's ledger ships the
   same bucket, so a PASSED row reads the same across hosts):

@@ -1933,3 +1933,51 @@ t  (ct_create_user/ct_grant_role/ct_reset_users whitelist helpers),
   check 0, lint:docs 0. The battery bot ls, the truth is observed - the
   same-commit rule (re-copy + regenerate + re-derive) executed in one
   review, per the corpus README contract.
+
+### 2026-10-28 - eyestruct goes LIVE on npm: the lane flip + the family-status adoption + the ops queue sweep
+- **The eyestruct lane flip (receipt, not ask):** dhaupin/eyestruct is on the
+  registry at 0.9.0 (its own package devDeps carry crashtest ^1.1.0 - the
+  family consuming back). The family-lanes eyestruct row re-cut against the
+  LIVE repo tarball pinned at 52a4d0a3: 4 packs (eye-bundle joined) lint
+  CLEAN shallow+deep through the exact-pinned packstruct 1.0.0 passthrough,
+  4 modules probed, 0 census ids; their packs/eye-ledger.json observed on
+  disk - 30 rows {REFUSED:21, PASSED:7, BOUNDED:2}, 0 EXPLOITED - resolving
+  the visit-later row from bytes (their PASS set == our 1.2.0 census). The
+  gistory staging citation is retired for eyestruct; poststruct's row stays
+  until its staging settles.
+- **family-status@1 adopted (crashtest#47):** web/scripts/build-status.mjs
+  emits web/public/status.json from the COMMITTED ledgers (one leg,
+  labs/crashledger.json; pack rows derive from each pack bank - the battery
+  cross-checks against `packs --json`), gitignored, wired FIRST in the CI
+  web lane; the FamilyStatusIsland rides /dashboard with per-sibling
+  graceful failure (probe: eyestruct serves, packstruct not yet,
+  poststruct/monoforge offline); test/status-leg.test.js (4 rows) pins
+  verdict rules + loud refusals + live-count re-derivation. docs
+  reference/status.md + nav.
+- **The ops queue:** #44 prepublishOnly wired (`npm test && npm run check`),
+  proven by REAL `npm publish --dry-run` - which the gate converted into a
+  caught bug (test/packaging.test.js: the outer --dry-run leaks
+  npm_config_dry_run into the nested npm pack/install children; children now
+  run with the inherited npm_config family filtered out). #41: the mobile
+  table guard lands per eyestruct 138fda9 (display:block + overflow-x:auto
+  + td-code nowrap in docs/_layouts; min-width:0 on .main). #39: ssr-config
+  identity blocks (author Creadev.org + crashtest maintainer Person) +
+  inject-brand upgraded to the ENGINE edition; local probe receipt on a
+  fabricated _site through freestruct@1.1.0 - Organization + founder,
+  WebSite, and the maintainer Person all render. #40: docs/reference/ci.md
+  (battery flow + baseline discipline + when-red triage map). #42: the
+  docs/_site gitignore belt landed with the family block; the local
+  Jekyll-preview recipe is recorded HERE (this entry is the run-log
+  surface); the dark+light capture stays pending a Ruby-capable host.
+  #46: eyestruct's ship-from-download lane copied as-is (blob 123808d1,
+  node --check + offline refusal-table smoke: MISSING_TARGET/
+  NOT_A_PACKAGE_TREE/BAD_TOKEN all named). #38: this repo's docs.yml copy
+  converges toward the proven pins (checkout v6, ruby 3.4,
+  upload-pages-artifact v5) until flowforge#9's reusable lane lands. #45:
+  audited - our shell head comment carries no literal title markup; the
+  family footer crosslink waits for the other three.
+- Suite: 418 pass / 0 fail / 7 skips (PHP-less host; suite floor moved
+  414 -> 418, AGENTS.md floor comment updated). check 0, lint:docs 5/5,
+  web build 6/6 prerendered with the island slot, dogfood double-run
+  byte-identical. publish --dry-run receipts: tarball 167.9 kB / 75 files,
+  shasum b58be4f.

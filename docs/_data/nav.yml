@@ -43,6 +43,8 @@
     url: /crashtest/reference/ledger
   - title: Exit Rules
     url: /crashtest/reference/exit-rules
+  - title: The CI Battery
+    url: /crashtest/reference/ci
   - title: Scenario Packs
     url: /crashtest/reference/packs
   - title: Family Status

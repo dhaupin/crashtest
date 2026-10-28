@@ -21,9 +21,25 @@ import { tmpdir } from 'node:os';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..');
 
+// The probe's npm children must be HERMETIC under npm-driven invocation.
+// Surfaced by the #44 prepublishOnly gate: `npm publish --dry-run` exports
+// npm_config_dry_run=true into every child, and a nested `npm pack
+// --pack-destination` then prints the tarball name while writing nothing -
+// the smoke reads a file that was honestly never made. The same leak class
+// would blind the nested `npm install`. Filter the inherited npm_config
+// family out of every child env; the probe declares its own flags.
+function npmEnv() {
+  const env = {};
+  for (const [k, v] of Object.entries(process.env)) {
+    if (/^npm_config_/i.test(k)) continue;
+    env[k] = v;
+  }
+  return env;
+}
+
 function dryRunFiles() {
   const out = execFileSync('npm', ['pack', '--dry-run', '--json'], {
-    cwd: REPO, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024,
+    cwd: REPO, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, env: npmEnv(),
   });
   const parsed = JSON.parse(out);
   return parsed.flatMap((pkg) => pkg.files.map((f) => f.path));
@@ -82,7 +98,7 @@ test('install smoke: the REAL tarball installs clean and its WP worker is on dis
   const work = mkdtempSync(join(tmpdir(), 'crashtest-pack-smoke-'));
   try {
     const tgz = execFileSync('npm', ['pack', '--pack-destination', work], {
-      cwd: REPO, encoding: 'utf8', maxBuffer: 4 * 1024 * 1024,
+      cwd: REPO, encoding: 'utf8', maxBuffer: 4 * 1024 * 1024, env: npmEnv(),
     }).trim().split('\n').pop();
     const smokeDir = join(work, 'smoke');
     mkdirSync(smokeDir);
@@ -91,7 +107,7 @@ test('install smoke: the REAL tarball installs clean and its WP worker is on dis
       JSON.stringify({ name: 'crashtest-pack-smoke', version: '1.0.0', private: true }, null, 2) + '\n',
     );
     execFileSync('npm', ['install', join(work, tgz), '--no-audit', '--no-fund', '--loglevel=error'], {
-      cwd: smokeDir, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024,
+      cwd: smokeDir, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, env: npmEnv(),
     });
     const installed = join(smokeDir, 'node_modules', 'crashtest');
     for (const needed of ['src/adapters/wordpress.js', 'fixtures/wordpress/wp-worker.php', 'fixtures/wordpress/stub-wp/wp-load.php']) {

@@ -8,6 +8,22 @@ site:
   url: https://docs.creadev.org
   description: Seeded, in-process adversarial QA for agent-built apps - quick starts, playbooks per framework, the attack catalog, and the ledger CI gates on.
 
+# Identity blocks (crashtest#39, family JSON-LD standard): the engine
+# edition template renders the founder off `author` (the {{authorJson}}
+# seam on the built-in Organization block); the custom maintainer Person
+# rides the legacy jsonLd list form (every page). Missing-only gate: a
+# config without these renders the blocks without the seams - never fake
+# identity.
+author:
+  name: Creadev.org
+  url: https://creadev.org
+
+jsonLd:
+  - "@type": Person
+    name: dhaupin
+    url: https://github.com/dhaupin
+    jobTitle: crashtest maintainer
+
 # Jekyll's own output directory, relative to this config's docs/ dir (the
 # pinned freestruct layer resolves config.outputDir against the config's
 # own folder; the old root-relative `docs/_site` value doubled under the
@@ -31,6 +47,9 @@ lastModified: true
 generateSitemap: true
 generateRobots: true
 generate404: true
+
+og:
+  image: https://crashtest.creadev.org/og-image.png
 
 # No RSS, no search index (the lean layout has no search UI yet).
 generateFeed: false
