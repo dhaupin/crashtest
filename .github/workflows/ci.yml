@@ -48,6 +48,15 @@ jobs:
           npx --no-install packstruct lint packs
           node labs/packstruct-backfill/verify-spec.mjs node_modules/packstruct
 
+      # family-status@1 emitter (crashtest#47 adoption): status.json is
+      # regenerated from the COMMITTED ledgers before every web build and is
+      # gitignored - never hand-edited, never committed; the battery leg
+      # (test/status-leg.test.js) re-derives the counts against the live
+      # ledgers, and the dashboard's family island reads the siblings'
+      # served files with per-sibling graceful failure.
+      - name: Family status - emit web/public/status.json from committed ledgers
+        run: node web/scripts/build-status.mjs
+
       # web/dist is gitignored (build-only), but it is real attack surface:
       # the site pack's HTML/sitemap attacks need the prerendered artifacts.
       # Build them so the suite exercises full artifact coverage; the pack

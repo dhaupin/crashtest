@@ -490,6 +490,18 @@ export default function Dashboard() {
           </div>
         </section>
       )}
+
+      {/* family-status@1 island (crashtest#47): the family table reads every
+          sibling's served /status.json at load - browser-only, so the
+          prerendered HTML is the static fallback and the island fills it for
+          the visitor. A sibling that is not serving the dialect yet renders
+          its own honest "not serving" row, never a guessed one. */}
+      <section className="section">
+        <div className="wrap">
+          <h2>Family status</h2>
+          <pre-island data-pre-island="family-status" />
+        </div>
+      </section>
     </>
   )
 }

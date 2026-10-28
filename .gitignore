@@ -21,3 +21,15 @@ labs/run-meta.json
 web/node_modules/
 web/dist/
 web/.prestruct/
+
+# The family-status@1 emitter's output (regenerated on every web build -
+# see web/scripts/build-status.mjs; committing it would be the stale-copy
+# drift class the family kills everywhere else)
+web/public/status.json
+
+# Docs build products (belt-and-suspenders, crashtest#42: an accidental
+# in-tree Jekyll build taints nothing; CI builds from a scratch copy)
+docs/.bundle/
+docs/vendor/
+docs/_site/
+docs/Gemfile.lock

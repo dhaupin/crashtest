@@ -45,6 +45,8 @@
     url: /crashtest/reference/exit-rules
   - title: Scenario Packs
     url: /crashtest/reference/packs
+  - title: Family Status
+    url: /crashtest/reference/status
   - title: The Scenario Contract
     url: /crashtest/reference/scenario-contract
   - title: Plugins

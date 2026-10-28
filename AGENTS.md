@@ -111,9 +111,9 @@ carry their own semver - never bump those for CLI-level releases.
 ## Common commands
 
 ```bashnpm test             # full suite (node --test); 317 pass was the 1.1.0 floor,
-                     # 414 pass was the 1.1.1 tree, 421 pass is the 1.2.0 tree
+                     # 414 pass was the 1.1.1 tree, 425 pass is the 1.2.0 tree
                      # with PHP (the 7 armed WP e2e rows skip on PHP-less
-                     # hosts, where the same tree read 414 pass / 7 skips)
+                     # hosts, where the same tree read 418 pass / 7 skips)
 npm run check        # syntax check across every source/test file
 npm run lint:docs    # docs links + style + fiction-signature scan
 npx crashtest init

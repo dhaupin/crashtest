@@ -33,6 +33,7 @@
 // import PromoBanner    from './islands/PromoBanner.jsx'
 
 import VersionBadge from './components/VersionBadge.jsx'
+import FamilyStatusIsland from './components/FamilyStatusIsland.jsx'
 
 export const islands = {
   // 'recently-viewed': RecentlyViewed,
@@ -41,4 +42,8 @@ export const islands = {
   // Live npm version badge - static `<a>` fallback prerenders in HTML;
   // upgrades to `v0.1.1 / provenance [ok]` once /api/version is reachable.
   'version-badge': VersionBadge,
+  // family-status@1 island (crashtest#47): per-sibling fetch of each
+  // family origin's served /status.json, per-sibling graceful failure -
+  // a sibling not serving yet renders its own empty row, never a guess.
+  'family-status': FamilyStatusIsland,
 }
