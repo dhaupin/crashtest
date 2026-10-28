@@ -22,6 +22,10 @@ export const VERDICTS = {
   REFUSED:   { glyph: '🛡',  cls: 'v-ok',      label: 'REFUSED' },
   EXPLOITED: { glyph: '⚡',  cls: 'v-bad',     label: 'EXPLOITED' },
   BOUNDED:   { glyph: '🔒',  cls: 'v-bounded', label: 'BOUNDED' },
+  // The safe-path positive probe (family taxonomy: PASSED). Evidence, not
+  // a defense claim - a PASSED row is never a finding and never a failure;
+  // it renders green-positive so a struck safe path can't hide in the gray.
+  PASSED:    { glyph: '✅',  cls: 'v-pass',    label: 'PASSED' },
 };
 
 function normVerdict(v) {
@@ -73,6 +77,7 @@ function counts(findings) {
     refused: findings.filter((f) => f.verdict === 'REFUSED').length,
     exploited: findings.filter((f) => f.verdict === 'EXPLOITED').length,
     bounded: findings.filter((f) => f.verdict === 'BOUNDED').length,
+    passed: findings.filter((f) => f.verdict === 'PASSED').length,
   };
 }
 
@@ -148,7 +153,7 @@ export function parseArtifact(obj, opts = {}) {
     // is still checked - and a mismatch surfaces loudly instead of winning.
     const rowCounts = counts(findings);
     const t = obj.tally ?? null;
-    const tallyMismatch = t && ['TOTAL', 'REFUSED', 'EXPLOITED', 'BOUNDED']
+    const tallyMismatch = t && ['TOTAL', 'REFUSED', 'EXPLOITED', 'BOUNDED', 'PASSED']
       .some((k) => t[k] !== undefined && t[k] !== rowCounts[k.toLowerCase()]) || undefined;
     const theCounts = rowCounts;
     return {

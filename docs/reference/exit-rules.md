@@ -79,6 +79,23 @@ of parking it behind `hashFiles` arm-gates:
 owner/bound pair, the runner demotes it to EXPLOITED and surfaces the reason -
 an accepted risk with no accountability matrix is a finding (PRD principle 6).
 
+## The PASSED verdict (v1.2.0)
+
+✅ PASSED = "the SAFE path was exercised and held end to end" - a positive
+probe, not a defense claim. It never joins the REFUSED baseline (the CI rule
+tracks defense regressions, not safe-path snapshots), it is never a finding,
+and it renders in its own report section when present. Two directions keep it
+honest:
+
+- a `skipped: true` on a PASSED row is still a module contract violation
+  (skips are REFUSED-rows-only), so a positive probe can never fake coverage;
+- an unknown verdict (`"REJECTED"`, `"OK"`, ...) is a LOUD module error - a
+  verdict that names itself but lands in no bucket would count in TOTAL while
+  grading nothing, the vacuous-green shape this doc exists to prevent.
+
+A PASSED row that grades EXPLOITED later fails CI as a NEW finding - the safe
+path got struck. The family taxonomies carry the same bucket (eyestruct's
+verdict ledger ships PASSED), so a PASSED row reads the same across hosts.
 ## Same commit -> same findings
 
 The seeded RNG and in-process transport make every run deterministic: gone

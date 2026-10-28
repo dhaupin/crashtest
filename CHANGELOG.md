@@ -7,6 +7,23 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.2.0 (unreleased)
 
+- the PASSED verdict opens - the safe-path POSITIVE probe joins the verdict
+  census, aligned with the family taxonomy (eyestruct's ledger ships the
+  same bucket, so a PASSED row reads the same across hosts):
+  PASSED = "the safe path was exercised and held end to end" - evidence,
+  never a finding. It never joins the REFUSED baseline (the exit rules track
+  defense regressions, not safe-path snapshots), renders its own report
+  section ONLY when rows carry it (byte-identical reports otherwise), and a
+  PASSED row that flips EXPLOITED fails as a NEW finding (the safe path got
+  struck). Also two contract guards riding the same lane: an UNKNOWN verdict
+  ("REJECTED", "OK") is now a loud runner error - it used to count in
+  TOTAL while landing in no bucket and no exit rule, the vacuous-green class
+  - and skipped:true on a PASSED row stays forbidden (skips are
+  REFUSED-rows-only, never fake coverage). Tally/run objects gain one key
+  (PASSED / run.passed); groups aggregate severity EXPLOITED > BOUNDED >
+  REFUSED > PASSED; the dashboard models PASSED green-positive; docs (exit
+  rules, scenario contract, ledger, catalog, site copy) name all four.
+
 - the announcing-v1.2.0 release post is DRAFTED (docs/discussions/announcing-v1.2.0.md,
   filed as reaching the same voice as the 1.0/1.1 posts): the body is
   written against the CURRENT tree, but the release-post timing rule

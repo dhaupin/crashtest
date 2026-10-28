@@ -122,7 +122,7 @@ test('run --json appends the machine run blob as the LAST stdout line (PRD secti
     const blob = JSON.parse(out.at(-1));
     assert.ok(Array.isArray(blob.rows) && blob.rows.length > 0);
     assert.ok(blob.tally && blob.cost?.totals && blob.startedAt);
-    assert.ok(blob.rows.every((r) => ['REFUSED', 'EXPLOITED', 'BOUNDED'].includes(r.verdict)));
+    assert.ok(blob.rows.every((r) => ['REFUSED', 'EXPLOITED', 'BOUNDED', 'PASSED'].includes(r.verdict)));
     // And the ledger itself still lands as the v1 artifact.
     const ledger = JSON.parse(await readFile(LEDGER_PATH, 'utf8'));
     assert.equal(ledger.schemaVersion, 1);

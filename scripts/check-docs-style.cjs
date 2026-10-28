@@ -53,7 +53,7 @@ const VOICE_EXEMPT = /CHANGELOG\.md$/;
 const EMOJI_EXEMPT = /(CHANGELOG\.md$|reference\/(attacks|ledger)\.md$|getting-started\/(index|quick-start)\.md$|reference\/exit-rules\.md$)/;
 // Carve-outs allowed on ANY page: verdict marks (product vocabulary) and
 // the technical arrow (flow notation). Tested below, not per-file.
-const ALLOWED_GLYPHS = /[\u2192\uD83D\uDEE1\u26A1\uD83D\uDD12]/g;
+const ALLOWED_GLYPHS = /[\u2192\uD83D\uDEE1\u26A1\uD83D\uDD12\u2705]/g;
 const files = [];
 (function walk(d) {
   for (const f of fs.readdirSync(d, { withFileTypes: true })) {
@@ -92,6 +92,9 @@ for (const f of files) {
       // Arrows, dingbats, emoji blocks, variation selectors. Verdict marks
       // are exempt on the pages that define them (EMOJI_EXEMPT). Glyphs
       // inside inline-code spans are literal data, so strip spans first.
+      // ALLOWED_GLYPHS carries the verdict bytes verbatim (shield/bolt/lock,
+      // plus the PASSED checkmark U+2705 - a third verdict-class mark, not
+      // a general emoji pass; anything else still fails).
       if (!EMOJI_EXEMPT.test(rel)) {
         const prose = line.replace(/`[^`]*`/g, '').replace(ALLOWED_GLYPHS, '');
         if (/[\u2190-\u21FF\u2300-\u23FF\u25A0-\u25FF\u2600-\u27BF\uFE0F]|\uD83C[\uDF00-\uDFFF]|\uD83E[\uDD00-\uDDFF]/.test(prose)) { console.log(`${rel}:${n} emoji/glyph in prose`); issues++; }

@@ -40,6 +40,11 @@ export function buildLedger(run, priorLedger = null) {
  *                  baseline), EXPLOITED now
  *  - acceptedHits: EXPLOITED now but on-file as accepted with owner+bound -
  *                  reported, not failed.
+ *
+ * PASSED rows never appear here: they are positive-probe evidence, not
+ * defense claims, so they neither join the REFUSED baseline nor block a
+ * flip. The safety they do carry is one-directional - a PASSED row that
+ * grades EXPLOITED later is a NEW finding (the safe path got struck).
  */
 export function diffAgainstBaseline(run, priorLedger) {
   const accepted = new Map(
@@ -96,6 +101,13 @@ export function renderMarkdown(run, ledger, diff, opts = {}) {
   P(`### 🔒 BOUNDED (${run.accepted.length})`);
   for (const r of run.accepted) {
     P(`- ${r.id}: ${r.detail} - owner: ${r.owner}, bound: ${r.bound}`);
+  }
+  // PASSED (the safe-path positive probe) renders only when present, so
+  // committed reports stay byte-identical for runs that carry none.
+  if (run.passed?.length) {
+    P();
+    P(`### ✅ PASSED (${run.passed.length})`);
+    for (const r of run.passed) P(`- ${r.id}: ${r.detail}`);
   }
   P();
   P(`## Cost economics`);

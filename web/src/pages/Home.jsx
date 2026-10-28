@@ -44,7 +44,7 @@ export default function Home() {
           <div className="pipeline">
             <div className="pipe-step"><span className="pipe-n">01</span><strong>Declare your surface</strong><span>name each handler or register a framework adapter - hono, express, fastify, or raw Node dispatch.</span></div>
             <div className="pipe-step"><span className="pipe-n">02</span><strong>The harness fires</strong><span>every request is an in-process <code>Request</code>; the fake d1/kv/env mirrors your backend. Nothing leaves the process.</span></div>
-            <div className="pipe-step"><span className="pipe-n">03</span><strong>Scenario modules attack</strong><span>identity spoofing, secret watermarking, proto pollution, burst walls, storage fill, cost amplification - each returns REFUSED / EXPLOITED / BOUNDED.</span></div>
+            <div className="pipe-step"><span className="pipe-n">03</span><strong>Scenario modules attack</strong><span>identity spoofing, secret watermarking, proto pollution, burst walls, storage fill, cost amplification - each returns REFUSED / EXPLOITED / BOUNDED / PASSED.</span></div>
             <div className="pipe-step"><span className="pipe-n">04</span><strong>The ledger remembers</strong><span>crashledger.json is your committed baseline. New exploited finding? Exit 1. Regressed refusal? Exit 1. Attach hardening.md to the PR.</span></div>
             <div className="pipe-step"><span className="pipe-n">05</span><strong>Share the attacks</strong><span>packs travel: <code>packs:</code> accepts any directory on disk - another repo's checkout, a vendored npm module - and a self-contained pack bundles its own imports, so adopting it is one config line.</span></div>
           </div>

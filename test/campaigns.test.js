@@ -119,7 +119,7 @@ test('campaign: every scenario attack produces a verdict row with cost', async (
   const run = await runCampaign(hardHarness(), scenarios, { seed: 123 });
   assert.ok(run.rows.length >= 8, `expected >=8 attacks, got ${run.rows.length}`);
   for (const row of run.rows) {
-    assert.ok(['REFUSED', 'EXPLOITED', 'BOUNDED'].includes(row.verdict), `${row.id}: ${row.verdict}`);
+    assert.ok(['REFUSED', 'EXPLOITED', 'BOUNDED', 'PASSED'].includes(row.verdict), `${row.id}: ${row.verdict}`);
     assert.equal(typeof row.costDelta.ops, 'number', `${row.id} cost`);
     assert.ok(row.costDelta.ops >= 0);
   }
@@ -171,7 +171,7 @@ test('campaign: module beforeAll/afterall hooks fire once per module, in order, 
     },
   }];
   const run = await runCampaign(buildHarness({}, {}), scenarios, { seed: 555, moduleCtx: { 'hooky-pack': { vocab: 'enroll' } } });
-  assert.deepEqual(run.tally, { TOTAL: 2, REFUSED: 2, EXPLOITED: 0, BOUNDED: 0 });
+  assert.deepEqual(run.tally, { TOTAL: 2, REFUSED: 2, EXPLOITED: 0, BOUNDED: 0, PASSED: 0 });
   assert.deepEqual(run.rows.map(r => r.id), ['hooky-pack/first-attack', 'hooky-pack/second-attack']);
   assert.deepEqual(events, [
     ['beforeAll', 555, 'enroll'],
@@ -248,7 +248,7 @@ test('campaign: a filter that MATCHES a loaded module runs its rows - the guard 
     },
   }];
   const run = await runCampaign(buildHarness({}, {}), scenarios, { modules: ['kept-module'] });
-  assert.deepEqual(run.tally, { TOTAL: 1, REFUSED: 1, EXPLOITED: 0, BOUNDED: 0 });
+  assert.deepEqual(run.tally, { TOTAL: 1, REFUSED: 1, EXPLOITED: 0, BOUNDED: 0, PASSED: 0 });
   assert.deepEqual(run.rows.map((r) => r.id), ['kept-module/held-attack']);
 });
 

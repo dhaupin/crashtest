@@ -148,7 +148,7 @@ export default function Attacks() {
         <h2>All shipped attacks</h2>
         <p className="sub">
           Drop extra modules into <code>labs/scenarios/</code> (or any dir via config
-          <code> scenarioDirs</code>); each returns REFUSED 🛡 / EXPLOITED ⚡ / BOUNDED 🔒. BOUNDED requires an owner+bound or it demotes to EXPLOITED - loud, per the PRD principle.
+          <code> scenarioDirs</code>); each returns REFUSED 🛡 / EXPLOITED ⚡ / BOUNDED 🔒 / PASSED ✅. BOUNDED requires an owner+bound or it demotes to EXPLOITED - loud, per the PRD principle. PASSED grades a safe-path probe: positive evidence, never a finding (v1.2.0).
         </p>
         <div className="table-wrap">
           <table className="attacks">

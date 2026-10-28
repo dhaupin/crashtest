@@ -18,13 +18,14 @@ server, no test deployment. Every run produces:
 - `labs/hardening.md` - a readable report of what held and what didn't
 - `labs/crashledger.json` - a committed baseline your CI won't let regress
 
-Each attack returns one of three verdicts:
+Each attack returns one of four verdicts:
 
 | Verdict | Meaning |
 |---|---|
 | 🛡 **REFUSED** | Your handler did the right thing - denied, validated, constrained |
 | ⚡ **EXPLOITED** | A real weakness - CI fails on finding this for the first time |
 | 🔒 **BOUNDED** | A known, accepted risk with a named owner and an explicit bound |
+| ✅ **PASSED** | The safe path was exercised and HELD end to end - evidence, never a finding |
 
 ## Where to go
 

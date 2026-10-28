@@ -3,7 +3,7 @@
 // (harness op delta for exactly its requests), and aggregates campaign
 // verdicts. Deterministic by construction: seeded ctx + sorted modules.
 
-import { attackIds } from '../scenarios/contract.js';
+import { attackIds, VERDICTS } from '../scenarios/contract.js';
 
 /**
  * @param {Harness} harness
@@ -143,6 +143,16 @@ export async function runCampaign(harness, scenarios, opts = {}) {
         throw new Error(`runner: attack "${module.name}/${attack.name}" returned verdict ${findResult.verdict} carrying skipped: true - the honest-skip contract allows skipped on REFUSED rows only; return refused(..., { skipped: true }) for a no-coverage verdict`);
       }
 
+      // Unknown verdicts refuse louLY (same vacuous-green class as the zero-row
+      // filter guard, rule 3): an exotic verdict ("REJECTED", "OK") would
+      // count in TOTAL but land in no bucket and no exit rule - a row that
+      // reads as covered while it grades nothing. PASSED is the safe-path
+      // positive probe; anything else naming itself a verdict is a MODULE
+      // contract error, fail at cause.
+      if (!VERDICTS.includes(findResult?.verdict)) {
+        throw new Error(`runner: attack "${module.name}/${attack.name}" returned an unknown verdict ${JSON.stringify(findResult?.verdict)} - allowed: ${VERDICTS.join(' / ')}`);
+      }
+
       const record = {
         id,
         module: module.name,
@@ -170,14 +180,16 @@ export async function runCampaign(harness, scenarios, opts = {}) {
 
   // Groups (issue #15): the named bundles grade ONE feature as an aggregate
   // of their member rows' graded verdicts - each row keeps its own record.
+  // Severity order: EXPLOITED > BOUNDED > REFUSED > PASSED (PASSED is the
+  // safe-path evidence bucket - the mildest grade a group member can carry).
   const groupsMap = new Map();
-  const worse = (a, b) => (a === 'EXPLOITED' || b === 'EXPLOITED'
-    ? 'EXPLOITED'
-    : a === 'BOUNDED' || b === 'BOUNDED' ? 'BOUNDED' : 'REFUSED');
+  const worse = (a, b) => (a === 'EXPLOITED' || b === 'EXPLOITED' ? 'EXPLOITED'
+    : a === 'BOUNDED' || b === 'BOUNDED' ? 'BOUNDED'
+    : a === 'REFUSED' || b === 'REFUSED' ? 'REFUSED' : 'PASSED');
   for (const r of rows) {
     if (!r.group) continue;
     let g = groupsMap.get(r.group);
-    if (!g) { g = { name: r.group, ids: [], verdict: 'REFUSED' }; groupsMap.set(r.group, g); }
+    if (!g) { g = { name: r.group, ids: [], verdict: null }; groupsMap.set(r.group, g); }
     g.ids.push(r.id);
     g.verdict = worse(g.verdict, r.verdict);
   }
@@ -193,10 +205,12 @@ export async function runCampaign(harness, scenarios, opts = {}) {
       REFUSED: rows.filter(r => r.verdict === 'REFUSED').length,
       EXPLOITED: fins.length,
       BOUNDED: rows.filter(r => r.verdict === 'BOUNDED').length,
+      PASSED: rows.filter(r => r.verdict === 'PASSED').length,
     },
     exploited: fins,
     refused: rows.filter(r => r.verdict === 'REFUSED'),
     accepted: rows.filter(r => r.verdict === 'BOUNDED'),
+    passed: rows.filter(r => r.verdict === 'PASSED'),
     groups: [...groupsMap.values()].sort((a, b) => a.name.localeCompare(b.name)),
     vars: vars.listing(),
     objects: [...objectNamespaces.values()].map((ns) => ({

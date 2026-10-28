@@ -158,7 +158,7 @@ const runTwoWay = async (vulnerable) =>
 
 test('v0.3 campaign seam: the disciplined run-root walks the whole surface REFUSED (5/5), with REAL data (no empty-store false negative)', async () => {
   const res = await runTwoWay(false);
-  assert.deepEqual(res.tally, { TOTAL: 5, REFUSED: 5, EXPLOITED: 0, BOUNDED: 0 });
+  assert.deepEqual(res.tally, { TOTAL: 5, REFUSED: 5, EXPLOITED: 0, BOUNDED: 0, PASSED: 0 });
   for (const r of res.rows) assert.equal(r.verdict, 'REFUSED', `${r.attack}: ${r.detail}`);
   // anti-false-negative: the rollup MUST have seen alice's rows - an empty
   // store (the raw-array seeding trap) would also "pass" this row
@@ -170,7 +170,7 @@ test('v0.3 campaign seam: the disciplined run-root walks the whole surface REFUS
 
 test('v0.3 campaign seam: the naive twin flips ALL five rows EXPLOITED at the campaign path', async () => {
   const res = await runTwoWay(true);
-  assert.deepEqual(res.tally, { TOTAL: 5, REFUSED: 0, EXPLOITED: 5, BOUNDED: 0 });
+  assert.deepEqual(res.tally, { TOTAL: 5, REFUSED: 0, EXPLOITED: 5, BOUNDED: 0, PASSED: 0 });
   const names = res.rows.filter((r) => r.verdict === 'EXPLOITED').map((r) => r.attack).sort();
   assert.deepEqual(names, [
     'day-bucket-determinism',

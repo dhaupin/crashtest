@@ -53,7 +53,7 @@ origin - never a silent gap):
 Exactly **one** record per attack. Shape:
 
 ```js
-{ verdict: 'REFUSED' | 'EXPLOITED' | 'BOUNDED', detail, ...extra }
+{ verdict: 'REFUSED' | 'EXPLOITED' | 'BOUNDED' | 'PASSED', detail, ...extra }
 ```
 
 - **`REFUSED`** - the app's defense held (the good outcome).
@@ -66,6 +66,13 @@ Exactly **one** record per attack. Shape:
   campaign runner (PRD principle 6: a bound without an owner is a
   finding). The ledger file keeps accepted risks with their owner+bound
   and they never re-alarm.
+- **`PASSED`** (v1.2.0) - a POSITIVE probe: the safe path was exercised and
+  held end to end. Use it when an attack runs the happy path along with its
+  hostile probes ("the buy -> receipt -> ledger chain still works"). PASSED
+  is evidence, not a defense claim: it never joins the REFUSED baseline,
+  never blocks a diff, never fails CI alone - and a PASSED row that grades
+  EXPLOITED later fails as a NEW finding (the safe path got struck).
+  `skipped: true` stays REFUSED-only: a skipped PASSED is a module error.
 - **`detail`** (string) - what the report shows for this row.
 - **`extra`** - additional fields ride onto the row where they carry
   receipts: the runner copies `evidence` (or `violations` / `counts`) into

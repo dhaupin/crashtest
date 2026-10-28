@@ -8,8 +8,9 @@ description: Every shipped scenario module and attack, what it does, and what ve
 # The Attack Catalog
 
 Forty-nine attacks across fourteen modules ship in the core package. Each
-returns exactly one verdict per run: 🛡 REFUSED, ⚡ EXPLOITED, or 🔒 BOUNDED
-(BOUNDED requires an owner + bound or it demotes to EXPLOITED - loudly).
+returns exactly one verdict per run: 🛡 REFUSED, ⚡ EXPLOITED, 🔒 BOUNDED, or
+✅ PASSED (BOUNDED requires an owner + bound or it demotes to EXPLOITED -
+loudly; PASSED is the safe-path positive probe and is never a finding).
 
 ## `auth` - identity and secrets
 

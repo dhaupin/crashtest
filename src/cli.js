@@ -148,7 +148,7 @@ const EMPTY_LEDGER = () => ({
   crashtestVersion: VERSION,
   // No wall-clock stamp here on purpose (determinism law: same commit ->
   // byte-identical baselines). The cut stamp lives in labs/run-meta.json.
-  // Findings are keyed by attack id; verdicts: REFUSED | EXPLOITED | BOUNDED.
+  // Findings are keyed by attack id; verdicts: REFUSED | EXPLOITED | BOUNDED | PASSED.
   findings: [],
   // Accepted risks live here with owners and bounds - an accepted risk
   // without a bound is a finding (PRD principle 6).
@@ -219,8 +219,7 @@ async function cmdInit({ force }) {
   // fresh init loads out of the box and degrades to an unarmed REFUSED skip
   // until real scenarios exist - never a load failure.
   const PACK_ENTRY_STUB = (name, visibility) => `// packs/${visibility}/${name}/index.js - scaffolded by \`crashtest init\`.
-// Scenario contract: { name, description, attacks: [{ name, run(harness, ctx) -> ONE record }] }.
-// Record verdicts: 'REFUSED' (defense held) / 'EXPLOITED' / 'BOUNDED' (needs owner + bound).
+// Scenario contract: { name, description, attacks: [{ name, run(harness, ctx) -> ONE record }] }.  // Record verdicts: 'REFUSED' (defense held) / 'EXPLOITED' / 'BOUNDED' (needs owner + bound) / 'PASSED' (safe path held).
 // Target vocabulary (route names, meta keys, tables...) goes in crashtest.config.js as
 //   moduleCtx: { ${name}: { ... } } - missing keys degrade to a REFUSED skip, never a false positive.
 export default {
@@ -614,7 +613,7 @@ async function cmdRun(opts = {}) {
 
   // Console summary: verdicts as they land, ledger + exit rule at the end.
   for (const row of run.rows) {
-    const mark = { REFUSED: '🛡', EXPLOITED: '⚡', BOUNDED: '🔒' }[row.verdict] ?? '?';
+    const mark = { REFUSED: '🛡', EXPLOITED: '⚡', BOUNDED: '🔒', PASSED: '✅' }[row.verdict] ?? '?';
     console.log(`${mark} ${row.id}: ${row.detail}`);
   }
   console.log(`\ntally: ${JSON.stringify(run.tally)} / cost: ${run.cost.totals.ops} ops / ${run.cost.totals.requests} requests`);
@@ -788,8 +787,7 @@ async function cmdPackAdd(name, opts = {}) {
     entry: 'index.js',
   }, null, 2) + '\n';
   const stub = `// packs/${visibility}/${name}/index.js - scaffolded by \`crashtest packs add ${name}\`.
-// Scenario contract: { name, description, attacks: [{ name, run(harness, ctx) -> ONE record }] }.
-// Record verdicts: 'REFUSED' (defense held) / 'EXPLOITED' / 'BOUNDED' (needs owner + bound).
+// Scenario contract: { name, description, attacks: [{ name, run(harness, ctx) -> ONE record }] }.  // Record verdicts: 'REFUSED' (defense held) / 'EXPLOITED' / 'BOUNDED' (needs owner + bound) / 'PASSED' (safe path held).
 // Target vocabulary (route names, CPTs, meta keys...) goes in crashtest.config.js as
 //   moduleCtx: { ${name}: { ... } } - missing keys degrade to a REFUSED skip, never a false positive.
 export default {

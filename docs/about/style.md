@@ -34,8 +34,8 @@ regression, not a style preference.
 
 Emoji are banned except two carve-outs that are content, not decoration:
 
-- the verdict marks: shield REFUSED, bolt EXPLOITED, lock BOUNDED (product
-  vocabulary - they name actual verdict states)
+- the verdict marks: shield REFUSED, bolt EXPLOITED, lock BOUNDED, checkmark
+  PASSED (product vocabulary - they name actual verdict states)
 - the technical arrow for flow notation ("same commit, same findings" style
   chains), same class as `>=` or infinity
 

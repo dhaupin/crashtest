@@ -52,8 +52,8 @@ test('nav: header, sidebar, and footer all render from the ONE shared nav source
 test('tone: site never claims a shipped-only CLI fact the docs refute (verdict vocabulary parity)', async () => {
   const attacks = await read('docs/reference/attacks.md');
   const faq = await read('web/src/pages/FAQ.jsx');
-  // the three verdict names must exist verbatim on both surfaces
-  for (const v of ['REFUSED', 'EXPLOITED', 'BOUNDED']) {
+  // the four verdict names (PASSED since v1.2.0) must exist verbatim on both
+  for (const v of ['REFUSED', 'EXPLOITED', 'BOUNDED', 'PASSED']) {
     assert.ok(attacks.includes(v), `docs attacks missing verdict ${v}`);
     assert.ok(faq.includes(v), `web FAQ missing verdict ${v}`);
   }

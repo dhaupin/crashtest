@@ -10,14 +10,22 @@
 //   }
 //
 // `run()` returns a RunRecord describing EXACTLY one decision:
-//   { verdict: 'REFUSED' | 'EXPLOITED' | 'BOUNDED',
+//   { verdict: 'REFUSED' | 'EXPLOITED' | 'BOUNDED' | 'PASSED',
 //     detail, attack, tookRequests, evidence?: {...} }
 //
 // Verdict semantics (binding): REFUSED = the app's defense held; EXPLOITED =
 // the attack achieved its goal or crashed/misbehaved the handler; BOUNDED =
-// accepted risk, requires `owner` + `bound` fields or it is a finding.
+// accepted risk, requires `owner` + `bound` fields or it is a finding;
+// PASSED = a POSITIVE probe: the safe path was exercised and held end to
+// end. PASSED is evidence, not a defense claim - it never joins the REFUSED
+// baseline (the exit rules track REFUSED regressions only) and it is
+// never a finding; a PASSED row that flips to EXPLOITED fails CI as a NEW
+// finding (the safe path got struck). Family taxonomy alignment: the
+// packstruct grammar carries the same PASSED bucket (eyestruct's verdict
+// taxonomy ships it), so a scenario graded PASSED reads the same across
+// hosts.
 
-export const VERDICTS = ['REFUSED', 'EXPLOITED', 'BOUNDED'];
+export const VERDICTS = ['REFUSED', 'EXPLOITED', 'BOUNDED', 'PASSED'];
 
 /** Validate a scenario module. Throws with the gap named - never sloppy. */
 export function validateScenario(mod, origin = 'unknown') {
@@ -116,6 +124,9 @@ export const refused = (detail, extra = {}) => ({ verdict: 'REFUSED', detail, ..
 
 /** EXPLOITED record helper. */
 export const exploited = (detail, extra = {}) => ({ verdict: 'EXPLOITED', detail, ...extra });
+
+/** PASSED record helper - positive probe: the safe path held end to end. */
+export const passed = (detail, extra = {}) => ({ verdict: 'PASSED', detail, ...extra });
 
 /** BOUNDED record helper - a bound without owner is a finding (principle 6). */
 export function bounded(owner, bound, detail, extra = {}) {

@@ -84,7 +84,7 @@ export default {
     name: 'my-attack',          // kebab-case, unique in module
     async run(harness, ctx) {   // ctx: seed + config overrides
       // fire harness.run(...) requests, then return EXACTLY one record:
-      return { verdict: 'REFUSED' | 'EXPLOITED' | 'BOUNDED', detail, ... };
+      return { verdict: 'REFUSED' | 'EXPLOITED' | 'BOUNDED' | 'PASSED', detail, ... };
     },
   }],
 };
@@ -111,8 +111,9 @@ carry their own semver - never bump those for CLI-level releases.
 ## Common commands
 
 ```bashnpm test             # full suite (node --test); 317 pass was the 1.1.0 floor,
-                     # 414 pass is the current-tree floor when PHP is available
-                     # (the 2 armed wp e2e rows skip on PHP-less hosts)
+                     # 414 pass was the 1.1.1 tree, 421 pass is the 1.2.0 tree
+                     # with PHP (the 7 armed WP e2e rows skip on PHP-less
+                     # hosts, where the same tree read 414 pass / 7 skips)
 npm run check        # syntax check across every source/test file
 npm run lint:docs    # docs links + style + fiction-signature scan
 npx crashtest init

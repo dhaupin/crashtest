@@ -30,9 +30,12 @@ on every run after:
 }
 ```
 
-`verdict` is one of `REFUSED` / `EXPLOITED` / `BOUNDED`. Bounded records carry
-`owner` and `bound` - the named owner of a deliberate, explicit risk. A
-verdict without its owner/bound pair is a finding by definition.
+`verdict` is one of `REFUSED` / `EXPLOITED` / `BOUNDED` / `PASSED`. Bounded
+records carry `owner` and `bound` - the named owner of a deliberate, explicit
+risk. A verdict without its owner/bound pair is a finding by definition.
+PASSED rows are positive-probe evidence (the safe path held); they ride the
+findings verbatim but never the `baseline` array (which records REFUSED ids
+for the regression gate), and they never re-alarm or fail CI on their own.
 
 ## hardening.md
 

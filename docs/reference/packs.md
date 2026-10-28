@@ -372,7 +372,13 @@ shallow and deep levels through this repo's exact-pinned packstruct
 verifier modules carry cases, not attacks). Receipt cut 2026-10-26
 before eyestruct's npm debut, so the trifecta grammar (crashtest
 scenario / eyestruct visual / poststruct audit, packstruct
-orchestrating) was already true when it landed.
+orchestrating) was already true when it landed. Visit-later note,
+recorded here so it isn't re-fished from the staging tree: eyestruct's
+verdict taxonomy adds a PASSED bucket ("the safe path held") whose
+crashtest counterpart opened in 1.2.0's own census - when this row
+flips to the live repo citation on go-live day, re-read their ledger
+semantics once against our PASSED contract and either cite the
+alignment or argue the difference on their tracker.
 - **poststruct**: staging lane still in flight (gistory's
 `poststruct-staging/`); its own `run-packs.mjs` loader already receipts
 8/8 on the packstruct conformance cases (gistory `labs/ecosystem.md`).
