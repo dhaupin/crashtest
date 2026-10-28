@@ -7,6 +7,25 @@ Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.2.0 (unreleased)
 
+- the family lane flips LIVE on eyestruct's npm debut: dhaupin/eyestruct
+  is on the registry (0.9.0 published; 1.0.0 imminent - planned for, not
+  claimed), and its own package devDeps already carry `crashtest ^1.1.0`
+  (the family consuming back). The docs/reference/packs.md family-lanes
+  receipt re-cuts against the LIVE tree instead of the gistory staging
+  citation, now retired for eyestruct: at
+  dhaupin/eyestruct@`52a4d0a31417614a7c3f80b1afb9d771f915fc8b` (2026-10-28)
+  the four packs (`eye-ci-gate`, `eye-shapes`, `eye-text-leg`,
+  `eye-bundle` - the fourth joined with their bundle lane) lint CLEAN at
+  shallow AND deep through the exact-pinned packstruct 1.0.0 passthrough
+  (4 modules probed, 0 census ids - check-profile shape, cases not
+  attacks). The staging-era visit-later row RESOLVED from observed bytes,
+  not prose: their `packs/eye-ledger.json` carries 30 rows, verdict set
+  `{REFUSED, PASSED, BOUNDED}` (21/7/2, 0 EXPLOITED), the same
+  PASSED-means-evidence semantics the 1.2.0 census opens - cited as
+  aligned in the lane row. poststruct's staging row stays until its
+  staging settles; no staging citation remains for eyestruct anywhere in
+  the tree.
+
 - the PASSED verdict opens - the safe-path POSITIVE probe joins the verdict
   census, aligned with the family taxonomy (eyestruct's ledger ships the
   same bucket, so a PASSED row reads the same across hosts):

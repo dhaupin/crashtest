@@ -88,11 +88,18 @@ anchors matched) until it was clean.
 
 ## The family lanes
 
-The early eyestruct receipt rows opened - the same "receipts, not asks"
-shape the packstruct registry proposal carries (packstruct#25), with bump
+The eyestruct receipt row is LIVE with its tree: eyestruct is on npm
+(dhaupin/eyestruct, 0.9.0 published - whose own package already devDepends
+on crashtest, the family consuming back), and the family-lanes receipt in
+docs/reference/packs.md re-cut against the LIVE repo head the day the
+pin moved - four packs linted CLEAN shallow and deep through the
+exact-pinned packstruct 1.0.0 passthrough, their ledger verdict set
+observed on disk ({REFUSED, PASSED, BOUNDED} - the same PASSED-means-
+evidence bucket this release opens). The same "receipts, not asks" shape
+the packstruct registry proposal carries (packstruct#25), with bump
 receipts living there the day a pin moves. The init-wave coordination
-(eyestruct, poststruct going live in their repos, travels chronicled at
-packstruct#22) is the ecosystem story this release rides.
+(eyestruct live, poststruct still in its gistory staging lane, travels
+chronicled at packstruct#22) is the ecosystem story this release rides.
 
 ## Walk-hardened, by number
 

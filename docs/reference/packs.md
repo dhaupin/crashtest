@@ -364,28 +364,39 @@ The packstruct@1 grammar is shared with the wider struct family, and
 this repo's lint lane is where the family's staged packs get grating
 receipts (files-on-disk, no runtime dependency, exact-pin receipt):
 
-- **eyestruct** (dhaupin/eyestruct-staging, staged on
-dhaupin/gistory@`19f1db8049ff8a030e8abab2bee03e1b6c988477`): 3 packs
-(`eye-ci-gate`, `eye-shapes`, `eye-text-leg`) lint CLEAN at both
-shallow and deep levels through this repo's exact-pinned packstruct
-1.0.0 - deep probes 3 modules, 0 census ids (check-profile shape:
-verifier modules carry cases, not attacks). Receipt cut 2026-10-26
-before eyestruct's npm debut, so the trifecta grammar (crashtest
-scenario / eyestruct visual / poststruct audit, packstruct
-orchestrating) was already true when it landed. Visit-later note,
-recorded here so it isn't re-fished from the staging tree: eyestruct's
-verdict taxonomy adds a PASSED bucket ("the safe path held") whose
-crashtest counterpart opened in 1.2.0's own census - when this row
-flips to the live repo citation on go-live day, re-read their ledger
-semantics once against our PASSED contract and either cite the
-alignment or argue the difference on their tracker.
+- **eyestruct** (dhaupin/eyestruct, on npm since 0.9.0 - the gistory
+staging citation is retired; receipts now cite the LIVE
+tree): 4 packs (`eye-ci-gate`, `eye-shapes`, `eye-text-leg`,
+`eye-bundle`) lint CLEAN at both shallow and deep levels through this
+repo's exact-pinned packstruct 1.0.0 - deep probes 4 modules, 0 census
+ids (check-profile shape: verifier modules carry cases, not attacks).
+Receipt re-cut 2026-10-28 from the live repo tarball pinned at
+`52a4d0a31417614a7c3f80b1afb9d771f915fc8b` (their packs root is
+`packs/`, `public/` underneath - the same directory contract this repo
+runs). The visit-later mismatch row RESOLVED, not re-fished: their
+campaign ledger is observed on disk at `packs/eye-ledger.json` - 30
+rows, verdict set `{REFUSED, PASSED, BOUNDED}` (21 / 7 / 2, 0
+EXPLOITED) - and their family-status contract's PASS rule is exactly
+that set, so the PASSED bucket reads the same across hosts as this
+release's census: PASSED = the safe path held, evidence never a
+finding, a PASSED-only leg stays PASS. The crashtest side of the dialect
+is served too: /status.json rides the family contract ([reference:
+family status](/crashtest/reference/status)), and this repo's family
+lane row is the citation language above. No crashtest adapter or runtime
+dependency rides this row - eyestruct's own package devDeps carry
+`crashtest ^1.1.0` (the family consuming back), and the receipt here is
+the grammar lane's, not an adapter claim. Bump receipts re-cut here the
+day their npm pin moves (1.0.0 is imminent, it is planned for, not
+claimed).
 - **poststruct**: staging lane still in flight (gistory's
 `poststruct-staging/`); its own `run-packs.mjs` loader already receipts
 8/8 on the packstruct conformance cases (gistory `labs/ecosystem.md`).
 No crashtest-side copy exists yet - this lane will add its receipt when
 the staging settles.
 
-Citation rule for every row here: the exact gistory sha (the staging
-trees move), grating receipt in THIS repo's lint lane unless the row
-says otherwise. Same-commit->same-findings applies to receipts too.
+Citation rule for every row here: the receipt's citation names the
+source the lane ACTUALLY read - a live repo pin for shipped family
+members (eyestruct), the staging citation while a member is still
+pre-repo (poststruct). Same-commit->same-findings applies to receipts
+too.
 
