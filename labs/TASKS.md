@@ -339,3 +339,27 @@
   the tripwire note is filed as eyestruct#23 (informational, freeze-rule
   respected). The engine-side writeup is freestruct#46 from the previous
   entry.
+### 2026-10-29 - #54 landed (the unknown-Liquid-tag rule) + #55 answered (no fd-pin shape exists)
+- #54: scripts/check-jekyll-filters.cjs adopts poststruct e53b1e0 as-is
+  (repo-agnostic file; BOTH findings originate on this repo -
+  crashtest#23 and crashtest#54). New rule: any {% tag %} outside the
+  Jekyll 4.x core set refuses with file:line; {% raw %} regions are
+  blanked in place so line numbers stay honest. Receipts this turn: the
+  repo's docs/ gate PASSES untouched; a seeded probe ({% seo %} in prose
+  + the #23 two-arg filter) refuses BOTH with file:line and exit 1, and
+  a {% raw %}-wrapped fake tag stays clean.
+- #55 (eyestruct#9's fd-pin question): the hash-then-reopen TOCTOU shape
+  DOES NOT exist here, receipt by scan: (1) zero crypto surface - no
+  createHash/digest/sha/integrity string in src/, bin/, scripts/,
+  action.yml, docs/publish.md; (2) zero extraction/download at runtime -
+  the only remote-adjacent lane is lint-packs, which shells the LOCAL
+  exact-pinned packstruct install by policy ("never downloads",
+  src/cli.js ~340-368, PACKSTRUCT_FIX message); (3) baselines/corpus are
+  committed files read and diffed, never fetched or un-packed; (4) the
+  operator helper scripts/ship-from-download.cjs hashes nothing (manual
+  staging + shape checks + OIDC publish). The npm/GH upstreams are the
+  only artifact lanes and they are outside the in-repo install concept.
+  Determinism's trust base here is receipt-based, not presence-based:
+  exact-pin lockfile + committed baseline, the same rule eyestruct
+  carries - nothing vouches bytes it later reopens because nothing
+  vouches bytes at all.
