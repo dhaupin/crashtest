@@ -1,17 +1,31 @@
-# Crashtest - Product Requirements Document
+# PRD: crashtest (adversarial QA for agent-built software)
 
-> **We break it so they can't.**
+**Status:** v0.2 - current (2026-10-29) · Owner: rook · Sponsor: dhaupin
+**Role:** arm - the attack arm. It owns adversarial in-process QA and the verdict vocabulary.
+**Package:** `crashtest` @ 1.2.0 (node >=18.17, ESM, zero runtime deps). npm latest is 1.1.0; 1.2.0 is committed and pending push.
+**Core law:** we break it so they can not. Refused, exploited, bounded - and a
+baseline ledger so CI fails only on regressions.
+**Family:** the five arms are **govstruct** (govern), **packstruct** (spec),
+**crashtest** (attack), **eyestruct** (watch), **poststruct** (audit). crashtest
+owns the attack arm and the shared verdict vocabulary; it never opens a socket.
+The forges are **monoforge** (the repo stamp) and **coreforge** (the site rig);
+**railyard** is the composer that holds them. The interop law: no host imports a
+sibling to check a sibling; it invokes the sibling's public CLI.
+
+> **We break it so they can not.**
 > Adversarial QA for agent-built software - in-process, no network, no bans.
-
-Status: v0.1 draft / Owner: rook (Rook) / Sponsor: dhaupin / License: MIT
 
 ---
 
-## 1. What Crashtest is
+## 1. One-line pitch
 
-Crashtest is an npm CLI + library that takes a software project and attacks
-its **real code in-process** - the way a security engineer would, minus the
-live server, the network traffic, and the invoice.
+Crashtest is an npm CLI plus library that takes a software project and attacks
+its **real code in-process** - the way a security engineer would, minus the live
+server, the network traffic, and the invoice. It runs four kinds of campaigns
+against the application's actual handlers and ends with a hardening report and a
+baseline ledger so CI fails only on regressions.
+
+## 2. What it is
 
 It runs four kinds of campaigns against your application's actual handlers:
 
@@ -25,45 +39,42 @@ It runs four kinds of campaigns against your application's actual handlers:
 4. **Guard checks** - rate-limit walls, breaker behavior, response hygiene.
 
 And it ends with a **hardening report**: what was refused, what was exploited
-(and whether that risk is accepted, with its bound), and a baseline ledger
-so CI fails only on *regressions*.
+(and whether that risk is accepted, with its bound), and a baseline ledger so CI
+fails only on regressions.
 
-## 2. Origin story (the evidence)
+**The invariant that makes it safe:** crashtest never opens a socket. Every
+request is an in-process `Request` object through the app's own routing, against
+an in-memory backend. That single invariant is the whole safety story.
+
+## 3. Why it exists (the evidence)
 
 Crashtest exists because we did this by hand and it worked absurdly well.
 Gistory - an E2E-encrypted sync app - was hardened by hand in one pass:
 
-- 17 red-team scenarios found 1 real bug and 6 accepted risks (now
-  documented with bounds), refused 11 attacks.
-- 6 barrage campaigns / 8,000+ in-process requests: zero 500/503, walls
-  held, cost per attack measured.
-- All of it against the real handlers on an in-memory database - **zero
-  network requests, zero Cloudflare bans, zero risk to prod**.
+- 17 red-team scenarios found 1 real bug and 6 accepted risks (now documented
+  with bounds), refused 11 attacks.
+- 6 barrage campaigns / 8,000+ in-process requests: zero 500/503, walls held,
+  cost per attack measured.
+- All of it against the real handlers on an in-memory database - **zero network
+  requests, zero Cloudflare bans, zero risk to prod**.
 
-That toolchain (harness + scenarios + campaigns) is the product. The
+That toolchain (harness plus scenarios plus campaigns) is the product. The
 gistory suites ship as the first proof and the seed scenario library.
 
-## 3. Problem
+## 4. The problem it answers
 
-Agent-built software (Lovable, Bolt, Replit, v0, Codebuff, Cursor...) ships
-in hours. What it almost never gets:
+Agent-built software (Lovable, Bolt, Replit, v0, Codebuff, Cursor) ships in
+hours. What it almost never gets:
 
 - an adversarial pass (pentests cost more than the app),
-- volume/DoS testing (nobody fakes prod traffic into a dev server),
+- volume and DoS testing (nobody fakes prod traffic into a dev server),
 - an accepted-risk ledger (risks live in one person's head),
 - a CI gate that catches security *regressions*.
 
-Meanwhile generic pentest tools (ffuf, nuclei, ZAP) need a **live server and
-network traffic** - wrong shape for a solo dev or an agent loop, and banned
-by every host's rate limiter. SAST tools (semgrep, CodeQL) read code but
-never *run* it, so behavioral holes pass review.
-
-## 4. Users
-
-- **Agent developers** (primary) - the posse: AI agents building web apps
-  who want a hardening pass as part of "done".
-- **Solo/small OSS maintainers** - adversarial QA without a security team.
-- **Security-minded teams** - a first-pass filter before human review.
+Generic pentest tools (ffuf, nuclei, ZAP) need a live server and network
+traffic - wrong shape for a solo dev or an agent loop, and banned by every
+host's rate limiter. SAST tools (semgrep, CodeQL) read code but never *run* it,
+so behavioral holes pass review.
 
 ## 5. How it works - the pipeline
 
@@ -83,10 +94,20 @@ crashtest run [target]
                regressions.
 ```
 
-**The invariant that makes it safe:** Crashtest never opens a socket. Every
-request is an in-process `Request` object through the app's own routing.
+## 6. The CLI surface
 
-## 6. Scenario libraries (v1 catalog)
+```
+crashtest init                 # labs/crashledger.json + labs/hardening.md stub
+crashtest run                  # verdicts print live; report + ledger update
+crashtest run --module-plan    # dry-run: which attacks WILL fire? which packs need arming?
+crashtest list                 # the loaded scenario libraries and packs
+crashtest packs                # the pack surface (public + local lanes)
+```
+
+Exit contract: `0` unless a NEW EXPLOITED finding or a REFUSED to EXPLOITED
+regression. The ledger is the memory; the exit code is the gate.
+
+## 7. Scenario libraries (v1 catalog)
 
 | Library | Attacks | Seeded from |
 |---|---|---|
@@ -95,172 +116,28 @@ request is an in-process `Request` object through the app's own routing.
 | `state` | cross-tenant reads, id enumeration oracles, row-move/aliasing bugs, watermark/pin analogues | gistory devices-PK + oracle findings |
 | `volume` | burst, rotation, stuffing, storage fill, amplification (with cost accounting) | gistory barrage |
 | `guards` | throttle walls, breaker behavior, response hygiene (no-store, Retry-After) | gistory guards tests |
-| `taxonomy` | honest-refusal semantics: abuse answers 4xx, never 5xx / uncaught; error bodies stay impersonal (no canary echo, no stack frames) | shipped 2026-10-21 - the response-shape dimension every other library left to chance |
-| `session` | cookie hygiene (Secure/HttpOnly/SameSite on the login transition), fixation (sid rotation + forged-id rejection), logout invalidation | shipped 2026-10-21 - the cookie dimension `auth` deliberately left alone; skips politely on undeclared routes, honestly skips cookie-less logins |
-| `authz` | route x method matrix on privileged paths, self-declared role bodies, handler alias confusion (the dev/debug leftover trapdoor) | shipped 2026-10-21 - the door `privilege-escalation` opens: this attacks the privilege DECISION, not the owner field |
-| `proto-hygiene` | HEAD/GET parity, duplicate query keys, dot-segment/double-slash path shapes, header case chaos | shipped 2026-10-21 - as planned (cheap, low false-positive): HEAD body graded INFO-only (wire runtimes strip it), header case pinned as a transport invariant; first run graded a real 204-with-body bug in the demo fixture |
-| `recursion` | deep-nest stack exhaustion on recursive JSON walkers, catastrophic-backtracking patterns (redos) | shipped 2026-10-21 - the loop-without-a-guard class: two attacks, with the redos timing oracle self-controlled (evil/benign pairs on the SAME handler, ratio bucket only - no host clock); unbounded-language-loop shapes stay in scope notes |
-| `upload` | multipart shapes: filename traversal, double extensions, null-byte names, polyglot content types | shipped 2026-10-21 - as planned, FormData bodies in-process; both attacks verdict off the STORE (what the handler derives and persists), the hardened demo carries the allow-list discipline the attack demands |
-| `race` | concurrent pairs: double-submit idempotency, concurrent partial writes (lost-update window) | shipped 2026-10-21 - the "interleaved scheduling in the harness" row solved cheaper than planned: handlers burst under one Promise.all and interleave at every await boundary (the fake D1/KV calls are async); bursts are deterministic by microtask order, and uncaught same-key/unique-conflict throws grade as findings (a storage wall the wire never shaped). Remaining shape: expiry-race (validation-to-use gap) |
-
-Planned expansions (v1.x - wording stays `planned` until each ships):
-
-| Planned library | Attacks designed for | Status |
-|---|---|---|
-| `session` (extension) | replay windows (token reuse past expiry-to-deletion gaps) | shipped 2026-10-21 - the in-process oracle is the ISSUER REGISTRY: four logins (account A, B, A again, C) must mint pairwise-distinct sids and the re-login must not resurrect its original sid; no clocks needed, same determinism as the base module |
-| `wp-roles` (pack scope) | role-callback bypass shapes on the WP envelope wire | shipped 2026-10-21, explicitly experimental (section 10 note) - the missing pieces landed: the stub-WP worker fixture (role/callback registration layer, seeded identity store, deterministic nonces) + the pack (3 attacks: nopriv refusal, low-privilege gate, body-declared role flip) + the armed CI exercise (`test/wp-roles.test.js`, skips loudly without PHP) |
-
-## Extended sources (designed; the cve-feed snapshot-slice landed 2026-10-21)
-
-External vulnerability corpora (NVD, CISA KEV, GitHub Advisories) as packs.
-The design constraint is the one law: **no sockets at run time** - the
-harness stays a drone that never dials out. Shape:
-
-- A maintainer-side sync step (runs where network access is allowed) pulls
-  the curated slice - CISA KEV exploited-first rows or NVD CVEs matching the
-  adapter vocabulary - ONCE, and commits a compact snapshot into a pack
-  (a `packs/public/cve-feed/` shape, version-pinned, budget-capped:
-  e.g. <= 500 rows, <= 200KB serialized).
-- Run time reads ONLY the committed snapshot: deterministic, zero deps, zero
-  sockets, same commit -> same findings.
-- Freshness is a CI join, not a runtime dial: pair `npx crashtest packs
-  --json` with the data source's own last-modified check; a stale snapshot
-  is a mechanical warning, never silent drift.
-- Status: landed 2026-10-21 as the `cve-feed` snapshot pack - the shipped
-  pack carries the CURATED, budget-capped snapshot (its own integrity
-  budget: <= 12 rows / <= 4200 bytes, two-way teeth pinned in
-  `test/cve-feed.test.js`, exact-row pin included) and attacks
-  banner/version disclosure against it on every declared route. The
-  maintainer-side sync step + CI last-modified join remains the
-  runtime-freshness work, and it carries two named post-v1 gaps (see the
-  honest-gaps list at the end of this section): the refresh RUNBOOK is
-  unwritten, and refresh itself is MANUAL until the automation lands. The
-  full NVD corpus still never enters this repo.
-
-## Post-v1 honest gaps (tracked, non-blocking, so they don't quietly disappear)
-
-1. **Snapshot refresh runbook (cve-feed).** The sync is maintainer-side
-   by design, but the written step-by-step does not exist yet: which
-   files to touch (`packs/public/cve-feed/snapshot.json`, the exact-12
-   row pin in `test/cve-feed.test.js` - deliberately moved only by a
-   reviewed commit, not a cap - and the 12-count prose across README,
-   docs/reference/attacks.md, docs/reference/packs.md and the web
-   pages). Post-v1 doc, first consumer: whoever runs the first real
-   refresh.
-2. **WP packs have no in-repo REAL-WP e2e target.** Teeth tests exist
-   (`test/wp-roles.test.js` exercises the adapter against the stub WP
-   core), but the stub is a deterministic fake surface, not WordPress;
-   real-install e2e lives in external target run roots this repo does
-   not control. By design (bigger fixture = dep creep), but it stays
-   named: a real-install receipt is the khf-style lane's own proof, as
-   the WP lane section records.
-3. **No CVE feed refresh automation.** The CI byte-integrity join is
-   designed (last-modified pairing, per Extended sources above) but the
-   refresh step itself is a manual maintainer action today. Fine for v1
-   honesty (an automated refresh would want the runbook from item 1 to
-   exist first so the drift is reviewable); the automation candidate is
-   a scheduled CI job that opens a PR carrying the new snapshot for
-   review, never a silent runtime dial.
-
-## The browser lane (designed, deliberately not built)
-
-The ask: scenarios for the DOM dimension - the attacks that only make sense
-against rendered pages (DOM clobbering via `name` attribute collisions,
-form-action/base hijack, `postMessage` origin confusion, storage
-fingerprinting, CSP proof-by-render, clickjacking visibility). Many users
-do not want puppeteer/playwright junk in their install, and rule 1 is law:
-zero runtime dependencies in the CORE. The design answers both:
-
-1. **Separate, optional lanes - never bundled.** Browser capability ships
-   as its own peer package (`crashtest-browser-lane` shape) or a pack whose
-   manifest declares its own `plugins`/deps. The core harness learns
-   NOTHING unless the adopting repo opts in (the same reason the site pack
-   is not vendored: bound capability belongs OUTSIDE the tarball).
-2. **Two honest execution lanes, both socket-free at the run layer:**
-   a. *DOM-sim lane* - lightweight DOM engines (happy-dom-shaped) driven
-      in-process against the SAME in-process handlers rendered on the page.
-      No subprocess, no sockets, fast; DOM fidelity is the documented gap.
-   b. *Browser-thread lane* - a real browser as a SERVICE THREAD, exactly
-      the WordPress worker precedent (PRD section 10 note + section 14):
-      subprocess orchestration over stdio pipes, wire format = NDJSON,
-      NOT a transport. A real CDP bridge uses pipe transport
-      (`--remote-debugging-pipe`), not a WS socket - the design keeps the
-      one law intact; scenario payloads be routed through the stdio lane
-      and the browser never dials out.
-3. **Scenario families that unlock** (each is a verdict-shaped oracle):
-   DOM clobbering (a hostile `name=` value hijacks a form field),
-   form-action/base hijack (a planted `<base>`/`formaction` re-targets
-   submissions), postMessage origin confusion (a handler that trusts
-   `event.origin` against a spoofable double), CSP proof-by-render (the
-   rendered page must NOT execute what the CSP promises to block),
-   storage-leak audit (localStorage/sessionStorage carrying secrets after
-   a render), clickjacking visibility (a CONTENTS-overlay check that a
-   sensitive control is not invisible under an overlay stack).
-4. **Adoption optics:** `npx crashtest run --module-plan` reports the
-   browser module NEEDS-ARMING when the lane is absent; nothing in the
-   default install changes shape, size, or gates.
-
-- Status: designed, planned - not started. The WP service-thread spike is
-  the precedent to copy: subprocess orchestration, wire format, zero core
-  dependencies. Whether DOM-sim lands first or the CDP pipe lane does is
-  a build-order question, not a design question.
-
-## The WordPress packs (state of the lane)
-
-A dedicated spot, because the lane carries weight and it needs touch each
-round:
-
-- **Shipped:** `wp-money-shapes` (write-volley / txn-replay / gate-burst -
-  the dollar-shaped family, vocabulary-injected per target) and
-  `wp-stock-smoke` (the smoke pack: inventory, option gates, call
-  whitelist, cost meters - the shape that degrades to honest skipped-
-  REFUSED on every non-WP run root, which the site tests pin).
-- **The adapter:** `src/adapters/wordpress.js` is the v0.3 subprocess
-  spike - the WP worker runs as a subprocess, the wire is NDJSON on stdio
-  (a wire format, NOT a transport; PRD section 10 note). The generic
-  worker (`fixtures/wordpress/wp-worker.php`) is fixture-only: it exists
-  so the adapter tests stay runnable without a live WP install.
-- **Gap check (all three closed 2026-10-21):** (1) the worker fixture
-  role/callback registration layer landed as the stub WP core
-  (`fixtures/wordpress/stub-wp/wp-load.php`): a deterministic in-memory WP
-  API surface with a seeded identity store, capability maps keyed ONLY by
-  that store, deterministic nonces, and the gated callback
-  (`ct_role_probe`: the priv hook carries `current_user_can
-  ('manage_options')`, the nopriv hook refuses outright); (2) the
-  `wp-roles` pack ships with three role-callback attacks (nopriv refusal,
-  low-privilege gate, body-declared role flip) with honest off-target
-  skips; (3) the armed CI exercise (`test/wp-roles.test.js`) boots the
-  adapter against the stub and pins the verdicts - it also arms the stock
-  smoke pack against the stub. The REAL-WP e2e still lives where it always
-  did: target run roots. Status: shipped, explicitly experimental per
-  section 10; a real-install exercise remains the khf-style lane's own
-  receipt.
-
-Deliberate scope notes (kept out of the catalog, honest reasons):
-
-- OAuth/OIDC flow probes (state-param replay, PKCE downgrade) - only taxable
-  when the consumer implements them; ship via the plugin API, not the core.
-- Cache-poisoning families - the cache layer sits outside the handler
-  process; only an in-process cache oracle could attack it. No sockets, ever.
-- Webhook signature fuzzing - viable once a canary secret arm exists in
-  ENV_SPEC adoption; parked until adoption shows the need.
+| `taxonomy` | honest-refusal semantics: abuse answers 4xx, never 5xx or uncaught; error bodies stay impersonal | the response-shape dimension |
+| `session` | cookie hygiene (Secure/HttpOnly/SameSite), fixation (sid rotation + forged-id rejection), logout invalidation | the cookie dimension `auth` left alone |
+| `authz` | route x method matrix on privileged paths, self-declared role bodies, handler alias confusion | the privilege DECISION, not the owner field |
+| `proto-hygiene` | HEAD/GET parity, duplicate query keys, dot-segment and double-slash paths, header case chaos | the cheap, low-false-positive layer |
+| `recursion` | deep-nest stack exhaustion on recursive JSON walkers, catastrophic-backtracking patterns (redos) | the loop-without-a-guard class |
+| `upload` | multipart shapes: filename traversal, double extensions, null-byte names, polyglot content types | the STORE, not the request |
+| `race` | concurrent pairs: double-submit idempotency, concurrent partial writes (lost-update window) | interleaved scheduling in the harness |
 
 Libraries are plain JS/TS modules with a tiny contract:
-`{ name, attacks: [{ name, run(harness) -> { verdict, detail } }] }`.
-Third parties (and the posse) can ship their own.
+`{ name, attacks: [{ name, run(harness) -> { verdict, detail } }] }`. Third
+parties (and the posse) can ship their own.
 
-## 7. The report - labs/hardening.md
+## 8. The report - labs/hardening.md
 
 Human-first markdown, machine-checkable companion (`crashledger.json`):
 
 ```md
 ## Findings
-### 🛡 REFUSED (11)
+### REFUSED (11)
 - takeover-via-join-secret: push 403, hash unchanged
-...
-### ⚡ EXPLOITED (1)
+### EXPLOITED (1)
 - watermark-pinning (ACCEPTED, bound: retried never skipped) - owner: dhaupin
-...
 ## Cost economics
 - refused request: ~1.4 backend ops / admitted: ~10 / fuzz rejection: ~0
 ## Baseline diff
@@ -268,191 +145,91 @@ Human-first markdown, machine-checkable companion (`crashledger.json`):
 ```
 
 CI rule: **fail on new EXPLOITED or on a regression of a previously REFUSED
-check.** Accepted risks live in the ledger with owners and bounds - an
-accepted risk without a bound is a finding.
+check.** Accepted risks live in the ledger with owners and bounds - an accepted
+risk without a bound is a finding.
 
-## 8. Goals
+## 9. Packs (the packstruct contract)
 
-**v0.1 - "the gistory extraction"**
-- Harness: Cloudflare Pages Functions + in-memory D1 (the proven path).
-- Libraries: auth, input, guards (ported from gistory).
-- Report + ledger + CLI (`crashtest run`, `crashtest init`).
-- Dogfood: crashtest attacks its own test fixtures; gistory adopts it.
+Crashtest is a `scenario`-profile host of the shared packstruct SPEC v1. Its
+`packs/public/<name>/` packs ship 8 today (crashtest-site, cve-feed,
+next-middleware-shapes, qs-shapes, vite-dev-shapes, wp-money-shapes, wp-roles,
+wp-stock-smoke), each with `pack.json` plus an entry exporting
+`{ register(ctx) }`. Arming: a pack may carry `armedByKey`; the host config
+enumerates the pack, so opt-in is the arm.
 
-**v0.2 - "everyone's backend"**
-- Adapters: express, fastify, hono (in-process supertest-style transport).
-- volume/state libraries ported; GitHub Action (`crashtest/action`).
-- Harness memory reuse for sub-second repeat runs.
+The extended-source lane (external vulnerability corpora as packs) keeps the one
+law: **no sockets at run time.** A maintainer-side sync step pulls a curated,
+budget-capped snapshot ONCE and commits it into a pack (`cve-feed` ships this
+way: <= 12 rows, <= 4200 bytes, two-way teeth pinned). Run time reads only the
+committed snapshot; freshness is a CI join, never a runtime dial.
 
-**v0.3 - "the ecosystem"**
-- Plugin API for community libraries; config surface (crashtest.config).
-- WP/PHP feasibility spike (subprocess harness - explicitly experimental).
-- Framework recipes: one-line presets for Lovable/Bolt/Replit exports.
+## 10. The family: who crashtest works with
 
-## 9. Non-goals (v1)
-
-- (X)  Live-fire testing against deployed URLs (that's what got banned).
-- (X)  Browser/UI testing (playwright-land; a different gauntlet).
-- (X)  Runtime protection after deploy (audithole's honeypot territory -
-  complementary: audithole watches strangers outside; Crashtest breaks
-  things inside before strangers arrive).
-- (X)  Fixing the bugs. Crashtest reports; the agent (or human) fixes.
-
-## 10. Principles
-
-1. **Attack code, not people.** No live-fire, no third-party targets, ever.
-2. **In-process or nothing.** If it needs a socket, it's out of scope.
-3. **Deterministic.** Same commit -> same findings (seeded randomness).
-4. **Markdown is the interface.** Reports a human reads, JSON a CI reads.
-5. **Zero dependencies by default.** The attacker ships light.
-6. **Accepted risks must have owners and bounds.**
-
-## 11. Landscape
-
-| Tool | Mode | Gap Crashtest fills |
-|---|---|---|
-| ffuf / nuclei / ZAP | live network | needs a server + traffic; banned by hosts |
-| semgrep / CodeQL | static | never runs the code; behavioral holes pass |
-| audit**hole** | runtime honeypot (post-deploy, outside-in) | complementary, not competing |
-| **Crashtest** | **behavioral, in-process, pre-deploy** | - |
-
-## 12. Success metrics
-
-- Finds >=1 real bug on the first run of an unaudited agent-built repo.
-- Default run < 60s on a small API.
-- Zero false-positive CI failures after the baseline is accepted.
-- Gistory's suites ported and passing as the seed library.
-
-## 13. Open questions
-
-- Harness discovery: static import analysis vs runtime registration hooks?
-  (v0.1: explicit route tables; v0.2: convention sniffing.)
-- How do Windows agents run in-memory SQLite? (better-sqlite3 vs node:sqlite
-  - node:sqlite is experimental; decide at first Windows report.)
-- Ledger ownership UX: who "accepts" a risk in a purely agentic repo?
-
-## 14. The platform thread (v0.4+): crashtest as a CI runner
-
-**Vision.** The lane is not just "a CLI you run" - it is **a greptile-style
-review service that replaces home-brew test suites as the quality gate for
-agent-built repos**: point crashtest at a repo (or a run root beside it),
-and every push gets the seeded adversarial suite, a diff against the
-committed ledger, and a shareable finding report - without the repo
-carrying its own test rig.
-
-The pieces this PRD builds toward, aligned to today's ships + thread:
-
-1. **CLI = drone engine.** The CLI stays zero-dep and offline; the service
-   shells it, it never becomes a runtime. Every future flag must keep a
-   story in both worlds:
-   - shipped 2026-10: `crashtest run --json` - the full run blob on stdout
-     (machine artifact for CI + paste-into-dashboard), humans keep the
-     verdict stream.
-   - shipped 2026-10: `--module-plan` (dry-run: which attack ids WOULD fire)
-     and `--expect-baseline <path>` (diff against a given ledger without
-     touching `labs/` - the piece that makes a hosted run read-only; missing
-     or non-schema-1 baseline = honest exit 2, `labs/` provably untouched).
-     Remaining: `--out-dir` (artifact fan-out) - the service spawns the CLI
-     per run with exactly these; nothing else needs a flag.
-2. **Adapters = target surface.** The adapter registry (hono / express /
-   fastify / node / **wordpress spike**) is what lets the service attack
-   repos with zero changes to them - run roots OUTSIDE the target repo
-   (the WP issue-#1/#2 pattern is already the template for cross-repo
-   adoption: config + scenarioDirs + a read-only CI identity).
-3. **Ledger = the artifact contract.** schemaVersion 1 (findings /
-   acceptedRisks / baseline) is the API between drone, service, and
-   dashboard. Every consumer (CI gate, dashboard bridge, future web
-   service) reads the same JSON; the section 7 exit rule has exactly one
-   implementation (`src/report.js`) and everything else imports it.
-4. **Dashboard = the human surface, headless-first.** The shipped
-   `/dashboard` (web/src/lib/ledgerModel.js) already renders any ledger or
-   run blob the way the service eventually will; the service adds: remote
-   run roots (cron/PR-triggered), org dashboards, and ledger-hosting with
-   owner+bound sign-off UX (section 13's ownership question must be answered
-   BEFORE hosted accepted-risks exist).
-
-**Still true when it's a service (no drift from principles):**
-- No sockets, ever - the drone runs in your runner/namespace; it never
-  dials anything. The service collects ARTIFACTS (ledger, run blob),
-  not traffic.
-- Deterministic: a service rerun of the same commit must reproduce the
-  same findings - section 7's diff semantics make that auditable replay.
-- The repo owns its baseline; the service never overwrites `labs/` of a
-  target repo - hosted runs diff against the committed ledger and hand
-  the user the diff, never a rewritten file.
-
-**Sequencing (updated 2026-10-20 - v0.3 shipped, v0.4 flags shipped early):**
-- shipped v0.3: WP spike + adapters; shipped v0.4-early: the whole service
-  flag set (`run --json`, `run --module-plan`, `run --expect-baseline`) +
-  `packs --json` inventory + dashboard coverage view.
-- remaining v0.4: `--out-dir` (only if artifact fan-out needs it), WP spike
-  stabilization, GH Action v1.0.0 release + Marketplace listing (deferred
-  until the version bump is justified).
-- v0.5 = the hosted lane per section 15 (webhook receiver -> runner command set ->
-  ledger-hosted copies -> accept-PR flow); then the org tier.
-
-**Success metric for the thread** (extends section 12): an agent-built repo with
-NO test suite of its own gets its first ledger + CI gate in <5 minutes
-without installing anything beyond the drone.
-
-## 15. The hosted lane, gated (v0.4 sketch - planning only, nothing shipped)
-
-This section is the DESIGN GATE for thread C: what we will build, what we
-explicitly will not, and the invariants every piece must prove before it
-lands. No socket is opened by any of it; the only network parties are the
-service itself (GitHub webhook receiver + artifact host) and GitHub - the
-drone stays offline, exactly as section 14 binds.
-
-**15.1 / Webhook surface (what the service receives)**
-
-| Event | Reaction |
+| sibling | the crossing |
 |---|---|
-| `push` (main) | scheduled/queued hosted run at the pushed SHA; report posted to the run history |
-| `pull_request` (opened/synchronize) | read-only diff run (the section 14 flag set) at the PR merge SHA; verdict posted as a PR check + comment |
-| `installation` (GitHub App) | repo onboarding: locate/adopt `crashtest.config.js` + committed ledger; no config -> offer `init` via comment command |
-| comment commands (`/crashtest plan`, `/crashtest rerun`, `/crashtest accept <id> owner=<o> bound=<b>`) | plan = `--module-plan` output on the PR; rerun = requeue at same SHA (deterministic -> same findings); accept = the section 13 ownership question, answered in-repo via a PR that edits `labs/crashledger.json` |
+| **packstruct** | crashtest is a `scenario` host; `packstruct lint --deep` gates its packs |
+| **poststruct** | shares the pack convention; crashtest attacks the loader, poststruct audits the bake |
+| **eyestruct** | the WP service-thread precedent (subprocess, NDJSON on stdio, not a transport) is the shape the browser lane copies |
+| **govstruct** | the suite roll-up consumes crashtest verdicts; the verdicts stay crashtest's |
 
-Webhook receiver rules: signature-verified (GitHub HMAC), idempotent per
-`(repo, SHA, event)` (redelivery -> same result, no duplicate runs), and it
-ENQUEUES work - it never runs attacks in the request path.
+**The interop law:** no host imports a sibling to check a sibling; it invokes
+the sibling's public CLI. crashtest owns the attack arm and the verdict
+vocabulary (`REFUSED` / `EXPLOITED` / `BOUNDED`); it does not audit bakes, judge
+pixels, or govern the roster.
 
-**15.2 / Runner command set (what the service executes)**
+## 11. The browser lane (designed, deliberately not built)
 
-Every hosted run is ONE of exactly four invocations of the shipped CLI -
-no service-mode flags, no new surface:
+The ask: scenarios for the DOM dimension - attacks that only make sense against
+rendered pages (DOM clobbering, form-action/base hijack, postMessage origin
+confusion, storage fingerprinting, CSP proof-by-render, clickjacking
+visibility). Rule 1 is law: zero runtime dependencies in the core. The design
+answers both: browser capability ships as a separate optional lane (a peer
+package or a pack declaring its own `plugins`/deps), and the two honest
+execution lanes stay socket-free at the run layer (a DOM-sim lane, and a
+browser-thread lane using pipe transport like the WP worker precedent).
 
-```bash
-crashtest run --config <cfg> [--json]                            # baseline-cut run (maintains the repo's own labs/ - only on an approved write job)
-crashtest run --config <cfg> --json --expect-baseline <ledger>   # the PR/hosted read-only gate (this release's flag)
-crashtest run --config <cfg> --module-plan [--json]              # coverage preview for /crashtest plan
-```
+Status: designed, planned - not started. Whether DOM-sim lands first or the CDP
+pipe lane does is a build-order question, not a design question.
 
-The service shells the CLI in an ephemeral job (container/runner) with the
-target repo checked out at the event SHA; it reads the run blob/plan from
-stdout-last-line and the markdown artifact from disk. `--out-dir` remains
-the one future flag IF artifact fan-out needs it (section 14 list).
+## 12. The WordPress packs (state of the lane)
 
-**15.3 / Ledger hosting (the artifact contract, read-only first)**
+- **Shipped:** `wp-money-shapes` (write-volley / txn-replay / gate-burst) and
+  `wp-stock-smoke` (inventory, option gates, call whitelist, cost meters - the
+  shape that degrades to honest skipped-REFUSED on every non-WP run root).
+- **The adapter:** `src/adapters/wordpress.js` is the subprocess spike - the WP
+  worker runs as a subprocess, the wire is NDJSON on stdio (a wire format, not a
+  transport).
+- **Gap check (closed):** the stub WP core, the `wp-roles` pack, and the armed
+  CI exercise all landed. The real-WP e2e still lives in target run roots.
 
-- The service hosts COPIES: `ledger`, `run blob`, `plan`, `hardening.md`
-  per run - keyed `(repo, SHA, runId)`, rendered by the same dashboard
-  bridge (section 14.4). The repo's committed ledger stays the ONLY source of
-  truth for gating; hosted copies are renderings, never authoritative.
-- Accepted-risk sign-off (section 13): `/crashtest accept` NEVER edits hosted
-  state. It opens a PR against the target adding `{ id, owner, bound }` to
-  the committed `acceptedRisks` - the same schema-v1 file CI already
-  consumes. Owner must be the commenting user with write access.
-- Ledger-hosted accepted-risks (service-side overrides) are explicitly
-  OUT OF SCOPE until the section 13 UX has prove-it replay: a hosted accepted
-  risk must be re-derivable from a committed ledger at any historical SHA.
+## 13. Milestones
 
-**15.4 / What stays impossible by design**
+- **v0.1 - the gistory extraction.** Harness (Pages Functions plus in-memory
+  D1); libraries auth, input, guards; report plus ledger plus CLI; dogfood.
+  **DONE.**
+- **v0.2 - everyone's backend.** Adapters express, fastify, hono; volume/state
+  libraries; GitHub Action; harness memory reuse. **DONE.**
+- **v0.3 - the ecosystem.** Plugin API; config surface; WP/PHP subprocess spike
+  (experimental); framework recipes. **DONE** (WP lane shipped, experimental).
+- **v1.x - the pack lane and the walk.** 8 public packs; the cve-feed snapshot;
+  the browser lane designed. **IN PROGRESS.**
 
-- The service never pushes to the target repo except the accept-PR above
-  (and never force-anything).
-- No hosted run ever mutates the target's `labs/` - that's what
-  `--expect-baseline` exists for; write-jobs (baseline cuts) run only on
-  explicit maintainer command and surface the resulting ledger diff for
-  review, never auto-commit.
-- Findings are never DM'd off-repo: the report is the PR check + the
-  dashboard link. Security findings stay where the code is.
+## 14. Non-goals (v1)
+
+- **No live-fire testing** against deployed URLs (that is what got banned).
+- **No browser/UI testing** in the core (playwright-land; a different gauntlet).
+- **No runtime protection** after deploy (audithole's honeypot territory -
+  complementary: audithole watches strangers outside, crashtest breaks things
+  inside before strangers arrive).
+- **No fixing the bugs.** Crashtest reports; the agent or human fixes.
+
+## 15. Open questions
+
+- **The hosted lane (v0.4 sketch).** A gated hosted runner is a planning sketch
+  only; nothing shipped. The safety invariant (no sockets at run time) is what
+  any hosted shape must preserve.
+- **Snapshot refresh automation (cve-feed).** The refresh runbook is unwritten
+  and the refresh is manual until the automation lands; the candidate is a
+  scheduled CI job that opens a PR carrying the new snapshot, never a silent
+  runtime dial.
+- **Browser lane build order.** DOM-sim first or the CDP pipe lane first.
