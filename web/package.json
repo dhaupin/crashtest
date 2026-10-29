@@ -6,7 +6,7 @@
   "description": "crashtest site - seeded, in-process adversarial QA for agent-built apps (prestruct prerender + CF Pages)",
   "scripts": {
     "dev": "vite",
-    "build": "prestruct build",
+    "build": "node scripts/build-status.mjs && prestruct build",
     "preview": "vite preview"
   },
   "engines": {

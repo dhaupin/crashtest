@@ -405,3 +405,12 @@
   answer arrives, so there is no post-answer latency to save. Node-version
   blind spot lesson: the local host ran node 24, CI pins 22; both now in
   the receipt (fix verified on BOTH: 419/0/0/7 exit 0 on 22 AND 24).
+
+### 2026-10-29 - status emission rides the web build (CF redeploy gap)
+- The live site's stale /status.json was not only a stale deployment: even
+  a fresh CF Pages build would have re-produce the gap, because status
+  emission lived in ci.yml's lane only. `web/package.json`'s build is now
+  "node scripts/build-status.mjs && prestruct build" - the emitter is part
+  of ANY builder's path (CF Pages, local, operator lanes), the dialect file
+  cannot be absent from a shipped dist anymore. Receipt: local build 6/6
+  pages + dist/status.json correct (schema 1, family-status@1, asOf HEAD).
