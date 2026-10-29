@@ -272,3 +272,53 @@
   prose-unwrap isolation check, and the staging-branch CI edits are all
   commissioned (leg/test/script/workflow respectively) - nothing found
   on today's walk remains prose-only.
+### 2026-10-29 - #42 closed out: a Ruby-capable host now EXISTS (this sandbox), receipts below
+- The toolchain, installed as the sandbox user with NO root: the ruby/setup-ruby
+  prebuilt 3.4.10 (ruby-builder `ruby-3.4.10-ubuntu-24.04-x64.tar.gz`) unpacked
+  into ~/rubies, LD_LIBRARY_PATH + RUBYLIB stdlib wiring, binstubs shimmed
+  through the interpreter (the baked /opt/hostedtoolcache shebangs fail exactly
+  as eyestruct's recipe said). ruby -v / bundle -v / gem -v all live.
+- The FULL deploy lane ran locally, receipts-culture way: scratch copy
+  (/tmp/docs-preview), bundler path OUTSIDE the repo (37 gems, "Bundle
+  complete!" - the receipt shape the recipe predicted), jekyll build (0.5s,
+  29 pages), pagefind 1.5.2 (29 pages / 3064 words indexed), freestruct
+  1.1.0 (exact pin; sitemap/robots/404 + link check note: 868 same-
+  warning absolute /crashtest/ links reported, exit 0 - identical green
+  lane exists in CI so this is engine behavior, recorded here not "fixed").
+- FOUND AND FIXED A REAL BUG in our head, caught by the local lane before
+  any deploy: the config og.image NEVER reached any deployed page. Cause:
+  a docs/_freestruct/inject-brand.html REPLACES the engine's built-in
+  head template, and ours carried only "the layer the layout lacked"
+  (twitter + og:image + identity) - but the LAYOUT hand-wrote its own
+  og:title/description/url/type/site_name, tripping the engine's hasOg
+  missing-only gate so the template's og:image (gated behind the same
+  og block) starved. Diagnosed against the LIVE docs (5 og tags, no
+  og:image - confirming the starvation, not a local-only artifact).
+  Fix: layout drops og/canonical entirely (one owner, engine's seam) and
+  the template is upgraded to the engine's FULL default head set; title
+  moved to the engine's pipe split convention (' | ' is the ONLY split
+  extractTitle honors - the old '/ Crashtest' suffix would have doubled);
+  og.type: article + twitter.card: summary_large_image move to
+  ssr-config.yml. Verified locally: per-page og:title/canonical/og:image
+  + twitter set + all 3 identity JSON-LD blocks, no doubling.
+- The family owes a heads-up: eyestruct's live docs show the same shape
+  (og set present, og:image absent) - whether omission or starvation is
+  theirs to check; the engine team gets the writeup (freestruct issue).
+- THE CAPTURES: chrome-headless-shell 156.0.8078.73 downloaded via
+  @puppeteer/browsers; 13 missing system libs provided by extracted
+  Ubuntu noble debs into ~/chrome-libs (user-local, no root), DejaVu fonts +
+  fontconfig config wired via FONTCONFIG_FILE (the first captures rendered
+  skeleton-only: no fonts in the sandbox - receipted with the byte-size
+  jump 9868B -> 142509B). Served _site under the real baseurl via
+  python http.server + symlink webroot/crashtest. eyestruct@1.0.0 `look`
+  captured BOTH themes via the localStorage launcher (key: crashtest-theme,
+  the docs switch's real key - 'eyestruct-theme' was a wrong first guess),
+  dark AND light, 6 element overlays each. The verdict-glyph tofu boxes
+  in the frames are the sandbox's missing emoji font (capture artifact,
+  not a site bug). artifacts/docs-dark.png + artifacts/docs-light.png
+  committed as receipts.
+- Honest gaps kept open: the OG of the LIVE site only changes when the
+  docs deploy ships this commit (og:image lives in a
+  post-push curl, noted below); /tmp toolchain does not survive archive
+  (the recipe in this entry is the re-run doc).
+  - Post-push live-curl step (when docs.yml next deploys): og:image present on every page, og:title per-page with pipe suffix, twitter:card summary_large_image. NOTE this is the "tokens verified only by live curl AFTER push" gap turning into a VERIFIED one, not a promise.

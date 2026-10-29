@@ -50,6 +50,15 @@ generate404: true
 
 og:
   image: https://crashtest.creadev.org/og-image.png
+  # Docs pages have always ridden article (the vant-family layout convention);
+  # with the engine owning the head now, the type comes from here.
+  type: article
+
+# Card shape the docs always shipped (the old hand-written head); now
+# config-owned under the engine's head seam. twitter.username is NOT set -
+# the engine strips site/creator metas when no handle is configured.
+twitter:
+  card: summary_large_image
 
 # No RSS, no search index (the lean layout has no search UI yet).
 generateFeed: false

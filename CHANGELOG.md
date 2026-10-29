@@ -4,6 +4,23 @@ Notable changes to the `crashtest` package. The released version lives in `packa
 
 ## 1.2.0 (unreleased)
 
+- #42 closes: a Ruby-capable host now exists (the sandbox, no root) and
+  the FULL docs deploy lane runs locally with receipts - prebuilt Ruby
+  3.4.10 unpacked to ~/rubies, scratch-copy bundle path outside the
+  repo (37 gems), jekyll 29 pages, pagefind 1.5.2 (3064 words),
+  freestruct 1.1.0 exact pin, and BOTH theme captures via eyestruct@1.0.0
+  `look` (chrome-headless-shell 156 + user-space libs; artifacts/
+  docs-dark.png + docs-light.png committed). The local lane caught a
+  REAL head bug pre-deploy: the config og.image never reached any
+  deployed page - the layout's hand-written og set tripped the engine's
+  hasOg missing-only gate and starved the template's og:image (verified
+  against the LIVE docs first: 5 og tags, no og:image). Fixed the
+  convergent way: the layout drops og/canonical, inject-brand.html
+  carries the engine's full default head set, the title moves to the
+  engine's pipe-split convention, and og.type/twitter.card move to
+  ssr-config.yml - one head owner, per-page og:title/canonical/og:image
+  verified locally on both themes' builds.
+
 - the family's pull-in round lands (cross-pollinated asks, receipts on
   their issues): #49 adopts eyestruct's unwrap-prose.cjs (copied from
   3adda1d, registered on the check chain) and unwraps the living prose

@@ -13,16 +13,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ page.title | default: "Crashtest Docs" }} / Crashtest</title>
+    <title>{{ page.title | default: "Crashtest Docs" }} | Crashtest</title>
     <meta name="description" content="{{ page.description | default: 'Crashtest: seeded, in-process adversarial QA for agent-built apps.' }}">
-    <link rel="canonical" href="{{ page.url | absolute_url | replace: '.html', '' }}">
     {% if page.noindex %}<meta name="robots" content="noindex">{% endif %}
-    <meta property="og:title" content="{{ page.title | default: 'Crashtest Docs' }}">
-    <meta property="og:description" content="{{ page.description | default: 'Crashtest: seeded, in-process adversarial QA for agent-built apps.' }}">
-    <meta property="og:url" content="{{ page.url | absolute_url | replace: '.html', '' }}">
-    <meta property="og:type" content="article">
-    <meta property="og:site_name" content="Crashtest Docs">
     <link rel="icon" type="image/svg+xml" href="/crashtest/icon.svg">
+    <!-- og/twitter/canonical are the freestruct engine's head seam (missing-only
+         per set). The layout used to hand-write the og set itself, which the
+         engine's hasOg rule then honored - and the config og.image (ssr-config.yml)
+         never landed on ANY page, live or local. The engine's injection is
+         per-page (og:title/description/url off the page), plus og:image/
+         canonical/JSON-LD - one owner, no hand-synced second head. (#42) -->
     <meta name="color-scheme" content="dark light">
     <style>
         :root {

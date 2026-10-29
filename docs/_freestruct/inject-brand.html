@@ -1,21 +1,39 @@
-<!-- freestruct SEO template - crashtest docs edition (ENGINE edition,
-     crashtest#39: upgraded from the shell edition so identity comes from
-     the config, not the template).
-     The Jekyll layout (_layouts/default.html) already emits canonical,
-     og:title/description/url/type/site_name, so this template adds ONLY the
-     layer the layout lacks - keeping inject output dupe-free:
-       twitter card + title, an og:image (config-resolved to the main site
-       card), the built-in Organization block on the {{authorJson}} seam,
-       and the built-in WebSite block on the {{searchActionJson}} seam.
-     Placeholders honored: {{siteUrl}}, {{siteName}}, {{siteDescription}},
-     {{ogImage}}, {{siteNameJson}}, {{siteUrlJson}}, {{siteDescriptionJson}},
+<!-- freestruct SEO template - crashtest docs edition, now the ENGINE default
+     head set (crashtest#42): this file REPLACES the engine's built-in template
+     outright, so it must carry the FULL head set - og:title/description/url/
+     type from the page, og:image from ssr-config.yml's og.image, canonical,
+     the twitter set, and the identity JSON-LD blocks. The earlier crashtest
+     edition only carried "the layer the Jekyll layout lacked" (og:image +
+     twitter + identity); that split starved og:image behind the engine's
+     hasOg missing-only gate whenever the layout shipped its own og title
+     (observed live: the config og.image never reached ANY deployed page).
+     Placeholders honored: {{pageTitle}}, {{pageDescription}}, {{pageUrl}},
+     {{canonicalUrl}}, {{siteUrl}}, {{siteName}}, {{siteDescription}},
+     {{twitterUsername}}, {{twitterCard}}, {{ogImageFull}}, {{ogType}},
+     {{ogLocale}}, {{siteNameJson}}, {{siteUrlJson}}, {{siteDescriptionJson}},
      {{authorJson}}, {{searchActionJson}}. -->
 
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="{{siteName}} Docs">
-<meta name="twitter:description" content="{{siteDescription}}">
-<meta property="og:image" content="{{ogImage}}">
+<meta name="description" content="{{pageDescription}}">
+<link rel="canonical" href="{{canonicalUrl}}">
 
+<!-- Open Graph -->
+<meta property="og:title" content="{{pageTitle}}">
+<meta property="og:description" content="{{pageDescription}}">
+<meta property="og:url" content="{{pageUrl}}">
+<meta property="og:site_name" content="{{siteName}}">
+<meta property="og:type" content="{{ogType}}">
+<meta property="og:locale" content="{{ogLocale}}">
+<meta property="og:image" content="{{ogImageFull}}">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="{{twitterCard}}">
+<meta name="twitter:title" content="{{pageTitle}}">
+<meta name="twitter:description" content="{{pageDescription}}">
+<meta name="twitter:site" content="{{twitterUsername}}">
+<meta name="twitter:creator" content="{{twitterUsername}}">
+<meta name="twitter:image" content="{{ogImageFull}}">
+
+<!-- JSON-LD -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -26,8 +44,6 @@
 }
 </script>
 
-<!-- The WebSite block rides the {{searchActionJson}} seam - empty unless the
-     config wires a search endpoint (no fake ?s action for a pagefind modal). -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
