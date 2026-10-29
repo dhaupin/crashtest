@@ -8,14 +8,35 @@
 
   # CSP notes:
   # - script-src: Cloudflare Insights (remove if not using)
-  # - connect-src: add your own domain and any third-party fetch targets
+  # - connect-src: 'self', Cloudflare Insights, and the family member
+  #   origins - the family-status@1 island (dashboard) fetches each
+  #   sibling's served /status.json cross-origin at load; without these
+  #   connect-src entries the browser refuses the fetch before any CORS
+  #   header matters (observed live: every non-self island row rendered
+  #   "Failed to fetch" because connect-src lacked the siblings - i.e.
+  #   the island grid never lit up even when eyestruct's own board was
+  #   served with access-control-allow-origin: *). Keep the list in sync
+  #   with the family table (crashtest serves eyestruct/poststruct/
+  #   packstruct/monoforge rows).
   # - style-src / font-src: includes Google Fonts (remove if not using)
   # - Tighten or expand each directive to match your actual asset sources.
-  Content-Security-Policy: default-src 'none'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://cloudflareinsights.com; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'none'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://cloudflareinsights.com https://eyestruct.creadev.org https://poststruct.creadev.org https://packstruct.creadev.org https://monoforge.creadev.org; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
 
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Embedder-Policy: credentialless
   Cross-Origin-Resource-Policy: same-origin
+  Cache-Control: no-cache
+
+# The family-status@1 file itself: read back by every sibling member's
+# island (dashboard family grid), which are OTHER origins - ACAO is part
+# of the reader half of the contract (regenerated every build by
+# web/scripts/build-status.mjs; never hand-edited, never committed), so
+# no-cache and a plain star are the honest shape. COEP credentialless on
+# the page does not block a plain no-cors-free fetch of a JSON doc with
+# ACAO:* (no credentials ride the island's fetch), but /status.json is
+# fetched FROM foreign pages, so it must be readable cross-origin.
+/status.json
+  Access-Control-Allow-Origin: *
   Cache-Control: no-cache
 
 /assets/*

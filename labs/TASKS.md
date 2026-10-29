@@ -414,3 +414,19 @@
   of ANY builder's path (CF Pages, local, operator lanes), the dialect file
   cannot be absent from a shipped dist anymore. Receipt: local build 6/6
   pages + dist/status.json correct (schema 1, family-status@1, asOf HEAD).
+
+### 2026-10-29 - the island's cross-origin reads were CSP-blocked, not CORS-blocked
+- Live family-board receipt after the CF rebuild picked up 6cd9c16:
+  crashtest now SERVES /status.json (200, application/json, correct
+  dialect) and eyestruct serves ACAO:* - yet BOTH islands still rendered
+  every foreign row \"Failed to fetch\". Cause: the sites' own CSP
+  connect-src ('self' + cloudflareinsights only) forbids fetch() to any
+  sibling origin - the browser refuses before CORS headers matter.
+- web/public/_headers: connect-src grows the family member origins
+  (eyestruct/poststruct/packstruct/monoforge .creadev.org), and
+  /status.json carries its own block (ACAO:* + no-cache) so the siblings'
+  boards can read OUR file too - the reader half of family-status@1.
+  Receipt: dist/_headers carries the CSP line + the /status.json block;
+  build 6/6 pages. The symmetric ask goes to eyestruct as an issue
+  (their connect-src lacks the family origins, so THEIR island cannot
+  light crashtest's row either).
