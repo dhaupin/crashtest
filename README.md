@@ -3,12 +3,9 @@
 > **We break it so they can't.**
 > In-process adversarial QA for agent-built software - no network, no bans, no invoice.
 >
-> [`npmjs.com/package/crashtest`](https://www.npmjs.com/package/crashtest) / MIT / v1.1.0
+> [`npmjs.com/package/crashtest`](https://www.npmjs.com/package/crashtest) / MIT - the npm package is the version truth; this file never hand-copies a release number (crashtest#51)
 
-Crashtest attacks your project's **real handlers** - the way a security engineer
-would, minus the live server. Every attack is an in-process `Request` through
-your own routing, against an in-memory backend, with op counters attached. It
-never opens a socket. That invariant is the whole safety story.
+Crashtest attacks your project's **real handlers** - the way a security engineer would, minus the live server. Every attack is an in-process `Request` through your own routing, against an in-memory backend, with op counters attached. It never opens a socket. That invariant is the whole safety story.
 
 ## 60-second usage
 
@@ -45,18 +42,13 @@ export default {
 | **volume** | credential-stuffing / storage-fill / cost-amplification - every attack reports **backend ops/request** (bound via config, default 12) |
 | **taxonomy** | abuse-not-5xx (abuse shapes must land as honest 4xx - never 5xx, never a throw) / errors-stay-impersonal (error bodies must not parrot attacker canaries or leak stack frames) |
 
-Verdicts: **REFUSED** (defense held) / **EXPLOITED** (you got hit) -
-**BOUNDED** (accepted risk - requires `owner` + `bound` or it's a finding).
+Verdicts: **REFUSED** (defense held) / **EXPLOITED** (you got hit) - **BOUNDED** (accepted risk - requires `owner` + `bound` or it's a finding).
 
-Reports: `labs/hardening.md` (human-first) + `labs/crashledger.json`
-(CI gate: fail **only** on a new EXPLOITED or a regression of something
-previously REFUSED - accepted risks never re-alarm you).
+Reports: `labs/hardening.md` (human-first) + `labs/crashledger.json` (CI gate: fail **only** on a new EXPLOITED or a regression of something previously REFUSED - accepted risks never re-alarm you).
 
 ## Framing the working shape
 
-Bring your own scenarios (ESM modules in `labs/scenarios/` or listed in
-`scenarioDirs`) - contract:
-`{ name, description, attacks: [{ name, run(harness, ctx) -> verdict }] }`.
+Bring your own scenarios (ESM modules in `labs/scenarios/` or listed in `scenarioDirs`) - contract: `{ name, description, attacks: [{ name, run(harness, ctx) -> verdict }] }`.
 
 Framework dispatch targets work in-process - no server, no sockets, ever:
 
@@ -78,66 +70,19 @@ adapters: {
     run-tests: 'true'              # optional: also run your own tests
 ```
 
-Fails on a NEW EXPLOITED finding or a REFUSED->EXPLOITED regression - never
-on accepted risks. (A moving `v0` major tag is planned; pin the version for
-now.)
+Fails on a NEW EXPLOITED finding or a REFUSED->EXPLOITED regression - never on accepted risks. (A moving `v0` major tag is planned; pin the version for now.)
 
 ## This repo dogfoods itself
 
-`npx crashtest run` attacks [`fixtures/demo/`](./fixtures/demo/app.js)
-(hardened + the deliberately-broken draft), gated in CI against the committed
-[`labs/crashledger.json`](./labs/crashledger.json). The committed
-[`labs/hardening.md`](./labs/hardening.md) is the live report; provenance on
-every npm release traces package -> commit (verify the badge on npm).
+`npx crashtest run` attacks [`fixtures/demo/`](./fixtures/demo/app.js) (hardened + the deliberately-broken draft), gated in CI against the committed [`labs/crashledger.json`](./labs/crashledger.json). The committed [`labs/hardening.md`](./labs/hardening.md) is the live report; provenance on every npm release traces package -> commit (verify the badge on npm).
 
-The dogfood goes further: the shipped site pack
-[`packs/public/crashtest-site/`](./packs/public/crashtest-site/pack.json)
-attacks everything the repo actually ships to crashtest.creadev.org - the
-real /api/version Pages Function, the deployed _headers (CSP, HSTS, COOP),
-the prerendered dist HTML, sitemap, manifest and robots.txt. Its first run
-caught a real bug (hostile registry shapes echoed straight through as a
-badge 200); the validation floor now in
-[`web/functions/api/version.js`](./web/functions/api/version.js) is guarded
-forever by [`test/site-pack.test.js`](./test/site-pack.test.js), which pins
-the two-way proof: a porous route EXPLOITED, the hardened one REFUSED.
-A pack runs from any run root - point `packs:` at a directory on disk.
+The dogfood goes further: the shipped site pack [`packs/public/crashtest-site/`](./packs/public/crashtest-site/pack.json) attacks everything the repo actually ships to crashtest.creadev.org - the real /api/version Pages Function, the deployed _headers (CSP, HSTS, COOP), the prerendered dist HTML, sitemap, manifest and robots.txt. Its first run caught a real bug (hostile registry shapes echoed straight through as a badge 200); the validation floor now in [`web/functions/api/version.js`](./web/functions/api/version.js) is guarded forever by [`test/site-pack.test.js`](./test/site-pack.test.js), which pins the two-way proof: a porous route EXPLOITED, the hardened one REFUSED. A pack runs from any run root - point `packs:` at a directory on disk.
 
-Known-vulnerability awareness ships the same way, and just as offline:
-[`packs/public/cve-feed/`](./packs/public/cve-feed/pack.json) carries a
-curated KEV/NVD snapshot (27 entries, budget-capped) and sweeps the target
-for banner disclosure (`Server`, `X-Powered-By`, stack-tell bodies) and
-vulnerable-range matches against a hardcoded version line. Run time reads
-only the committed `snapshot.json` - no sockets, same commit -> same
-findings; freshness is a maintainer-side sync, not an attack-time fetch.
-Its shape, byte/row budget and token grammar (the `ws`/`answer`
-word-boundary case) are pinned in
-[`test/cve-feed.test.js`](./test/cve-feed.test.js).
+Known-vulnerability awareness ships the same way, and just as offline: [`packs/public/cve-feed/`](./packs/public/cve-feed/pack.json) carries a curated KEV/NVD snapshot (27 entries, budget-capped) and sweeps the target for banner disclosure (`Server`, `X-Powered-By`, stack-tell bodies) and vulnerable-range matches against a hardcoded version line. Run time reads only the committed `snapshot.json` - no sockets, same commit -> same findings; freshness is a maintainer-side sync, not an attack-time fetch. Its shape, byte/row budget and token grammar (the `ws`/`answer` word-boundary case) are pinned in [`test/cve-feed.test.js`](./test/cve-feed.test.js).
 
-Parser-shaped packs follow the same teeth-first pattern:
-[`packs/public/qs-shapes/`](./packs/public/qs-shapes/pack.json) attacks
-the bracket-notation wire itself (the express extended-query / urlencoded
-parser, any qs-style expander): a prototype-key canary riding
-`__proto__`/`constructor.prototype` bracket keys, and a deep-nesting
-ladder that must stay under the fuzz floor (never 5xx, never an uncaught
-throw). It sweeps every declared route the way cve-feed does, narrowed
-with `ctx.routes`, and its two-way teeth (a vulnerable parser
-EXPLOITEDed, hardened and bracket-blind wires honestly REFUSED) are
-pinned in [`test/qs-shapes.test.js`](./test/qs-shapes.test.js).
+Parser-shaped packs follow the same teeth-first pattern: [`packs/public/qs-shapes/`](./packs/public/qs-shapes/pack.json) attacks the bracket-notation wire itself (the express extended-query / urlencoded parser, any qs-style expander): a prototype-key canary riding `__proto__`/`constructor.prototype` bracket keys, and a deep-nesting ladder that must stay under the fuzz floor (never 5xx, never an uncaught throw). It sweeps every declared route the way cve-feed does, narrowed with `ctx.routes`, and its two-way teeth (a vulnerable parser EXPLOITEDed, hardened and bracket-blind wires honestly REFUSED) are pinned in [`test/qs-shapes.test.js`](./test/qs-shapes.test.js).
 
-Two more framework wire packs ship the same way:
-[`packs/public/vite-dev-shapes/`](./packs/public/vite-dev-shapes/pack.json)
-attacks the vite DEV wire's own signature, the `/@fs/` module route: a
-grammar differential (plain endpoint gated, bypass-grammar suffixes like
-`?raw??` / `?import&raw??` served) and a content-shape oracle for the
-`.env` deny-list family, and
-[`packs/public/next-middleware-shapes/`](./packs/public/next-middleware-shapes/pack.json)
-attacks the Next.js middleware subrequest header: a known-grammar bypass
-must not turn a gated route into a 2xx, and a canary value that is NOT a
-certified chain must never unlock the gate (value-blindness is its own
-finding). Both sweep declared routes with differential oracles and are
-pinned two-way in
-[`test/vite-shapes.test.js`](./test/vite-shapes.test.js) and
-[`test/next-mw-shapes.test.js`](./test/next-mw-shapes.test.js).
+Two more framework wire packs ship the same way: [`packs/public/vite-dev-shapes/`](./packs/public/vite-dev-shapes/pack.json) attacks the vite DEV wire's own signature, the `/@fs/` module route: a grammar differential (plain endpoint gated, bypass-grammar suffixes like `?raw??` / `?import&raw??` served) and a content-shape oracle for the `.env` deny-list family, and [`packs/public/next-middleware-shapes/`](./packs/public/next-middleware-shapes/pack.json) attacks the Next.js middleware subrequest header: a known-grammar bypass must not turn a gated route into a 2xx, and a canary value that is NOT a certified chain must never unlock the gate (value-blindness is its own finding). Both sweep declared routes with differential oracles and are pinned two-way in [`test/vite-shapes.test.js`](./test/vite-shapes.test.js) and [`test/next-mw-shapes.test.js`](./test/next-mw-shapes.test.js).
 
 ## Landscape
 
@@ -158,12 +103,7 @@ pinned two-way in
 
 ## Surface: packs, plugins and presets (the ecosystem thread)
 
-**Self-contained packs** - a pack in `packs/<visibility>/<name>/` is the one
-extension surface, and its `pack.json` can bundle its own imports
-(`"plugins": [npm-or-relative-specifiers]`), so it ships entry + imports to
-the adopting repo with **zero config wiring**. A pack doesn't need to live
-in the attacked repo - `packs:` accepts any directory on disk (another
-repo's checkout, a vendored npm package):
+**Self-contained packs** - a pack in `packs/<visibility>/<name>/` is the one extension surface, and its `pack.json` can bundle its own imports (`"plugins": [npm-or-relative-specifiers]`), so it ships entry + imports to the adopting repo with **zero config wiring**. A pack doesn't need to live in the attacked repo - `packs:` accepts any directory on disk (another repo's checkout, a vendored npm package):
 
 ```js
 // crashtest.config.js - one contract, three ways in
@@ -175,27 +115,9 @@ export default {
 };
 ```
 
-**Builder presets** - `crashtest preset lovable|bolt|replit [--root <dir>]`
-prints a starter config from what detect() actually finds in an exported
-repo (Supabase Edge Function layout, TanStack Start markers, the `.replit`
-run command, package.json shape) - prints it to stdout (nothing is written),
-and names plainly what it could NOT resolve rather than guessing a handler
-from the builder's name.
+**Builder presets** - `crashtest preset lovable|bolt|replit [--root <dir>]` prints a starter config from what detect() actually finds in an exported repo (Supabase Edge Function layout, TanStack Start markers, the `.replit` run command, package.json shape) - prints it to stdout (nothing is written), and names plainly what it could NOT resolve rather than guessing a handler from the builder's name.
 
-**Pack-shape spec (packstruct@1).** This repo implements
-[packstruct@1](https://github.com/dhaupin/packstruct) - the `/packs`
-manifest/entry/directory contract, frozen at SPEC v1 and transcribed
-byte-exact at `labs/packstruct-backfill/SPEC-v1.md` (transcribed from the
-packstruct spec commit `b0e305034c974ad133b83e3b1c3cb27094d1de46`; the
-SHA is the transcript's provenance, no longer the install shape). The CI
-lane runs `packstruct lint packs/` from the npm package, installed as an
-EXACT devDependency (`"packstruct": "1.0.0"` in package.json, no float -
-same commit -> same findings applies to the linter too). The pin now sits
-on the published [packstruct v1.0.0](https://www.npmjs.com/package/packstruct)
-release (OIDC-attested; `verify-spec` confirms the shipped `spec/SPEC.md`
-is byte-equal to the transcript, so the old provenance SHA still names the
-same bytes); any SPEC drift re-runs the same review rule - re-transcribe +
-re-derive the moved specKeys in one commit.
+**Pack-shape spec (packstruct@1).** This repo implements [packstruct@1](https://github.com/dhaupin/packstruct) - the `/packs` manifest/entry/directory contract, frozen at SPEC v1 and transcribed byte-exact at `labs/packstruct-backfill/SPEC-v1.md` (transcribed from the packstruct spec commit `b0e305034c974ad133b83e3b1c3cb27094d1de46`; the SHA is the transcript's provenance, no longer the install shape). The CI lane runs `packstruct lint packs/` from the npm package, installed as an EXACT devDependency (`"packstruct": "1.0.0"` in package.json, no float - same commit -> same findings applies to the linter too). The pin now sits on the published [packstruct v1.0.0](https://www.npmjs.com/package/packstruct) release (OIDC-attested; `verify-spec` confirms the shipped `spec/SPEC.md` is byte-equal to the transcript, so the old provenance SHA still names the same bytes); any SPEC drift re-runs the same review rule - re-transcribe + re-derive the moved specKeys in one commit.
 
 ## Docs map
 

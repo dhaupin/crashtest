@@ -1,1125 +1,126 @@
 # Changelog
 
-Notable changes to the `crashtest` package. The released version lives in
-`package.json` + `VERSION` in `src/cli.js` (kept equal by
-`test/version.test.js`); releases go out on `vX.Y.Z` git tags via npm
-Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
+Notable changes to the `crashtest` package. The released version lives in `package.json` + `VERSION` in `src/cli.js` (kept equal by `test/version.test.js`); releases go out on `vX.Y.Z` git tags via npm Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
 ## 1.2.0 (unreleased)
 
-- the family lane flips LIVE on eyestruct's npm debut: dhaupin/eyestruct
-  is on the registry (0.9.0 published; 1.0.0 imminent - planned for, not
-  claimed), and its own package devDeps already carry `crashtest ^1.1.0`
-  (the family consuming back). The docs/reference/packs.md family-lanes
-  receipt re-cuts against the LIVE tree instead of the gistory staging
-  citation, now retired for eyestruct: at
-  dhaupin/eyestruct@`52a4d0a31417614a7c3f80b1afb9d771f915fc8b` (2026-10-28)
-  the four packs (`eye-ci-gate`, `eye-shapes`, `eye-text-leg`,
-  `eye-bundle` - the fourth joined with their bundle lane) lint CLEAN at
-  shallow AND deep through the exact-pinned packstruct 1.0.0 passthrough
-  (4 modules probed, 0 census ids - check-profile shape, cases not
-  attacks). The staging-era visit-later row RESOLVED from observed bytes,
-  not prose: their `packs/eye-ledger.json` carries 30 rows, verdict set
-  `{REFUSED, PASSED, BOUNDED}` (21/7/2, 0 EXPLOITED), the same
-  PASSED-means-evidence semantics the 1.2.0 census opens - cited as
-  aligned in the lane row. poststruct's staging row stays until its
-  staging settles; no staging citation remains for eyestruct anywhere in
-  the tree.
+- the family's pull-in round lands (cross-pollinated asks, receipts on
+  their issues): #49 adopts eyestruct's unwrap-prose.cjs (copied from
+  3adda1d, registered on the check chain) and unwraps the living prose
+  belt - docs/discussions/*, README, AGENTS, CHANGELOG, labs/TASKS,
+  labs/PRD, docs/publish.md - verified a pure reflow by an isolation
+  diff (HEAD reflowed in a scratch tree differs only by this turn's
+  known edits). #51 installs the version-truth ruling: the README's
+  hand-copied `/ MIT / v1.1.0` (already stale) is dropped - npm is the
+  version truth; the census-classified `(v1.2.0)` annotations and range
+  pins stay (era-pinned, not living); and the web rig's version ride is
+  ENFORCED by a new leg in test/version.test.js (suite floor 425 -> 426
+  with PHP / 419 pass + 7 skips without). #53 applies the poststruct#32
+  staging-branch pattern: ci.yml + docs.yml cover the staging branch on
+  push, and docs.yml's Pages deploy gates `if: github.ref ==
+  'refs/heads/main'` so the integration branch can build but never
+  deploy. #50 is answered, not landed: the prestruct#68 router-seam fix
+  is not on npm yet (latest still 1.1.0), the web rig keeps the working
+  shim, and the bump recipe waits on prestruct 1.2.0.
 
-- the ops queue sweep lands (the family's per-repo receipts to the
-  ten open asks): #44 wires prepublishOnly (`npm test && npm run check`) -
-  and the REAL `npm publish --dry-run` gate converts into a caught bug
-  (test/packaging.test.js: the parent npm's dry-run env leaked into the
-  nested pack/install children; children now filter the inherited
-  npm_config family, hermetic under any npm-driven invocation). #41 ships
-  the mobile table guard (eyestruct 138fda9 worked example: wide kramdown
-  tables scroll in their own box and stop pinning the page). #39 lands the
-  engine-edition inject-brand + identity blocks in ssr-config.yml
-  (Organization + founder, WebSite, the crashtest-maintainer Person -
-  locally probed through the pinned freestruct 1.1.0). #40 opens
-  docs/reference/ci.md, the operator battery flow + when-red triage map.
-  #42 lands the gitignore belt + records the Ruby-capable-host preview
-  recipe on the TASKS log (the dark+light capture stays pending). #46
-  copies eyestruct's generic ship-from-download publish lane as-is into
-  scripts/ (named refusals + the offline token-shape smoke receipts).
-  #38 converges this repo's docs.yml copy toward the proven pins
-  (checkout v6, ruby 3.4, upload-pages-artifact v5) until the reusable
-  workflow_call lane lands on flowforge#9. #47 is CLOSED from the
-  crashtest side: family-status@1 adopted end to end (see the status
-  bullet above). #43 stays an eyestruct-consumer ask with a scoping note
-  (the bundle-class scenarios need the subprocess scenario lane decision,
-  WP-spike precedent).
-- the PASSED verdict opens - the safe-path POSITIVE probe joins the verdict
-  census, aligned with the family taxonomy (eyestruct's ledger ships the
-  same bucket, so a PASSED row reads the same across hosts):
-  PASSED = "the safe path was exercised and held end to end" - evidence,
-  never a finding. It never joins the REFUSED baseline (the exit rules track
-  defense regressions, not safe-path snapshots), renders its own report
-  section ONLY when rows carry it (byte-identical reports otherwise), and a
-  PASSED row that flips EXPLOITED fails as a NEW finding (the safe path got
-  struck). Also two contract guards riding the same lane: an UNKNOWN verdict
-  ("REJECTED", "OK") is now a loud runner error - it used to count in
-  TOTAL while landing in no bucket and no exit rule, the vacuous-green class
-  - and skipped:true on a PASSED row stays forbidden (skips are
-  REFUSED-rows-only, never fake coverage). Tally/run objects gain one key
-  (PASSED / run.passed); groups aggregate severity EXPLOITED > BOUNDED >
-  REFUSED > PASSED; the dashboard models PASSED green-positive; docs (exit
-  rules, scenario contract, ledger, catalog, site copy) name all four.
+- eyestruct 1.0.0 is out (the freeze release, publish-day recipes: crashtest#52) and the family-lane receipt re-cuts SAME-DAY - the planned-for bump arrived and the numbers moved with it: 4 packs 30 rows -> 5 packs 35 rows, the bump-receipt rule doing its job. Receipt source: the v1.0.0 GH release tree pinned at the release commit `4b979c0ee24df1e534ee185e47d8ad1418edd464` (their own publish-day receipt diffs the npm tar against `git archive` of that commit byte-identical, so the lane reads the frozen bytes the registry ships); the exact-pinned packstruct 1.0.0 passthrough reports 5 packs (`eye-adapter` the schema carrier joins, plus `eye-ci-gate`, `eye-shapes`, `eye-text-leg`, `eye-bundle`) lint CLEAN at shallow AND deep - 5 modules probed, 0 census ids - and their campaign ledger is observed at `packs/eye-ledger.json`: 35 rows, verdict set `{REFUSED, PASSED, BOUNDED}` (22/11/2, 0 EXPLOITED), the same PASSED-means-evidence semantics the 1.2.0 census opens.
 
-- the announcing-v1.2.0 release post is DRAFTED (docs/discussions/announcing-v1.2.0.md,
-  filed as reaching the same voice as the 1.0/1.1 posts): the body is
-  written against the CURRENT tree, but the release-post timing rule
-  ("draft the post against the released version, not the dev tree") is
-  honored with a pre-publication banner ON the draft + a DRAFT row in the
-  discussions index table + a (draft) nav label - every one flips the
-  moment the v1.2.0 tag lands; nothing claims npm before npm can carry
-  it. One unsourced claim drafted, then cut and verified-replaced before
-  commit: the "default keys derive from ctx.seed" line is the house RULE,
-  not a released behavior - the dual-language determinism-seal claim from
-  the round-17 walk took its place.
+- the family lane flips LIVE on eyestruct's npm debut: dhaupin/eyestruct is on the registry, and its own package devDeps already carry `crashtest ^1.1.0` (the family consuming back). The first LIVE-tree receipt (2026-10-28, tree pinned at `52a4d0a31417614a7c3f80b1afb9d771f915fc8b`: 4 packs CLEAN at shallow AND deep, `packs/eye-ledger.json` observed at 30 rows, verdict set `{REFUSED, PASSED, BOUNDED}` 21/7/2, 0 EXPLOITED) retired the gistory staging citation for eyestruct everywhere in the tree and resolved the staging-era visit-later row from observed bytes - the current numbers live in the freeze bullet above; poststruct's staging row stays until its staging settles.
 
-- the dependency belt modernizes: the web toolchain leaves the vulnerable
-  floor - vite (^5.4.0 -> ^6.4.5, the esbuild dev-server advisory
-  GHSA-67mh escapes via the 6.4.4+ line) and react-router-dom (^6 ->
-  ^7.18.4, clearing both router advisories: the Link-backslash open
-  redirect and the SSR deserializeErrors constructor injection) - npm
-  audit web: 4 findings (1 high) -> 0. react 18 -> 19 is the one DEFERRED
-  major (component-level QA, not a dependency bump; recorded here as the
-  honest deferral) and plugin-react stays ^4.7.0 (its peer range covers
-  vite ^6; v6 wants vite ^8 only). The router upgrade carried its own
-  integration cost and it is DOCUMENTED where the next toolchain bump
-  will read it: vite's SSR lane cannot lift named exports off
-  react-router v7's externalized CJS main, prestruct's prerender
-  native-imports StaticRouter OUTSIDE the vite graph, and the router
-  context needs ONE instance across both loaders - so the app's named
-  imports go through web/src/router-interop.js (one namespace-aware
-  door), the config carries the never-alias warning, and the build was
-  exercised until the prerender came back 6/6 on the upgraded pair. The
-  site rewrite also enforces vite 6's stricter JSX: bare -> inside text
-  nodes are now wrapped expressions in Home.jsx. Version-hygiene
-  alignment: web/package.json now declares engines (>=20,
-  react-router v7's own floor), and action.yml pins a DEFAULT
-  node-version (22, matching the repo's own ci lane) so consumer gates
-  are reproducible instead of riding the runner's installed node.
-- the two release posts join the docs nav (About > Release Posts >
-  Announcing v1.0.0 / v1.1.0): every permalinked docs page except the
-  domain-root index and the maintainer runbook is now nav-reachable - the
-  posts were full themed pages already, they were just orphans of the
-  menu; the posting mechanics text also drops its "strip the FOUR
-  frontmatter lines" phrasing (the `version` field makes the block
-  five, and the rule cites the block, not a count).
+- the ops queue sweep lands (the family's per-repo receipts to the ten open asks): #44 wires prepublishOnly (`npm test && npm run check`) - and the REAL `npm publish --dry-run` gate converts into a caught bug (test/packaging.test.js: the parent npm's dry-run env leaked into the nested pack/install children; children now filter the inherited npm_config family, hermetic under any npm-driven invocation). #41 ships the mobile table guard (eyestruct 138fda9 worked example: wide kramdown tables scroll in their own box and stop pinning the page). #39 lands the engine-edition inject-brand + identity blocks in ssr-config.yml (Organization + founder, WebSite, the crashtest-maintainer Person - locally probed through the pinned freestruct 1.1.0). #40 opens docs/reference/ci.md, the operator battery flow + when-red triage map. #42 lands the gitignore belt + records the Ruby-capable-host preview recipe on the TASKS log (the dark+light capture stays pending). #46 copies eyestruct's generic ship-from-download publish lane as-is into scripts/ (named refusals + the offline token-shape smoke receipts). #38 converges this repo's docs.yml copy toward the proven pins (checkout v6, ruby 3.4, upload-pages-artifact v5) until the reusable workflow_call lane lands on flowforge#9. #47 is CLOSED from the crashtest side: family-status@1 adopted end to end (see the status bullet above). #43 stays an eyestruct-consumer ask with a scoping note (the bundle-class scenarios need the subprocess scenario lane decision, WP-spike precedent).
+- the PASSED verdict opens - the safe-path POSITIVE probe joins the verdict census, aligned with the family taxonomy (eyestruct's ledger ships the same bucket, so a PASSED row reads the same across hosts): PASSED = "the safe path was exercised and held end to end" - evidence, never a finding. It never joins the REFUSED baseline (the exit rules track defense regressions, not safe-path snapshots), renders its own report section ONLY when rows carry it (byte-identical reports otherwise), and a PASSED row that flips EXPLOITED fails as a NEW finding (the safe path got struck). Also two contract guards riding the same lane: an UNKNOWN verdict ("REJECTED", "OK") is now a loud runner error - it used to count in TOTAL while landing in no bucket and no exit rule, the vacuous-green class - and skipped:true on a PASSED row stays forbidden (skips are REFUSED-rows-only, never fake coverage). Tally/run objects gain one key (PASSED / run.passed); groups aggregate severity EXPLOITED > BOUNDED > REFUSED > PASSED; the dashboard models PASSED green-positive; docs (exit rules, scenario contract, ledger, catalog, site copy) name all four.
 
-- the docs crosslinks audit closes its own gaps: the nav pointed at
-  /crashtest/discussions/ (a trailing-slash form matching no permalink);
-  the discussions index used extensionless .md-relative links
-  (./announcing-v1.0.0, ../about/style) against the repo's own
-  /crashtest/<permalink> convention - all three now use the permalink
-  form; and the release posts claimed a `version` frontmatter field in
-  their own contract prose but carried none - both posts now do. A
-  beyond-the-gate audit (frontmatter completeness, permalink uniqueness,
-  every link resolved against the repo tree - relative, /crashtest/-
-  prefixed, and GitHub blob/tree targets, headings for anchor links)
-  went 4 problems -> 0; the official lint:docs gates all stay green
-  (29 pages, fiction pass).
+- the announcing-v1.2.0 release post is DRAFTED (docs/discussions/announcing-v1.2.0.md, filed as reaching the same voice as the 1.0/1.1 posts): the body is written against the CURRENT tree, but the release-post timing rule ("draft the post against the released version, not the dev tree") is honored with a pre-publication banner ON the draft + a DRAFT row in the discussions index table + a (draft) nav label - every one flips the moment the v1.2.0 tag lands; nothing claims npm before npm can carry it. One unsourced claim drafted, then cut and verified-replaced before commit: the "default keys derive from ctx.seed" line is the house RULE, not a released behavior - the dual-language determinism-seal claim from the round-17 walk took its place.
 
-- the docs belt gets its CLI reference and its second-truth callees lose
-  (walk round 25): docs had NO CLI reference page (the nav pointed the
-  attack catalog and presets but the verbs lived only in --help); the new
-  docs/reference/cli.md covers every verb and flag verified against the
-  shipped binary, the docs nav gains the entry, and
-  test/web-docs-consistency.js pins that every dispatched verb is NAMED
-  there (a new verb must land on the reference page in the same commit).
-  Two stale numeric claims died: attacks.md's 'two public packs' section
-  (it named 2 of the 8 shipped packs; now all 8 with real attack names,
-  versions and the exact arming vocabulary), and the --help MODULES line
-  (named 5 modules of the shipped 14; now the full census).
+- the dependency belt modernizes: the web toolchain leaves the vulnerable floor - vite (^5.4.0 -> ^6.4.5, the esbuild dev-server advisory GHSA-67mh escapes via the 6.4.4+ line) and react-router-dom (^6 -> ^7.18.4, clearing both router advisories: the Link-backslash open redirect and the SSR deserializeErrors constructor injection) - npm audit web: 4 findings (1 high) -> 0. react 18 -> 19 is the one DEFERRED major (component-level QA, not a dependency bump; recorded here as the honest deferral) and plugin-react stays ^4.7.0 (its peer range covers vite ^6; v6 wants vite ^8 only). The router upgrade carried its own integration cost and it is DOCUMENTED where the next toolchain bump will read it: vite's SSR lane cannot lift named exports off react-router v7's externalized CJS main, prestruct's prerender native-imports StaticRouter OUTSIDE the vite graph, and the router context needs ONE instance across both loaders - so the app's named imports go through web/src/router-interop.js (one namespace-aware door), the config carries the never-alias warning, and the build was exercised until the prerender came back 6/6 on the upgraded pair. The site rewrite also enforces vite 6's stricter JSX: bare -> inside text nodes are now wrapped expressions in Home.jsx. Version-hygiene alignment: web/package.json now declares engines (>=20, react-router v7's own floor), and action.yml pins a DEFAULT node-version (22, matching the repo's own ci lane) so consumer gates are reproducible instead of riding the runner's installed node.
+- the two release posts join the docs nav (About > Release Posts > Announcing v1.0.0 / v1.1.0): every permalinked docs page except the domain-root index and the maintainer runbook is now nav-reachable - the posts were full themed pages already, they were just orphans of the menu; the posting mechanics text also drops its "strip the FOUR frontmatter lines" phrasing (the `version` field makes the block five, and the rule cites the block, not a count).
 
-- the preset belt walks clean of two liars and a dead claim (walk round
-  25): probeHandler's timeout races left both timers alive on success, so
-  a preset over N edge functions held the CLI's event loop open up to
-  timeoutMs apiece after the answer was in hand (the preset verb exits
-  seconds late); timers are now cleared in finally and unref'd, pinned by
-  a subprocess exit-latency tooth (a fast probe child must exit inside
-  2000ms - leaked, it rides the 3000ms watcher). The TS/Deno warning
-  fired even when a compiled index.js neighbor existed AND the probe had
-  just successfully run it - the warning told the user to create what the
-  repo already contains; it now fires only when the JS neighbor is
-  absent, both directions pinned. And PRESETS[x].detect lambdas claimed
-  detection semantics no code ever invoked (the real detection is
-  detect()); deleted, not dressed up.
+- the docs crosslinks audit closes its own gaps: the nav pointed at /crashtest/discussions/ (a trailing-slash form matching no permalink); the discussions index used extensionless .md-relative links (./announcing-v1.0.0, ../about/style) against the repo's own /crashtest/<permalink> convention - all three now use the permalink form; and the release posts claimed a `version` frontmatter field in their own contract prose but carried none - both posts now do. A beyond-the-gate audit (frontmatter completeness, permalink uniqueness, every link resolved against the repo tree - relative, /crashtest/- prefixed, and GitHub blob/tree targets, headings for anchor links) went 4 problems -> 0; the official lint:docs gates all stay green (29 pages, fiction pass).
 
-- the crashtest-site pack stops hand-copying the truth it polices (walk
-  round 25): sitemap-truth-audit hard-coded the SPA route list
-  ['attacks','dashboard','faq','terms','privacy'] - a second truth that
-  drifts the moment a page ships, EXPLOITING an honest new page or
-  missing a phantom; the oracle now parses web/src/components/navItems.js
-  (the ONE list the header/sidebar/footer render from) and EXPLOITEDs
-  loudly if it cannot, both directions tooth-pinned (ghost loc EXPLOITS,
-  every nav-declared loc refuses). Also: csp-canary's self-or-https
-  regex left its group OPTIONAL so a bare default-src 'none' line
-  self-satisfied the breakage check (fixed: breakage only when default-src
-  bars everything AND no per-directive fallback exists - the shipped
-  strict-none-plus-fallbacks posture is the correct shape, both ways
-  pinned); html-secret-leakage's backslashed-Users pattern lost its
-  over-broad match and the redundant standalone /home/ alternative; the
-  headers oracle dropped a no-op replace;  version-grammar's REFUSED
-  detail computes its shape counts instead of claiming them. Floor
-  409 -> 414; dogfood double-run byte-identical, matches the committed
-  baseline; lint:docs fiction-signature pass over the new pages.
+- the docs belt gets its CLI reference and its second-truth callees lose (walk round 25): docs had NO CLI reference page (the nav pointed the attack catalog and presets but the verbs lived only in --help); the new docs/reference/cli.md covers every verb and flag verified against the shipped binary, the docs nav gains the entry, and test/web-docs-consistency.js pins that every dispatched verb is NAMED there (a new verb must land on the reference page in the same commit). Two stale numeric claims died: attacks.md's 'two public packs' section (it named 2 of the 8 shipped packs; now all 8 with real attack names, versions and the exact arming vocabulary), and the --help MODULES line (named 5 modules of the shipped 14; now the full census).
 
-- the badge oracle names the ACTUAL cause of its 502s (walk round 23): a
-  registry document that arrived but FAILED the floor (pollution key,
-  oversize/control-char/semver-hostile version) rode the catch-all branch,
-  so the 502 body said 'registry unreachable: registry document rejected:
-  ...' - a lie about where the failure lived (the registry was reachable;
-  the document was the problem). Rejected documents now return their own
-  502 naming the reject path ('registry document rejected: ...', still
-  no-store, still withholding the hostile bytes); a true outage keeps the
-  unreachable line. Walk also swept the rest of the shipped shell line by
-  line (usePageMeta, islands ladder, Nav/items, VersionBadge, NotFound,
-  the site-target double) - all clean; a new tooth in
-  test/site-pack.test.js pins both 502 classes and the no-echo/no-store
-  contract. Floor 408 -> 409.
+- the preset belt walks clean of two liars and a dead claim (walk round 25): probeHandler's timeout races left both timers alive on success, so a preset over N edge functions held the CLI's event loop open up to timeoutMs apiece after the answer was in hand (the preset verb exits seconds late); timers are now cleared in finally and unref'd, pinned by a subprocess exit-latency tooth (a fast probe child must exit inside 2000ms - leaked, it rides the 3000ms watcher). The TS/Deno warning fired even when a compiled index.js neighbor existed AND the probe had just successfully run it - the warning told the user to create what the repo already contains; it now fires only when the JS neighbor is absent, both directions pinned. And PRESETS[x].detect lambdas claimed detection semantics no code ever invoked (the real detection is detect()); deleted, not dressed up.
 
-- the /attacks page stops being a text wall (walk round 24): the bottom used
-  to be two long prose paragraphs in two text sizes - the pack rundown and
-  the field report. It now leads with a PACKS TABLE (all 8 shipped packs,
-  36 pack attacks total, with their real arming contract, their per-pack
-  self-audit fixture and the teeth file that grades each oracle), and the
-  two walls moved into collapsible explainer blocks (details/summary,
-  styled like the FAQ's quiet cards). Record correction, filed honestly
-  (rule 7 applies to us too): the round-22 entry claimed the page's
-  'self-audit fixtures (test/fixtures/run.mjs per pack)' line was fiction -
-  it was NOT: those fixtures live inside each pack's own directory
-  (packs/public/<pack>/test/fixtures/run.mjs), discovered and run 8/8 by
-  test/pack-fixtures.test.js; the misread is corrected here, and the page
-  prose now names the pack-relative fixture path directly. Site build 6/6
-  prerendered.
+- the crashtest-site pack stops hand-copying the truth it polices (walk round 25): sitemap-truth-audit hard-coded the SPA route list ['attacks','dashboard','faq','terms','privacy'] - a second truth that drifts the moment a page ships, EXPLOITING an honest new page or missing a phantom; the oracle now parses web/src/components/navItems.js (the ONE list the header/sidebar/footer render from) and EXPLOITEDs loudly if it cannot, both directions tooth-pinned (ghost loc EXPLOITS, every nav-declared loc refuses). Also: csp-canary's self-or-https regex left its group OPTIONAL so a bare default-src 'none' line self-satisfied the breakage check (fixed: breakage only when default-src bars everything AND no per-directive fallback exists - the shipped strict-none-plus-fallbacks posture is the correct shape, both ways pinned); html-secret-leakage's backslashed-Users pattern lost its over-broad match and the redundant standalone /home/ alternative; the headers oracle dropped a no-op replace;  version-grammar's REFUSED detail computes its shape counts instead of claiming them. Floor 409 -> 414; dogfood double-run byte-identical, matches the committed baseline; lint:docs fiction-signature pass over the new pages.
 
-- the snapshot generator's dead branch leaves, the snapshot gets a
-  staleness gate (walk round
-  22): the dogfood-snapshot generator carried a dead `version === 'unknown'`
-  reassignment branch (unreachable inside its own matched path) - removed;
-  and nothing gated staleness of the committed `web/src/lib/dogfoodSnapshot.js`,
-  so a dogfood run that changed `labs/` without a regen would drift the site's
-  default view into rendering stale receipts as the current baseline; the new
-  test/dogfood-snapshot.test.js re-derives the snapshot from the committed
-  `labs/crashledger.json` + `labs/hardening.md` (the full ledger deep-equals,
-  cost totals/per-attack rows/seed+version pin the header) and fails with the
-  regen command named; `startedAt` stays the blessed moving stamp (run-meta
-  sidecar, artifacts never move). Floor 406 -> 408; site build
-  6/6 prerendered.
+- the badge oracle names the ACTUAL cause of its 502s (walk round 23): a registry document that arrived but FAILED the floor (pollution key, oversize/control-char/semver-hostile version) rode the catch-all branch, so the 502 body said 'registry unreachable: registry document rejected: ...' - a lie about where the failure lived (the registry was reachable; the document was the problem). Rejected documents now return their own 502 naming the reject path ('registry document rejected: ...', still no-store, still withholding the hostile bytes); a true outage keeps the unreachable line. Walk also swept the rest of the shipped shell line by line (usePageMeta, islands ladder, Nav/items, VersionBadge, NotFound, the site-target double) - all clean; a new tooth in test/site-pack.test.js pins both 502 classes and the no-echo/no-store contract. Floor 408 -> 409.
 
-- the dashboard-ledger bridge stops dropping honest flags and stops taking a
-  blob's own tally claim over its rows (walk round 21): skipped-REFUSED rows
-  lost their `skipped` flag in the view model, so the site dashboard rendered
-  every skipped row (the dogfood snapshot carries ~15) as a plain hold - the
-  exact skipped-row-indistinguishable-from-a-hold veil the ledger flag was
-  added to prevent (round 13); the flag now survives into the view model and
-  the row UI chips it ('skipped - no coverage graded'). The single-run gate
-  derived its verdict from a provided `tally` claim, not the normalized rows -
-  the CLI computes its tally itself (trusted), but the dashboard's inputs are
-  user-supplied artifacts, and a lying tally ({ rows: [EXPLOITED row], tally:
-  { EXPLOITED: 0 } }) rendered PASS; the gate now derives from the rows and a
-  tally-vs-rows mismatch surfaces loudly instead of winning. A BOUNDED claim
-  without owner/bound - the shape the runner demotes to a hit per PRD
-  principle 6 - no longer renders as a clean accepted lock; it is chipped
-  ('the runner would grade this a hit'). And the Loader's markdown-refusal
-  branch was an EMPTY block: the promised pointer to the JSON file never
-  fired, markdown pastes surfaced a raw SyntaxError; it now refuses with the
-  pointer it always promised. Teeth: skip-flag survival (both artifact
-  shapes), the lying-tally gate, and the incomplete-bound flag in
-  test/dashboard-ledger.test.js. Floor 403 -> 406; site build 6/6
-  prerendered.
+- the /attacks page stops being a text wall (walk round 24): the bottom used to be two long prose paragraphs in two text sizes - the pack rundown and the field report. It now leads with a PACKS TABLE (all 8 shipped packs, 36 pack attacks total, with their real arming contract, their per-pack self-audit fixture and the teeth file that grades each oracle), and the two walls moved into collapsible explainer blocks (details/summary, styled like the FAQ's quiet cards). Record correction, filed honestly (rule 7 applies to us too): the round-22 entry claimed the page's 'self-audit fixtures (test/fixtures/run.mjs per pack)' line was fiction - it was NOT: those fixtures live inside each pack's own directory (packs/public/<pack>/test/fixtures/run.mjs), discovered and run 8/8 by test/pack-fixtures.test.js; the misread is corrected here, and the page prose now names the pack-relative fixture path directly. Site build 6/6 prerendered.
 
-- the wp-money-shapes pack actually REACHES the wire now (walk round 20):
-  every write envelope rode `kind: 'post'` - a dispatch kind the WP worker
-  never had, so each write fataled silently (`bad kind: post`) with an
-  honest 200 status - the volley graded 'held' on writes that never
-  happened, and gate-burst graded a stock target EXPLOITED ('wall never
-  tripped') on writes that never happened either. The fused seed envelope
-  (`kind: 'call'` carrying an `op`) was always a call-allow fatal, so the
-  txn-replay seed silently skipped forever; the option envelopes keyed the
-  row by `key` where the wire keys the ROW by `name` (`key` slices inside
-  it), so the receipt plant never happened; both volley oracles graded for
-  marker TEXT inside posts-query bodies that answer POST IDS; and seedId
-  looked for `body.id` where the wire answers a scalar id body - a real
-  successful insert graded as a null seed. Writes are now real form POSTs
-  (`kind: 'request'`, urlencoded bodies, the action named by the vocab,
-  `remoteAddr` for the burst); the seed is a STATE-lane insert-post with
-  fields + meta and a paid read-back that skips honestly when the plant
-  cannot grade; options key rows by `name`; the volley oracles grade the
-  ids ARRAY length under LIKE/compare semantics; seedId parses the scalar
-  (a wp_error zero still grades no-seed). Also fixed: the pack's skips
-  returned `skip: true` - a field nothing reads - so every honest skip
-  graded as a plain hold in the ledger (the exact vacuous-green veil,
-  PRD section 7 / issue #37); they now carry `skipped: true`. Same class
-  of row verified everywhere: wp-roles' vocabulary-miswire branch was the
-  one skipped-EXPLOITED shape in the tree (a fake finding riding the exit
-  rules while claiming no coverage) - it now skips honestly, and the
-  runner fails loud at cause if any module ever returns verdict EXPLOITED
-  or BOUNDED carrying the skip flag again, with the offending module/
-  attack named (teeth in test/campaigns.test.js). wp-stock-smoke lost two
-  dead lines (a const that could never be anything but undefined; a
-  damage-proof probe whose result was discarded). Teeth: a WP-speak fake
-  harness grades the three packs verdicts (+ the envelope-shape law that
-  rejects kind 'post' at the source) in the new test/wp-money-shapes.test.js,
-  plus an armed stub row proving the oracle wire grades end to end on the
-  real PHP worker; the wp-roles miswire shape has its own unit row.
-  Floor 396 -> 403.
+- the snapshot generator's dead branch leaves, the snapshot gets a staleness gate (walk round 22): the dogfood-snapshot generator carried a dead `version === 'unknown'` reassignment branch (unreachable inside its own matched path) - removed; and nothing gated staleness of the committed `web/src/lib/dogfoodSnapshot.js`, so a dogfood run that changed `labs/` without a regen would drift the site's default view into rendering stale receipts as the current baseline; the new test/dogfood-snapshot.test.js re-derives the snapshot from the committed `labs/crashledger.json` + `labs/hardening.md` (the full ledger deep-equals, cost totals/per-attack rows/seed+version pin the header) and fails with the regen command named; `startedAt` stays the blessed moving stamp (run-meta sidecar, artifacts never move). Floor 406 -> 408; site build 6/6 prerendered.
 
-- the cve-feed token matcher escapes instead of mangles (walk round 19):
-  the first cut of `tokenFound` STRIPPED non-[a-z0-9-] characters out of
-  snapshot tokens, which only worked while the snapshot carried bare words.
-  At the next maintainer sync a dotted token (`next.js`) would have become
-  the unmatchable `nextjs` - a silent false-REFUSED oracle for as long as
-  the sync lived - and a version-shaped token (`2.0`) would have become
-  `20`, boundary-matching unrelated banner numerics (false-EXPLOITED
-  territory). Tokens are now regex-escaped so they match at their real
-  shape under the same word-ish boundaries, and a malformed/empty token in
-  a snapshot fails loudly at pack load (mirroring the broken-snapshot
-  guard). The matcher is exported for teeth: 7 matcher-shape assertions
-  pin the real shapes, the mid-word refusal, the numeric-strip landmine
-  and the empty-token refusal; per-token shape checks joined the snapshot
-  integrity pin. Floor 395 -> 396.
+- the dashboard-ledger bridge stops dropping honest flags and stops taking a blob's own tally claim over its rows (walk round 21): skipped-REFUSED rows lost their `skipped` flag in the view model, so the site dashboard rendered every skipped row (the dogfood snapshot carries ~15) as a plain hold - the exact skipped-row-indistinguishable-from-a-hold veil the ledger flag was added to prevent (round 13); the flag now survives into the view model and the row UI chips it ('skipped - no coverage graded'). The single-run gate derived its verdict from a provided `tally` claim, not the normalized rows - the CLI computes its tally itself (trusted), but the dashboard's inputs are user-supplied artifacts, and a lying tally ({ rows: [EXPLOITED row], tally: { EXPLOITED: 0 } }) rendered PASS; the gate now derives from the rows and a tally-vs-rows mismatch surfaces loudly instead of winning. A BOUNDED claim without owner/bound - the shape the runner demotes to a hit per PRD principle 6 - no longer renders as a clean accepted lock; it is chipped ('the runner would grade this a hit'). And the Loader's markdown-refusal branch was an EMPTY block: the promised pointer to the JSON file never fired, markdown pastes surfaced a raw SyntaxError; it now refuses with the pointer it always promised. Teeth: skip-flag survival (both artifact shapes), the lying-tally gate, and the incomplete-bound flag in test/dashboard-ledger.test.js. Floor 403 -> 406; site build 6/6 prerendered.
 
-- the shipped self-check pack stops promising more than it checks (walk
-  round 18): the `crashtest-site` pack's authz advertising battery was
-  vacuously green in two independent cuts - its word-boundary anchor can
-  never match the canonical quoted case `href="/admin"` (no word boundary
-  exists between a quote and a slash), and the scan loop then destructured
-  the on-call label as the regex (off-by-one pairs), searching for the
-  literal label text instead of any pattern at all. The battery is now
-  anchored on a real path separator with a terminator wall (quote,
-  whitespace, `>`, `?`, `/`) so prose look-alikes (`/admin-theme`,
-  `/debugger-tips`, `admin@example.com`) stay clear; the HEAD-mirror
-  battery now honors the honest-405 grant its own oracle statement makes;
-  and the manifest attack now actually verifies every declared icon src
-  against `web/public/` commit truth (the broken-install-prompt class it
-  always said it caught). Teeth for each pre-fix shape live in
-  test/site-pack.test.js; floor 394 -> 395.
+- the wp-money-shapes pack actually REACHES the wire now (walk round 20): every write envelope rode `kind: 'post'` - a dispatch kind the WP worker never had, so each write fataled silently (`bad kind: post`) with an honest 200 status - the volley graded 'held' on writes that never happened, and gate-burst graded a stock target EXPLOITED ('wall never tripped') on writes that never happened either. The fused seed envelope (`kind: 'call'` carrying an `op`) was always a call-allow fatal, so the txn-replay seed silently skipped forever; the option envelopes keyed the row by `key` where the wire keys the ROW by `name` (`key` slices inside it), so the receipt plant never happened; both volley oracles graded for marker TEXT inside posts-query bodies that answer POST IDS; and seedId looked for `body.id` where the wire answers a scalar id body - a real successful insert graded as a null seed. Writes are now real form POSTs (`kind: 'request'`, urlencoded bodies, the action named by the vocab, `remoteAddr` for the burst); the seed is a STATE-lane insert-post with fields + meta and a paid read-back that skips honestly when the plant cannot grade; options key rows by `name`; the volley oracles grade the ids ARRAY length under LIKE/compare semantics; seedId parses the scalar (a wp_error zero still grades no-seed). Also fixed: the pack's skips returned `skip: true` - a field nothing reads - so every honest skip graded as a plain hold in the ledger (the exact vacuous-green veil, PRD section 7 / issue #37); they now carry `skipped: true`. Same class of row verified everywhere: wp-roles' vocabulary-miswire branch was the one skipped-EXPLOITED shape in the tree (a fake finding riding the exit rules while claiming no coverage) - it now skips honestly, and the runner fails loud at cause if any module ever returns verdict EXPLOITED or BOUNDED carrying the skip flag again, with the offending module/ attack named (teeth in test/campaigns.test.js). wp-stock-smoke lost two dead lines (a const that could never be anything but undefined; a damage-proof probe whose result was discarded). Teeth: a WP-speak fake harness grades the three packs verdicts (+ the envelope-shape law that rejects kind 'post' at the source) in the new test/wp-money-shapes.test.js, plus an armed stub row proving the oracle wire grades end to end on the real PHP worker; the wp-roles miswire shape has its own unit row. Floor 396 -> 403.
 
-- npm tarball ships the WP adapter's worker (issue #34): the 1.1.0 tarball's
-  `files` whitelist (`bin`, `src`, `packs/public/*`) omitted `fixtures/`, so
-  the WP adapter could not boot under an npm install at all -
-  `WORKER_DEFAULT` resolves `fixtures/wordpress/wp-worker.php` from the
-  adapter's own location and `npm i crashtest` never shipped it; the spawn's
-  "Could not open input file" died silently into `cfgSent`'s catch and got
-  misdiagnosed as a stale-worker cfg rejection. The tarball now ships
-  `fixtures/wordpress` (worker + the `stub-wp/` harness, version-locked to
-  the installed adapter; `fixtures/demo` and the rest of `fixtures/` stay
-  repo-bound) and packaging drift is a suite row, not a first red-team run:
-  test/packaging.test.js gains a fixture-census row (WP subset ships,
-  nothing else under fixtures/ leaks) plus a REAL pack + local npm-install
-  smoke (temp workdir, `npm pack` tarball, `npm i`, then the packaged
-  tree's own `WORKER_DEFAULT` target must exist; zero-runtime-deps holds -
-  no registry touched, crashtest has no runtime deps). Boot now fails loud
-  + nameable (rule 3): `WPWorker` stats its script at construct and throws
-  "worker script not found at <path> - npm tarball omits fixtures/? mount
-  { script } from a git checkout...", reserving the `cfgSent` catch for
-  actual cfg rejection; the stale-worker error keeps its message and now
-  carries `{ cause }` so a start-level failure surfaces the real first
-  error. Docs: the WordPress playbook notes the tarball behavior and the
-  { script:` override mount pattern. Suite 319/319 (2 new rows; was
-  317/317).
-- the docs layer's freestruct install moves to the npm-published release
-  (receipt for issue #36): the docs workflow's `github:dhaupin/freestruct#dfb30aa498`
-  source-tarball pin (last commit carrying `docs/lib/` at the documented
-  path) becomes the exact-version npm pin `freestruct@1.1.0` - published
-  2026-10-25 with provenance, proper bin (`bin/freestruct.mjs`), and a
-  tarball e2e hard gate. The run step follows the package: the old
-  `node node_modules/freestruct/docs/lib/inject.js` layout no longer ships;
-  the step now invokes the installed bin via node directly. Contract
-  checked before the landing: `freestruct validate` passes against this
-  repo's existing `docs/ssr-config.yml` unchanged. Exact pin ritual stands
-  (bump the number the day freestruct releases again - never float).
-- the opt-in vacuous run for configless roots (issue #37, the flowforge
-  CI shape): `run --allow-vacuous` in a root with no `crashtest.config.js`
-  prints ONE honest line (`crashtest: no <config> found - vacuous run, 0
-  handlers, 0 attacks, exit 0`) and exits 0, writing nothing - so a repo
-  in the pre-handler lifecycle state keeps the pinned install + the CI
-  step LIVE instead of parking them behind `hashFiles` arm-gates, and
-  install rot gets caught the day it happens, not the day the config
-  lands. The default stays strict byte-for-byte: a missing config without
-  the flag is the same hard exit 2 as before (it must never silently
-  green a broken run), and with a config present the flag is irrelevant
-  (the run is byte-normal). `crashtest packs --allow-vacuous` gets the
-  symmetric treatment (honest empty-listing line, exit 0; the plain
-  configless `packs` listing was already a quiet 0 and keeps its hint
-  line under the flag). `--json` keeps its LAST-stdout-line contract on a
-  vacuous run: an honest empty-shape blob (vacuous:true, handlers:0,
-  tally TOTAL:0) with the real run's field names. Teeth: 5 new rows in
-  test/cli.test.js (vacuous line + no artifacts, json blob shape, strict
-  default preserved, armed-config irrelevance, packs symmetry). Docs:
-  exit-rules.md gains "The opt-in exception", quick-start exit table
-  notes it, --help documents the flag on both verbs.
-- the pack loader's entry-shape enforcement grows a defer option (issue
-  #33, packstruct SPEC section 7): `loadPacks(roots, seen, check,
-  { validateProfile: false })` defers ONLY the scenario-contract shape
-  check - the manifest contract (schemaVersion/name/description/entry
-  collision rules) stays fully enforced in every mode - so a manifest-
-  conformant, entry-importable profile-minimal pack (the SPEC's clean
-  fixture: `export default { name: 'clean-pack' }`) can exist under this
-  engine for host faces that carry other profiles. The strict default
-  (validateProfile: true, implicit) keeps `crashtest run` and `crashtest
-  packs` byte-identical and every existing refusal pin holds: a
-  contract-invalid entry still fails LOUDLY naming the pack origin on the
-  run path. Teeth: 3 new rows in test/packs.test.js (the clean case loads
-  deferred, the bad manifest still fails loudly deferred, the default
-  stays strict). Docs: packs reference documents the option.
-- the host-lane convention becomes discoverable: `crashtest lint-packs
-  [--deep] [--json] [--against <lib>] [dir]` + `run --lint-packs`
-  (issue #32, the gistory wiring receipt) - opt-in passthrough to the
-  packstruct binary the repo has INSTALLED (node_modules/.bin first, then
-  PATH; never downloads or bundles one - the zero-deps law holds), so the
-  every-family-repo `packs/` spec-lint lane stops being folklore. Policy
-  pinned: explicitly invoked but packstruct missing = exit 2 naming the
-  fix (`npm i -D packstruct@<exact>` - requested-never-working is a broken
-  config, OFF not half-on); present but exiting non-zero = verdicts pass
-  through verbatim with the exit code riding (0/1/2; the loader's checks
-  stay the correctness ground truth, the lint is author-time DX + the id
-  census). Dir law pinned: the packs ROOT is the default and packstruct's
-  contract root (passing `packs/public` reads as 0 packs checked - the
-  live gistory footgun); an explicit dir passes through untouched and the
-  header line names the actual dir checked. `run --lint-packs` runs the
-  same lane INSTEAD of the campaign (no requests, no artifacts - mirrors
-  run --lint-determinism) and needs nothing from the config, resolving
-  before the import. This repo's `lint:packs` script collapses onto the
-  verb (`node bin/crashtest.js lint-packs`) - the crate eats its own
-  surface first. Teeth: test/lint-packs.test.js (missing-packstruct exit
-  2 + fix string, exit-code fidelity 0/1/2, ROOT-default argument
-  capture, explicit-dir passthrough + header naming, run preflight +
-  no-artifacts, preflight missing-packstruct). Docs: packs.md gains the
-  "Spec lint" section; --help documents both surfaces.
-- the WP adapter grows the internal-hook + WooCommerce-order vocabulary
-  (issue #35, the live-fire khf-wp receipt): plugin-side payment bridges
-  complete money through INTERNAL hooks, not HTTP routes, and the worker's
-  op vocabulary had neither a hook fire nor order fixtures. The state ops
-  gain `do-action` (fires ONE hook through the real hook registry,
-  whitelist-gated by `hookAllow: { hook => max-args }` crossing the SAME
-  cfg-envelope trust model as callAllow; undeclared = loud fatal naming
-  hookAllow, args sliced at the bound like calls) and the `wc-*` order
-  fixtures: `wc-create-order` (fee line item + binding order meta; returns
-  { id, status, total }), `wc-order-set-status` (the money trigger -
-  set_status + save fires the real `woocommerce_order_status_*` hooks in
-  the target), `wc-order-get` (store-agnostic { id, status, total,
-  currency }), `wc-order-get-meta` (the WC meta API - the binding-meta
-  oracle on BOTH HPOS and legacy CPT stores), `wc-order-delete`
-  (playbook-rule-1 teardown). Degradation is loud where WooCommerce is
-  not active at the root; the generic-adapter rule holds (the worker knows
-  NO plugin - the funnel listeners live in target packs; the STUB WP core
-  carries the same vocabulary + a deterministic ct_wc_money_funnel
-  listener layer so CI teeth run with no WC install at all, and the stub
-  mirrors order meta onto the order's own post id = the legacy CPT read
-  path, so cross-store replay surfaces grade in CI). Unknown-op and
-  no-order reads stay loud fatal. The khf-money pack side (replay/pacing
-  shapes against the WC bridge) is the consumer's next PR per the issue.
-  Teeth: test/wp-hooks-wc.test.js (4 armed rows against the stub with
-  REAL php: dual read-path meta, hookAllow gate, status-hook relay
-  timing, arg bounds) - 337 tests run under php 8.3 in-session. Docs:
-  the WP playbook's config + scenario-surface blocks document hookAllow
-  and the full wc-* vocabulary.
-- the packs-root/visibility-dir footgun closes on the crate side too
-  (the packstruct#13 family shape, mirrored inward): a `packs:` root whose
-  basename is `public/` or `local/` used to point the loader at
-  `<dir>/public/<name>/` - which does not exist - and SILENTLY load zero
-  packs (crashtest's variant of freestruct's confusing `public/public/`
-  error, but silent: a typo'd config just greens a no-pack run). The
-  loader now refuses loudly at cause naming the fix ("pass the packs ROOT
-  - the parent of public/"), and the escape hatch stays legal: a
-  `pack.json` directly inside a public/-named dir is a one-pack-dir load
-  and never trips the guard. Same-misfire class, two more silent-greens
-  closed while in there: a config `modules:` filter that matches NOTHING
-  (a typo'd subset, or `[]`) used to run a zero-row campaign and exit 0 -
-  it now refuses loudly with the unmatched names AND the loaded module
-  list (a matched filter still runs its rows; no-filter behavior is
-  byte-unchanged); and a declared config `scenarioDirs:` path that does
-  not exist used to quietly contribute no modules - it now fails loudly
-  naming the dir (the `labs/scenarios/` auto-scan stays optional: fresh
-  repos boot before `init`, and the vacuous shape from #37 depends on
-  it). Nothing is stricter than the honest-skip law needs: guards fire on
-  misfired CONFIG, never on honest degradations. Teeth: 2 new rows in
-  test/packs.test.js (guard fires on public/ + local/ + array members,
-  real root still loads beside it, oddly-named one-pack-dir loads), 3 new
-  rows in test/campaigns.test.js (zero-match typo + empty filter refuse,
-  matched filter runs, no-filter byte-unchanged), 2 new rows in
-  test/cli.test.js (ghost scenarioDir refuses, packs: ['packs/public']
-  refuses). Docs: config.md tuning block documents both loud guards,
-  packs.md documents the ROOT footgun closure.
-- the runner's `ctx.config` arming contract becomes TRUE (config-class,
-  found by walking for #13-family footguns on our side): packs/public/
-  wp-money-shapes and BOTH CLI scaffolds teach `ctx.config['<name>']`,
-  but runCampaign built module ctx without any `config` key, so the
-  shipped pack's `vocab()` gate could never pass - every row graded
-  "not armed... Declare the moduleCtx vocabulary" REFUSED forever, a
-  dead arming contract hidden behind the legitimate skip (the exact
-  veil shape the honest-skip law must never be allowed to mask a
-  misfire with). Now the runner merges BOTH knob vocabularies onto ctx:
-  `ctx.config[module.name]` (documented + scaffolded) AND `ctx.moduleCtx`
-  / `ctx.attackCtx` (legacy in-tree readers), precedence moduleCtx >
-  attackCtx > config, extra keys stay whose-own so no cross-module leak.
-  The installed-knob census stays visible in the `run` transcript's
-  config knobs line. Structure of run rows is otherwise byte-unchanged.
-- the wp-money-shapes adapter gate: pointed at a target WITHOUT the
-  wordpress adapter, the pack armed past vocab and every attack threw
-  `harness.wpState is not a function`, graded EXPLOITED "attack itself
-  threw" - three fabricated findings from a misfired config. Each attack
-  now opens with an `unmounted(harness)` gate and degrades to skipped-
-  REFUSED naming the fix ("declare adapters: { wordpress: ... }")
-  (AGENTS.md rule 5: misfired config degrades to skipped-REFUSED, never
-  a false positive).
-  Teeth: 4 new rows in test/campaigns.test.js (dead-contract regression
-  probe on ctx.config precedence, order-independent knobs merge,
-  cross-module no-leak, and the ship-pin: the SHIPPED pack loads through
-  the real loader, arms through the real runner with a declared vocab,
-  and no row may claim the vocab is missing while the config arms it).
-  Docs: config.md knob block now names both vocabularies. Suite floor:
-  348/348 with PHP (was 344/344).
-- the family lanes receipt opens (early eyestruct support, in
-  receipt form rather than adapter form): dhaupin/eyestruct is staged
-  at 0.9.0 inside dhaupin/gistory (`eyestruct-staging/`), and THIS
-  repo's lint lane - the exact-pinned packstruct 1.0.0 passthrough -
-  already runs its three staged packs (`eye-ci-gate`, `eye-shapes`,
-  `eye-text-leg`) CLEAN at shallow and deep levels (3 modules probed,
-  0 census ids - the check-profile shape carries cases, not attacks).
-  Pinned in docs/reference/packs.md as a new "Family lanes" section
-  with the exact gistory sha citation rule (staging trees move; the
-  sha `19f1db8049ff8a030e8abab2bee03e1b6c988477` is the receipt) -
-  the packstruct#19 trifecta grammar (crashtest scenario / eyestruct
-  visual / poststruct audit, packstruct orchestrating) is thereby true
-  in a cited artifact BEFORE eyestruct's npm debut, and no adapter or
-  dependency lands before the surface exists for real (the
-  no-fiction rule holds: poststruct's staging lane is still in
-  flight - its row activates when it settles).
-- the full-tree edge walk lands (round-1..4 sweep, silent-fill to loud
-  refusal class + one determinism leak):
-  (a) `run`/`packs`/`lint-packs`/`lint-determinism` REJECT unknown flags
-  with exit 2 naming each (the packstruct#18 class; the worst instance:
-  a typo'd `--expec-baseline` used to silently run WRITTEN where a
-  read-only CI diff was asked for - a gate semantic dropped without a
-  word);
-  (b) D1: `LIMIT ?` with a missing bound param is now a named NO_PARAM
-  error instead of silently returning EVERY row; negative LIMIT/OFFSET
-  take SQLite semantics (LIMIT -1 = no limit, OFFSET < 0 = zero skip)
-  and the LIMIT clause grammar learns the optional sign; a projection
-  split no longer breaks on a comma inside a double-quoted string;
-  (c) KV: unimplemented delivery types (arrayBuffer/stream) refuse
-  loudly instead of returning the string; list limits are validated
-  1..1000 (a 0 would stall pagination forever with no cursor); NaN
-  expirations and non-JSON-serializable values refuse at the fake's
-  boundary - while past-expiration PUTs stay legal BY DESIGN (the
-  fake-clock scrub contract from v0.2, deliberately re-pinned);
-  (d) rng: `pick([])` and inverted `int()` bounds are caller bugs,
-  not silent undefineds;
-  (e) env: a name declared as BOTH var and secret fails loudly (one
-  name, one owner);
-  (f) the WP adapter's envelope ids leave `Math.random()` for a
-  process-monotonic counter (rule 4: no unseeded randomness on a
-  shipped surface; ids are wires, not findings, but the surface stays
-  flat for the determinism law);
-  (g) plans: pack-level facts (armedByKey, version, prerequisites)
-  resolve by the pack ORIGIN, not module-name equality - a pack may
-  legitimately ship an entry whose scenario name differs from the pack
-  name (shared entries, bundled plugins), and a module-name lookup
-  silently missed those and marked WILL-FIRE where the manifest
-  demanded arming.
-  Teeth: 16 new rows across the harness/cli/packs/d1/wp-adapter/plan
-  suites (each guard gets its misfire pinned; the kv past-expiration
-  legality and the wp-adapter flat-surface rows ride along). Suite
-  floor: 364/364 with PHP (was 348/348). Docs: none needed here (all
-  changes keep documented contracts true; the LIMIT/OFFSET sign
-  support is the SQL subset's existing `LIMIT ?|n [OFFSET ?|m]` row
-  learning that `n` includes negatives, as SQLite does).
-- the walks continue (rounds 6-8: presets/plugins lane, campaign
-  state primitives, contract remainder) - the headline catch is a
-  COST-ACCOUNTING LIE in the campaign economics row: the per-attack
-  `requests` field used the MODULE-start baseline, so in a two-attack
-  module attack #2 reported attack #1's requests too and
-  `cost.totals.requests` (the ledger's economics line, CI-facing)
-  inflated triangularly (1+2+...+n). Requests are now per-attack
-  truth (captured live: rows [1, 2] totals 3 where the campaign made
-  exactly 2 -> now [1, 1] totals 2).
-  - presets: `probeHandler` gains the timer its own docstring always
-    claimed (fetch AND body-read race opts.timeoutMs, default 3000ms;
-    a hung handler is a probe FINDING, never an endless await) - a
-    rule-7 doc-vs-code drift closed; `bodyBytes` counts utf-8 BYTES,
-    not JS chars; an unknown preset name refuses at cause with the
-    usage direction instead of a stack trace;
-  - plugins: the extension check the loader header always promised
-    ("fails loudly HERE rather than at import time") actually exists
-    now - a relative/absolute PATH specifier without .js/.mjs refuses
-    at cause; bare npm specifiers stay extensionless by contract;
-  - contract: an invalid expect SPEC STRING ('2xx-or-dead') fails at
-    validateScenario (load) time instead of detonating the campaign at
-    the first step - a contract error that loads is a config error.
-  Teeth: 6 new rows across campaigns/presets-plugins/contract suites
-  (the probe-hang cap, the byte count, the unknown preset, the plugin
-  extension, the load-time spec validation, and the per-attack cost
-  pin). Suite floor: 370/370 with PHP (was 364/364).
-- the dashboard's shipped dogfood snapshot regenerates to the TRUE
-  economics (round-9 walk catch): per-attack requests were cumulative
-  pre-fix, so the bundled `web/src/lib/dogfoodSnapshot.js` (regenerated
-  from the real artifacts by web/scripts/make-ledger-snapshot.mjs)
-  still baked the inflated numbers - totals said 1082.requests where
-  the campaign made 647, and per-attack rows read as triangular sums
-  (secret-watermark 91 where it made 36; amplification 100 where it
-  replayed 40). The snapshot is now cut from the post-fix run
-  (842 ops / 647 requests / per-attack rows are per-attack), the
-  pre-built dashboard dist re-renders it, and the dashboard-ledger pin
-  moves to the true numbers WITH the inflation arithmetic named in the
-  comment (rule 7: the shipped site shows what the CLI actually
-  measured, not what an old baseline said).
-- the walk reaches the WP worker lane in its own language (round 17:
-  fixtures/wordpress/php surfaces, armed rows green): ONE determinism-law
-  breach found and closed - the insert-post fixture seed minted its post
-  title from the wall clock (`'CT seed ' . $prefix . ' ' . time()`), the
-  exact PHP-side twin of the Date.now() class house law 4 (and the round-3
-  adapter catch) forbid: same commit, different campaign clock, different
-  seed rows - and INVISIBLE to every JS-side determinism gate, because the
-  PHP fixture is not in any JS lint or double-run artifact path. The
-  title now counts a per-process sequence (`CT seed <prefix> #N`) - same
-  run shape, same label order, every run. New pin: the worker fixture
-  source is wp-walled like the JS adapter (no time()/date( in the shipped
-  PHP surface) - the deterministic seal runs across BOTH languages now.
-  Teeth: 1 new row in test/wp-adapter.test.js; armed PHP rows re-run
-  green. Suite floor: 394/394 with PHP (was 393/393). Dogfood artifacts
-  byte-stable; gates: check, lint:docs, packstruct lint clean.
-- the ALTER-lane phantom closes (the round-16 walk's one honest note,
-  built the same session): ALTER TABLE ... ADD COLUMN with a
-  UNIQUE / PRIMARY KEY / CHECK / FOREIGN KEY / REFERENCES clause accepted
-  the WORDS and then NON-MODELED them - a constraint you wrote at alter
-  time that never armed, the exact phantom-schema class the CREATE-side
-  guard had just refused. Real-SQLite parity: UNIQUE and PK are not
-  ADD-able on SQLite either ("Cannot add a UNIQUE column"), and the fake
-  models no CHECK/FK enforcement - every one of the five clauses now
-  refuses loud naming the clause and the working alternative (declare it
-  in the seeded tables schema); NOT NULL without DEFAULT keeps its
-  existing SQLite-matched refusal; the legit paths (plain add, DEFAULT
-  constant backfill) stay green end to end, and the d1.ddl counter keeps
-  ticking on EXECUTED ddl only. Teeth: 1 new row in test/harness/d1-
-  v03.test.js (five refusals + the backfill-with-counter positive path).
-  Suite floor: 393/393 with PHP (was 392/392). Dogfood artifacts byte-
-  stable; gates: check, lint:docs, packstruct lint clean.
-- the walk reaches the FakeD1 SQL subset (round 16, all ~1600 lines):
-  three silent-misfire classes closed:
-  - CREATE TABLE with a TABLE-LEVEL constraint line (UNIQUE(a, b),
-    CHECK(...), FOREIGN KEY (...), PRIMARY KEY(a, b), CONSTRAINT ...) used
-    to map the line into the column list as a PHANTOM column named after
-    the keyword - the declared compound unique simply did not exist, and
-    every duplicate row slid through (the loudest silent-misfire class in
-    the whole engine: schema you wrote that never armed). The lines now
-    refuse loud at CREATE time naming the unsupported declaration
-    (column-level UNIQUE flags and config-seeded uniques are the modeled
-    subset), and an odd/non-identifier column name refuses loudly too;
-  - INSERT ... VALUES tuple ARITY used to be silent: extra values became
-    rogue row keys (a JSON-visible junk field on the row), a short tuple
-    left missing columns that read as nulls - SQLite refuses both loudly
-    ("N values for M columns") and the fake now does the same;
-  - DISTINCT and GROUP BY keyed their dedupe on JSON.stringify - the
-    rule-6 trap one more time: stringify silently drops undefined-valued
-    keys (and __proto__ own-keys), so two DISTINCT rows or two GROUP BY
-    keys differing ONLY in an undefined-valued key collapsed into one row
-    or group (a silent repeating-count lie under aggregate surfaces).
-    Both now key on the rule-6-safe identity diff.js already defined
-    (exported as stableFingerprint - the harness has ONE definition of
-    "these two rows are the same"); uniques were already safe (?-null
-    mapped each key element first).
-  Teeth: 4 new rows in test/harness/d1.test.js (the four constraint
-  declarations refusing loud + the real subset still parsing; the extra
-  and short VALUES tuples refusing with the rogue-key check; DISTINCT
-  two-row truth; GROUP BY two-group truth). Suite floor: 392/392 with
-  PHP (was 388/388). Dogfood artifacts byte-stable (0 new / 0 regressed);
-  gates: check, lint:docs, packstruct lint (8 packs) clean.
-- the walk reaches the STATE-CAPTURE lane + closes a chain edge (rounds
-  14/15):
-  - chains: a throwing expect GRADER (or guard) escaped
-    runChainAttack as an anonymous attack-level throw - "attack itself
-    threw - harness-wide fault" with no step attribution. The grader is
-    attack code; its fault now grades the STEP by name
-    (`expect grader threw at step "boom": ...`, same for `guard(c) threw
-    on step ...`), later steps keep grading, and the chain summary stays
-    attributable (per-step EXPLOITED, same crash law, named cause);
-  - freezeTo/restoreTo deep-detach NESTED row values: the old per-row
-    shallow spreads shared a row's nested objects by reference between
-    the frozen snapshot and the live store, so a handler mutating a
-    nested row value (a `meta` object) silently FROZE ITSELF into the
-    snapshot - the next runFresh on the same snapshot replayed the
-    MUTATED state as its "first-run" no-trace baseline (the exact
-    promise runFresh exists to keep, broken across sequential replays).
-    Both directions now structuredClone: the freeze isolates from the
-    live store (a non-cloneable row value fails loud, never aliases
-    silently) and the restore detaches the snapshot from the live store
-    (the next replay on the same snapshot stays first-run);
-  - the diff oracle's fingerprint was JSON.stringify - the house rule-6
-    trap byte-for-byte: stringify silently drops __proto__ OWN-keys and
-    undefined-valued keys, so a row whose ONLY change was one of those
-    fingerprinted IDENTICAL and the diff graded the store flat. Own-key
-    traversal (prototype never climbed, keys sorted against rebuild-order
-    variance, depth bounded at 64 loud) replaces it; changedFields counts
-    KEY PRESENCE as a field change (undefined fingerprints equal by
-    value - only the key-set knows); the structural residue branch
-    carries row REFERENCES (the fingerprint is no longer JSON-parsable
-    that rows were rebuilt from - undefined never survived stringify);
-  - every diff-returned row is a REAL copy now (structuredClone) - the
-    documented "mutating a diff never reaches the snapshots" held only
-    top-level for nested values; KV diff values stop referencing the
-    snapshots too;
-  - shape dispatch: a KV binding that emptied itself between snapshots
-    (every key deleted - a real, gradeable deletion) was isD1Shape-true
-    on the empty side and threw the 'mixed binding' oracle-bug error on
-    a legit finding; the non-empty side now decides the shape when the
-    other is blank, both-empty defaults d1 (FakeD1.snapshot() shape of a
-    fresh db), and a shape CHANGING between two non-empty sides still
-    throws loud
-  Teeth: 4 new rows (faulty-grader + guard step attribution; nested
-  freeze/restore detaching both directions; the fingerprint's
-  __proto__/undefined pair with a removed-row reconstruction pin; the
-  emptied KV binding + empty-map d1 default). Suite floor: 388/388 with
-  PHP (was 385/385). Dogfood artifacts byte-stable (0 new / 0
-  regressed); gates: check, lint:docs, packstruct lint (8 packs) clean.
-- the walk continues through the campaign-lane primitives (round 13:
-  chains, vars/objects, and the flag nobody read) - the headline class:
-  THE HONEST-SKIP FLAG NEVER LEFT THE ATTACK. Every library row returns
-  `skipped: true` on a skip, the runner's record construction dropped it
-  (only verdict/detail/owner/bound/evidence were copied), and the ledger's
-  findings + report followed the same fields - so a skipped-REFUSED row
-  was INDISTINGUISHABLE from a plain hold downstream: same verdict glyph,
-  same ledger shape, no flag anywhere. The flag now survives the runner
-  boundary (`skipped: true` on run.rows), rides buildLedger's findings
-  (`skipped: true` - undefined JSON-drops, so only skipping rows gain the
-  field), and renderMarkdown annotates the REFUSED list (` ... (skipped)`);
-  the committed dogfood artifacts regenerate with the flag on the rows
-  that actually skip (storage-fill, the governance/memory/volume workers
-  the demo config doesn't arm).
-  - chains: an ALL-SKIP chain reported "chain held: N steps" with no flag -
-    nothing was graded but the row counted as armed coverage. Now it
-    returns skipped: true + "chain skipped: all N steps skipped their
-    route/guard - nothing was graded (declare the routes for coverage)";
-    partial skips stay plain holds (the skipped step names itself in the
-    summary, as before);
-  - chains: a step init returning a non-object reqInit (a string, a
-    number, an array) degraded SILENTLY inside harness.run into a GET on
-    "/" - a step that fired the wrong route with the wrong method and
-    still graded "held". init's runtime return shape is now contracted
-    (Request, request-init object, or nothing) and a junk return fails
-    loud NAMING THE STEP (`step "s1" init(c) returned a string - init
-    returns a Request, a request-init object, or nothing`), grading the
-    step EXPLOITED via the floor (an attack-authoring fault is never a
-    hidden pass).
-  Teeth: 3 new rows in test/primitives.test.js (the flag roundtrips into
-  run.rows AND the JSON truth - exactly one skipped:true on a 2-row
-  campaign; the all-skip chain pins flag + wording with the partial-skip
-  twin; the junk-init trio grades floor-EXPLOITED with the null-init
-  default preserved). Suite floor: 385/385 with PHP (was 382/382).
-  Dogfood artifacts regenerate with the skipped flag on the skipping
-  rows, byte-stable across the double run; the shipped dashboard
-  snapshot re-cuts from the new artifacts (6/6 pages prerendered);
-  gates: check, lint:docs, packstruct lint (8 packs) all clean.
-- the walk continues into the adapters lane + WP worker lifecycle
-  (round 12 - the surfaces the library rows fire THROUGH):
-  - wp worker: a broken phpBin used to end the run as a SILENT FOREVER-HANG -
-    a spawn failure fires the ChildProcess 'error' event and NEVER 'exit',
-    so exchange()'s listeners (data + exit) never settled, while the
-    UNGUARDED event itself could kill the run process as an uncaught
-    exception. exchange() now rejects loudly naming the bin (`wp-worker
-    spawn failed (ENOENT): ... check phpBin (...)`) with the cause
-    attached, and the spawn guard keeps the process alive for the
-    structured refusal; WPWorker is exported so the lifecycle is testable;
-  - adapter synthesis: an ARRAY-valued response header (multi set-cookie -
-    Node's getHeaders() and light-my-request's res.headers both store it)
-    crashed the WHATWG Response init mid-route with a TypeError, misgrading
-    a working handler's honest multi-value response as a transport fault.
-    New shared src/adapters/wire-headers.js normalizes (array ->
-    comma-joined, Buffer/Blob -> utf-8 text, null -> ''), used by the
-    express (both ServerResponse and dispatchNodeRequest paths) and
-    fastify adapters; hono needs none (it synthesizes Responses itself);
-  - run-boundary reap: the WP worker is a REAL subprocess per run and
-    nothing ever called WPWorker.kill() - a WP-target cmdRun left the php
-    child and its open stdio pipes holding the event loop past the
-    verdict. cmdRun reaps the worker in a finally around runCampaign (the
-    mid-campaign throw path included); the armed WP e2e rows exercise it.
-  Teeth: 3 new rows (wp-adapter spawn-error rejection naming the bin;
-  v02 row for the dispatchNodeRequest array header; fastify-stub row for
-  the injected reply's array header). Suite floor: 382/382 with PHP (was
-  379/379). Dogfood artifacts byte-stable across the double run; gates:
-  check, lint:docs, packstruct lint (8 packs) all clean.
-- the walk continues (round 10: the scenario ATTACK LIBRARY itself, all
-  14 modules re-read against the verdict-semantics contract) - the
-  headline class is CRASH INVISIBILITY: an uncaught handler throw
-  arrives at an attack as `{ status: null, threw }`, and every gate
-  written `status >= 500` is FALSE for null, so crashed steps walked
-  on and graded as later-step findings with the wrong story (a crashed
-  memory write read "not found on read-back after a 2xx write"; a
-  crashed delete read "delete is silent"; a crashed escrow read "the
-  two-key gate failed"; a crashed post-TTL lock write graded a
-  documented-free app REFUSED "behaved as documented" - and, the one
-  class graded the WRONG DIRECTION: state/id-collision-alias called an
-  uncaught constraint throw "the wall held" REFUSED). The fuzz-floor
-  oracle now gates every request a memory/governance/session/state row
-  makes (the `floorHit` helper, the discipline input/taxonomy already
-  had), each finding naming the step that broke it. The second class:
-  DEFENDER HONESTY - apps that REFUSE a step grade honest REFUSED
-  verdicts, never exploit-grade findings: memory rows grade a refused
-  first writer / refused fresh writer / refused alpha identity /
-  refused prunes ('nothing was deleted, so there is no history to
-  trace') / refused anchor prune ('the anchor is still live, so a
-  citation to it is not dangling') / refused conflict-seed burst, the
-  first-writer check ORDERED before the second-writer wording ('second
-  writer refused' would imply the first succeeded on a both-refused
-  app); session rows grade refusing logins (a session-limiting app is
-  a defense, not a zero-sid analytics gap / open replay window; a 401
-  login says "refused with 401", not "bearer-token auth is outside
-  this surface"); succession-revocation-carry skips on an UNREADABLE
-  BASELINE (the old path never read the baseline either, then pinned
-  the app for the post-revocation answer being unreadable).
-  - state: enumeration-oracle grades a crashed/5xx foreign-id probe as
-    a floor EXPLOITED ('a crash is not a deny') instead of a held wall;
-    id-collision-alias no longer hardcodes the `devices` table name
-    (the snapshot diff walks EVERY table carrying the claim key - a
-    non-fixture store name used to diff empty-vs-empty and silently
-    always refuse) and now catches the ROW-MOVE class it names in its
-    own header (delete-and-reinsert: owner-a's claim gone, owner-b
-    claiming the key at a new id - tenant flipped with no conflict);
-  - volume: cost-amplification grades the PER-ROUND OPS SHAPE (the old
-    code computed a `stable` identical-shape flag then discarded it -
-    a tail that burns N times the bound can hold the mean under it:
-    one 21-op spike + three cheap replays is mean 6 under bound 12 and
-    NOW grades peak-EXPLOITED); credential-stuffing's costPerRequest
-    is always per-attempt (the old zero-admitted branch substituted
-    the TOTAL: "~4 ops/request" on 4 all-refused requests); storage
-    fill reads the KV binding the CONFIG names (`kvBinding`) and
-    targets whose store lives elsewhere get honest "growth
-    unmeasured" instead of a silently empty growth array;
-  - governance: escrow-refusal-is-typed tells the right story for a
-    release with ZERO approvals (approvals gate open, not "refusal is
-    blank"); grant-conflict-deterministic now guards both conflict
-    grants it used to fire blindly (the same null-status blindness the
-    helper closes everywhere else).
-  - guards: burst-wall's duplicated (unreachable) route-skip branches
-    removed - the single entry gate already named the config gap.
-  Teeth: 9 new rows across test/scenarios (row-move + non-fixture
-  table names, crashed enumeration probe, collided-constraint floor,
-  refused-logins trio, per-attempt pin, peak-vs-mean pair, kvBinding
-  pair, memory floor+refusal sextet, governance baseline/floor trio).
-  Suite floor: 379/379 with PHP (was 370/370). Dogfood artifacts
-  byte-stable across the double run (0 new / 0 regressed - the honest
-  branches never fire on the hardened fixture); gates: check,
-  lint:docs fiction scan, packstruct lint (8 packs) all clean.
+- the cve-feed token matcher escapes instead of mangles (walk round 19): the first cut of `tokenFound` STRIPPED non-[a-z0-9-] characters out of snapshot tokens, which only worked while the snapshot carried bare words. At the next maintainer sync a dotted token (`next.js`) would have become the unmatchable `nextjs` - a silent false-REFUSED oracle for as long as the sync lived - and a version-shaped token (`2.0`) would have become `20`, boundary-matching unrelated banner numerics (false-EXPLOITED territory). Tokens are now regex-escaped so they match at their real shape under the same word-ish boundaries, and a malformed/empty token in a snapshot fails loudly at pack load (mirroring the broken-snapshot guard). The matcher is exported for teeth: 7 matcher-shape assertions pin the real shapes, the mid-word refusal, the numeric-strip landmine and the empty-token refusal; per-token shape checks joined the snapshot integrity pin. Floor 395 -> 396.
+
+- the shipped self-check pack stops promising more than it checks (walk round 18): the `crashtest-site` pack's authz advertising battery was vacuously green in two independent cuts - its word-boundary anchor can never match the canonical quoted case `href="/admin"` (no word boundary exists between a quote and a slash), and the scan loop then destructured the on-call label as the regex (off-by-one pairs), searching for the literal label text instead of any pattern at all. The battery is now anchored on a real path separator with a terminator wall (quote, whitespace, `>`, `?`, `/`) so prose look-alikes (`/admin-theme`, `/debugger-tips`, `admin@example.com`) stay clear; the HEAD-mirror battery now honors the honest-405 grant its own oracle statement makes; and the manifest attack now actually verifies every declared icon src against `web/public/` commit truth (the broken-install-prompt class it always said it caught). Teeth for each pre-fix shape live in test/site-pack.test.js; floor 394 -> 395.
+
+- npm tarball ships the WP adapter's worker (issue #34): the 1.1.0 tarball's `files` whitelist (`bin`, `src`, `packs/public/*`) omitted `fixtures/`, so the WP adapter could not boot under an npm install at all - `WORKER_DEFAULT` resolves `fixtures/wordpress/wp-worker.php` from the adapter's own location and `npm i crashtest` never shipped it; the spawn's "Could not open input file" died silently into `cfgSent`'s catch and got misdiagnosed as a stale-worker cfg rejection. The tarball now ships `fixtures/wordpress` (worker + the `stub-wp/` harness, version-locked to the installed adapter; `fixtures/demo` and the rest of `fixtures/` stay repo-bound) and packaging drift is a suite row, not a first red-team run: test/packaging.test.js gains a fixture-census row (WP subset ships, nothing else under fixtures/ leaks) plus a REAL pack + local npm-install smoke (temp workdir, `npm pack` tarball, `npm i`, then the packaged tree's own `WORKER_DEFAULT` target must exist; zero-runtime-deps holds - no registry touched, crashtest has no runtime deps). Boot now fails loud + nameable (rule 3): `WPWorker` stats its script at construct and throws "worker script not found at <path> - npm tarball omits fixtures/? mount { script } from a git checkout...", reserving the `cfgSent` catch for actual cfg rejection; the stale-worker error keeps its message and now carries `{ cause }` so a start-level failure surfaces the real first error. Docs: the WordPress playbook notes the tarball behavior and the { script:` override mount pattern. Suite 319/319 (2 new rows; was 317/317).
+- the docs layer's freestruct install moves to the npm-published release (receipt for issue #36): the docs workflow's `github:dhaupin/freestruct#dfb30aa498` source-tarball pin (last commit carrying `docs/lib/` at the documented path) becomes the exact-version npm pin `freestruct@1.1.0` - published 2026-10-25 with provenance, proper bin (`bin/freestruct.mjs`), and a tarball e2e hard gate. The run step follows the package: the old `node node_modules/freestruct/docs/lib/inject.js` layout no longer ships; the step now invokes the installed bin via node directly. Contract checked before the landing: `freestruct validate` passes against this repo's existing `docs/ssr-config.yml` unchanged. Exact pin ritual stands (bump the number the day freestruct releases again - never float).
+- the opt-in vacuous run for configless roots (issue #37, the flowforge CI shape): `run --allow-vacuous` in a root with no `crashtest.config.js` prints ONE honest line (`crashtest: no <config> found - vacuous run, 0 handlers, 0 attacks, exit 0`) and exits 0, writing nothing - so a repo in the pre-handler lifecycle state keeps the pinned install + the CI step LIVE instead of parking them behind `hashFiles` arm-gates, and install rot gets caught the day it happens, not the day the config lands. The default stays strict byte-for-byte: a missing config without the flag is the same hard exit 2 as before (it must never silently green a broken run), and with a config present the flag is irrelevant (the run is byte-normal). `crashtest packs --allow-vacuous` gets the symmetric treatment (honest empty-listing line, exit 0; the plain configless `packs` listing was already a quiet 0 and keeps its hint line under the flag). `--json` keeps its LAST-stdout-line contract on a vacuous run: an honest empty-shape blob (vacuous:true, handlers:0, tally TOTAL:0) with the real run's field names. Teeth: 5 new rows in test/cli.test.js (vacuous line + no artifacts, json blob shape, strict default preserved, armed-config irrelevance, packs symmetry). Docs: exit-rules.md gains "The opt-in exception", quick-start exit table notes it, --help documents the flag on both verbs.
+- the pack loader's entry-shape enforcement grows a defer option (issue #33, packstruct SPEC section 7): `loadPacks(roots, seen, check, { validateProfile: false })` defers ONLY the scenario-contract shape check - the manifest contract (schemaVersion/name/description/entry collision rules) stays fully enforced in every mode - so a manifest- conformant, entry-importable profile-minimal pack (the SPEC's clean fixture: `export default { name: 'clean-pack' }`) can exist under this engine for host faces that carry other profiles. The strict default (validateProfile: true, implicit) keeps `crashtest run` and `crashtest packs` byte-identical and every existing refusal pin holds: a contract-invalid entry still fails LOUDLY naming the pack origin on the run path. Teeth: 3 new rows in test/packs.test.js (the clean case loads deferred, the bad manifest still fails loudly deferred, the default stays strict). Docs: packs reference documents the option.
+- the host-lane convention becomes discoverable: `crashtest lint-packs [--deep] [--json] [--against <lib>] [dir]` + `run --lint-packs` (issue #32, the gistory wiring receipt) - opt-in passthrough to the packstruct binary the repo has INSTALLED (node_modules/.bin first, then PATH; never downloads or bundles one - the zero-deps law holds), so the every-family-repo `packs/` spec-lint lane stops being folklore. Policy pinned: explicitly invoked but packstruct missing = exit 2 naming the fix (`npm i -D packstruct@<exact>` - requested-never-working is a broken config, OFF not half-on); present but exiting non-zero = verdicts pass through verbatim with the exit code riding (0/1/2; the loader's checks stay the correctness ground truth, the lint is author-time DX + the id census). Dir law pinned: the packs ROOT is the default and packstruct's contract root (passing `packs/public` reads as 0 packs checked - the live gistory footgun); an explicit dir passes through untouched and the header line names the actual dir checked. `run --lint-packs` runs the same lane INSTEAD of the campaign (no requests, no artifacts - mirrors run --lint-determinism) and needs nothing from the config, resolving before the import. This repo's `lint:packs` script collapses onto the verb (`node bin/crashtest.js lint-packs`) - the crate eats its own surface first. Teeth: test/lint-packs.test.js (missing-packstruct exit 2 + fix string, exit-code fidelity 0/1/2, ROOT-default argument capture, explicit-dir passthrough + header naming, run preflight + no-artifacts, preflight missing-packstruct). Docs: packs.md gains the "Spec lint" section; --help documents both surfaces.
+- the WP adapter grows the internal-hook + WooCommerce-order vocabulary (issue #35, the live-fire khf-wp receipt): plugin-side payment bridges complete money through INTERNAL hooks, not HTTP routes, and the worker's op vocabulary had neither a hook fire nor order fixtures. The state ops gain `do-action` (fires ONE hook through the real hook registry, whitelist-gated by `hookAllow: { hook => max-args }` crossing the SAME cfg-envelope trust model as callAllow; undeclared = loud fatal naming hookAllow, args sliced at the bound like calls) and the `wc-*` order fixtures: `wc-create-order` (fee line item + binding order meta; returns { id, status, total }), `wc-order-set-status` (the money trigger - set_status + save fires the real `woocommerce_order_status_*` hooks in the target), `wc-order-get` (store-agnostic { id, status, total, currency }), `wc-order-get-meta` (the WC meta API - the binding-meta oracle on BOTH HPOS and legacy CPT stores), `wc-order-delete` (playbook-rule-1 teardown). Degradation is loud where WooCommerce is not active at the root; the generic-adapter rule holds (the worker knows NO plugin - the funnel listeners live in target packs; the STUB WP core carries the same vocabulary + a deterministic ct_wc_money_funnel listener layer so CI teeth run with no WC install at all, and the stub mirrors order meta onto the order's own post id = the legacy CPT read path, so cross-store replay surfaces grade in CI). Unknown-op and no-order reads stay loud fatal. The khf-money pack side (replay/pacing shapes against the WC bridge) is the consumer's next PR per the issue. Teeth: test/wp-hooks-wc.test.js (4 armed rows against the stub with REAL php: dual read-path meta, hookAllow gate, status-hook relay timing, arg bounds) - 337 tests run under php 8.3 in-session. Docs: the WP playbook's config + scenario-surface blocks document hookAllow and the full wc-* vocabulary.
+- the packs-root/visibility-dir footgun closes on the crate side too (the packstruct#13 family shape, mirrored inward): a `packs:` root whose basename is `public/` or `local/` used to point the loader at `<dir>/public/<name>/` - which does not exist - and SILENTLY load zero packs (crashtest's variant of freestruct's confusing `public/public/` error, but silent: a typo'd config just greens a no-pack run). The loader now refuses loudly at cause naming the fix ("pass the packs ROOT - the parent of public/"), and the escape hatch stays legal: a `pack.json` directly inside a public/-named dir is a one-pack-dir load and never trips the guard. Same-misfire class, two more silent-greens closed while in there: a config `modules:` filter that matches NOTHING (a typo'd subset, or `[]`) used to run a zero-row campaign and exit 0 - it now refuses loudly with the unmatched names AND the loaded module list (a matched filter still runs its rows; no-filter behavior is byte-unchanged); and a declared config `scenarioDirs:` path that does not exist used to quietly contribute no modules - it now fails loudly naming the dir (the `labs/scenarios/` auto-scan stays optional: fresh repos boot before `init`, and the vacuous shape from #37 depends on it). Nothing is stricter than the honest-skip law needs: guards fire on misfired CONFIG, never on honest degradations. Teeth: 2 new rows in test/packs.test.js (guard fires on public/ + local/ + array members, real root still loads beside it, oddly-named one-pack-dir loads), 3 new rows in test/campaigns.test.js (zero-match typo + empty filter refuse, matched filter runs, no-filter byte-unchanged), 2 new rows in test/cli.test.js (ghost scenarioDir refuses, packs: ['packs/public'] refuses). Docs: config.md tuning block documents both loud guards, packs.md documents the ROOT footgun closure.
+- the runner's `ctx.config` arming contract becomes TRUE (config-class, found by walking for #13-family footguns on our side): packs/public/ wp-money-shapes and BOTH CLI scaffolds teach `ctx.config['<name>']`, but runCampaign built module ctx without any `config` key, so the shipped pack's `vocab()` gate could never pass - every row graded "not armed... Declare the moduleCtx vocabulary" REFUSED forever, a dead arming contract hidden behind the legitimate skip (the exact veil shape the honest-skip law must never be allowed to mask a misfire with). Now the runner merges BOTH knob vocabularies onto ctx: `ctx.config[module.name]` (documented + scaffolded) AND `ctx.moduleCtx` / `ctx.attackCtx` (legacy in-tree readers), precedence moduleCtx > attackCtx > config, extra keys stay whose-own so no cross-module leak. The installed-knob census stays visible in the `run` transcript's config knobs line. Structure of run rows is otherwise byte-unchanged.
+- the wp-money-shapes adapter gate: pointed at a target WITHOUT the wordpress adapter, the pack armed past vocab and every attack threw `harness.wpState is not a function`, graded EXPLOITED "attack itself threw" - three fabricated findings from a misfired config. Each attack now opens with an `unmounted(harness)` gate and degrades to skipped- REFUSED naming the fix ("declare adapters: { wordpress: ... }") (AGENTS.md rule 5: misfired config degrades to skipped-REFUSED, never a false positive). Teeth: 4 new rows in test/campaigns.test.js (dead-contract regression probe on ctx.config precedence, order-independent knobs merge, cross-module no-leak, and the ship-pin: the SHIPPED pack loads through the real loader, arms through the real runner with a declared vocab, and no row may claim the vocab is missing while the config arms it). Docs: config.md knob block now names both vocabularies. Suite floor: 348/348 with PHP (was 344/344).
+- the family lanes receipt opens (early eyestruct support, in receipt form rather than adapter form): dhaupin/eyestruct is staged at 0.9.0 inside dhaupin/gistory (`eyestruct-staging/`), and THIS repo's lint lane - the exact-pinned packstruct 1.0.0 passthrough - already runs its three staged packs (`eye-ci-gate`, `eye-shapes`, `eye-text-leg`) CLEAN at shallow and deep levels (3 modules probed, 0 census ids - the check-profile shape carries cases, not attacks). Pinned in docs/reference/packs.md as a new "Family lanes" section with the exact gistory sha citation rule (staging trees move; the sha `19f1db8049ff8a030e8abab2bee03e1b6c988477` is the receipt) - the packstruct#19 trifecta grammar (crashtest scenario / eyestruct visual / poststruct audit, packstruct orchestrating) is thereby true in a cited artifact BEFORE eyestruct's npm debut, and no adapter or dependency lands before the surface exists for real (the no-fiction rule holds: poststruct's staging lane is still in flight - its row activates when it settles).
+- the full-tree edge walk lands (round-1..4 sweep, silent-fill to loud refusal class + one determinism leak): (a) `run`/`packs`/`lint-packs`/`lint-determinism` REJECT unknown flags with exit 2 naming each (the packstruct#18 class; the worst instance: a typo'd `--expec-baseline` used to silently run WRITTEN where a read-only CI diff was asked for - a gate semantic dropped without a word); (b) D1: `LIMIT ?` with a missing bound param is now a named NO_PARAM error instead of silently returning EVERY row; negative LIMIT/OFFSET take SQLite semantics (LIMIT -1 = no limit, OFFSET < 0 = zero skip) and the LIMIT clause grammar learns the optional sign; a projection split no longer breaks on a comma inside a double-quoted string; (c) KV: unimplemented delivery types (arrayBuffer/stream) refuse loudly instead of returning the string; list limits are validated 1..1000 (a 0 would stall pagination forever with no cursor); NaN expirations and non-JSON-serializable values refuse at the fake's boundary - while past-expiration PUTs stay legal BY DESIGN (the fake-clock scrub contract from v0.2, deliberately re-pinned); (d) rng: `pick([])` and inverted `int()` bounds are caller bugs, not silent undefineds; (e) env: a name declared as BOTH var and secret fails loudly (one name, one owner); (f) the WP adapter's envelope ids leave `Math.random()` for a process-monotonic counter (rule 4: no unseeded randomness on a shipped surface; ids are wires, not findings, but the surface stays flat for the determinism law); (g) plans: pack-level facts (armedByKey, version, prerequisites) resolve by the pack ORIGIN, not module-name equality - a pack may legitimately ship an entry whose scenario name differs from the pack name (shared entries, bundled plugins), and a module-name lookup silently missed those and marked WILL-FIRE where the manifest demanded arming. Teeth: 16 new rows across the harness/cli/packs/d1/wp-adapter/plan suites (each guard gets its misfire pinned; the kv past-expiration legality and the wp-adapter flat-surface rows ride along). Suite floor: 364/364 with PHP (was 348/348). Docs: none needed here (all changes keep documented contracts true; the LIMIT/OFFSET sign support is the SQL subset's existing `LIMIT ?|n [OFFSET ?|m]` row learning that `n` includes negatives, as SQLite does).
+- the walks continue (rounds 6-8: presets/plugins lane, campaign state primitives, contract remainder) - the headline catch is a COST-ACCOUNTING LIE in the campaign economics row: the per-attack `requests` field used the MODULE-start baseline, so in a two-attack module attack #2 reported attack #1's requests too and `cost.totals.requests` (the ledger's economics line, CI-facing) inflated triangularly (1+2+...+n). Requests are now per-attack truth (captured live: rows [1, 2] totals 3 where the campaign made exactly 2 -> now [1, 1] totals 2). - presets: `probeHandler` gains the timer its own docstring always claimed (fetch AND body-read race opts.timeoutMs, default 3000ms; a hung handler is a probe FINDING, never an endless await) - a rule-7 doc-vs-code drift closed; `bodyBytes` counts utf-8 BYTES, not JS chars; an unknown preset name refuses at cause with the usage direction instead of a stack trace; - plugins: the extension check the loader header always promised ("fails loudly HERE rather than at import time") actually exists now - a relative/absolute PATH specifier without .js/.mjs refuses at cause; bare npm specifiers stay extensionless by contract; - contract: an invalid expect SPEC STRING ('2xx-or-dead') fails at validateScenario (load) time instead of detonating the campaign at the first step - a contract error that loads is a config error. Teeth: 6 new rows across campaigns/presets-plugins/contract suites (the probe-hang cap, the byte count, the unknown preset, the plugin extension, the load-time spec validation, and the per-attack cost pin). Suite floor: 370/370 with PHP (was 364/364).
+- the dashboard's shipped dogfood snapshot regenerates to the TRUE economics (round-9 walk catch): per-attack requests were cumulative pre-fix, so the bundled `web/src/lib/dogfoodSnapshot.js` (regenerated from the real artifacts by web/scripts/make-ledger-snapshot.mjs) still baked the inflated numbers - totals said 1082.requests where the campaign made 647, and per-attack rows read as triangular sums (secret-watermark 91 where it made 36; amplification 100 where it replayed 40). The snapshot is now cut from the post-fix run (842 ops / 647 requests / per-attack rows are per-attack), the pre-built dashboard dist re-renders it, and the dashboard-ledger pin moves to the true numbers WITH the inflation arithmetic named in the comment (rule 7: the shipped site shows what the CLI actually measured, not what an old baseline said).
+- the walk reaches the WP worker lane in its own language (round 17: fixtures/wordpress/php surfaces, armed rows green): ONE determinism-law breach found and closed - the insert-post fixture seed minted its post title from the wall clock (`'CT seed ' . $prefix . ' ' . time()`), the exact PHP-side twin of the Date.now() class house law 4 (and the round-3 adapter catch) forbid: same commit, different campaign clock, different seed rows - and INVISIBLE to every JS-side determinism gate, because the PHP fixture is not in any JS lint or double-run artifact path. The title now counts a per-process sequence (`CT seed <prefix> #N`) - same run shape, same label order, every run. New pin: the worker fixture source is wp-walled like the JS adapter (no time()/date( in the shipped PHP surface) - the deterministic seal runs across BOTH languages now. Teeth: 1 new row in test/wp-adapter.test.js; armed PHP rows re-run green. Suite floor: 394/394 with PHP (was 393/393). Dogfood artifacts byte-stable; gates: check, lint:docs, packstruct lint clean.
+- the ALTER-lane phantom closes (the round-16 walk's one honest note, built the same session): ALTER TABLE ... ADD COLUMN with a UNIQUE / PRIMARY KEY / CHECK / FOREIGN KEY / REFERENCES clause accepted the WORDS and then NON-MODELED them - a constraint you wrote at alter time that never armed, the exact phantom-schema class the CREATE-side guard had just refused. Real-SQLite parity: UNIQUE and PK are not ADD-able on SQLite either ("Cannot add a UNIQUE column"), and the fake models no CHECK/FK enforcement - every one of the five clauses now refuses loud naming the clause and the working alternative (declare it in the seeded tables schema); NOT NULL without DEFAULT keeps its existing SQLite-matched refusal; the legit paths (plain add, DEFAULT constant backfill) stay green end to end, and the d1.ddl counter keeps ticking on EXECUTED ddl only. Teeth: 1 new row in test/harness/d1- v03.test.js (five refusals + the backfill-with-counter positive path). Suite floor: 393/393 with PHP (was 392/392). Dogfood artifacts byte- stable; gates: check, lint:docs, packstruct lint clean.
+- the walk reaches the FakeD1 SQL subset (round 16, all ~1600 lines): three silent-misfire classes closed: - CREATE TABLE with a TABLE-LEVEL constraint line (UNIQUE(a, b), CHECK(...), FOREIGN KEY (...), PRIMARY KEY(a, b), CONSTRAINT ...) used to map the line into the column list as a PHANTOM column named after the keyword - the declared compound unique simply did not exist, and every duplicate row slid through (the loudest silent-misfire class in the whole engine: schema you wrote that never armed). The lines now refuse loud at CREATE time naming the unsupported declaration (column-level UNIQUE flags and config-seeded uniques are the modeled subset), and an odd/non-identifier column name refuses loudly too; - INSERT ... VALUES tuple ARITY used to be silent: extra values became rogue row keys (a JSON-visible junk field on the row), a short tuple left missing columns that read as nulls - SQLite refuses both loudly ("N values for M columns") and the fake now does the same; - DISTINCT and GROUP BY keyed their dedupe on JSON.stringify - the rule-6 trap one more time: stringify silently drops undefined-valued keys (and __proto__ own-keys), so two DISTINCT rows or two GROUP BY keys differing ONLY in an undefined-valued key collapsed into one row or group (a silent repeating-count lie under aggregate surfaces). Both now key on the rule-6-safe identity diff.js already defined (exported as stableFingerprint - the harness has ONE definition of "these two rows are the same"); uniques were already safe (?-null mapped each key element first). Teeth: 4 new rows in test/harness/d1.test.js (the four constraint declarations refusing loud + the real subset still parsing; the extra and short VALUES tuples refusing with the rogue-key check; DISTINCT two-row truth; GROUP BY two-group truth). Suite floor: 392/392 with PHP (was 388/388). Dogfood artifacts byte-stable (0 new / 0 regressed); gates: check, lint:docs, packstruct lint (8 packs) clean.
+- the walk reaches the STATE-CAPTURE lane + closes a chain edge (rounds 14/15): - chains: a throwing expect GRADER (or guard) escaped runChainAttack as an anonymous attack-level throw - "attack itself threw - harness-wide fault" with no step attribution. The grader is attack code; its fault now grades the STEP by name (`expect grader threw at step "boom": ...`, same for `guard(c) threw on step ...`), later steps keep grading, and the chain summary stays attributable (per-step EXPLOITED, same crash law, named cause); - freezeTo/restoreTo deep-detach NESTED row values: the old per-row shallow spreads shared a row's nested objects by reference between the frozen snapshot and the live store, so a handler mutating a nested row value (a `meta` object) silently FROZE ITSELF into the snapshot - the next runFresh on the same snapshot replayed the MUTATED state as its "first-run" no-trace baseline (the exact promise runFresh exists to keep, broken across sequential replays). Both directions now structuredClone: the freeze isolates from the live store (a non-cloneable row value fails loud, never aliases silently) and the restore detaches the snapshot from the live store (the next replay on the same snapshot stays first-run); - the diff oracle's fingerprint was JSON.stringify - the house rule-6 trap byte-for-byte: stringify silently drops __proto__ OWN-keys and undefined-valued keys, so a row whose ONLY change was one of those fingerprinted IDENTICAL and the diff graded the store flat. Own-key traversal (prototype never climbed, keys sorted against rebuild-order variance, depth bounded at 64 loud) replaces it; changedFields counts KEY PRESENCE as a field change (undefined fingerprints equal by value - only the key-set knows); the structural residue branch carries row REFERENCES (the fingerprint is no longer JSON-parsable that rows were rebuilt from - undefined never survived stringify); - every diff-returned row is a REAL copy now (structuredClone) - the documented "mutating a diff never reaches the snapshots" held only top-level for nested values; KV diff values stop referencing the snapshots too; - shape dispatch: a KV binding that emptied itself between snapshots (every key deleted - a real, gradeable deletion) was isD1Shape-true on the empty side and threw the 'mixed binding' oracle-bug error on a legit finding; the non-empty side now decides the shape when the other is blank, both-empty defaults d1 (FakeD1.snapshot() shape of a fresh db), and a shape CHANGING between two non-empty sides still throws loud Teeth: 4 new rows (faulty-grader + guard step attribution; nested freeze/restore detaching both directions; the fingerprint's __proto__/undefined pair with a removed-row reconstruction pin; the emptied KV binding + empty-map d1 default). Suite floor: 388/388 with PHP (was 385/385). Dogfood artifacts byte-stable (0 new / 0 regressed); gates: check, lint:docs, packstruct lint (8 packs) clean.
+- the walk continues through the campaign-lane primitives (round 13: chains, vars/objects, and the flag nobody read) - the headline class: THE HONEST-SKIP FLAG NEVER LEFT THE ATTACK. Every library row returns `skipped: true` on a skip, the runner's record construction dropped it (only verdict/detail/owner/bound/evidence were copied), and the ledger's findings + report followed the same fields - so a skipped-REFUSED row was INDISTINGUISHABLE from a plain hold downstream: same verdict glyph, same ledger shape, no flag anywhere. The flag now survives the runner boundary (`skipped: true` on run.rows), rides buildLedger's findings (`skipped: true` - undefined JSON-drops, so only skipping rows gain the field), and renderMarkdown annotates the REFUSED list (` ... (skipped)`); the committed dogfood artifacts regenerate with the flag on the rows that actually skip (storage-fill, the governance/memory/volume workers the demo config doesn't arm). - chains: an ALL-SKIP chain reported "chain held: N steps" with no flag - nothing was graded but the row counted as armed coverage. Now it returns skipped: true + "chain skipped: all N steps skipped their route/guard - nothing was graded (declare the routes for coverage)"; partial skips stay plain holds (the skipped step names itself in the summary, as before); - chains: a step init returning a non-object reqInit (a string, a number, an array) degraded SILENTLY inside harness.run into a GET on "/" - a step that fired the wrong route with the wrong method and still graded "held". init's runtime return shape is now contracted (Request, request-init object, or nothing) and a junk return fails loud NAMING THE STEP (`step "s1" init(c) returned a string - init returns a Request, a request-init object, or nothing`), grading the step EXPLOITED via the floor (an attack-authoring fault is never a hidden pass). Teeth: 3 new rows in test/primitives.test.js (the flag roundtrips into run.rows AND the JSON truth - exactly one skipped:true on a 2-row campaign; the all-skip chain pins flag + wording with the partial-skip twin; the junk-init trio grades floor-EXPLOITED with the null-init default preserved). Suite floor: 385/385 with PHP (was 382/382). Dogfood artifacts regenerate with the skipped flag on the skipping rows, byte-stable across the double run; the shipped dashboard snapshot re-cuts from the new artifacts (6/6 pages prerendered); gates: check, lint:docs, packstruct lint (8 packs) all clean.
+- the walk continues into the adapters lane + WP worker lifecycle (round 12 - the surfaces the library rows fire THROUGH): - wp worker: a broken phpBin used to end the run as a SILENT FOREVER-HANG - a spawn failure fires the ChildProcess 'error' event and NEVER 'exit', so exchange()'s listeners (data + exit) never settled, while the UNGUARDED event itself could kill the run process as an uncaught exception. exchange() now rejects loudly naming the bin (`wp-worker spawn failed (ENOENT): ... check phpBin (...)`) with the cause attached, and the spawn guard keeps the process alive for the structured refusal; WPWorker is exported so the lifecycle is testable; - adapter synthesis: an ARRAY-valued response header (multi set-cookie - Node's getHeaders() and light-my-request's res.headers both store it) crashed the WHATWG Response init mid-route with a TypeError, misgrading a working handler's honest multi-value response as a transport fault. New shared src/adapters/wire-headers.js normalizes (array -> comma-joined, Buffer/Blob -> utf-8 text, null -> ''), used by the express (both ServerResponse and dispatchNodeRequest paths) and fastify adapters; hono needs none (it synthesizes Responses itself); - run-boundary reap: the WP worker is a REAL subprocess per run and nothing ever called WPWorker.kill() - a WP-target cmdRun left the php child and its open stdio pipes holding the event loop past the verdict. cmdRun reaps the worker in a finally around runCampaign (the mid-campaign throw path included); the armed WP e2e rows exercise it. Teeth: 3 new rows (wp-adapter spawn-error rejection naming the bin; v02 row for the dispatchNodeRequest array header; fastify-stub row for the injected reply's array header). Suite floor: 382/382 with PHP (was 379/379). Dogfood artifacts byte-stable across the double run; gates: check, lint:docs, packstruct lint (8 packs) all clean.
+- the walk continues (round 10: the scenario ATTACK LIBRARY itself, all 14 modules re-read against the verdict-semantics contract) - the headline class is CRASH INVISIBILITY: an uncaught handler throw arrives at an attack as `{ status: null, threw }`, and every gate written `status >= 500` is FALSE for null, so crashed steps walked on and graded as later-step findings with the wrong story (a crashed memory write read "not found on read-back after a 2xx write"; a crashed delete read "delete is silent"; a crashed escrow read "the two-key gate failed"; a crashed post-TTL lock write graded a documented-free app REFUSED "behaved as documented" - and, the one class graded the WRONG DIRECTION: state/id-collision-alias called an uncaught constraint throw "the wall held" REFUSED). The fuzz-floor oracle now gates every request a memory/governance/session/state row makes (the `floorHit` helper, the discipline input/taxonomy already had), each finding naming the step that broke it. The second class: DEFENDER HONESTY - apps that REFUSE a step grade honest REFUSED verdicts, never exploit-grade findings: memory rows grade a refused first writer / refused fresh writer / refused alpha identity / refused prunes ('nothing was deleted, so there is no history to trace') / refused anchor prune ('the anchor is still live, so a citation to it is not dangling') / refused conflict-seed burst, the first-writer check ORDERED before the second-writer wording ('second writer refused' would imply the first succeeded on a both-refused app); session rows grade refusing logins (a session-limiting app is a defense, not a zero-sid analytics gap / open replay window; a 401 login says "refused with 401", not "bearer-token auth is outside this surface"); succession-revocation-carry skips on an UNREADABLE BASELINE (the old path never read the baseline either, then pinned the app for the post-revocation answer being unreadable). - state: enumeration-oracle grades a crashed/5xx foreign-id probe as a floor EXPLOITED ('a crash is not a deny') instead of a held wall; id-collision-alias no longer hardcodes the `devices` table name (the snapshot diff walks EVERY table carrying the claim key - a non-fixture store name used to diff empty-vs-empty and silently always refuse) and now catches the ROW-MOVE class it names in its own header (delete-and-reinsert: owner-a's claim gone, owner-b claiming the key at a new id - tenant flipped with no conflict); - volume: cost-amplification grades the PER-ROUND OPS SHAPE (the old code computed a `stable` identical-shape flag then discarded it - a tail that burns N times the bound can hold the mean under it: one 21-op spike + three cheap replays is mean 6 under bound 12 and NOW grades peak-EXPLOITED); credential-stuffing's costPerRequest is always per-attempt (the old zero-admitted branch substituted the TOTAL: "~4 ops/request" on 4 all-refused requests); storage fill reads the KV binding the CONFIG names (`kvBinding`) and targets whose store lives elsewhere get honest "growth unmeasured" instead of a silently empty growth array; - governance: escrow-refusal-is-typed tells the right story for a release with ZERO approvals (approvals gate open, not "refusal is blank"); grant-conflict-deterministic now guards both conflict grants it used to fire blindly (the same null-status blindness the helper closes everywhere else). - guards: burst-wall's duplicated (unreachable) route-skip branches removed - the single entry gate already named the config gap. Teeth: 9 new rows across test/scenarios (row-move + non-fixture table names, crashed enumeration probe, collided-constraint floor, refused-logins trio, per-attempt pin, peak-vs-mean pair, kvBinding pair, memory floor+refusal sextet, governance baseline/floor trio). Suite floor: 379/379 with PHP (was 370/370). Dogfood artifacts byte-stable across the double run (0 new / 0 regressed - the honest branches never fire on the hardened fixture); gates: check, lint:docs fiction scan, packstruct lint (8 packs) all clean.
 
 ## 1.1.0 (2026-10-25 on npm)
 
-- the pack lane installs packstruct from npm (2026-10-24, armed for the
-  packstruct v1.0.0 publish): packstruct moves from a GitHub-clone pin at
-  the spec commit to an EXACT devDependency (`"packstruct": "1.0.0"` in
-  package.json, no float - same commit -> same findings applies to the
-  linter too). CI runs `npx --no-install packstruct lint packs` plus
-  verify-spec straight out of node_modules (the npm wrapper ships the same
-  spec/SPEC.md path), dropping the /tmp clone entirely; a `lint:packs`
-  script gives contributors the same two checks locally. The spec-commit
-  SHA b0e3050... stays as the byte-exact transcript's provenance in
-  labs/packstruct-backfill/ - that pin keeps its verify semantics, only
-  the install shape moved. The lane rode out armed (staged commit, dormant
-  until the devDependency resolved) and verified clean on publish day
-  2026-10-25 (packstruct v1.0.0 on npm, OIDC-attested): verify-spec
-  byte-equal against the shipped spec/SPEC.md, `packstruct lint packs`
-  8/8, `package-lock.json` committed pinning the exact resolution, and
-  the cloud CI green on the new lane first try (README's packstruct
-  paragraph now cites the npm release as the pin).
-- refusal battery, permanent in-repo (crashtest#25, packstruct#3's shared
-  matrix): the 18-shape transcribed corpus (labs/refusal-battery/) plus a
-  self-verifying generator (scripts/gen-refusal-battery.cjs - materialize
-  each shape per its own instructions, run the loader over it, then a
-  column either gets written or re-observed with per-row drift lines),
-  the observed crashtest column (labs/refusal-matrix-crashtest.json,
-  every cell OBSERVED, not hand-derived), and 4 pins in
-  test/refusal-battery.test.js: byte-drift gate, the six documented
-  loader/linter disagreements locked (a silent flip is a finding, not
-  noise), cross-column parity, and the one upstream emitter anomaly held
-  on record to fire the day packstruct's generator fix lands (one copy +
-  one regenerate to re-ingest).
-- theme-switch icon direction flips family-wide (crashtest#26, mirrored
-  from packstruct; icon = action, not state): dark shows the sun (click
-  = light), light shows the moon (click = dark), on the landing nav
-  (ThemeSwitch) and the docs header - both SVGs always render in the
-  markup, CSS picks the visible one, so prerendered bytes and hydrated
-  output are identical, no flash.
-- the release-post system (docs/discussions/): one announcing-vX.Y.Z.md
-  per release, shaped like prestruct's, lint-gated like every docs page -
-  the file's raw markdown IS the announcement (view source, copy, strip
-  the frontmatter, post); the posting mechanics live in the index, and
-  the v1.0.0 post ships with this batch, paragraphs unwrapped for a
-  clean raw-markdown copy.
-- pack self-audit fixtures backfilled for all 8 production packs
-  (packs/public/<pack>/test/fixtures/, SPEC section 4 norm - closes
-  dhaupin/crashtest#28): each fixture is hand-invocable
-  (`node test/fixtures/run.mjs`) and pins the pack's documented shape as
-  transcription of existing assertions, never invention - the manifest
-  contract (schemaVersion 1, name/dir match, entry imports clean), the
-  census-locked attack inventory (crashtest-site 18, wp-stock-smoke 4,
-  wp-money-shapes 3, wp-roles 3, cve-feed/next-middleware-shapes/
-  vite-dev-shapes/qs-shapes 2 each; 36 total), the kebab-case id grammar,
-  and the per-pack data rules (cve-feed snapshot shape + unique CVE ids,
-  wp-money-shapes armedByKey residency, contract-shaped run() for the
-  wire packs). Manifest surface untouched (fixtures are cargo, not
-  schema). test/pack-fixtures.test.js discovers + runs every fixture in
-  CI (10 rows): adding a ninth pack without its fixture, dropping an
-  attack, or wrecking a manifest now fails the offending pack rather
-  than waiting for a cross-host load. Suite 317/317 (was 307).
-- the campaign-path seam pinned two-way (test/harness/v03-campaign.test.js):
-  a live `runCampaign` walks the v0.3 engine surface end-to-end - the
-  disciplined run-root scores 5/5 REFUSED (scoped GROUP BY rollup,
-  owner-filtered one-key JOIN, fixed-epoch day bucket, idempotent
-  ensureSchema, honest KV cursor pagination) and the naive twin scores
-  5/5 EXPLOITED (cross-owner rollup rows, JOIN secret leak, wall-clock
-  bucket, destructive DDL rerun, lying `list_complete`). Closes the union
-  the unit rows (d1-v03/kv-v02) and the campaign rows deliberately don't
-  overlap: campaign -> harness.run() -> handler -> FakeD1 v0.3. Also pins
-  the paid-for seeded-fixture trap: tables written as raw arrays silently
-  produce EMPTY stores (scope rows then grade REFUSED from the outside),
-  so the hardened run asserts the rollup saw real data - a REFUSED can
-  never be a false negative. Zero library-attack growth (no census or
-  pin-wall sweep); the naive twin's wall clock is the documented exploit,
-  not a determinism surface.
-- faked1 v0.3 + fakekv v0.2 (issue #9, the ranked breadth gap list the
-  vant census measured):
-  - SQL: `IN (SELECT ...)` subqueries (depth one, exactly one projection
-    column, subquery `?`s rebind against the surrounding statement's
-    textual order), one-key INNER/LEFT/CROSS JOINs (table-qualified or
-    bare shared-key ON; RIGHT JOIN stays a loud rewrite hint),
-    GROUP BY/HAVING (plain column group keys; bare-aggregate HAVING stays
-    a named gap), aggregates scoped per-group with the bare columns of
-    the group's first row, multi-key ORDER BY (projection aliases +
-    group-key columns + raw refs), FROM-less scalar SELECT, and scalar
-    functions (UPPER/LOWER/LENGTH/TRIM/ABS). `CREATE TABLE [IF NOT
-    EXISTS]` / `ALTER TABLE ADD COLUMN` (the ensureSchema pattern -
-    declared UNIQUE column flags feed the standard constraint reading,
-    DEFAULT backfills existing rows, NOT NULL without DEFAULT stays
-    loud). The v0.2 relay contracts (UNIQUE message shape, meta shape,
-    counters, batch partial-apply, `count` key for unaliased COUNT(*))
-    carry over untouched in d1-v02.test.js.
-  - fake-clock date functions: UNIXEPOCH/DATETIME/JULIANDAY/STRFTIME read
-    ONE fixed epoch (FAKE_CLOCK_EPOCH; 'now' = that constant) - the v1.0
-    determinism law holds: same seed, same rows, no Date.now anywhere.
-    Day/hour/minute/second/week modifiers compose; month/year stay named
-    gaps. JSON: JSON_EXTRACT (paths degrade to NULL), JSON_TYPE,
-    JSON_QUOTE; double-quoted string literals now tokenize.
-  - FakeKV: deterministic TTLs (expiration/expirationTtl against the same
-    fixed clock; expired keys read as NOT PRESENT and vanish from
-    listings), getWithMetadata (metadata + expiration parity), and honest
-    cursor pagination (real name-position cursor, list_complete only when
-    true) + a loud per-value size cap (Workers-KV 25 MiB default).
-  Teeth: test/harness/d1-v03.test.js + test/harness/kv-v02.test.js.
-- the snapshot-diff oracle (issue #13 crate-tooling blocker 2):
-  `harness.snapshotStore()` copies every fake binding's state
-  (FakeD1.snapshot() per binding + the new FakeKV.snapshot()) and
-  `harness.diffSnapshots(before, after)` returns the deterministic diff -
-  D1 rows match by `id` (structural fallback: equal rows cancel, residue
-  added/removed), KV maps by key, table maps added/removed wholesale.
-  Rows carry {added, removed, changed + differing field names}, all
-  sorted, all copies - same inputs twice, byte-identical, so a diff rides
-  evidence without breaking the byte-stability law. Snapshots tick no
-  counters (attack bookkeeping, not campaign ops); a binding changing
-  shape between captures (d1<->kv) fails loudly as an oracle bug. This is
-  the uniform shape replacing the pack-by-pack hand-rolled store diffs
-  (vant measured at least four); docs in reference/scenario-contract.md.
-  Teeth: test/harness/diff.test.js.
-- the determinism linter (issue #13 crate-tooling blocker 3):
-  `crashtest lint-determinism [--config <path>] [dirs...]` greps the
-  DECLARED user surfaces (config scenarioDirs + packs roots by default;
-  explicit dirs override; `packs: false` opts out) for the wall-clock /
-  unseeded-randomness token family (`Date.now`, `new Date(`,
-  `Math.random`) - findings exit 2 (a config-class failure) naming every
-  file:line with the law phrased (`derive from ctx.seed instead`); a flat
-  surface exits 0 with the scanned count. `run --lint-determinism` runs
-  the same lint as a pre-flight INSTEAD of the campaign (no requests, no
-  artifacts written - CI wires it in one line). Flat grep on purpose:
-  the finding classes are flat-shaped and an AST walk would want a
-  dependency (zero-deps law); the crate's own src/ is not scanned (its
-  determinism is pinned by tests, and the harness's durationMs is INFO,
-  not a verdict input). Teeth: test/lint-determinism.test.js.
+- the pack lane installs packstruct from npm (2026-10-24, armed for the packstruct v1.0.0 publish): packstruct moves from a GitHub-clone pin at the spec commit to an EXACT devDependency (`"packstruct": "1.0.0"` in package.json, no float - same commit -> same findings applies to the linter too). CI runs `npx --no-install packstruct lint packs` plus verify-spec straight out of node_modules (the npm wrapper ships the same spec/SPEC.md path), dropping the /tmp clone entirely; a `lint:packs` script gives contributors the same two checks locally. The spec-commit SHA b0e3050... stays as the byte-exact transcript's provenance in labs/packstruct-backfill/ - that pin keeps its verify semantics, only the install shape moved. The lane rode out armed (staged commit, dormant until the devDependency resolved) and verified clean on publish day 2026-10-25 (packstruct v1.0.0 on npm, OIDC-attested): verify-spec byte-equal against the shipped spec/SPEC.md, `packstruct lint packs` 8/8, `package-lock.json` committed pinning the exact resolution, and the cloud CI green on the new lane first try (README's packstruct paragraph now cites the npm release as the pin).
+- refusal battery, permanent in-repo (crashtest#25, packstruct#3's shared matrix): the 18-shape transcribed corpus (labs/refusal-battery/) plus a self-verifying generator (scripts/gen-refusal-battery.cjs - materialize each shape per its own instructions, run the loader over it, then a column either gets written or re-observed with per-row drift lines), the observed crashtest column (labs/refusal-matrix-crashtest.json, every cell OBSERVED, not hand-derived), and 4 pins in test/refusal-battery.test.js: byte-drift gate, the six documented loader/linter disagreements locked (a silent flip is a finding, not noise), cross-column parity, and the one upstream emitter anomaly held on record to fire the day packstruct's generator fix lands (one copy + one regenerate to re-ingest).
+- theme-switch icon direction flips family-wide (crashtest#26, mirrored from packstruct; icon = action, not state): dark shows the sun (click = light), light shows the moon (click = dark), on the landing nav (ThemeSwitch) and the docs header - both SVGs always render in the markup, CSS picks the visible one, so prerendered bytes and hydrated output are identical, no flash.
+- the release-post system (docs/discussions/): one announcing-vX.Y.Z.md per release, shaped like prestruct's, lint-gated like every docs page - the file's raw markdown IS the announcement (view source, copy, strip the frontmatter, post); the posting mechanics live in the index, and the v1.0.0 post ships with this batch, paragraphs unwrapped for a clean raw-markdown copy.
+- pack self-audit fixtures backfilled for all 8 production packs (packs/public/<pack>/test/fixtures/, SPEC section 4 norm - closes dhaupin/crashtest#28): each fixture is hand-invocable (`node test/fixtures/run.mjs`) and pins the pack's documented shape as transcription of existing assertions, never invention - the manifest contract (schemaVersion 1, name/dir match, entry imports clean), the census-locked attack inventory (crashtest-site 18, wp-stock-smoke 4, wp-money-shapes 3, wp-roles 3, cve-feed/next-middleware-shapes/ vite-dev-shapes/qs-shapes 2 each; 36 total), the kebab-case id grammar, and the per-pack data rules (cve-feed snapshot shape + unique CVE ids, wp-money-shapes armedByKey residency, contract-shaped run() for the wire packs). Manifest surface untouched (fixtures are cargo, not schema). test/pack-fixtures.test.js discovers + runs every fixture in CI (10 rows): adding a ninth pack without its fixture, dropping an attack, or wrecking a manifest now fails the offending pack rather than waiting for a cross-host load. Suite 317/317 (was 307).
+- the campaign-path seam pinned two-way (test/harness/v03-campaign.test.js): a live `runCampaign` walks the v0.3 engine surface end-to-end - the disciplined run-root scores 5/5 REFUSED (scoped GROUP BY rollup, owner-filtered one-key JOIN, fixed-epoch day bucket, idempotent ensureSchema, honest KV cursor pagination) and the naive twin scores 5/5 EXPLOITED (cross-owner rollup rows, JOIN secret leak, wall-clock bucket, destructive DDL rerun, lying `list_complete`). Closes the union the unit rows (d1-v03/kv-v02) and the campaign rows deliberately don't overlap: campaign -> harness.run() -> handler -> FakeD1 v0.3. Also pins the paid-for seeded-fixture trap: tables written as raw arrays silently produce EMPTY stores (scope rows then grade REFUSED from the outside), so the hardened run asserts the rollup saw real data - a REFUSED can never be a false negative. Zero library-attack growth (no census or pin-wall sweep); the naive twin's wall clock is the documented exploit, not a determinism surface.
+- faked1 v0.3 + fakekv v0.2 (issue #9, the ranked breadth gap list the vant census measured): - SQL: `IN (SELECT ...)` subqueries (depth one, exactly one projection column, subquery `?`s rebind against the surrounding statement's textual order), one-key INNER/LEFT/CROSS JOINs (table-qualified or bare shared-key ON; RIGHT JOIN stays a loud rewrite hint), GROUP BY/HAVING (plain column group keys; bare-aggregate HAVING stays a named gap), aggregates scoped per-group with the bare columns of the group's first row, multi-key ORDER BY (projection aliases + group-key columns + raw refs), FROM-less scalar SELECT, and scalar functions (UPPER/LOWER/LENGTH/TRIM/ABS). `CREATE TABLE [IF NOT EXISTS]` / `ALTER TABLE ADD COLUMN` (the ensureSchema pattern - declared UNIQUE column flags feed the standard constraint reading, DEFAULT backfills existing rows, NOT NULL without DEFAULT stays loud). The v0.2 relay contracts (UNIQUE message shape, meta shape, counters, batch partial-apply, `count` key for unaliased COUNT(*)) carry over untouched in d1-v02.test.js. - fake-clock date functions: UNIXEPOCH/DATETIME/JULIANDAY/STRFTIME read ONE fixed epoch (FAKE_CLOCK_EPOCH; 'now' = that constant) - the v1.0 determinism law holds: same seed, same rows, no Date.now anywhere. Day/hour/minute/second/week modifiers compose; month/year stay named gaps. JSON: JSON_EXTRACT (paths degrade to NULL), JSON_TYPE, JSON_QUOTE; double-quoted string literals now tokenize. - FakeKV: deterministic TTLs (expiration/expirationTtl against the same fixed clock; expired keys read as NOT PRESENT and vanish from listings), getWithMetadata (metadata + expiration parity), and honest cursor pagination (real name-position cursor, list_complete only when true) + a loud per-value size cap (Workers-KV 25 MiB default). Teeth: test/harness/d1-v03.test.js + test/harness/kv-v02.test.js.
+- the snapshot-diff oracle (issue #13 crate-tooling blocker 2): `harness.snapshotStore()` copies every fake binding's state (FakeD1.snapshot() per binding + the new FakeKV.snapshot()) and `harness.diffSnapshots(before, after)` returns the deterministic diff - D1 rows match by `id` (structural fallback: equal rows cancel, residue added/removed), KV maps by key, table maps added/removed wholesale. Rows carry {added, removed, changed + differing field names}, all sorted, all copies - same inputs twice, byte-identical, so a diff rides evidence without breaking the byte-stability law. Snapshots tick no counters (attack bookkeeping, not campaign ops); a binding changing shape between captures (d1<->kv) fails loudly as an oracle bug. This is the uniform shape replacing the pack-by-pack hand-rolled store diffs (vant measured at least four); docs in reference/scenario-contract.md. Teeth: test/harness/diff.test.js.
+- the determinism linter (issue #13 crate-tooling blocker 3): `crashtest lint-determinism [--config <path>] [dirs...]` greps the DECLARED user surfaces (config scenarioDirs + packs roots by default; explicit dirs override; `packs: false` opts out) for the wall-clock / unseeded-randomness token family (`Date.now`, `new Date(`, `Math.random`) - findings exit 2 (a config-class failure) naming every file:line with the law phrased (`derive from ctx.seed instead`); a flat surface exits 0 with the scanned count. `run --lint-determinism` runs the same lint as a pre-flight INSTEAD of the campaign (no requests, no artifacts written - CI wires it in one line). Flat grep on purpose: the finding classes are flat-shaped and an AST walk would want a dependency (zero-deps law); the crate's own src/ is not scanned (its determinism is pinned by tests, and the harness's durationMs is INFO, not a verdict input). Teeth: test/lint-determinism.test.js.
 
-- two new general library families armed from the vant arms (issues #10
-  and #11) - the library grows 30 attacks / 12 modules -> **49 attacks /
-  14 modules**, same contract, same honest-skip law, same pin walls:
-  **memory** (9 attacks) grades note-store discipline for any app that
-  persists versioned notes and re-reads them (drift rows:
-  silent-overwrite, stale-poisons-fresh, contradiction-carry;
-  hallucination rows: hallucinated-fact-probe, citation-drift,
-  phantom-scope; resolution rows: identity-merge-collision,
-  resolution-order-stability, delete-is-loud) via moduleCtx['memory']
-  (writeRoute/readRoute/deleteRoute/readStyle); **governance** (10
-  attacks) grades the order-keeping apparatus (succession:
-  trust-floor/single-heir/revocation-carry; escrow: two-key-release,
-  expiry-is-fail-closed, refusal-is-typed; trust floors:
-  grant-conflict-deterministic, capability-no-sideways; locks:
-  lock-ttl-honesty, lock-owner-fencing) via moduleCtx['governance']
-  (grantsRoute/resolveRoute/escrowRoute/locksRoute + ttlMode/staleToken).
-  Both model-free, in-process, deterministic (fixed canary ids, no wall
-  clock); honest-skip inherits wholesale. Teeth:
-  test/scenarios/memory-governance.test.js (two-way: disciplined fixture
-  holds, vulnerable twin flips drift/merge/escrow/sideways/fencing rows;
-  19-row honest-skip census). All pin walls swept in the same commit
-  (attacks doc + web catalog + count pins catalog=49 + FAQ claim +
-  dogfood battery regenerated at 49/49). Skip lines name missing KNOBS,
-  not "undefined" routes. Also fixed at cause: the web ledger-snapshot
-  generator's header regex predated the cut-stamp refactor (it silently
-  wrote vunknown/seed-unknown meta since the report header moved to the
-  `v<ver> / seed <n>` + stamp-line shape); it now parses both shapes and
-  takes startedAt from labs/run-meta.json.
+- two new general library families armed from the vant arms (issues #10 and #11) - the library grows 30 attacks / 12 modules -> **49 attacks / 14 modules**, same contract, same honest-skip law, same pin walls: **memory** (9 attacks) grades note-store discipline for any app that persists versioned notes and re-reads them (drift rows: silent-overwrite, stale-poisons-fresh, contradiction-carry; hallucination rows: hallucinated-fact-probe, citation-drift, phantom-scope; resolution rows: identity-merge-collision, resolution-order-stability, delete-is-loud) via moduleCtx['memory'] (writeRoute/readRoute/deleteRoute/readStyle); **governance** (10 attacks) grades the order-keeping apparatus (succession: trust-floor/single-heir/revocation-carry; escrow: two-key-release, expiry-is-fail-closed, refusal-is-typed; trust floors: grant-conflict-deterministic, capability-no-sideways; locks: lock-ttl-honesty, lock-owner-fencing) via moduleCtx['governance'] (grantsRoute/resolveRoute/escrowRoute/locksRoute + ttlMode/staleToken). Both model-free, in-process, deterministic (fixed canary ids, no wall clock); honest-skip inherits wholesale. Teeth: test/scenarios/memory-governance.test.js (two-way: disciplined fixture holds, vulnerable twin flips drift/merge/escrow/sideways/fencing rows; 19-row honest-skip census). All pin walls swept in the same commit (attacks doc + web catalog + count pins catalog=49 + FAQ claim + dogfood battery regenerated at 49/49). Skip lines name missing KNOBS, not "undefined" routes. Also fixed at cause: the web ledger-snapshot generator's header regex predated the cut-stamp refactor (it silently wrote vunknown/seed-unknown meta since the report header moved to the `v<ver> / seed <n>` + stamp-line shape); it now parses both shapes and takes startedAt from labs/run-meta.json.
 
-- harness primitives for stateful QA (issues #14 + #15, additive - the
-  plain `run(harness, ctx) -> one record` contract is untouched):
-  **chain attacks** declare `steps: [...]` on an attack (instead of
-  `run`): each step fires a route, grades its own record against an
-  evaluative `expect` (exact status, `'2xx' / '4xx' / '429-or-4xx'` spec
-  strings, or a `(record) => {ok, detail}` grader; omitted = the fuzz
-  floor), and the chain reports ONE summary verdict named by the flipped
-  steps with the per-step table in `evidence.steps` - a 6-step flow no
-  longer smears into an unattributable blob. `c.state` is the
-  deterministic shared bag across steps; honest-skip inherits on
-  undeclared routes and `guard` skips, never a false positive.
-  **campaign state**: `ctx.vars` (deterministic JSON registry - values
-  round-trip and are prototype-safe with `{ __proto__: ... }` rejected at
-  cause; re-writes are LOUD late-key errors naming both writers; reads
-  of unset keys skip honestly), `ctx.objects('name')` namespaced bags for
-  wordier fixture handles (write-once, inventory listed), and
-  `group: 'feature-name'` on attacks so shards grade jointly (aggregate
-  verdict, per-row records intact). Everything lands in the run blob +
-  the report when non-empty (**Groups** / **Campaign state** sections;
-  committed baselines stay byte-stable when a run carries none) and dies
-  with the campaign. Teeth: test/primitives.test.js (9 pins), contract
-  validation for steps/groups; docs in reference/scenario-contract.md
-  #2b + #3.
+- harness primitives for stateful QA (issues #14 + #15, additive - the plain `run(harness, ctx) -> one record` contract is untouched): **chain attacks** declare `steps: [...]` on an attack (instead of `run`): each step fires a route, grades its own record against an evaluative `expect` (exact status, `'2xx' / '4xx' / '429-or-4xx'` spec strings, or a `(record) => {ok, detail}` grader; omitted = the fuzz floor), and the chain reports ONE summary verdict named by the flipped steps with the per-step table in `evidence.steps` - a 6-step flow no longer smears into an unattributable blob. `c.state` is the deterministic shared bag across steps; honest-skip inherits on undeclared routes and `guard` skips, never a false positive. **campaign state**: `ctx.vars` (deterministic JSON registry - values round-trip and are prototype-safe with `{ __proto__: ... }` rejected at cause; re-writes are LOUD late-key errors naming both writers; reads of unset keys skip honestly), `ctx.objects('name')` namespaced bags for wordier fixture handles (write-once, inventory listed), and `group: 'feature-name'` on attacks so shards grade jointly (aggregate verdict, per-row records intact). Everything lands in the run blob + the report when non-empty (**Groups** / **Campaign state** sections; committed baselines stay byte-stable when a run carries none) and dies with the campaign. Teeth: test/primitives.test.js (9 pins), contract validation for steps/groups; docs in reference/scenario-contract.md #2b + #3.
 
-- pack.json env claims (issue #12): a pack now DECLARES what it needs of
-  the run root - `env.d1` / `env.kv` binding claims (d1 optionally with
-  `tables`), `env.routes`, and an optional `env.seed` fixture passthrough
-  - and the loader computes each pack's structured `prerequisites` (unmet
-  claims only) against the built harness surface. Display surfaces: the
-  pack line + `prerequisites UNMET` diagnostics in `crashtest packs`
-  (with a config, claims evaluate against a real harness, no requests),
-  the `--module-plan` blob (`plan.packs[].prerequisites`) + per-pack
-  unmet rows, and the same diagnostics before a real `run`. Attack-level
-  skip verdicts stay the ground truth - claims are display, and a missing
-  binding never invents one. Seeds land only into EXISTING claimed
-  bindings (kv absent-or-identical, d1 tables must be new; conflicts fail
-  the run loudly), tick no counters, and derive the same commit -> same
-  findings. Teeth: test/packs.test.js (env claims section),
-  schema docs in docs/reference/packs.md.
+- pack.json env claims (issue #12): a pack now DECLARES what it needs of the run root - `env.d1` / `env.kv` binding claims (d1 optionally with `tables`), `env.routes`, and an optional `env.seed` fixture passthrough - and the loader computes each pack's structured `prerequisites` (unmet claims only) against the built harness surface. Display surfaces: the pack line + `prerequisites UNMET` diagnostics in `crashtest packs` (with a config, claims evaluate against a real harness, no requests), the `--module-plan` blob (`plan.packs[].prerequisites`) + per-pack unmet rows, and the same diagnostics before a real `run`. Attack-level skip verdicts stay the ground truth - claims are display, and a missing binding never invents one. Seeds land only into EXISTING claimed bindings (kv absent-or-identical, d1 tables must be new; conflicts fail the run loudly), tick no counters, and derive the same commit -> same findings. Teeth: test/packs.test.js (env claims section), schema docs in docs/reference/packs.md.
 
-- faked1 v0.2 (`src/harness/d1.js`): the FakeD1 SQL subset grew to the
-  relay class, grounded in and verified against real SQLite (node:sqlite)
-  for the eight statements gistory's relay actually runs - general value
-  expressions (CASE WHEN/THEN/ELSE, arithmetic, COALESCE, comparisons,
-  `IS [NOT] NULL`, `IN`, `AS` aliases), whole-result-set aggregates
-  (MAX/MIN/COUNT/SUM/AVG; unaliased COUNT(*) keeps the `count` key),
-  `INSERT OR IGNORE|REPLACE`, `ON CONFLICT(cols) DO NOTHING|DO UPDATE`
-  upserts with row-vs-`excluded.*` resolution (bare cols read the STORED
-  row at eval time, pre-assignment), `INSERT..SELECT` (seq-allocator
-  shape), `RETURNING` on INSERT/UPDATE/DELETE (write
-  `.run()/.first()/.all()` surface `{results, meta}`), and `LIMIT ?` /
-  `OFFSET ?` bound by parameter. All v0.1 behavior contracts re-pinned
-  (UNIQUE message shape, `{meta:{changes,last_row_id}}`, textual param
-  order, batch partial-apply honesty); unsupported SQL still throws listed
-  gap messages. Teeth: test/harness/d1-v02.test.js (issue #8; the
-  node:sqlite fixture pattern in the run-roots playbook stays for handlers
-  speaking JOINs/GROUP BY/window functions).
-- `crashtest init` scaffolds WORKING pack stubs: both `packs/public/my-pack/`
-  and `packs/local/my-private-pack/` now ship the same contract-valid
-  `index.js` stub `packs add` writes (honest unarmed REFUSED-skip module)
-  alongside the manifest, so a fresh init loads out of the box instead of
-  hard-failing the very next `run` on a missing entry file (issue #16;
-  pinned by a loader round-trip test in test/packs.test.js).
-- the scenario-contract lifecycle hooks are LIVE: `beforeAll(ctx)` /
-  `afterAll(ctx)` were validated (`src/scenarios/contract.js` arity-checked
-  them) but never invoked - the first external pack author (gistory,
-  issue #7) built a one-loud arming check on them. `runCampaign` now calls
-  them once per module, around the module's attacks, with the module's
-  `moduleCtx[<name>]` + seed; a throw inside either hook fails the campaign
-  loudly at cause (rule 3). Pinned in test/campaigns.test.js.
-- docs: new reference page `docs/reference/scenario-contract.md` - the
-  module/record/ctx/harness shapes a first-time pack author had to read
-  source for, linked from the packs reference; and a run-roots playbook
-  section "When your handler speaks real SQL" documenting the
-  `node:sqlite` D1-shape fixture pattern (Node >= 24) for handlers whose
-  SQL outgrows the FakeD1 v0.1 subset (issue #6).
+- faked1 v0.2 (`src/harness/d1.js`): the FakeD1 SQL subset grew to the relay class, grounded in and verified against real SQLite (node:sqlite) for the eight statements gistory's relay actually runs - general value expressions (CASE WHEN/THEN/ELSE, arithmetic, COALESCE, comparisons, `IS [NOT] NULL`, `IN`, `AS` aliases), whole-result-set aggregates (MAX/MIN/COUNT/SUM/AVG; unaliased COUNT(*) keeps the `count` key), `INSERT OR IGNORE|REPLACE`, `ON CONFLICT(cols) DO NOTHING|DO UPDATE` upserts with row-vs-`excluded.*` resolution (bare cols read the STORED row at eval time, pre-assignment), `INSERT..SELECT` (seq-allocator shape), `RETURNING` on INSERT/UPDATE/DELETE (write `.run()/.first()/.all()` surface `{results, meta}`), and `LIMIT ?` / `OFFSET ?` bound by parameter. All v0.1 behavior contracts re-pinned (UNIQUE message shape, `{meta:{changes,last_row_id}}`, textual param order, batch partial-apply honesty); unsupported SQL still throws listed gap messages. Teeth: test/harness/d1-v02.test.js (issue #8; the node:sqlite fixture pattern in the run-roots playbook stays for handlers speaking JOINs/GROUP BY/window functions).
+- `crashtest init` scaffolds WORKING pack stubs: both `packs/public/my-pack/` and `packs/local/my-private-pack/` now ship the same contract-valid `index.js` stub `packs add` writes (honest unarmed REFUSED-skip module) alongside the manifest, so a fresh init loads out of the box instead of hard-failing the very next `run` on a missing entry file (issue #16; pinned by a loader round-trip test in test/packs.test.js).
+- the scenario-contract lifecycle hooks are LIVE: `beforeAll(ctx)` / `afterAll(ctx)` were validated (`src/scenarios/contract.js` arity-checked them) but never invoked - the first external pack author (gistory, issue #7) built a one-loud arming check on them. `runCampaign` now calls them once per module, around the module's attacks, with the module's `moduleCtx[<name>]` + seed; a throw inside either hook fails the campaign loudly at cause (rule 3). Pinned in test/campaigns.test.js.
+- docs: new reference page `docs/reference/scenario-contract.md` - the module/record/ctx/harness shapes a first-time pack author had to read source for, linked from the packs reference; and a run-roots playbook section "When your handler speaks real SQL" documenting the `node:sqlite` D1-shape fixture pattern (Node >= 24) for handlers whose SQL outgrows the FakeD1 v0.1 subset (issue #6).
 
 ## 1.0.0
 
-- two more framework wire packs ship: `vite-dev-shapes` (0.1.0) - the vite
-  dev-file wire (`/@fs/`): `vite-fs-deny-bypass` (grammar differential:
-  plain shape gated + bypass grammar like `?raw??` served = bypassed) and
-  `vite-env-canary` (content-shape oracle for the `.env` deny family -
-  an anything-200 handler stays honestly REFUSED); and
-  `next-middleware-shapes` (0.1.0) - the middleware-subrequest header:
-  `mw-bypass-grammar` (known grammars must not un-gate a gated route) and
-  `mw-value-blindness` (a canary value that is not a certified chain must
-  never unlock the gate). Both sweep declared routes with differential
-  oracles, both dogfooded end to end through the real CLI (vulnerable
-  wires exit 1 with the right EXPLOITED rows; hardened wires exit 0;
-  ungated/open wires honestly REFUSED), teeth in test/vite-shapes.test.js
-  + test/next-mw-shapes.test.js; tarball ships both.
-- new shipped pack `qs-shapes` (0.1.0): bracket-notation parser shapes for
-  the express extended-query / urlencoded wire (any qs-style expander) -
-  `qs-bracket-canary` (prototype-key canary via `__proto__` /
-  `constructor.prototype` bracket keys, library-input oracle through the
-  bracket wire) and `qs-depth-floor` (deep `[0]` nesting ladders must stay
-  under the fuzz floor). Sweep semantics (every declared route, optional
-  `ctx.routes` whitelist); two-way teeth in test/qs-shapes.test.js
-  (vulnerable parser EXPLOITED, hardened and bracket-blind wires honestly
-  REFUSED, empty run roots skip honestly); tarball ships it.
-- determinism: the wall-clock cut stamp moved OUT of the committed ledger
-  and report (`labs/crashledger.json` + `labs/hardening.md` are now
-  byte-stable per commit, `generatedAt` dropped) into the `labs/run-meta.json`
-  sidecar written alongside them by `run`/`init` and fanned out by
-  `--out-dir`. The pre-tag double-run ritual now passes by construction and
-  a determinism pin test enforces it (test/cli.test.js); verdict rows were
-  already byte-identical.
-- cve-feed snapshot refresh: 12 -> 27 verified KEV/NVD rows (pack 0.1.1 ->
-  0.2.0; one row corrected: CVE-2022-0235 is the node-fetch npm package,
-  not a Node.js runtime CVE) plus a boundary fix in
-  `kev-version-range-audit` (post-fix releases of a listed major.minor no
-  longer false-positive); roundtrip lens file (`test/cve-feed-roundtrip.test.js`)
-  pins every snapshot row end to end (snapshot -> token -> route -> verdict).
+- two more framework wire packs ship: `vite-dev-shapes` (0.1.0) - the vite dev-file wire (`/@fs/`): `vite-fs-deny-bypass` (grammar differential: plain shape gated + bypass grammar like `?raw??` served = bypassed) and `vite-env-canary` (content-shape oracle for the `.env` deny family - an anything-200 handler stays honestly REFUSED); and `next-middleware-shapes` (0.1.0) - the middleware-subrequest header: `mw-bypass-grammar` (known grammars must not un-gate a gated route) and `mw-value-blindness` (a canary value that is not a certified chain must never unlock the gate). Both sweep declared routes with differential oracles, both dogfooded end to end through the real CLI (vulnerable wires exit 1 with the right EXPLOITED rows; hardened wires exit 0; ungated/open wires honestly REFUSED), teeth in test/vite-shapes.test.js + test/next-mw-shapes.test.js; tarball ships both.
+- new shipped pack `qs-shapes` (0.1.0): bracket-notation parser shapes for the express extended-query / urlencoded wire (any qs-style expander) - `qs-bracket-canary` (prototype-key canary via `__proto__` / `constructor.prototype` bracket keys, library-input oracle through the bracket wire) and `qs-depth-floor` (deep `[0]` nesting ladders must stay under the fuzz floor). Sweep semantics (every declared route, optional `ctx.routes` whitelist); two-way teeth in test/qs-shapes.test.js (vulnerable parser EXPLOITED, hardened and bracket-blind wires honestly REFUSED, empty run roots skip honestly); tarball ships it.
+- determinism: the wall-clock cut stamp moved OUT of the committed ledger and report (`labs/crashledger.json` + `labs/hardening.md` are now byte-stable per commit, `generatedAt` dropped) into the `labs/run-meta.json` sidecar written alongside them by `run`/`init` and fanned out by `--out-dir`. The pre-tag double-run ritual now passes by construction and a determinism pin test enforces it (test/cli.test.js); verdict rows were already byte-identical.
+- cve-feed snapshot refresh: 12 -> 27 verified KEV/NVD rows (pack 0.1.1 -> 0.2.0; one row corrected: CVE-2022-0235 is the node-fetch npm package, not a Node.js runtime CVE) plus a boundary fix in `kev-version-range-audit` (post-fix releases of a listed major.minor no longer false-positive); roundtrip lens file (`test/cve-feed-roundtrip.test.js`) pins every snapshot row end to end (snapshot -> token -> route -> verdict).
 
-The pre-1.0 lineage shipped the full QA surface; note this repo's docs
-narrated v0.2-v0.4 features (packs, plugins, presets, `--out-dir`) while
-`package.json` lagged at 0.1.1 - this release locks the version surfaces to
-everything that actually ships.
+The pre-1.0 lineage shipped the full QA surface; note this repo's docs narrated v0.2-v0.4 features (packs, plugins, presets, `--out-dir`) while `package.json` lagged at 0.1.1 - this release locks the version surfaces to everything that actually ships.
 
 Core:
-- In-process adversarial QA harness: explicit route table, fake
-  transport (WHATWG Request/Response, no sockets), fake D1/KV/env, op
-  counters and cost meters, seeded RNG determinism.
-- Scenario libraries: 30 attacks across 12 modules (auth, authz, guards,
-  input, proto-hygiene, recursion, upload, race, state, volume, taxonomy,
-  session); two-way vulnerable/hardened proof tests for each verdict.
-- Ledger + report pipeline: `labs/crashledger.json` (schema v1) +
-  `labs/hardening.md`; exit 1 ONLY on a new EXPLOITED finding or a
-  REFUSED-to-EXPLOITED regression; declared-gap rows degrade to
-  skipped-REFUSED (zero false positives); BOUNDED requires owner + bound.
-- Read-only gates: `run --expect-baseline <ledger>` writes nothing and
-  applies the same exit rule; `--out-dir` fans out artifact copies.
+- In-process adversarial QA harness: explicit route table, fake transport (WHATWG Request/Response, no sockets), fake D1/KV/env, op counters and cost meters, seeded RNG determinism.
+- Scenario libraries: 30 attacks across 12 modules (auth, authz, guards, input, proto-hygiene, recursion, upload, race, state, volume, taxonomy, session); two-way vulnerable/hardened proof tests for each verdict.
+- Ledger + report pipeline: `labs/crashledger.json` (schema v1) + `labs/hardening.md`; exit 1 ONLY on a new EXPLOITED finding or a REFUSED-to-EXPLOITED regression; declared-gap rows degrade to skipped-REFUSED (zero false positives); BOUNDED requires owner + bound.
+- Read-only gates: `run --expect-baseline <ledger>` writes nothing and applies the same exit rule; `--out-dir` fans out artifact copies.
 
 Surfaces:
-- Framework adapters dispatching in-process: plain handler
-  (Pages-Functions shape), hono, express, fastify, raw node
-  (`dispatchNodeRequest`), route aliases; WordPress subprocess spike
-  (NDJSON stdio, still no sockets).
-- Ecosystem: `packs/` (public/local, `packs add` scaffold,
-  self-contained bundles via bundled `plugins`), config `plugins:`
-  imports, builder presets (`crashtest preset lovable|bolt|replit`),
-  `run --module-plan` coverage preview, `crashtest packs` inventory;
-  shipped packs: `crashtest-site` (18), `cve-feed` (2, offline KEV/NVD
-  snapshot), `wp-money-shapes` (3, armedByKey), `wp-roles` (3,
-  experimental), `wp-stock-smoke` (4).
+- Framework adapters dispatching in-process: plain handler (Pages-Functions shape), hono, express, fastify, raw node (`dispatchNodeRequest`), route aliases; WordPress subprocess spike (NDJSON stdio, still no sockets).
+- Ecosystem: `packs/` (public/local, `packs add` scaffold, self-contained bundles via bundled `plugins`), config `plugins:` imports, builder presets (`crashtest preset lovable|bolt|replit`), `run --module-plan` coverage preview, `crashtest packs` inventory; shipped packs: `crashtest-site` (18), `cve-feed` (2, offline KEV/NVD snapshot), `wp-money-shapes` (3, armedByKey), `wp-roles` (3, experimental), `wp-stock-smoke` (4).
 
 Self-dogfood:
 - Attacking fixtures/demo gated in CI against the committed ledger.
-- `packs/public/crashtest-site` attacks the shipped website itself
-  (real /api/version function, deployed headers, prerendered HTML,
-  sitemap, manifest, robots) - its first run caught the real
-  registry-shape bug in `web/functions/api/version.js`, fixed with the
-  semver/validation floor and pinned by `test/site-pack.test.js`.
-- Loader honors the documented "one pack dir only" `packs:` shape;
-  WordPress packs degrade honestly on non-WP targets.
+- `packs/public/crashtest-site` attacks the shipped website itself (real /api/version function, deployed headers, prerendered HTML, sitemap, manifest, robots) - its first run caught the real registry-shape bug in `web/functions/api/version.js`, fixed with the semver/validation floor and pinned by `test/site-pack.test.js`.
+- Loader honors the documented "one pack dir only" `packs:` shape; WordPress packs degrade honestly on non-WP targets.

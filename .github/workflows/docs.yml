@@ -8,7 +8,7 @@ name: Deploy Docs
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
     paths: ['docs/**', '.github/workflows/docs.yml']
   workflow_dispatch:
 
@@ -95,6 +95,10 @@ jobs:
 
   deploy:
     needs: build
+    # Pages is production: only main deploys. staging riding the trigger list
+    # keeps its content covered by the BUILD job - never the deploy (the
+    # staging-branch pattern, crashtest#53, poststruct#32).
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

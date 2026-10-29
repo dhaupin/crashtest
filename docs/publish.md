@@ -10,11 +10,7 @@ noindex: true
 
 ## The one-time bootstrap (a few minutes)
 
-npm Trusted Publishing (OIDC) cannot *create* a new package (npm/cli #8544 is
-still open) - the package name must exist on npmjs.com before OIDC takes over.
-Since 2026-10-02 there are two ways to create it
-([staged publishing](https://docs.npmjs.com/staged-publishing/) supports
-new-package creation):
+npm Trusted Publishing (OIDC) cannot *create* a new package (npm/cli #8544 is still open) - the package name must exist on npmjs.com before OIDC takes over. Since 2026-10-02 there are two ways to create it ([staged publishing](https://docs.npmjs.com/staged-publishing/) supports new-package creation):
 
 **Route A - direct publish (simplest):**
    ```bash
@@ -28,16 +24,9 @@ new-package creation):
    npm login            # logged-in session, or a stage-only granular token
    npm stage publish    # creates the package + a 0.0.0-stage placeholder
    ```
-   The name + title are visible immediately; contents release after approval
-   (staged publishing requires npm >= 11.15.0).
+   The name + title are visible immediately; contents release after approval (staged publishing requires npm >= 11.15.0).
 
-3. Then configure Trusted Publisher: npmjs.com -> package `crashtest` -> **Settings -> Trusted Publisher**:
-   - Provider: **GitHub Actions**
-   - Organization/user: `dhaupin`
-   - Repository: `crashtest`
-   - Workflow filename: `publish.yml` (filename only, not the path)
-   - Leave **direct `npm publish` allowed** enabled (configs created after
-     2026-09-03 default to `npm stage publish`; publish.yml runs direct publish).
+3. Then configure Trusted Publisher: npmjs.com -> package `crashtest` -> **Settings -> Trusted Publisher**: - Provider: **GitHub Actions** - Organization/user: `dhaupin` - Repository: `crashtest` - Workflow filename: `publish.yml` (filename only, not the path) - Leave **direct `npm publish` allowed** enabled (configs created after 2026-09-03 default to `npm stage publish`; publish.yml runs direct publish).
 
 ## Every release after that (automatic)
 
@@ -46,24 +35,12 @@ npm version patch -m "release: v%s"   # or minor/alpha manually
 git push origin main --follow-tags    # pushes the v* tag
 ```
 
-CI (`.github/workflows/publish.yml`) runs tests and publishes with OIDC -
-**no NPM_TOKEN secret is stored anywhere**. Provenance is generated
-automatically because the repo is public and `repository.url` matches.
+CI (`.github/workflows/publish.yml`) runs tests and publishes with OIDC - **no NPM_TOKEN secret is stored anywhere**. Provenance is generated automatically because the repo is public and `repository.url` matches.
 
-The same tag also cuts the **GitHub Release**: a `github-release` job NEEDS
-the npm `publish` job, so the release (title `Crashtest vX.Y.Z`, auto notes,
-and the npm tarball attached as the asset, with tarball contents guarded to
-the same reusable surfaces the packaging test pins) only exists after a publish
-that actually landed. Nothing to do by hand.
+The same tag also cuts the **GitHub Release**: a `github-release` job NEEDS the npm `publish` job, so the release (title `Crashtest vX.Y.Z`, auto notes, and the npm tarball attached as the asset, with tarball contents guarded to the same reusable surfaces the packaging test pins) only exists after a publish that actually landed. Nothing to do by hand.
 
 ## Rules
 
 - Only publish from version tags, never from `main` directly.
-- The `files` field limits the tarball to `bin/` + `src/` + the seven
-  reusable packs (`wp-money-shapes`, `wp-stock-smoke`, `wp-roles`,
-  `cve-feed`, `qs-shapes`, `vite-dev-shapes`,
-  `next-middleware-shapes`) - tests, labs, `web/` and the repo-bound
-  `crashtest-site` self-dogfood pack stay out (pinned by
-  `test/packaging.test.js`, same surfaces the release job's guardrail
-  greps enforce on the GitHub Release asset).
+- The `files` field limits the tarball to `bin/` + `src/` + the seven reusable packs (`wp-money-shapes`, `wp-stock-smoke`, `wp-roles`, `cve-feed`, `qs-shapes`, `vite-dev-shapes`, `next-middleware-shapes`) - tests, labs, `web/` and the repo-bound `crashtest-site` self-dogfood pack stay out (pinned by `test/packaging.test.js`, same surfaces the release job's guardrail greps enforce on the GitHub Release asset).
 - Verify a release with `npm view crashtest@<version>` (or `npm pack --dry-run`).

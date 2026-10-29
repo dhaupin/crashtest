@@ -9,11 +9,7 @@
 
 ## The one law
 
-**Attack code, not people. No sockets. Ever.** Every request the harness
-fires is an in-process WHATWG `Request` handed to a registered handler. If a
-scenario, attack, or test can't be expressed without opening a socket -
-including "just one localhost fetch" - it's out of scope by design
-(PRD principle 2). The fake transport IS the product.
+**Attack code, not people. No sockets. Ever.** Every request the harness fires is an in-process WHATWG `Request` handed to a registered handler. If a scenario, attack, or test can't be expressed without opening a socket - including "just one localhost fetch" - it's out of scope by design (PRD principle 2). The fake transport IS the product.
 
 ## Layout
 
@@ -32,7 +28,7 @@ fixtures/demo/app.js    the self-dogfood target (hardened + vulnerable variants)
 fixtures/wordpress/     wp-worker.php + stub-wp/ (the generic subprocess worker
                         + the deterministic stub WP core the WP packs' teeth run on)
 fixtures/site/          second site shape the pack tests exercise
-test/                   414 tests; count pins live here - the guarantee -> pin
+test/   426 tests; count pins live here - the guarantee -> pin
                         map is in the project brain's pins.md (see Project memory)
 web/                    the shipped site (prestruct-prerendered): Home, attack
                         catalog, dashboard (renders any ledger), FAQ; version
@@ -55,24 +51,13 @@ action.yml              composite GitHub Action for OTHER repos (crashtest gate)
 
 ## House rules (each one paid for in real bugs)
 
-1. **Zero runtime dependencies.** Plain Node ESM, `node:test`, nothing else.
-   `tsc` may only land in devDependencies (checkJs / `.d.ts` generation).
+1. **Zero runtime dependencies.** Plain Node ESM, `node:test`, nothing else. `tsc` may only land in devDependencies (checkJs / `.d.ts` generation).
 2. **JavaScript + JSDoc types**, no build step to run/test/publish (D3 in TASKS).
-3. **Fail loudly, fail at cause.** Unsupported SQL, bad scenario modules, hung
-   express routes - every gap names itself. Fix causes, never symptoms; no
-   swallowed errors or suppressed tests.
-4. **Deterministic.** Same commit -> same findings. Seeded RNG
-   (`src/rng.js`); anything time-derived (e.g. default keys) breaks the
-   determinism principle - derive from `ctx.seed` instead.
-5. **Exit rules are the CI contract** (PRD section 7): exit non-zero ONLY on a new
-   EXPLOITED finding or a REFUSED->EXPLOITED regression. Undeclared routes
-   degrade to skipped-REFUSED (`skipped: true`) - never a false positive.
-6. **Example-code vigilance:** `JSON.stringify` silently drops `__proto__`
-   own- keys (see `hostileSerialize` in library/input.js); capture exit
-   status explicitly when piping; `node --test` with a dir arg treats the dir
-   as a module on some Node versions - use bare `node --test`.
-7. **No fiction in docs.** Every README/AGENTS/DEPLOY claim must be verified
-   against the actual CLI before it lands. If you can't run it, don't write it.
+3. **Fail loudly, fail at cause.** Unsupported SQL, bad scenario modules, hung express routes - every gap names itself. Fix causes, never symptoms; no swallowed errors or suppressed tests.
+4. **Deterministic.** Same commit -> same findings. Seeded RNG (`src/rng.js`); anything time-derived (e.g. default keys) breaks the determinism principle - derive from `ctx.seed` instead.
+5. **Exit rules are the CI contract** (PRD section 7): exit non-zero ONLY on a new EXPLOITED finding or a REFUSED->EXPLOITED regression. Undeclared routes degrade to skipped-REFUSED (`skipped: true`) - never a false positive.
+6. **Example-code vigilance:** `JSON.stringify` silently drops `__proto__` own- keys (see `hostileSerialize` in library/input.js); capture exit status explicitly when piping; `node --test` with a dir arg treats the dir as a module on some Node versions - use bare `node --test`.
+7. **No fiction in docs.** Every README/AGENTS/DEPLOY claim must be verified against the actual CLI before it lands. If you can't run it, don't write it.
 
 ## Scenario library contract (summary)
 
@@ -89,31 +74,18 @@ export default {
   }],
 };
 ```
-BOUNDED requires `owner` + `bound` or it is demoted to EXPLOITED. Drop modules
-into `labs/scenarios/` (or any dir via config `scenarioDirs`) and they load.
-Full semantics: `src/scenarios/contract.js` + tests in `test/scenarios/`.
+BOUNDED requires `owner` + `bound` or it is demoted to EXPLOITED. Drop modules into `labs/scenarios/` (or any dir via config `scenarioDirs`) and they load. Full semantics: `src/scenarios/contract.js` + tests in `test/scenarios/`.
 
-Library state at 1.1.0: **49 attacks across 14 modules** (auth, authz,
-governance, guards, input, memory, proto-hygiene, recursion, upload,
-race, state, volume, taxonomy, session). Adding/renaming any attack means
-updating, in the SAME commit: the attacks doc + web catalog, the count
-pins (catalog=49, per-module census), and the changelog. The suite will find you otherwise;
-that is the pin wall doing its job.
+Library state at 1.1.0: **49 attacks across 14 modules** (auth, authz, governance, guards, input, memory, proto-hygiene, recursion, upload, race, state, volume, taxonomy, session). Adding/renaming any attack means updating, in the SAME commit: the attacks doc + web catalog, the count pins (catalog=49, per-module census), and the changelog. The suite will find you otherwise; that is the pin wall doing its job.
 
-Shipped packs (`packs/public/`, latest first): `next-middleware-shapes`
-(2, Next.js middleware subrequest wire), `vite-dev-shapes` (2, vite
-dev-file wire), `qs-shapes` (2, express-qs bracket-notation parser
-shapes), `cve-feed` (2, offline KEV/NVD snapshot), `crashtest-site`
-(18, the release self-check), `wp-money-shapes` (3, armedByKey),
-`wp-roles` (3, experimental), `wp-stock-smoke` (4). Pack manifests
-carry their own semver - never bump those for CLI-level releases.
+Shipped packs (`packs/public/`, latest first): `next-middleware-shapes` (2, Next.js middleware subrequest wire), `vite-dev-shapes` (2, vite dev-file wire), `qs-shapes` (2, express-qs bracket-notation parser shapes), `cve-feed` (2, offline KEV/NVD snapshot), `crashtest-site` (18, the release self-check), `wp-money-shapes` (3, armedByKey), `wp-roles` (3, experimental), `wp-stock-smoke` (4). Pack manifests carry their own semver - never bump those for CLI-level releases.
 
 ## Common commands
 
 ```bashnpm test             # full suite (node --test); 317 pass was the 1.1.0 floor,
-                     # 414 pass was the 1.1.1 tree, 425 pass is the 1.2.0 tree
+                     # 414 was the 1.1.1 tree, 426 is the 1.2.0 tree
                      # with PHP (the 7 armed WP e2e rows skip on PHP-less
-                     # hosts, where the same tree read 418 pass / 7 skips)
+                     # hosts, where the same tree reads 419 pass / 7 skips)
 npm run check        # syntax check across every source/test file
 npm run lint:docs    # docs links + style + fiction-signature scan
 npx crashtest init
@@ -123,42 +95,23 @@ npx crashtest run    # dogfoods fixtures/demo against the committed ledger
 
 ## Receipts before "green" (and the pre-tag ritual)
 
-Only say a gate passed if you ran it this turn. The pre-tag ritual (caught
-three real bugs right before 1.0.0 - two determinism leaks, one count
-fiction):
+Only say a gate passed if you ran it this turn. The pre-tag ritual (caught three real bugs right before 1.0.0 - two determinism leaks, one count fiction):
 
 1. Name census - attack names in code vs docs vs web vs tests.
-2. Numeric claims vs code constants - every number in prose must have a
-   constant behind it (9 headers x 6 values = 54 spoof VARIANTS, not
-   "54 headers").
-3. Determinism double-run - two consecutive `crashtest run`s must give
-   byte-identical baselines (`labs/crashledger.json` + `labs/hardening.md`).
-   `Date.now()` in a shipped surface is a bug; the ONE blessed exception is
-   `labs/run-meta.json`, the sidecar cut stamp - it may move, the artifacts
-   never do (pinned by the double-run test in test/cli.test.js).
+2. Numeric claims vs code constants - every number in prose must have a constant behind it (9 headers x 6 values = 54 spoof VARIANTS, not "54 headers").
+3. Determinism double-run - two consecutive `crashtest run`s must give byte-identical baselines (`labs/crashledger.json` + `labs/hardening.md`). `Date.now()` in a shipped surface is a bug; the ONE blessed exception is `labs/run-meta.json`, the sidecar cut stamp - it may move, the artifacts never do (pinned by the double-run test in test/cli.test.js).
 
 ## Version surfaces (one release, released as one number)
 
-`package.json` + `src/cli.js` VERSION (kept equal by `test/version.test.js`),
-`web/package.json`, nav badge + catalog eyebrow in web/. Pack manifest
-semvers and the historical 0.1.0 Sigstore provenance link are their own
-truths - do not sweep them along on a bump.
+`package.json` + `src/cli.js` VERSION (kept equal by `test/version.test.js`), `web/package.json`, nav badge + catalog eyebrow in web/. Pack manifest semvers and the historical 0.1.0 Sigstore provenance link are their own truths - do not sweep them along on a bump.
 
 ## Release procedure (maintainers)
 
-Documented in [docs/publish.md](./docs/publish.md). Short version:
-npm Trusted Publishing (OIDC) - **no publish tokens anywhere**; release =
-bump version (package.json + `VERSION` in `src/cli.js`), commit, tag `vX.Y.Z`,
-push tag. If a tag-driven run fails and you need a retry, re-push the tag
-(`git push origin :refs/tags/vX.Y.Z && git push origin vX.Y.Z`) - the
-integration cannot re-run a failed run directly. Provenance is signed
-automatically (attestations verifiable in the npm UI / Sigstore log).
+Documented in [docs/publish.md](./docs/publish.md). Short version: npm Trusted Publishing (OIDC) - **no publish tokens anywhere**; release = bump version (package.json + `VERSION` in `src/cli.js`), commit, tag `vX.Y.Z`, push tag. If a tag-driven run fails and you need a retry, re-push the tag (`git push origin :refs/tags/vX.Y.Z && git push origin vX.Y.Z`) - the integration cannot re-run a failed run directly. Provenance is signed automatically (attestations verifiable in the npm UI / Sigstore log).
 
 ## Project memory (vant)
 
-This session chain runs on [vant](https://github.com/dhaupin/vant) - the
-crashtest dev-brain (12 public brain files + private working notes; nothing
-secret in either). Restorable anywhere from the stone in this repo:
+This session chain runs on [vant](https://github.com/dhaupin/vant) - the crashtest dev-brain (12 public brain files + private working notes; nothing secret in either). Restorable anywhere from the stone in this repo:
 
 ```bash
 # in a vant clone:
@@ -166,22 +119,11 @@ VANT_BRAIN_PASSWORD='quillstone-9fold' \
   node ./bin/vant.js horcrux restore /path/to/this/repo/horcrux/crashtest-p_quillstone-9fold.svg
 ```
 
-- `horcrux/README.md` maps the folder; the brain's `boot.md` is the wake
-  sequence, `state.md` carries receipts, `pins.md` the guarantee map.
-- Re-seal after brain edits: edit the markdown in the vant install, then
-  `vant horcrux create` (or `refresh`), swap the stone here, update the
-  README in the same commit.
-- The older rookworks horcrux lineage predates this repo stone; password
-  references for THAT live in rook's identity files - ask the maintainer,
-  don't fish for secrets.
-- Session milestones also land via `VANT_BRAIN=crashtest vant memory learn ...`;
-  process lessons are the source of most house rules above.
+- `horcrux/README.md` maps the folder; the brain's `boot.md` is the wake sequence, `state.md` carries receipts, `pins.md` the guarantee map.
+- Re-seal after brain edits: edit the markdown in the vant install, then `vant horcrux create` (or `refresh`), swap the stone here, update the README in the same commit.
+- The older rookworks horcrux lineage predates this repo stone; password references for THAT live in rook's identity files - ask the maintainer, don't fish for secrets.
+- Session milestones also land via `VANT_BRAIN=crashtest vant memory learn ...`; process lessons are the source of most house rules above.
 
 ## Porting backlog
 
-gistory's proven suites (tests/{sync-smoke,redteam,barrage}.ts) are the seed
-library source - the gistory repo is not yet reachable from this workspace;
-the libraries ship contract-first in the meantime. Port when access exists:
-strip the test-framework wrapper, keep the attack logic, delete project
-fixtures during the port. Watch vant issues #119/#120/#121 for org-grant
-hydration fixes.
+gistory's proven suites (tests/{sync-smoke,redteam,barrage}.ts) are the seed library source - the gistory repo is not yet reachable from this workspace; the libraries ship contract-first in the meantime. Port when access exists: strip the test-framework wrapper, keep the attack logic, delete project fixtures during the port. Watch vant issues #119/#120/#121 for org-grant hydration fixes.

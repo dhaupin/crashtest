@@ -364,18 +364,21 @@ The packstruct@1 grammar is shared with the wider struct family, and
 this repo's lint lane is where the family's staged packs get grating
 receipts (files-on-disk, no runtime dependency, exact-pin receipt):
 
-- **eyestruct** (dhaupin/eyestruct, on npm since 0.9.0 - the gistory
-staging citation is retired; receipts now cite the LIVE
-tree): 4 packs (`eye-ci-gate`, `eye-shapes`, `eye-text-leg`,
-`eye-bundle`) lint CLEAN at both shallow and deep levels through this
-repo's exact-pinned packstruct 1.0.0 - deep probes 4 modules, 0 census
-ids (check-profile shape: verifier modules carry cases, not attacks).
-Receipt re-cut 2026-10-28 from the live repo tarball pinned at
-`52a4d0a31417614a7c3f80b1afb9d771f915fc8b` (their packs root is
+- **eyestruct** (dhaupin/eyestruct, frozen at 1.0.0 on npm - the
+staging and 0.9.0 citations are retired; receipts cite the LIVE tree):
+5 packs (`eye-adapter` the schema carrier, `eye-ci-gate`, `eye-shapes`,
+`eye-text-leg`, `eye-bundle`) lint CLEAN at both shallow and deep
+levels through this repo's exact-pinned packstruct 1.0.0 - deep probes
+5 modules, 0 census ids (check-profile shape: verifier modules carry
+cases, not attacks). Receipt re-cut 2026-10-29 from the v1.0.0 release
+tarball pinned at
+`4b979c0ee24df1e534ee185e47d8ad1418edd464` (their packs root is
 `packs/`, `public/` underneath - the same directory contract this repo
-runs). The visit-later mismatch row RESOLVED, not re-fished: their
-campaign ledger is observed on disk at `packs/eye-ledger.json` - 30
-rows, verdict set `{REFUSED, PASSED, BOUNDED}` (21 / 7 / 2, 0
+runs) - the same commit whose npm tar was verified byte-identical
+against `git archive` on their publish day, so this lane reads the
+frozen bytes the registry ships. The visit-later mismatch row RESOLVED, not re-fished: their
+campaign ledger is observed on disk at `packs/eye-ledger.json` - 35
+rows, verdict set `{REFUSED, PASSED, BOUNDED}` (22 / 11 / 2, 0
 EXPLOITED) - and their family-status contract's PASS rule is exactly
 that set, so the PASSED bucket reads the same across hosts as this
 release's census: PASSED = the safe path held, evidence never a
@@ -385,9 +388,10 @@ family status](/crashtest/reference/status)), and this repo's family
 lane row is the citation language above. No crashtest adapter or runtime
 dependency rides this row - eyestruct's own package devDeps carry
 `crashtest ^1.1.0` (the family consuming back), and the receipt here is
-the grammar lane's, not an adapter claim. Bump receipts re-cut here the
-day their npm pin moves (1.0.0 is imminent, it is planned for, not
-claimed).
+the grammar lane's, not an adapter claim. Receipt re-cut same-day on
+their 1.0.0 freeze - the planned-for bump arrived and the numbers moved
+with it (4 packs 30 rows -> 5 packs 35 rows), which is the bump-receipt
+rule doing its job.
 - **poststruct**: staging lane still in flight (gistory's
 `poststruct-staging/`); its own `run-packs.mjs` loader already receipts
 8/8 on the packstruct conformance cases (gistory `labs/ecosystem.md`).
