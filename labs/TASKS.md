@@ -389,3 +389,19 @@
   our docs/ssr-config.yml stays legal with nothing renamed. This repo is
   the proving consumer the swap contract asked for; closing #38 on a green
   lane run.
+
+### 2026-10-29 - run 138's red was NOT the docs swap: the probe timer unref bug
+- ci failed on push 3393ef9's tree AND on b7bdbf5 (runs 137/138, Test
+  suite step, both lanes). Reproduced on node 22.21.1 via a clean runner
+  install: 6 tests in test/presets-plugins.test.js CANCELLED
+  (26-31, the whole file tail after the hung-handler probe) with
+  \"Promise resolution is still pending but the event loop has already
+  resolved\". Node 24 hides it (pass 419 / cancelled 0), which is why local
+  checks kept green.
+- Root cause: src/presets.js raceTimeout unref'd its own timer. An unref'd
+  timeout cannot hold the event loop; a hung handler as the ONLY pending
+  work leaves the probe's Promise.race unresolvable forever. The unref
+  also bought nothing - the finally clears the timer the instant the
+  answer arrives, so there is no post-answer latency to save. Node-version
+  blind spot lesson: the local host ran node 24, CI pins 22; both now in
+  the receipt (fix verified on BOTH: 419/0/0/7 exit 0 on 22 AND 24).

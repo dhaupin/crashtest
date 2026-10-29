@@ -243,17 +243,23 @@ export async function probeHandler(fnPath, opts = {}) {
   // A probe that HANGS is worse than a probe that fails: without a cap the
   // CLIverb never returns and the operator cannot even see the finding.
   // (The doc always said "timeout-guarded"; the timer now exists to prove it.)
-  // Timers are tracked and cleared in the finally below + unref'd: a probe
-  // over N edge functions must not hold the CLI's event loop open for
-  // timeoutMs apiece after the answer is already in hand (the preset verb
-  // would exit seconds late - a real exit-latency bug, not style).
+  // Timers are tracked and cleared in the finally below: a probe over N
+  // edge functions must not hold the CLI's event loop open for timeoutMs
+  // apiece after the answer is already in hand (the preset verb would exit
+  // seconds late - a real exit-latency bug, not style). The timer must
+  // still hold the loop WHILE the race is undecided: a hung LAST probe
+  // leaves nothing else pending, and an unref'd timer cannot win that race
+  // - the promise pends forever while the loop drains (observed live: node
+  // 22 cancelled the probe teeth wholesale, the hung-handler test's own
+  // promise unresolvable). unref'd timers buy nothing here - the finally
+  // clears the timer the instant the answer arrives - so the unref line
+  // IS the bug.
   const timeoutMs = opts.timeoutMs ?? 3000;
   const timers = [];
   const raceTimeout = (ms, what) => {
     let reject;
     const p = new Promise((_, rej) => { reject = rej; });
     const t = setTimeout(() => { clearTimeout(t); const e = new Error(`${what} hung past ${ms}ms (probe timeout)`); e.probeReason = e.message; reject(e); }, ms);
-    t.unref?.();
     timers.push(t);
     return p;
   };
