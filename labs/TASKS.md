@@ -262,3 +262,13 @@
   No code change here: the web rig keeps router-interop.js (correct on
   1.1.0, 6/6 pages built); the bump lands the day prestruct 1.2.0 tags
   with the exact recipe left on crashtest#50.
+### 2026-10-29 - #48 adopted: the walk-exit rule lands in AGENTS.md
+- The walk-exit rule (a walk is not done until nothing it found is
+  uncommissioned - every finding commissioned the same session as a
+  battery leg, pack verdict row, contract bullet, or a named docket
+  row) is codified as its own AGENTS.md section, citation eyestruct@
+  `70dfbea` as the worked example. This session's own compliance
+  receipt: the family-lane receipt re-cut, the version-truth leg, the
+  prose-unwrap isolation check, and the staging-branch CI edits are all
+  commissioned (leg/test/script/workflow respectively) - nothing found
+  on today's walk remains prose-only.

@@ -103,7 +103,15 @@ Only say a gate passed if you ran it this turn. The pre-tag ritual (caught three
 
 ## Version surfaces (one release, released as one number)
 
-`package.json` + `src/cli.js` VERSION (kept equal by `test/version.test.js`), `web/package.json`, nav badge + catalog eyebrow in web/. Pack manifest semvers and the historical 0.1.0 Sigstore provenance link are their own truths - do not sweep them along on a bump.
+`package.json` is THE single version truth (crashtest#51, the eyestruct worked example) + `src/cli.js` VERSION (kept equal by `test/version.test.js`) + `web/package.json` (rides the root; drift refused by the same leg's census). Living surfaces never hand-copy the current number: dated era rows and `(vX.Y.Z)` annotations stay lawful, range pins stay lawful, everything that names the CURRENT version either derives from package.json or loses the number. Pack manifest semvers and the historical 0.1.0 Sigstore provenance link are their own truths - do not sweep them along on a bump.
+
+## The walk-exit rule (crashtest#48)
+
+A manual walk/probe session is not done until nothing it found is uncommissioned - every finding lands the same session as a battery leg, a pack verdict row, contract bullet, or a named docket row (owner + bound for accepted risks). crashledger is the memory rung: today's walk is where tomorrow's ledger rows come from, and a walk that closes without commissioning its probes wasted its one shot at novelty. Worked example: eyestruct@`70dfbea` (the walk's bug + its prose-only claims all became permanent legs at once).
+
+## Prose flow (#49)
+
+Living prose never hard-wraps at commit time: paragraphs flow (see `scripts/unwrap-prose.cjs`, adopted from eyestruct@`3adda1d`). Dated history keeps its era wording.
 
 ## Release procedure (maintainers)
 
