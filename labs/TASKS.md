@@ -322,3 +322,20 @@
   post-push curl, noted below); /tmp toolchain does not survive archive
   (the recipe in this entry is the re-run doc).
   - Post-push live-curl step (when docs.yml next deploys): og:image present on every page, og:title per-page with pipe suffix, twitter:card summary_large_image. NOTE this is the "tokens verified only by live curl AFTER push" gap turning into a VERIFIED one, not a promise.
+### 2026-10-29 - the rest of the route frames + the family og/image writeups
+- Route captures extended the same eyestruct@1.0.0 `look` battery over
+  pretty-URL-served routes: quick-start, reference/attacks,
+  reference/cli, reference/packs in BOTH themes (artifacts/routes/, 8
+  frames; light frames via the generalized launcher
+  ?to=<route> query trick - the `--theme` flag exists in the CLI but
+  proved a no-op against this site's own bootstrapped switch, identical
+  byte sizes receipted). Frames visually verified: all four pages render
+  full content in both palettes, anchors/table text intact.
+- The eyestruct-side og/image question settled by FACTS on their 1.0.0
+  tree (4b979c0): their live absence is deliberate (config comment:
+  "og-image.png is documented adopter homework in MANIFEST.md - an
+  og:image pointing at a 404 is worse than none"). NO bug there. But
+  their layout/template split is the exact starvation configuration, so
+  the tripwire note is filed as eyestruct#23 (informational, freeze-rule
+  respected). The engine-side writeup is freestruct#46 from the previous
+  entry.
