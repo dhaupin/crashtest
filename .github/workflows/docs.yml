@@ -1,10 +1,30 @@
 name: Deploy Docs
 
-# Builds docs/ (Jekyll) then runs the freestruct post-build SEO layer on
-# _site (canonical/description, og:image + twitter, JSON-LD, sitemap, robots,
-# 404, cache-bust hash, last-modified, internal-link check). Same shape as
-# vant's docs deploy - structure shared so docs.creadev.org projects build
-# one another learn from.
+# Docs deploy as a thin caller of the family's one reusable lane
+# (crashtest#38; the runbook lives in dhaupin/flowforge's docs-build.yml,
+# promoted to workflow_call by their issue #9). The hand-copied build steps
+# that lived here (Jekyll, the hardened pagefind scrape, the search index,
+# the pinned freestruct layer, the artifact upload) are THE SAME STEPS in
+# the same order - one copy now, so the seven-repo drift table in #38 stops
+# growing. The caller contract: this file owns permissions, concurrency,
+# the trigger list and the deploy job; the lane only builds + uploads.
+#
+# Inputs honored (verified against the published freestruct@1.1.0 tarball
+# before this swap, crashtest#38 receipt):
+#   - ruby-version 3.4 (the lane defaults 3.2 - this repo's bundler lock
+#     is built for 3.4, so we pass ours explicitly)
+#   - freestruct-version pinned EXACT '1.1.0', not the lane's ^1.1.0
+#     default range - the six-centuries lesson (issue #36) is a contract
+#     here: a floating install is a random deploy, bump the exact number
+#     the day freestruct ships the next release
+#   - pagefind-version stays 'latest' (the lane's hardened scrape with the
+#     GITHUB_TOKEN + version-guard receipt is the same code that lived here)
+#   - the lane runs `node node_modules/freestruct/engine/inject.js`, this
+#     repo previously ran `node node_modules/freestruct/bin/freestruct.mjs`
+#     - byte-verified equivalent: the bin is a thin shim forwarding to the
+#     same runInject(); and freestruct's config discovery accepts our
+#     docs/ssr-config.yml under its legacy name (freestruct.config.yml
+#     first, ssr-config.yml back-compat, nothing renamed)
 
 on:
   push:
@@ -12,7 +32,8 @@ on:
     paths: ['docs/**', '.github/workflows/docs.yml']
   workflow_dispatch:
 
-# Permissions for GitHub Pages deployment
+# Permissions for GitHub Pages deployment (the deploy job consumes the
+# artifact the lane uploads)
 permissions:
   contents: read
   pages: write
@@ -24,74 +45,10 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.4'
-          bundler-cache: true
-          working-directory: './docs'
-
-      - name: Build Jekyll
-        run: |
-          cd docs
-          bundle exec jekyll build
-        env:
-          JEKYLL_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # Pagefind search index (same as vant's docs deploy): the layout's
-      # modal imports /crashtest/pagefind/pagefind.js, so the index MUST be
-      # built into _site or search reports unavailable. Token-authenticated
-      # release scrape: unauthenticated api.github.com calls from shared
-      # runner IPs get rate-limited, an empty VERSION yields a malformed
-      # asset URL, and tar then fails on the 404 HTML body - refuse loudly
-      # on an unparseable tag instead of downloading garbage (vant lesson).
-      - name: Download Pagefind
-        working-directory: docs
-        run: |
-          VERSION=$(curl -sL \
-            -H "Authorization: Bearer ${{ github.token }}" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/Pagefind/pagefind/releases/latest" \
-            | grep '"tag_name"' | sed 's/.*"v\([^"]*\)".*/\1/')
-          case "$VERSION" in
-            [0-9]*.[0-9]*.[0-9]*) ;;
-            *) echo "::error::Could not resolve the latest pagefind tag (got '$VERSION') - likely an API failure."; exit 1 ;;
-          esac
-          echo "pagefind version: v${VERSION}"
-          curl -sL --retry 3 --retry-delay 5 \
-            "https://github.com/pagefind/pagefind/releases/download/v${VERSION}/pagefind-v${VERSION}-x86_64-unknown-linux-musl.tar.gz" \
-            -o pagefind.tar.gz
-          tar -xzf pagefind.tar.gz
-          rm pagefind.tar.gz
-          chmod +x pagefind
-
-      - name: Create search index
-        working-directory: docs
-        run: ./pagefind --site _site
-
-      # freestruct consumes, relative to the REPO ROOT:
-      #   docs/ssr-config.yml (config) / docs/_freestruct/inject-brand.html
-      #   (template) / docs/_site (output; default arg)
-      # Now the npm-published release (issue #36 receipt): EXACT version pin
-      # (the six-centuries lesson stands - a floating install is a random
-      # deploy; bump the exact number the day freestruct ships the next
-      # release). The tarball ships a proper bin; invoke it via node directly
-      # so the step works everywhere regardless of shebang/npx resolution.
-      - name: Install freestruct
-        run: npm install --no-save --no-audit --no-fund freestruct@1.1.0
-
-      - name: Run freestruct post-build layer
-        run: node node_modules/freestruct/bin/freestruct.mjs
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v5
-        with:
-          path: './docs/_site'
+    uses: dhaupin/flowforge/.github/workflows/docs-build.yml@main
+    with:
+      ruby-version: '3.4'
+      freestruct-version: '1.1.0'
 
   deploy:
     needs: build

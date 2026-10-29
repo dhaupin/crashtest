@@ -363,3 +363,29 @@
   exact-pin lockfile + committed baseline, the same rule eyestruct
   carries - nothing vouches bytes it later reopens because nothing
   vouches bytes at all.
+
+### 2026-10-29 - #39 verified LIVE; #38 swapped to the flowforge reusable lane
+- #39 (JSON-LD identity): the deployed docs render the family identity -
+  the founder Person (Creadev.org/creadev.org) inside the Organization
+  block line 198 and the maintainer Person (dhaupin, crashtest maintainer)
+  at line 210 on https://docs.creadev.org/crashtest/ (live fetch receipt).
+  The engine-edition template (both {{authorJson}} + {{searchActionJson}}
+  seams) + the ssr-config.yml identity blocks landed with the #42 docs
+  lane receipts; closing the issue with the live receipt.
+- #38 (reusable docs lane): this repo's docs.yml is now a THIN CALLER of
+  dhaupin/flowforge/.github/workflows/docs-build.yml@main - the hand-
+  copied build runbook (Jekyll, hardened pagefind scrape, search index,
+  pinned freestruct, artifact upload) lives once. Caller contract
+  honored: triggers (main+staging+paths filter), permissions, pages
+  concurrency, and the main-only deploy gate all stay HERE. Inputs:
+  ruby 3.4 (lane default 3.2 - our bundler lock is 3.4), freestruct
+  EXACT '1.1.0' (issue #36's no-floating-install lesson stays a
+  contract; the lane's ^1.1.0 range is refused here), pagefind stays
+  'latest' (the lane's hardened scrape is byte-identical to ours).
+  Reconciliation receipts verified against the published freestruct@1.1.0
+  tarball BEFORE the swap: engine/inject.js exists and bin/freestruct.mjs
+  is a thin shim forwarding to the same runInject(); config discovery
+  reads freestruct.config.yml FIRST with ssr-config.yml back-compat, so
+  our docs/ssr-config.yml stays legal with nothing renamed. This repo is
+  the proving consumer the swap contract asked for; closing #38 on a green
+  lane run.
