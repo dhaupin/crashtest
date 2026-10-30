@@ -50,7 +50,10 @@ const OUT_PATH = join(REPO_ROOT, 'web', 'public', 'status.json')
 
 const REPO = 'dhaupin/crashtest'
 const SITE = 'https://crashtest.creadev.org/dashboard' // honest pointer: the human face of this ledger
-const DOCS = 'https://docs.creadev.org/crashtest/reference/status/'
+// The docs page ships under the extensionless permalink (docs/reference/status.md,
+// permalink: reference/status). The trailing-slash form 404s on this host
+// (crashtest#56), so the emitted URL is the sitemap's own shape - no slash.
+const DOCS = 'https://docs.creadev.org/crashtest/reference/status'
 
 const PASS_VERDICTS = new Set(['REFUSED', 'PASSED', 'BOUNDED'])
 

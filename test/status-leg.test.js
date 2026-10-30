@@ -179,3 +179,16 @@ test('status: the REAL tree serves counts that agree with the LIVE committed led
     );
   }
 });
+
+// The served docs URL must equal the docs page's own permalink (crashtest#56).
+// The trailing-slash form 404s on this host, so the emitter's URL is pinned
+// to the source of truth - the page frontmatter - and cannot silently regress.
+test('status: the served docs URL matches the docs page permalink', async () => {
+  const md = fs.readFileSync(path.join(ROOT, 'docs', 'reference', 'status.md'), 'utf8');
+  const m = md.match(/^permalink:\s*(\S+)\s*$/m);
+  assert.ok(m, 'docs/reference/status.md carries a permalink frontmatter line');
+  const s = await build();
+  const expected = `https://docs.creadev.org/crashtest/${m[1]}`;
+  assert.equal(s.docs, expected, `served docs URL must equal base + permalink (${expected})`);
+  assert.ok(!s.docs.endsWith('/'), 'the docs URL must not carry a trailing slash (it 404s on this host)');
+});

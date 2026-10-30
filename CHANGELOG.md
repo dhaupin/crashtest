@@ -4,6 +4,14 @@ Notable changes to the `crashtest` package. The released version lives in `packa
 
 ## 1.2.0 (unreleased)
 
+- #56 closes: the served `/status.json` `docs` URL no longer carries a
+  trailing slash (`.../reference/status/` -> `.../reference/status`). The
+  slash form 404s on the docs host while the extensionless permalink the
+  sitemap advertises resolves 200, so a machine following the field landed
+  on a 404. The emitter's `DOCS` constant is now pinned by
+  `test/status-leg.test.js`: the test reads `docs/reference/status.md`'s
+  frontmatter `permalink` and asserts the emitted URL equals
+  `base + permalink` (verified failing on the old value).
 - #42 closes: a Ruby-capable host now exists (the sandbox, no root) and
   the FULL docs deploy lane runs locally with receipts - prebuilt Ruby
   3.4.10 unpacked to ~/rubies, scratch-copy bundle path outside the
