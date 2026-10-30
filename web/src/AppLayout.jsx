@@ -8,6 +8,7 @@ import Footer from './components/Footer.jsx'
 import Home from './pages/Home.jsx'
 import Attacks from './pages/Attacks.jsx'
 import Dashboard from './pages/Dashboard.jsx'
+import Status from './pages/Status.jsx'
 import FAQ from './pages/FAQ.jsx'
 import Terms from './pages/Terms.jsx'
 import Privacy from './pages/Privacy.jsx'
@@ -33,6 +34,7 @@ export default function AppLayout() {
           <Route path="/" element={<Home />} />
           <Route path="/attacks" element={<Attacks />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/status" element={<Status />} />
           <Route path="/faq" element={<FAQ />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />

@@ -40,6 +40,15 @@ export default {
       },
     },
     {
+      path: '/status',
+      priority: '0.7',
+      changefreq: 'weekly',
+      meta: {
+        title: 'Family status | Crashtest',
+        description: 'The family-status@1 dialect: every struct-family member serves its committed-ledger verdicts at /status.json, generated on every web build, and reads the others with the same schema.',
+      },
+    },
+    {
       path: '/faq',
       priority: '0.8',
       changefreq: 'monthly',

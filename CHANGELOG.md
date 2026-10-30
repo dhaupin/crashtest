@@ -4,6 +4,14 @@ Notable changes to the `crashtest` package. The released version lives in `packa
 
 ## 1.2.0 (unreleased)
 
+- the family status gets its own `/status` route: the `family-status@1`
+  island (crashtest#47) moves OFF `/dashboard` onto `/status`, so every
+  struct-family member reads the same shape at the same path (packstruct /
+  poststruct / eyestruct already serve `/status`; govstruct / monoforge now
+  do too). The dashboard stays the ledger renderer. The `/status.json`
+  contract is unchanged; the page renders the same live table, `govstruct`
+  joins the sibling list, and the emitter's `site` pointer moves from
+  `/dashboard` to `/status`.
 - #56 closes: the served `/status.json` `docs` URL no longer carries a
   trailing slash (`.../reference/status/` -> `.../reference/status`). The
   slash form 404s on the docs host while the extensionless permalink the
