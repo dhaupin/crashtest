@@ -22,6 +22,33 @@ export default {
       },
     },
     {
+      path: '/why',
+      priority: '0.6',
+      changefreq: 'monthly',
+      meta: {
+        title: 'Why | Crashtest',
+        description: 'Agent-built apps ship fast and ship holes. Why behavioral attacks - in-process, seeded, ledgered - catch what a SAST read or a live pentest cannot.',
+      },
+    },
+    {
+      path: '/what',
+      priority: '0.6',
+      changefreq: 'monthly',
+      meta: {
+        title: 'What | Crashtest',
+        description: 'A CLI that fires 49 seeded attacks across 14 modules at your real handlers in-process, returns REFUSED / EXPLOITED / BOUNDED / PASSED, and writes a committed ledger your CI gates.',
+      },
+    },
+    {
+      path: '/about',
+      priority: '0.5',
+      changefreq: 'monthly',
+      meta: {
+        title: 'About | Crashtest',
+        description: 'Who builds crashtest, the struct family it belongs to, the dogfood stance, and the MIT license and provenance terms.',
+      },
+    },
+    {
       path: '/attacks',
       priority: '0.9',
       changefreq: 'monthly',

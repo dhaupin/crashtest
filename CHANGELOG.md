@@ -4,6 +4,23 @@ Notable changes to the `crashtest` package. The released version lives in `packa
 
 ## 1.2.0 (unreleased)
 
+- the why / what / about pages land on both surfaces: `/why`, `/what`, and
+  `/about` routes (nav + `web/ssr.config.js` + `AppLayout.jsx`), plus the
+  matching `docs/why.md`, `docs/what.md`, `docs/about/index.md` in the docs
+  nav. The family-wide gap: no member carried a supporting trio.
+- **`/packs` on crashtest: recorded as the deliberate host-not-catalog
+  exception, and `/attacks` is not its replacement.** The family `/packs`
+  surface is packstruct's *catalog* page (packstruct owns the SPEC and the
+  catalog of hosts that load it). A host's own pack lane belongs in its docs,
+  which is `docs/reference/packs.md` here. Crashtest's shipped packs are
+  already surfaced on `/attacks` - the eight public packs and their 36 pack
+  attacks ride the same ledger as the 49 library attacks. Adding a `/packs`
+  page would duplicate that pack section and create a second, drifting copy
+  of the same counts (the stale-count class the census tests exist to kill).
+  So crashtest stays the exception, matching the doctrine that a host
+  documents its pack lane rather than re-hosting the catalog. `/attacks` is
+  the catalog of *attacks* (49 library + 36 pack), which is crashtest's
+  actual subject; it is not a renamed `/packs`.
 - the family status gets its own `/status` route: the `family-status@1`
   island (crashtest#47) moves OFF `/dashboard` onto `/status`, so every
   struct-family member reads the same shape at the same path (packstruct /

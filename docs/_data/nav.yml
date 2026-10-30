@@ -5,6 +5,10 @@
   items:
   - title: Overview
     url: /crashtest/getting-started/
+  - title: Why Crashtest
+    url: /crashtest/why
+  - title: What Crashtest is
+    url: /crashtest/what
   - title: Quick Start
     url: /crashtest/getting-started/quick-start
   - title: Installation
@@ -60,6 +64,8 @@
 
 - title: About
   items:
+  - title: About Crashtest
+    url: /crashtest/about
   - title: Principles
     url: /crashtest/about/principles
   - title: Voice & Style
