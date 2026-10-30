@@ -4,6 +4,11 @@ Notable changes to the `crashtest` package. The released version lives in `packa
 
 ## 1.2.0 (unreleased)
 
+- the served `/api/health` canary joins `/api/version`: `web/functions/api/health.js`
+  returns honest JSON (`{ ok, name, service, ts }`), the same schema the
+  poststruct / monoforge / packstruct landings serve. crashtest was the one
+  member site with a Pages Function but no `health` route, so a family sweep
+  read crashtest as down. `npm run check` typechecks the new file.
 - #56 closes: the served `/status.json` `docs` URL no longer carries a
   trailing slash (`.../reference/status/` -> `.../reference/status`). The
   slash form 404s on the docs host while the extensionless permalink the
