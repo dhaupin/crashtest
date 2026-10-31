@@ -200,6 +200,12 @@ html[data-theme="light"] .theme-switch .icon-moon { display: block; }
 
 /* --- attack table --- */
 .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+table.family-status { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+table.family-status th { text-align: left; background: var(--raised); color: var(--ink); padding: 10px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.family-status td { padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.family-status tr:last-child td { border-bottom: 0; }
+table.family-status code { color: var(--accent); }
+.island-loading { color: var(--ink-soft); font-size: 13.5px; }
 table.attacks { border-collapse: collapse; width: 100%; font-size: 13.5px; }
 table.attacks th { text-align: left; background: var(--raised); color: var(--ink); padding: 10px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 table.attacks td { padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }

@@ -72,6 +72,11 @@ packstruct binary THIS REPO has installed (`node_modules/.bin`, then
 public/local children). `packstruct` not installed where the flag/verb is
 explicitly asked = exit 2 naming the fix: `npm i -D packstruct@<exact>`.
 
+The contract-root rule is canonical in the spec itself (packstruct SPEC
+section 1, "The contract root"); this page mirrors it deliberately, so a
+change lands in the spec first and this line follows. Crosslinked per
+packstruct#28.
+
 ## `crashtest preset <name> [--root <dir>]`
 
 Generate a starter config for an agent-builder export (lovable, bolt,
