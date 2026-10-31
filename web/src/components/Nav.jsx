@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink, useLocation } from '../router-interop.js'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { NAV_ITEMS } from './navItems.js'
 import ThemeSwitch from './ThemeSwitch.jsx'
 

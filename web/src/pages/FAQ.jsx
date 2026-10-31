@@ -1,4 +1,4 @@
-import { Link } from '../router-interop.js'
+import { Link } from 'react-router-dom'
 import usePageMeta from '../hooks/usePageMeta.js'
 
 const FAQS = [
