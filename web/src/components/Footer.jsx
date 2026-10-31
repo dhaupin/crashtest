@@ -1,4 +1,4 @@
-import { Link } from '../router-interop.js'
+import { Link } from 'react-router-dom'
 import { NAV_ITEMS, FOOTER_EXTRAS } from './navItems.js'
 
 export default function Footer() {

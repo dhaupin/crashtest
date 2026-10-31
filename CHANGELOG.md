@@ -4,6 +4,22 @@ Notable changes to the `crashtest` package. The released version lives in `packa
 
 ## 1.2.0 (unreleased)
 
+- #50 closes: the web rig pulls in prestruct#68 (commit `498ab5f`, shipping in
+  prestruct 1.2.0). The consumer-side `web/src/router-interop.js` shim is
+  RETIRED - app files import `react-router-dom` directly again, and the
+  engine's interop plugin rewrites the named imports. Retiring it is required,
+  not cosmetic: on 1.2.0 the interop module (a namespace import of the
+  externalized CJS singleton) no longer shares an instance with the engine's
+  registry-loaded StaticRouter, so keeping it renders 0/6 pages. On this
+  `vite ^6.4.5` pin the engine's externalized default still splits the router
+  too, so `ssr.noExternal: ['react-router-dom','react-router']` is added to
+  `web/vite.config.js` (the registry-in-process path is what holds ONE
+  instance); the externalized path only holds on vite 7, so dropping it rides a
+  future vite bump. `prestruct` is pinned at the commit
+  (`github:dhaupin/prestruct#498ab5f`; the lockfile's git URL is HTTPS so a
+  keyless CI `npm ci` resolves it) and takes the registry tag when 1.2.0 cuts.
+  Receipts: `prestruct build` ends "Done. 6/6 pages rendered"; `npm test` 427
+  (0 fail, 7 skips); `npm run check` + `npm run lint:docs` PASS.
 - #56 closes: the served `/status.json` `docs` URL no longer carries a
   trailing slash (`.../reference/status/` -> `.../reference/status`). The
   slash form 404s on the docs host while the extensionless permalink the

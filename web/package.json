@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.7.0",
-    "prestruct": "^1.1.0",
+    "prestruct": "github:dhaupin/prestruct#498ab5f",
     "vite": "^6.4.5"
   }
 }
