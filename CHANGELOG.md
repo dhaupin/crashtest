@@ -4,6 +4,10 @@ Notable changes to the `crashtest` package. The released version lives in `packa
 
 ## 1.2.0 (unreleased)
 
+- the contract-root rule is now canonical in the spec (packstruct SPEC section
+  1, "The contract root") and the `lint-packs` line on the CLI reference page
+  mirrors it with a crosslink, so the spec page and this page cannot drift
+  (packstruct#28).
 - the why / what / about pages land on both surfaces: `/why`, `/what`, and
   `/about` routes (nav + `web/ssr.config.js` + `AppLayout.jsx`), plus the
   matching `docs/why.md`, `docs/what.md`, `docs/about/index.md` in the docs
