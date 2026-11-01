@@ -4,6 +4,35 @@ Notable changes to the `crashtest` package. The released version lives in `packa
 
 ## 1.2.0 (unreleased)
 
+- the contract-root rule is now canonical in the spec (packstruct SPEC section
+  1, "The contract root") and the `lint-packs` line on the CLI reference page
+  mirrors it with a crosslink, so the spec page and this page cannot drift
+  (packstruct#28).
+- the why / what / about pages land on both surfaces: `/why`, `/what`, and
+  `/about` routes (nav + `web/ssr.config.js` + `AppLayout.jsx`), plus the
+  matching `docs/why.md`, `docs/what.md`, `docs/about/index.md` in the docs
+  nav. The family-wide gap: no member carried a supporting trio.
+- **`/packs` on crashtest: recorded as the deliberate host-not-catalog
+  exception, and `/attacks` is not its replacement.** The family `/packs`
+  surface is packstruct's *catalog* page (packstruct owns the SPEC and the
+  catalog of hosts that load it). A host's own pack lane belongs in its docs,
+  which is `docs/reference/packs.md` here. Crashtest's shipped packs are
+  already surfaced on `/attacks` - the eight public packs and their 36 pack
+  attacks ride the same ledger as the 49 library attacks. Adding a `/packs`
+  page would duplicate that pack section and create a second, drifting copy
+  of the same counts (the stale-count class the census tests exist to kill).
+  So crashtest stays the exception, matching the doctrine that a host
+  documents its pack lane rather than re-hosting the catalog. `/attacks` is
+  the catalog of *attacks* (49 library + 36 pack), which is crashtest's
+  actual subject; it is not a renamed `/packs`.
+- the family status gets its own `/status` route: the `family-status@1`
+  island (crashtest#47) moves OFF `/dashboard` onto `/status`, so every
+  struct-family member reads the same shape at the same path (packstruct /
+  poststruct / eyestruct already serve `/status`; govstruct / monoforge now
+  do too). The dashboard stays the ledger renderer. The `/status.json`
+  contract is unchanged; the page renders the same live table, `govstruct`
+  joins the sibling list, and the emitter's `site` pointer moves from
+  `/dashboard` to `/status`.
 - #56 closes: the served `/status.json` `docs` URL no longer carries a
   trailing slash (`.../reference/status/` -> `.../reference/status`). The
   slash form 404s on the docs host while the extensionless permalink the

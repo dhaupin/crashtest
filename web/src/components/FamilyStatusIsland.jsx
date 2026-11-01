@@ -19,6 +19,7 @@ const SIBLINGS = [
   { name: 'eyestruct', origin: 'https://eyestruct.creadev.org', page: 'https://eyestruct.creadev.org/status' },
   { name: 'poststruct', origin: 'https://poststruct.creadev.org', page: 'https://poststruct.creadev.org/status' },
   { name: 'packstruct', origin: 'https://packstruct.creadev.org', page: 'https://packstruct.creadev.org/status' },
+  { name: 'govstruct', origin: 'https://govstruct.creadev.org', page: 'https://govstruct.creadev.org/status' },
   { name: 'monoforge', origin: 'https://monoforge.creadev.org', page: 'https://monoforge.creadev.org/status' },
 ]
 

@@ -20,7 +20,7 @@
   #   packstruct/monoforge rows).
   # - style-src / font-src: includes Google Fonts (remove if not using)
   # - Tighten or expand each directive to match your actual asset sources.
-  Content-Security-Policy: default-src 'none'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://cloudflareinsights.com https://eyestruct.creadev.org https://poststruct.creadev.org https://packstruct.creadev.org https://monoforge.creadev.org; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'none'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://cloudflareinsights.com https://eyestruct.creadev.org https://poststruct.creadev.org https://packstruct.creadev.org https://govstruct.creadev.org https://monoforge.creadev.org; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
 
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Embedder-Policy: credentialless
