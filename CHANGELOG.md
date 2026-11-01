@@ -21,6 +21,12 @@ Notable changes to the `crashtest` package. The released version lives in `packa
   Receipts: `prestruct build` ends "Done. 6/6 pages rendered"; `npm test` 427
   (0 fail, 7 skips); `npm run check` + `npm run lint:docs` PASS.
 
+- the served `/api/health` canary joins `/api/version`: `web/functions/api/health.js`
+  returns honest JSON (`{ ok, name, service, ts }`), the same schema the
+  poststruct / monoforge / packstruct landings serve. crashtest was the one
+  member site with a Pages Function but no `health` route, so a family sweep
+  read crashtest as down. `npm run check` typechecks the new file.
+
 - the contract-root rule is now canonical in the spec (packstruct SPEC section
   1, "The contract root") and the `lint-packs` line on the CLI reference page
   mirrors it with a crosslink, so the spec page and this page cannot drift
