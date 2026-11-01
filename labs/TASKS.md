@@ -257,11 +257,14 @@
   staging even when it rides the trigger list. Staging branch created
   from main in the same push (permanent integration branch, ff-promoted
   rule in the issue body).
-- #50 (prestruct#68 react-router seam): the engine fix is NOT on npm
-  yet - `prestruct` latest is still 1.1.0; the fix rides the 1.2.0 cut.
-  No code change here: the web rig keeps router-interop.js (correct on
-  1.1.0, 6/6 pages built); the bump lands the day prestruct 1.2.0 tags
-  with the exact recipe left on crashtest#50.
+- #50 (prestruct#68 react-router seam): CLOSED - the engine fix is pulled in
+  at commit 498ab5f (shipping in prestruct 1.2.0; npm latest is still 1.1.0, so
+  the pin is the commit). The web rig RETIRES router-interop.js: the engine's
+  interop plugin rewrites the app's named react-router imports, and the
+  interop module's namespace import no longer shares an instance with the
+  engine's registry-loaded StaticRouter (keeping it renders 0/6). `ssr.noExternal`
+  added on the vite ^6.4.5 pin (the externalized default still splits the
+  router here; the externalized path only holds on vite 7). Build 6/6.
 ### 2026-10-29 - #48 adopted: the walk-exit rule lands in AGENTS.md
 - The walk-exit rule (a walk is not done until nothing it found is
   uncommissioned - every finding commissioned the same session as a

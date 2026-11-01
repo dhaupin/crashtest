@@ -3,7 +3,7 @@
  * vocabulary, and the ledger/exit contract. Deep reference lives in
  * docs/reference/.
  */
-import { Link } from '../router-interop.js'
+import { Link } from 'react-router-dom'
 import usePageMeta from '../hooks/usePageMeta.js'
 
 const SITE_URL = 'https://crashtest.creadev.org'
