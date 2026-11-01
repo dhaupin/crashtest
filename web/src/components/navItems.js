@@ -7,8 +7,12 @@
 export const NAV_ITEMS = [
   // primary app routes
   { label: 'Home', to: '/', end: true, group: 'site' },
+  { label: 'Why', to: '/why', group: 'site' },
+  { label: 'What', to: '/what', group: 'site' },
+  { label: 'About', to: '/about', group: 'site' },
   { label: 'Attacks', to: '/attacks', group: 'site' },
   { label: 'Dashboard', to: '/dashboard', group: 'site' },
+  { label: 'Status', to: '/status', group: 'site' },
   { label: 'FAQ', to: '/faq', group: 'site' },
   // outbound surfaces (same labels as docs nav + footer)
   { label: 'Docs', href: 'https://docs.creadev.org/crashtest/', group: 'out' },

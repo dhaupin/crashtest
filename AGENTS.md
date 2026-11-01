@@ -31,8 +31,14 @@ fixtures/site/          second site shape the pack tests exercise
 test/   426 tests; count pins live here - the guarantee -> pin
                         map is in the project brain's pins.md (see Project memory)
 web/                    the shipped site (prestruct-prerendered): Home, attack
-                        catalog, dashboard (renders any ledger), FAQ; version
-                        badge rides the nav (`web/src/components/Nav.jsx`)
+                        catalog, dashboard (renders any ledger), FAQ, the
+                        why/what/about trio; version badge rides the nav
+                        (`web/src/components/Nav.jsx`)
+                        NOTE: crashtest has NO `/packs` route by design (the
+                        host-not-catalog exception, see CHANGELOG 1.2.0): the
+                        family `/packs` surface is packstruct's catalog, the
+                        host's own pack lane is docs/reference/packs.md, and
+                        the shipped packs are surfaced on `/attacks`.
 horcrux/                the project brain stone (vant horcrux) + README only -
                         never read by tests/tooling/CI; see "Project memory"
 packs/                  extension surface: public/<name>/pack.json (tracked,
