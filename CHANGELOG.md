@@ -4,6 +4,14 @@ Notable changes to the `crashtest` package. The released version lives in `packa
 
 ## 1.2.0 (unreleased)
 
+- #45 closes (the crashtest side): the legal pages (Terms + Privacy) now carry
+  a family crosslink footer naming the four sibling sites that share the same
+  plain-language legal form (eyestruct, monoforge, poststruct, packstruct), so
+  the parity is visible to a reader who arrives from any member. The landing
+  shell head comment no longer carries the literal title markup: a raw-string
+  first-match head audit must see the real `<title>` first, not the prose that
+  described it (the monoforge shell fix, applied here).
+
 - #50 closes: the web rig pulls in prestruct#68 (commit `498ab5f`, shipping in
   prestruct 1.2.0). The consumer-side `web/src/router-interop.js` shim is
   RETIRED - app files import `react-router-dom` directly again, and the

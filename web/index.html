@@ -10,8 +10,11 @@
     The npm prestruct engine's inject-brand pass populates these tags at
     build time from ssr.config.js (`prestruct build`):
 
-      <title>, description, author, keywords, canonical,
+      the title tag, description, author, keywords, canonical,
       Open Graph, Twitter Card, JSON-LD.
+
+    (The comment avoids the literal title markup on purpose: a raw-string
+    first-match head check must see the REAL title first, not this prose.)
 
     The placeholder values below give the inject regex something to match.
     They are replaced before the site is deployed -- never served as-is.
