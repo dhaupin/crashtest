@@ -3,7 +3,7 @@
  * holes, and a pentest or a SAST read cannot catch a behavioral one. The
  * landing face of the doctrine; the deep rules live in docs/about/principles.
  */
-import { Link } from '../router-interop.js'
+import { Link } from 'react-router-dom'
 import usePageMeta from '../hooks/usePageMeta.js'
 
 const SITE_URL = 'https://crashtest.creadev.org'

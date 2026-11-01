@@ -2,7 +2,7 @@
  * pages/About.jsx - who builds crashtest, the family it belongs to, and the
  * license and provenance terms. The legal pages carry the surface facts.
  */
-import { Link } from '../router-interop.js'
+import { Link } from 'react-router-dom'
 import usePageMeta from '../hooks/usePageMeta.js'
 
 const SITE_URL = 'https://crashtest.creadev.org'
