@@ -125,3 +125,26 @@ test('the registry visibility check waits out propagation lag (the 1.2.0 cut bug
   assert.equal(r.status, 0, `registryHasVersion misjudged visibility: ${r.stderr}`);
   assert.ok(r.stdout.includes('ok'), 'registryHasVersion never ran');
 });
+
+test('--allowed de-asserts a default-forbidden prefix (vant ships web/ as product)', () => {
+  const toy = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-release-allowed-'))
+  fs.writeFileSync(path.join(toy, 'package.json'), JSON.stringify({ name: 'toy-verify', version: '4.2.0', main: 'index.js', files: ['index.js'] }, null, 2))
+  fs.writeFileSync(path.join(toy, 'index.js'), 'module.exports = 1\n')
+  const r = spawnSync('npm', ['pack', '--pack-destination', toy], { cwd: toy, encoding: 'utf8', timeout: 120000 })
+  assert.equal(r.status, 0, `toy npm pack failed: ${r.stderr}`)
+  const ex = path.join(toy, 'extracted')
+  fs.mkdirSync(ex, { recursive: true })
+  assert.equal(spawnSync('tar', ['-xzf', path.join(toy, 'toy-verify-4.2.0.tgz'), '-C', ex], { encoding: 'utf8' }).status, 0)
+  fs.mkdirSync(path.join(ex, 'package', 'web'), { recursive: true })
+  fs.writeFileSync(path.join(ex, 'package', 'web', 'app.js'), '// ships as product\n')
+  const doctored = path.join(toy, 'doctored.tgz')
+  assert.equal(spawnSync('tar', ['-czf', doctored, '-C', path.join(ex, 'package'), '.'], { encoding: 'utf8' }).status, 0)
+  const without = spawnSync('node', [SCRIPT, '--pack', doctored, '--version', '4.2.0'], { cwd: toy, encoding: 'utf8', timeout: 300000 })
+  assert.equal(without.status, 1, 'web/ must be refused without the flag')
+  assert.ok(`${without.stdout}\n${without.stderr}`.includes('forbidden path prefix web/'), 'the default refusal names web/')
+  const withFlag = spawnSync('node', [SCRIPT, '--pack', doctored, '--version', '4.2.0', '--allowed', 'web/'], { cwd: toy, encoding: 'utf8', timeout: 300000 })
+  const out = `${withFlag.stdout}\n${withFlag.stderr}`
+  assert.ok(out.includes('PASS forbidden scan'), `--allowed did not clear the forbidden scan:\n${out}`)
+  assert.ok(!out.includes('forbidden path prefix web/'), '--allowed left web/ forbidden')
+  fs.rmSync(toy, { recursive: true, force: true })
+})

@@ -2,6 +2,21 @@
 
 Notable changes to the `crashtest` package. The released version lives in `package.json` + `VERSION` in `src/cli.js` (kept equal by `test/version.test.js`); releases go out on `vX.Y.Z` git tags via npm Trusted Publishing (see [docs/publish.md](./docs/publish.md)).
 
+## [Unreleased]
+
+### Fixed
+
+- **The release ladder no longer races registry propagation, nor false-flags a
+  branch-name `target_commitish`.** `scripts/verify-release.cjs` polls
+  `dist-tags.latest` **and** the version entry through npm's post-publish
+  propagation window instead of reading once, and the `release` job retries
+  `npm pack crashtest@<ver>` the same way (the 1.2.0 cut read `ETARGET: no
+  matching version` seconds after publish). The release check now accepts
+  GitHub's `target_commitish` default-branch name and treats only a 40-hex SHA
+  as a commit claim (a branch name is not drift; the tag is the identity). The
+  script also gains the family `--allowed` flag (prefix-scoped forbidden-scan
+  exemptions). Three pins hold it all.
+
 ## 1.2.0 (unreleased)
 
 - the release lane is now the family 3-job ladder (`publish` -> `release` ->
