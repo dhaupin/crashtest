@@ -40,9 +40,9 @@ test('package.json and src/cli.js VERSION name the same x.y.z', () => {
   assert.equal(VERSION, pkg.version, `src/cli.js VERSION (${VERSION}) must equal package.json version (${pkg.version})`);
 });
 
-test('CHANGELOG.md carries an entry for the current version', () => {
-  assert.match(header, new RegExp(`^## ${pkg.version.replace('.', '\\.')}(?![.\\d])[^\n]*$`, 'm'), `CHANGELOG.md must list ${pkg.version} as a heading`);
-  assert.match(header, /unreleased/i, 'an untagged version must be marked (unreleased) until the tag exists');
+test('CHANGELOG.md is Keep-a-Changelog: an [Unreleased] section and a heading for the current version', () => {
+  assert.match(header, /^## \[Unreleased\]$/m, 'CHANGELOG.md must carry a "## [Unreleased]" section');
+  assert.match(header, new RegExp(`^## \\[${pkg.version.replace(/\./g, '\\.')}\\]`, 'm'), `CHANGELOG.md must list [${pkg.version}] as a heading`);
 });
 
 test('the web rig rides the root version (drift is refused, not remembered)', () => {

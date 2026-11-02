@@ -70,8 +70,8 @@ test('a doctored tarball is refused BY NAME before any install', () => {
 });
 
 test('release-notes extracts the version section from this repo\'s heading shape', () => {
-  // This repo heads sections `## 1.2.0 (unreleased)`, not `## [1.2.0]`; the
-  // extractor must read that shape (and refuse an absent version).
+  // The changelog is Keep-a-Changelog (`## [1.2.0] - date`); the extractor
+  // must read that shape (and refuse an absent version).
   const good = spawnSync('node', [NOTES, pkg.version], { cwd: ROOT, encoding: 'utf8' });
   assert.equal(good.status, 0, `release-notes refused the current version: ${good.stderr}`);
   assert.ok(good.stdout.trim().length > 0, 'release-notes produced an empty section');
