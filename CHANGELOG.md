@@ -4,6 +4,27 @@ Notable changes to the `crashtest` package. The released version lives in `packa
 
 ## 1.2.0 (unreleased)
 
+- the release lane is now the family 3-job ladder (`publish` -> `release` ->
+  `verify`) instead of the old `publish` + `github-release` pair. The retired
+  `github-release` job re-packed the checkout and admitted its asset was
+  **not** byte-identical to the npm tarball (tar stores mtimes); the new
+  `release` job attaches the **served** tarball (`npm pack crashtest@<version>`)
+  and the new `verify` job asserts its sha512 equals the registry integrity
+  metadata (`scripts/verify-release.cjs --gh --asset`) - the GH release and
+  the npm artifact are now the SAME bytes. `verify` also re-proves the
+  registry truth: latest == this tree's version, served sha512 == integrity,
+  provenance present, and the full pack ladder over the served tarball
+  (`--allowed packs/`, crashtest's shipped extension surface). The release
+  notes come from `scripts/release-notes.cjs` (the changelog's own `[version]`
+  section; an empty extraction refuses the cut), and a `workflow_dispatch`
+  `verify-only` mode re-runs the ladder against what is already served. The
+  workflow's `actions/checkout` + `actions/setup-node` are pinned to commit
+  SHAs (house rule: pins, never floats).
+- `crashtest --version` now prints the **bare** version (`1.2.0`), matching
+  what `docs/reference/cli.md` already promised ("the single-string version")
+  and what the family release ladder's installed-bin probe asserts exactly
+  (the decorated `crashtest v1.2.0` would refuse the cut). `test/cli.test.js`
+  pins the new shape.
 - the poststruct reference row re-cuts against the live repo: gistory retired
   its forge role 2026-11-02 (gistory#37), so the `poststruct-staging/` citation
   in `docs/reference/packs.md` is retired. poststruct now lives at

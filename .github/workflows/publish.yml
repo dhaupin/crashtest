@@ -1,104 +1,183 @@
-name: npm-publish
-
-# Publish on version tags: `git tag v1.0.0 && git push origin v1.0.0`
-# (or create a GitHub release from a tag - set one trigger, not both,
-# to avoid double-publishing.)
+name: publish
+# The repo-cut release ladder (eyestruct's proven shape, adopted for
+# crashtest): a tag drives the whole ladder end-to-end, and nothing is earned
+# by a green publish step alone. The gap eyestruct's 1.0.0 cut proved: publish
+# CAN go green while the registry result is wrong, because nothing asserted
+# the tarball between proof-of-publish and proof-of-work.
 #
-# npm Trusted Publishing (OIDC): no NPM_TOKEN secret needed, provenance
-# is generated automatically for public packages from public repos.
-# One-time setup on npmjs.com is REQUIRED (see docs/publish.md).
+#   1. publish  - npm trusted publishing (OIDC): NO NPM_TOKEN secret exists
+#                 anywhere (the family law). The job's id-token proves the
+#                 tarball came from THIS tree; npm >= 11.5.1 floor installed
+#                 in-lane. The battery rides automatically: npm publish runs
+#                 prepublishOnly (npm test && npm run check) - a red battery
+#                 cannot mint a tarball. Gate: 0.x refused (the family
+#                 release ladder: 0.x is the manual ship lane), and on a tag
+#                 push the tag must equal the packaged version.
+#   2. release  - the GH release object is cut from the pushed tag. Its
+#                 notes are EXTRACTED from the changelog's own [version]
+#                 section (scripts/release-notes.cjs) - a release body that
+#                 disagrees with the changelog is drift, and an empty
+#                 extraction refuses the cut. Idempotent. The served tarball
+#                 is attached as the release asset (npm pack
+#                 crashtest@<version>): the EXACT tarball the registry
+#                 serves, so the GH release and the npm artifact are the same
+#                 bytes - not the old re-pack (same tree, other clock, which
+#                 the retired github-release job admitted was not
+#                 byte-identical).
+#   3. verify   - the post-publish truth (scripts/verify-release.cjs):
+#                 --npm registry latest == this tree's version, the served
+#                 tarball's sha512 == the registry integrity metadata,
+#                 provenance present, then the full pack ladder on the
+#                 served tarball; --gh the release object exists, targets
+#                 the tag's commit, its source tarball diffs clean against
+#                 `git archive` of that commit, and its attached asset's
+#                 sha512 equals the registry integrity.
 #
-# After the npm publish lands, a second job cuts the GitHub Release for
-# the same tag (title, notes, and the npm tarball as asset). It NEEDS the
-# publish job as its gate: the release only exists to mirror a publish
-# that actually happened.
-
+# crashtest ships packs/ as its extension surface, so the ladder passes
+# --allowed packs/ (the family default forbids packs/; crashtest's whole
+# point is a pack catalog). The bin answers --version with the bare version
+# (the ladder's installed-bin probe compares it exactly).
+#
+# One-time npmjs.com setup is REQUIRED before the first tag: crashtest ->
+# Settings -> Trusted Publisher (repo dhaupin/crashtest, workflow
+# publish.yml). The manual bootstrap already created the package, so the
+# npm/cli#8544 limit (OIDC cannot create a brand-new package) does not apply.
+#
+# verify-only dispatch mode: no publish, no release minting - the verify job
+# re-runs the trust ladder against what is ALREADY published and released.
 on:
   push:
-    tags: ["v*"]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'publish = registry cut | verify-only = re-run the trust ladder against what is already served'
+        required: false
+        default: 'publish'
+        type: choice
+        options: ['publish', 'verify-only']
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 jobs:
   publish:
+    if: github.event_name == 'push' || inputs.mode != 'verify-only'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      version: ${{ steps.gate.outputs.version }}
+      tag: ${{ steps.gate.outputs.tag }}
     steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: "24" # trusted publishing needs node >=22.14, npm >=11.5.1
+          node-version: 22
           registry-url: "https://registry.npmjs.org"
           package-manager-cache: false
-
+      - name: npm floor for trusted publishing (11.5.1+)
+        run: npm install -g npm@^11
+      - id: gate
+        name: the gate - 0.x refused, tag == packaged version
+        # Every github context value reaches this script through env, never
+        # inline interpolation - an expression-injected tag name is the
+        # classic Actions injection class, and ref_name is
+        # attacker-adjacent input however much we trust the collaborators.
+        env:
+          TAG_REF: ${{ github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -e
+          V="$(node -p "require('./package.json').version")"
+          case "$V" in
+            0.*) echo "publish gate: refusing $V - the OIDC lane serves 1.0.0+ only (the family release ladder: 0.x is the manual ship lane)"; exit 1 ;;
+          esac
+          REF="$TAG_REF"
+          EVENT="$EVENT_NAME"
+          if [ "$EVENT" = "push" ]; then
+            if [ "$REF" != "v$V" ]; then
+              echo "publish gate: refusing - tag $REF does not equal the packaged version v$V (a tag that lies about its version never cuts)"; exit 1
+            fi
+          fi
+          TAG="v$V"
+          echo "publish gate: $TAG passes the 0.x refusal and the tag==version gate"
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
       - name: Install (no runtime deps - lockfile-light install)
         run: npm install --no-audit --no-fund
+      - run: npm publish --provenance
 
-      - name: Test
-        run: npm test
-
-      - name: Publish
-        run: npm publish
-
-  github-release:
+  release:
     needs: publish
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # create the release + upload the asset
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Extract version from the tag
-        run: echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_ENV
-
-      # npm pack needs no node_modules - it packages exactly the `files`
-      # entries. This pack is built from the SAME commit npm published from,
-      # so the asset mirrors the registry artifact (not byte-identical:
-      # tar stores mtimes - same tree, other clock).
-      - name: Pack the npm tarball as the release asset
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with: { node-version: 22 }
+      # BLOCK_VERSION/TAG arrive through env from the publish job's outputs
+      # - the same no-inline-interpolation rule the gate obeys. notes.md
+      # lives in RUNNER_TEMP: never a silent overwrite of a repo file that
+      # happens to carry the name.
+      - name: extract the release notes from the changelog (refuses empty)
+        env:
+          BLOCK_VERSION: ${{ needs.publish.outputs.version }}
+        run: node scripts/release-notes.cjs "$BLOCK_VERSION" > "$RUNNER_TEMP/notes.md"
+      - name: cut the GH release from the tag (idempotent)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BLOCK_VERSION: ${{ needs.publish.outputs.version }}
+          BLOCK_TAG: ${{ needs.publish.outputs.tag }}
         run: |
-          set -euo pipefail
-          TARBALL="crashtest-${VERSION#v}.tgz"
-          npm pack
-          test -f "$TARBALL" || { echo "::error::expected asset $TARBALL not produced"; exit 1; }
-
-          # Guardrail (same spirit as test/packaging.test.js): the release
-          # asset must contain the reusable surfaces (bin/ + src/ + the
-          # shipped packs) and never repo-bound internals - web/,
-          # packs/public/crashtest-site/, labs/, test/.
-          # Listing goes through a FILE first: `tar | grep -q` echoes the
-          # grep early-exit into a SIGPIPE which pipefail turns into a
-          # failure - the exact piped-exit hazard the house rules warn
-          # about, and it bit the v1.0.0 asset job.
-          tar -tzf "$TARBALL" > tarball-listing.txt
-          grep -q "^package/bin/crashtest.js$" tarball-listing.txt
-          if grep -Eq "^package/(web/|labs/|test/|packs/public/crashtest-site/)" tarball-listing.txt; then
-            echo "::error::release tarball contains repo-bound internals:"
-            grep -E "^package/(web/|labs/|test/|packs/public/crashtest-site/)" tarball-listing.txt
-            exit 1
+          TAG="$BLOCK_TAG"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "release $TAG already exists - not re-minting; the verify job judges its truth"
+          else
+            gh release create "$TAG" --title "Crashtest $BLOCK_VERSION" --notes-file "$RUNNER_TEMP/notes.md"
           fi
-          rm tarball-listing.txt
-          echo "TARBALL=$TARBALL" >> $GITHUB_ENV
+      - name: attach the served tarball to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BLOCK_VERSION: ${{ needs.publish.outputs.version }}
+          BLOCK_TAG: ${{ needs.publish.outputs.tag }}
+        run: |
+          set -e
+          # The EXACT tarball the registry serves for this version - the
+          # artifact npm received, not a re-pack of the checkout, so the
+          # release asset and the npm artifact can never drift.
+          npm pack "crashtest@$BLOCK_VERSION" --pack-destination "$RUNNER_TEMP" > /dev/null
+          gh release upload "$BLOCK_TAG" "$RUNNER_TEMP/crashtest-$BLOCK_VERSION.tgz" --clobber
 
-      - name: Create the GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          name: "Crashtest ${{ env.VERSION }}"
-          body: |
-            In-process adversarial QA for agent-built apps: the harness drives seeded
-            redteam/fuzz/guard campaigns against your real handlers (WHATWG Requests -
-            no sockets), produces a hardening ledger whose CI gate fails on regressions.
-
-            ```bash
-            npm install --save-dev crashtest
-            npx crashtest init
-            ```
-
-            Zero runtime dependencies. The `crashtest-${{ env.VERSION }}.tgz` asset is
-            the same tarball shape npm published for this tag. Full runbook:
-            [docs](https://docs.creadev.org/crashtest) / [README](https://github.com/dhaupin/crashtest#crashtest)
-          files: ${{ env.TARBALL }}
-          fail_on_unmatched_files: true
-          generate_release_notes: true
+  # No `needs` on release here by design under the if: the verify leg runs
+  # after release on a real cut, but ALSO stands alone in verify-only mode
+  # (publish skipped, release skipped, the ladder judged against what is
+  # already served and released).
+  verify:
+    needs: publish
+    if: >-
+      always() &&
+      (needs.publish.result == 'success' ||
+       (needs.publish.result == 'skipped' && inputs.mode == 'verify-only'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with: { node-version: 22 }
+      - name: the post-publish trust ladder (npm + GH release)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -e
+          V="$(node -p "require('./package.json').version")"
+          EXPECTED_EXPORTS="$(node -p "Object.keys(require('./package.json').exports).join(',')")"
+          CT_PROBE="const p=require('crashtest');if(typeof p.main!=='function')process.exit(1)"
+          # packs/ is crashtest's shipped extension surface, so the family
+          # default that forbids packs/ is de-asserted by name.
+          node scripts/verify-release.cjs --npm --version "$V" --exports "$EXPECTED_EXPORTS" --allowed "packs/" --probe "$CT_PROBE"
+          node scripts/verify-release.cjs --gh --tag "v$V" --asset "crashtest-$V.tgz"

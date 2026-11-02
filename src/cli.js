@@ -837,7 +837,12 @@ export async function main(argv) {
   }
   const verb = argv[0];
   if (verb === '--version' || verb === '-v' || verb === 'version') {
-    console.log(`crashtest v${VERSION}`);
+    // The bare version, no decoration: the family release ladder's verify
+    // leg asserts the INSTALLED bin's --version equals package.json exactly
+    // (the pinned string, not a substring), so any prefix would refuse the
+    // cut. docs/reference/cli.md already promised "the single-string
+    // version"; this makes the code match the docs.
+    console.log(VERSION);
     return;
   }
   if (verb === 'init') {
