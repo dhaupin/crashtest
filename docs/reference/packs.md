@@ -392,15 +392,13 @@ the grammar lane's, not an adapter claim. Receipt re-cut same-day on
 their 1.0.0 freeze - the planned-for bump arrived and the numbers moved
 with it (4 packs 30 rows -> 5 packs 35 rows), which is the bump-receipt
 rule doing its job.
-- **poststruct**: staging lane still in flight (gistory's
-`poststruct-staging/`); its own `run-packs.mjs` loader already receipts
-8/8 on the packstruct conformance cases (gistory `labs/ecosystem.md`).
-No crashtest-side copy exists yet - this lane will add its receipt when
-the staging settles.
+- **poststruct**: graduated to its own repo (`dhaupin/poststruct`), which
+runs its own battery (`test.yml`, exact family pins) and its own
+`scripts/run-packs.mjs` loader (8/8 on the packstruct conformance cases,
+crashtest `labs/ecosystem.md`). The former gistory staging lane retired
+2026-11-02 (gistory#37); this row re-cuts against the live repo head.
 
 Citation rule for every row here: the receipt's citation names the
 source the lane ACTUALLY read - a live repo pin for shipped family
-members (eyestruct), the staging citation while a member is still
-pre-repo (poststruct). Same-commit->same-findings applies to receipts
-too.
+members. Same-commit->same-findings applies to receipts too.
 
