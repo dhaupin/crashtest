@@ -25,11 +25,20 @@ const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'))
 const exportsKeys = Object.keys(pkg.exports).join(',');
 
 function packTree(dest) {
-  const r = spawnSync('npm', ['pack', '--pack-destination', dest], { cwd: ROOT, encoding: 'utf8', timeout: 180000 });
+  const r = spawnSync('npm', ['pack', '--pack-destination', dest], { cwd: ROOT, encoding: 'utf8', timeout: 180000, env: packEnv() });
   assert.equal(r.status, 0, `npm pack failed: ${r.stderr}`);
   const tgz = path.join(dest, `${pkg.name}-${pkg.version}.tgz`);
   assert.ok(fs.existsSync(tgz), `npm pack produced nothing at ${tgz}`);
   return tgz;
+}
+
+// `npm publish --dry-run` exports npm_config_dry_run=true into the lifecycle
+// env; a nested `npm pack` would then write no tarball. Strip it so a
+// rehearsal verdict equals a real-publish verdict.
+function packEnv() {
+  const env = { ...process.env }
+  delete env.npm_config_dry_run
+  return env
 }
 
 test('the pack ladder verifies real npm pack output (contents + identity + bin)', () => {
@@ -52,7 +61,7 @@ test('the pack ladder verifies real npm pack output (contents + identity + bin)'
 test('a doctored tarball is refused BY NAME before any install', () => {
   const toy = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-release-smuggle-'));
   fs.writeFileSync(path.join(toy, 'package.json'), JSON.stringify({ name: 'crashtest', version: pkg.version, files: ['package.json'] }, null, 2));
-  const r = spawnSync('npm', ['pack', '--pack-destination', toy], { cwd: toy, encoding: 'utf8', timeout: 120000 });
+  const r = spawnSync('npm', ['pack', '--pack-destination', toy], { cwd: toy, encoding: 'utf8', timeout: 120000, env: packEnv() });
   assert.equal(r.status, 0, `toy npm pack failed: ${r.stderr}`);
   const base = path.join(toy, `crashtest-${pkg.version}.tgz`);
   const ex = path.join(toy, 'extracted');
@@ -130,7 +139,7 @@ test('--allowed de-asserts a default-forbidden prefix (vant ships web/ as produc
   const toy = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-release-allowed-'))
   fs.writeFileSync(path.join(toy, 'package.json'), JSON.stringify({ name: 'toy-verify', version: '4.2.0', main: 'index.js', files: ['index.js'] }, null, 2))
   fs.writeFileSync(path.join(toy, 'index.js'), 'module.exports = 1\n')
-  const r = spawnSync('npm', ['pack', '--pack-destination', toy], { cwd: toy, encoding: 'utf8', timeout: 120000 })
+  const r = spawnSync('npm', ['pack', '--pack-destination', toy], { cwd: toy, encoding: 'utf8', timeout: 120000, env: packEnv() })
   assert.equal(r.status, 0, `toy npm pack failed: ${r.stderr}`)
   const ex = path.join(toy, 'extracted')
   fs.mkdirSync(ex, { recursive: true })
@@ -147,4 +156,37 @@ test('--allowed de-asserts a default-forbidden prefix (vant ships web/ as produc
   assert.ok(out.includes('PASS forbidden scan'), `--allowed did not clear the forbidden scan:\n${out}`)
   assert.ok(!out.includes('forbidden path prefix web/'), '--allowed left web/ forbidden')
   fs.rmSync(toy, { recursive: true, force: true })
+})
+
+// Some npm builds (the phone's) answer `npm pack --dry-run --json` with an
+// empty stdout - no JSON at all - and print a config warning besides. The
+// ladder must not read that as a capability failure: it derives the expected
+// set from a REAL `npm pack` (which the served-tarball forbidden scan already
+// proved works on this build) instead of parsing the --json probe.
+test('the pack ladder survives a phone npm whose --dry-run --json probe is empty', () => {
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), 'release-verify-noisy-'))
+  const tgz = packTree(work)
+  const bin = path.join(work, 'bin')
+  fs.mkdirSync(bin)
+  const realNpm = spawnSync('which', ['npm'], { encoding: 'utf8' }).stdout.trim()
+  const shim = path.join(bin, 'npm')
+  fs.writeFileSync(shim, [
+    '#!/bin/sh',
+    'case " $* " in',
+    '  *" --dry-run "*)',
+    '    echo "npm warn Unknown project config \\"always-auth\\". This will stop working in the next major version of npm."',
+    '    exit 0 ;;',
+    'esac',
+    `exec ${realNpm} "$@"`,
+    '',
+  ].join('\n'))
+  fs.chmodSync(shim, 0o755)
+  const r = spawnSync('node', [SCRIPT, '--pack', tgz, '--version', pkg.version, '--exports', exportsKeys, '--allowed', 'packs/'], {
+    cwd: ROOT, encoding: 'utf8', timeout: 300000,
+    env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+  })
+  const out = `${r.stdout}\n${r.stderr}`
+  assert.ok(out.includes('PASS served set == npm pack of this tree'), `the empty --json probe broke the pack ladder:\n${out}`)
+  assert.ok(!out.includes('npm pack --dry-run --json failed'), 'an empty --json probe must not be read as a pack failure')
+  fs.rmSync(work, { recursive: true, force: true })
 })

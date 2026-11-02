@@ -173,7 +173,7 @@ function ship(opts = {}) {
     // only in memory, never on disk, never in argv. The child env always
     // carries NPM_TOKEN (even when the token arrived via --token-file) so
     // the expansion resolves.
-    fs.writeFileSync(npmrcPath, `//registry.npmjs.org/:_authToken=\${${TOKEN_ENV}}\nalways-auth=true\n`)
+    fs.writeFileSync(npmrcPath, `//registry.npmjs.org/:_authToken=\${${TOKEN_ENV}}\n`)
     const publishArgs = ['publish']
     if (dryRun) publishArgs.push('--dry-run')
     log(`ship: npm ${publishArgs.join(' ')} (the repo's prepublishOnly gate runs inside this)`)
