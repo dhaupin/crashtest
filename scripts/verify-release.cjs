@@ -66,17 +66,6 @@
 //                         dirs that simply should not ride a tarball:
 //                         labs/ docs/ web/ packs/ tests/ scripts/
 //                         models/ examples/ .github/ node_modules/)
-//   --allowed p1/,p2/     forbidden prefixes DE-ASSERTED for this
-//                         invocation (subtracted from the defaults + any
-//                         --forbidden additions). A repo whose runtime
-//                         tarball legitimately carries a default-forbidden
-//                         tree dir states it here instead of forking this
-//                         file (vant ships web/ as product). Subtraction
-//                         only: you can never re-assert something the scan
-//                         itself forbids. A repo that never passes the flag
-//                         sees zero behavior change. `--allow` is accepted
-//                         as the same flag (the two forked copies spelled
-//                         it that way before this landed upstream).
 //
 // What each repo passes lives in ITS OWN workflow/battery invocation - the
 // script stays identical across the family, so a fix here is one copy.
@@ -111,28 +100,12 @@ function die(code, line) {
 function fail(line) { die(1, line) }
 function cap(line) { die(2, line) }
 
-function sh(cmd, args, opts) {
-  return spawnSync(cmd, args, { encoding: 'utf8', ...opts })
-}
+function sleep(ms) { return new Promise((r) => setTimeout(r, ms)) }
 
-// GitHub records `target_commitish` as the DEFAULT BRANCH NAME (e.g. `main`)
-// when a release is cut from an already-pushed tag (`gh release create <tag>`
-// with the tag already on the remote) - NOT the commit SHA. Only a 40-hex
-// value is a commit claim; a branch name carries no commit identity, and the
-// tag itself (verified below via `git rev-parse`) is the source of truth, so
-// comparing a branch name against the SHA is a false positive (the crashtest
-// 1.2.0 cut failed on exactly that: "pinpoints main, but the tag resolves to
-// ..."). A 40-hex target that disagrees with the tag IS real drift.
-function releaseTargetMatches(target, commit) {
-  const t = String(target || '')
-  return !/^[0-9a-f]{40}$/.test(t) || t === commit
-}
-
-// The registry read replica can lag a fresh publish by seconds: `npm publish`
-// returning means the cut is durable, not that every edge serves it yet. A
-// version is "visible" when `dist-tags.latest` names it AND the version entry
-// exists - a lane that reads once right after publish races the propagation
-// and reads a false negative (the crashtest 1.2.0 cut read latest=1.1.0).
+// A version is "visible" when dist-tags.latest names it AND the version entry
+// exists - the two things the registry must agree on. A fresh publish is
+// served before the packument indexes it, so a single read right after
+// publish races the propagation and reads a false negative.
 function registryHasVersion(meta, version) {
   return Boolean(
     meta && meta['dist-tags'] && meta['dist-tags'].latest === version &&
@@ -140,24 +113,17 @@ function registryHasVersion(meta, version) {
   )
 }
 
-// Poll a metadata fetch until the version is visible, bounded. Returns the
-// last metadata seen (the caller judges it); a fetch that throws is treated
-// as "not ready yet" so a transient edge error does not abort the wait.
-async function waitForVersion(fetchMeta, version, opts = {}) {
-  const attempts = opts.attempts || 24
-  const delayMs = opts.delayMs == null ? 5000 : opts.delayMs
-  const log = opts.log || say
-  let last = null
-  for (let i = 1; i <= attempts; i++) {
-    try { last = await fetchMeta() } catch { last = null }
-    if (registryHasVersion(last, version)) return last
-    if (i < attempts) {
-      const latest = last && last['dist-tags'] && last['dist-tags'].latest
-      log(`[verify-release] waiting for ${version} to appear on the registry (latest=${latest || '?'}, attempt ${i}/${attempts})`)
-      if (delayMs) await new Promise((r) => setTimeout(r, delayMs))
-    }
-  }
-  return last
+// GitHub records target_commitish as the DEFAULT BRANCH NAME when a release
+// is cut from an already-pushed tag, not the commit SHA. Only a 40-hex value
+// is a commit claim; a branch name carries no commit identity, and the tag
+// itself (git rev-parse below) is the source of truth.
+function releaseTargetMatches(target, commit) {
+  const t = String(target || '')
+  return !/^[0-9a-f]{40}$/i.test(t) || t === commit
+}
+
+function sh(cmd, args, opts) {
+  return spawnSync(cmd, args, { encoding: 'utf8', ...opts })
 }
 
 function readCheckout() {
@@ -176,15 +142,11 @@ function tarList(file) {
 
 function forbidden(scan, extraPrefixes, allowed) {
   const prefixes = [...FORBIDDEN_PREFIXES, ...extraPrefixes]
-  // --allowed names exemptions (--allow is the same flag - the spelling the
-  // two forked copies shipped before this landed upstream). A name under an
-  // allowed prefix skips the scan: a repo whose runtime tarball legitimately
-  // carries a default-forbidden tree dir (vant ships web/ as product) or
-  // ships template dotfiles on purpose (monoforge's templates/.github/)
-  // states it here instead of forking this file. Exemption only - you can
-  // never re-assert something the scan itself forbids, and a repo that
-  // passes no flag sees zero behavior change.
-  const exempt = (name) => allowed.some((p) => name === p || name.startsWith(p))
+  // --allowed (alias --allow) names exemptions: a name under an allowed
+  // prefix skips the scan. Exemption only - you can never re-assert
+  // something the scan itself forbids, and a repo that passes no flag sees
+  // zero behavior change.
+  const exempt = (name) => (allowed || []).some((p) => name === p || name.startsWith(p))
   const hits = []
   for (const name of scan) {
     if (exempt(name)) continue
@@ -304,9 +266,12 @@ function packLadder(tgz, expectedVersion, cfg) {
 
 // --- the registry ladder -------------------------------------------------
 
-function httpsJson(url) {
+// Protocol-aware so the propagation retry can be exercised against a local
+// lagging server (the test seam); https in production.
+function httpGetJson(url) {
   return new Promise((resolve, reject) => {
-    require('https').get(url, (res) => {
+    const mod = url.startsWith('http://') ? require('http') : require('https')
+    mod.get(url, (res) => {
       if (res.statusCode !== 200) { res.resume(); return reject(new Error(`HTTP ${res.statusCode}`)) }
       let d = ''
       res.on('data', (c) => { d += c })
@@ -315,9 +280,24 @@ function httpsJson(url) {
   })
 }
 
+function registryBase() {
+  return (process.env.VERIFY_RELEASE_REGISTRY || 'https://registry.npmjs.org').replace(/\/$/, '')
+}
+
+// Poll knobs, overridable so the propagation-retry seam is testable fast.
+function registryPollAttempts() {
+  const n = Number(process.env.VERIFY_RELEASE_ATTEMPTS)
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 20
+}
+function registryPollDelayMs() {
+  const n = Number(process.env.VERIFY_RELEASE_DELAY_MS)
+  return Number.isFinite(n) && n >= 0 ? n : 6000
+}
+
 function httpsBuffer(url) {
   return new Promise((resolve, reject) => {
-    require('https').get(url, (res) => {
+    const mod = url.startsWith('http://') ? require('http') : require('https')
+    mod.get(url, (res) => {
       if (res.statusCode !== 200) { res.resume(); return reject(new Error(`HTTP ${res.statusCode}`)) }
       const chunks = []
       res.on('data', (c) => chunks.push(c))
@@ -327,18 +307,31 @@ function httpsBuffer(url) {
 }
 
 async function npmLadder(expectedVersion, cfg) {
-  const regUrl = `https://registry.npmjs.org/${cfg.name}`
+  const regUrl = `${registryBase()}/${cfg.name}`
   say(`[verify-release] npm ladder: ${regUrl}`)
-  let meta
-  try {
-    meta = await httpsJson(regUrl)
-  } catch (e) {
-    say(`[verify-release] SKIP npm ladder (registry unreachable: ${e.message})`)
-    return false
+  // A fresh publish is served before the registry's packument indexes it --
+  // npm's own "may take a few minutes to become available". Poll through
+  // that window instead of red-flagging a cut that DID land: the first
+  // v1.2.0 verify run read latest 1.1.0 seconds after `+ prestruct@1.2.0`
+  // and failed a release that was already correct on the wire.
+  const attempts = registryPollAttempts()
+  const delayMs = registryPollDelayMs()
+  let meta = null
+  for (let i = 0; i < attempts; i++) {
+    try {
+      meta = await httpGetJson(regUrl)
+    } catch (e) {
+      say(`[verify-release] SKIP npm ladder (registry unreachable: ${e.message})`)
+      return false
+    }
+    if (registryHasVersion(meta, expectedVersion)) break
+    meta = null
+    if (i < attempts - 1) {
+      say(`[verify-release] registry has not settled on ${expectedVersion} yet (propagation); retry ${i + 1}/${attempts - 1} in ${delayMs / 1000}s`)
+      await sleep(delayMs)
+    }
   }
-  // The read replica can lag the publish by seconds; wait it out before
-  // judging (bounded, so a genuinely missing version still fails fast).
-  meta = await waitForVersion(() => httpsJson(regUrl), expectedVersion) || meta
+  if (!meta) fail(`registry never indexed ${expectedVersion} after ${attempts} polls over ${(attempts - 1) * delayMs / 1000}s - the cut did not land`)
   const latest = meta['dist-tags'] && meta['dist-tags'].latest
   if (latest !== expectedVersion) fail(`registry latest is ${latest}, expected ${expectedVersion} - either the cut did not land or a hand-moved dist-tag sits on a different version`)
   const ver = meta.versions[expectedVersion]
@@ -379,9 +372,18 @@ function ghLadder(tag, cfg, version, assetName) {
   const revParse = sh('git', ['rev-parse', `${tag}^{commit}`])
   if (revParse.status !== 0) cap(`git rev-parse ${tag} failed: ${revParse.stderr.trim()}`)
   const commit = revParse.stdout.trim()
+  if (String(obj.tag_name || '') !== tag) fail(`release object is tagged ${obj.tag_name}, expected ${tag}`)
+  // GitHub records target_commitish as the DEFAULT BRANCH NAME for a release
+  // cut from an existing tag (the publish lane's `gh release create vX` shape),
+  // not the tag's commit -- so a branch name is the normal, correct value, and
+  // comparing it to the SHA fails every tag-based release (v1.2.0's first
+  // verify run: "release v1.2.0 pinpoints main, but the tag resolves to
+  // d84d13a"). Only a full SHA here is a commit claim worth checking; a ref
+  // name is the creation hint, and the tag itself is the identity.
   const target = String(obj.target_commitish || '')
   if (!releaseTargetMatches(target, commit)) fail(`release ${tag} pinpoints ${target}, but the tag resolves to ${commit} - the release object and the tag disagree`)
-  say(`[verify-release] PASS release object exists, targets the tag's commit ${commit.slice(0, 12)}`)
+  const isSha = /^[0-9a-f]{40}$/i.test(target)
+  say(`[verify-release] PASS release object exists for ${tag} (target ${isSha ? commit.slice(0, 12) : `${target} -> tag commit ${commit.slice(0, 12)}`})`)
 
   // Source tarball == git archive of the release commit.
   const arch = spawnSync('git', ['archive', '--format=tar.gz', commit], { encoding: 'buffer', maxBuffer: 64 * 1024 * 1024 })
@@ -452,9 +454,8 @@ function main() {
   if (forbiddenIdx !== -1) {
     if (a[forbiddenIdx + 1]) cfg.extraForbidden = String(a[forbiddenIdx + 1]).split(',').filter(Boolean)
   }
-  // --allowed (alias --allow, the spelling the two forked copies shipped
-  // before this landed upstream): prefixes de-asserted from the forbidden
-  // scan for this invocation.
+  // --allowed (alias --allow): prefixes de-asserted from the forbidden scan
+  // for this invocation.
   const allowedIdx = a.findIndex((v) => v === '--allowed' || v === '--allow')
   if (allowedIdx !== -1) {
     if (a[allowedIdx + 1]) cfg.allowed = String(a[allowedIdx + 1]).split(',').filter(Boolean)
@@ -469,7 +470,7 @@ function main() {
   const wantNpm = a.includes('--npm')
   const wantGh = a.includes('--gh')
   if (!wantPack && !wantNpm && !wantGh) {
-    say('usage: verify-release [--pack <tgz>] [--npm] [--gh --tag vX.Y.Z] [--version X.Y.Z] [--exports k1,k2,...] [--probe "<js>"] [--forbidden p1/,p2/] [--allowed p1/,p2/]')
+    say('usage: verify-release [--pack <tgz>] [--npm] [--gh --tag vX.Y.Z] [--asset <name>] [--version X.Y.Z] [--exports k1,k2,...] [--probe "<js>"] [--forbidden p1/,p2/] [--allowed p1/,p2/]')
     process.exit(2)
   }
   const versionArgIdx = a.indexOf('--version')
@@ -480,6 +481,7 @@ function main() {
   const assetIdx = a.indexOf('--asset')
   const assetName = assetIdx !== -1 ? a[assetIdx + 1] : null
   if (assetIdx !== -1 && !assetName) cap('--asset needs an asset file name')
+  if (assetName && !wantGh) cap('--asset is a --gh modifier; pass --gh --tag vX.Y.Z --asset <name>')
 
   ;(async () => {
     let packTarget = null
@@ -506,9 +508,9 @@ function main() {
   })().catch((e) => cap(e.message))
 }
 
-// The pure helpers are exported for the battery (test/release-verify.test.js
-// pins releaseTargetMatches + registryHasVersion). main() runs only when the
-// file is executed as the CLI, never on a require() from a test.
+// The pure helpers are exported for the battery (the family release-verify
+// test pins releaseTargetMatches + registryHasVersion). main() runs only when
+// the file is executed as the CLI, never on a require() from a test.
 module.exports = { releaseTargetMatches, registryHasVersion }
 
 if (require.main === module) main()
