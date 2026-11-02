@@ -20,6 +20,14 @@ Notable changes to the `crashtest` package. The released version lives in `packa
   `verify-only` mode re-runs the ladder against what is already served. The
   workflow's `actions/checkout` + `actions/setup-node` are pinned to commit
   SHAs (house rule: pins, never floats).
+- the v1.2.0 live cut surfaced two false negatives in the shared ladder, both
+  fixed: (1) the `release` job ran `npm pack crashtest@1.2.0` seconds after
+  publish and read `ETARGET: no matching version` - the registry read replica
+  lags a fresh publish, so the pack is now a bounded poll (24 x 5s); (2) the
+  `verify` gh ladder rejected a release whose `target_commitish` was the
+  default branch name (`main`), which is what GitHub records when a release is
+  cut from an already-pushed tag - only a 40-hex `target_commitish` is a commit
+  claim now. `test/release-verify.test.js` pins both.
 - `crashtest --version` now prints the **bare** version (`1.2.0`), matching
   what `docs/reference/cli.md` already promised ("the single-string version")
   and what the family release ladder's installed-bin probe asserts exactly
