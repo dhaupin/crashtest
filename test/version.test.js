@@ -42,6 +42,8 @@ test('package.json and src/cli.js VERSION name the same x.y.z', () => {
 
 test('CHANGELOG.md is Keep-a-Changelog: an [Unreleased] section and a heading for the current version', () => {
   assert.match(header, /^## \[Unreleased\]$/m, 'CHANGELOG.md must carry a "## [Unreleased]" section');
+  const beforeUnreleased = header.slice(0, header.search(/^## \[Unreleased\]$/m));
+  assert.ok(!/^### /m.test(beforeUnreleased), 'no changelog subsection may sit above the "## [Unreleased]" heading');
   assert.match(header, new RegExp(`^## \\[${pkg.version.replace(/\./g, '\\.')}\\]`, 'm'), `CHANGELOG.md must list [${pkg.version}] as a heading`);
 });
 

@@ -6,6 +6,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/) - sections head `## [ver
 
 ## [Unreleased]
 
+### Changed
+
+- **Changelog + release-notes standardized to the family shape.** `CHANGELOG.md`
+  is now Keep-a-Changelog end to end (a `## [Unreleased]` block over
+  `## [version] - date` sections) and `scripts/release-notes.cjs` is the
+  family's single superset extractor: it reads the KAC heading, still reads the
+  older bare (`## 1.2.0`) and v-prefixed (`## v1.2.0`) forms, closes the
+  version token so `## [1.2.0]` never matches a `## [1.2.0-rc.1]`, and refuses
+  a version with no section by name. One extractor across the family means one
+  release-body shape everywhere.
+
 ### Fixed
 
 - **The release ladder no longer races registry propagation, nor false-flags a
