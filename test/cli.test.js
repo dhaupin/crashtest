@@ -27,7 +27,7 @@ test('version prints VERSION', async () => {
   } finally {
     console.log = orig;
   }
-  assert.match(out.join('\n'), new RegExp(`crashtest v${VERSION.replace(/\./g, '\\.')}`));
+  assert.equal(out.join('\n').trim(), VERSION);
 });
 
 test('init writes ledger + report with the v1 schema', async () => {

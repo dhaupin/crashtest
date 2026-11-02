@@ -51,7 +51,7 @@ docs/publish.md         maintainer publish runbook (OIDC trusted publishing)
 docs/                   PUBLIC docs (Jekyll, mirrors vant - deploys at
                         docs.creadev.org/crashtest via the freestruct layer);
                         every claim here is verified against the CLI (rule 7)
-.github/workflows/      publish.yml (npm release on v* tags) / ci.yml (test+dogfood gate)
+.github/workflows/      publish.yml (the 3-job release ladder on v* tags) / ci.yml (test+dogfood gate)
 action.yml              composite GitHub Action for OTHER repos (crashtest gate)
 ```
 
