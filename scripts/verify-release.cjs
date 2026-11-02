@@ -115,6 +115,51 @@ function sh(cmd, args, opts) {
   return spawnSync(cmd, args, { encoding: 'utf8', ...opts })
 }
 
+// GitHub records `target_commitish` as the DEFAULT BRANCH NAME (e.g. `main`)
+// when a release is cut from an already-pushed tag (`gh release create <tag>`
+// with the tag already on the remote) - NOT the commit SHA. Only a 40-hex
+// value is a commit claim; a branch name carries no commit identity, and the
+// tag itself (verified below via `git rev-parse`) is the source of truth, so
+// comparing a branch name against the SHA is a false positive (the crashtest
+// 1.2.0 cut failed on exactly that: "pinpoints main, but the tag resolves to
+// ..."). A 40-hex target that disagrees with the tag IS real drift.
+function releaseTargetMatches(target, commit) {
+  const t = String(target || '')
+  return !/^[0-9a-f]{40}$/.test(t) || t === commit
+}
+
+// The registry read replica can lag a fresh publish by seconds: `npm publish`
+// returning means the cut is durable, not that every edge serves it yet. A
+// version is "visible" when `dist-tags.latest` names it AND the version entry
+// exists - a lane that reads once right after publish races the propagation
+// and reads a false negative (the crashtest 1.2.0 cut read latest=1.1.0).
+function registryHasVersion(meta, version) {
+  return Boolean(
+    meta && meta['dist-tags'] && meta['dist-tags'].latest === version &&
+    meta.versions && meta.versions[version]
+  )
+}
+
+// Poll a metadata fetch until the version is visible, bounded. Returns the
+// last metadata seen (the caller judges it); a fetch that throws is treated
+// as "not ready yet" so a transient edge error does not abort the wait.
+async function waitForVersion(fetchMeta, version, opts = {}) {
+  const attempts = opts.attempts || 24
+  const delayMs = opts.delayMs == null ? 5000 : opts.delayMs
+  const log = opts.log || say
+  let last = null
+  for (let i = 1; i <= attempts; i++) {
+    try { last = await fetchMeta() } catch { last = null }
+    if (registryHasVersion(last, version)) return last
+    if (i < attempts) {
+      const latest = last && last['dist-tags'] && last['dist-tags'].latest
+      log(`[verify-release] waiting for ${version} to appear on the registry (latest=${latest || '?'}, attempt ${i}/${attempts})`)
+      if (delayMs) await new Promise((r) => setTimeout(r, delayMs))
+    }
+  }
+  return last
+}
+
 function readCheckout() {
   const pkg = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8'))
   if (!pkg.name || !pkg.version) fail(`checkout package.json carries no name/version`)
@@ -291,6 +336,9 @@ async function npmLadder(expectedVersion, cfg) {
     say(`[verify-release] SKIP npm ladder (registry unreachable: ${e.message})`)
     return false
   }
+  // The read replica can lag the publish by seconds; wait it out before
+  // judging (bounded, so a genuinely missing version still fails fast).
+  meta = await waitForVersion(() => httpsJson(regUrl), expectedVersion) || meta
   const latest = meta['dist-tags'] && meta['dist-tags'].latest
   if (latest !== expectedVersion) fail(`registry latest is ${latest}, expected ${expectedVersion} - either the cut did not land or a hand-moved dist-tag sits on a different version`)
   const ver = meta.versions[expectedVersion]
@@ -332,7 +380,7 @@ function ghLadder(tag, cfg, version, assetName) {
   if (revParse.status !== 0) cap(`git rev-parse ${tag} failed: ${revParse.stderr.trim()}`)
   const commit = revParse.stdout.trim()
   const target = String(obj.target_commitish || '')
-  if (target && target !== commit) fail(`release ${tag} pinpoints ${target}, but the tag resolves to ${commit} - the release object and the tag disagree`)
+  if (!releaseTargetMatches(target, commit)) fail(`release ${tag} pinpoints ${target}, but the tag resolves to ${commit} - the release object and the tag disagree`)
   say(`[verify-release] PASS release object exists, targets the tag's commit ${commit.slice(0, 12)}`)
 
   // Source tarball == git archive of the release commit.
@@ -458,4 +506,9 @@ function main() {
   })().catch((e) => cap(e.message))
 }
 
-main()
+// The pure helpers are exported for the battery (test/release-verify.test.js
+// pins releaseTargetMatches + registryHasVersion). main() runs only when the
+// file is executed as the CLI, never on a require() from a test.
+module.exports = { releaseTargetMatches, registryHasVersion }
+
+if (require.main === module) main()

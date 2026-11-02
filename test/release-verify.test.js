@@ -78,3 +78,50 @@ test('release-notes extracts the version section from this repo\'s heading shape
   const missing = spawnSync('node', [NOTES, '9.9.9'], { cwd: ROOT, encoding: 'utf8' });
   assert.equal(missing.status, 1, 'release-notes must refuse a version with no changelog section');
 });
+
+// ---- the two bugs the crashtest 1.2.0 live cut surfaced ----------------
+// Both were real false negatives in the shared ladder and are pinned here so
+// a regression fails the battery instead of the next release.
+
+test('the release target check accepts a branch-name target_commitish (the 1.2.0 cut bug)', () => {
+  // GitHub records `target_commitish` as the DEFAULT BRANCH NAME (`main`), not
+  // a SHA, when a release is cut from an already-pushed tag. The old check
+  // failed on that ("pinpoints main, but the tag resolves to ..."). The fix:
+  // only a 40-hex target is a commit claim; a branch name is not drift.
+  const r = spawnSync('node', ['-e', `
+    const m = require(${JSON.stringify(SCRIPT)});
+    const ok = [
+      m.releaseTargetMatches('main', 'a'.repeat(40)),
+      m.releaseTargetMatches('staging', 'a'.repeat(40)),
+      m.releaseTargetMatches('', 'a'.repeat(40)),
+      m.releaseTargetMatches('a'.repeat(40), 'a'.repeat(40)),
+    ];
+    const bad = [
+      m.releaseTargetMatches('b'.repeat(40), 'a'.repeat(40)),
+    ];
+    if (!ok.every(Boolean)) { console.error('a branch-name/absent target was rejected'); process.exit(1); }
+    if (bad.some(Boolean)) { console.error('a disagreeing 40-hex target was accepted'); process.exit(1); }
+    process.stdout.write('ok');
+  `], { cwd: ROOT, encoding: 'utf8' });
+  assert.equal(r.status, 0, `releaseTargetMatches misjudged a target: ${r.stderr}`);
+  assert.ok(r.stdout.includes('ok'), 'releaseTargetMatches never ran');
+});
+
+test('the registry visibility check waits out propagation lag (the 1.2.0 cut bug)', () => {
+  // The read replica lagged the publish: the first read saw latest=1.1.0.
+  // registryHasVersion must require BOTH dist-tags.latest == version AND the
+  // version entry - a fresh publish is not "visible" until both hold.
+  const r = spawnSync('node', ['-e', `
+    const m = require(${JSON.stringify(SCRIPT)});
+    const v = '1.2.0';
+    const lagging = { 'dist-tags': { latest: '1.1.0' }, versions: { '1.1.0': {} } };
+    const settled = { 'dist-tags': { latest: v }, versions: { [v]: {}, '1.1.0': {} } };
+    const partial = { 'dist-tags': { latest: v }, versions: { '1.1.0': {} } };
+    if (m.registryHasVersion(lagging, v)) { console.error('lagging registry judged visible'); process.exit(1); }
+    if (m.registryHasVersion(partial, v)) { console.error('version entry absent but judged visible'); process.exit(1); }
+    if (!m.registryHasVersion(settled, v)) { console.error('settled registry judged invisible'); process.exit(1); }
+    process.stdout.write('ok');
+  `], { cwd: ROOT, encoding: 'utf8' });
+  assert.equal(r.status, 0, `registryHasVersion misjudged visibility: ${r.stderr}`);
+  assert.ok(r.stdout.includes('ok'), 'registryHasVersion never ran');
+});
