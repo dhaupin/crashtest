@@ -4,6 +4,14 @@ Notable changes to the `crashtest` package. The released version lives in `packa
 
 ## 1.2.0 (unreleased)
 
+- the poststruct reference row re-cuts against the live repo: gistory retired
+  its forge role 2026-11-02 (gistory#37), so the `poststruct-staging/` citation
+  in `docs/reference/packs.md` is retired. poststruct now lives at
+  `dhaupin/poststruct` with its own `test.yml` (exact family pins) and its own
+  `scripts/run-packs.mjs` (8/8 on the packstruct conformance cases). The
+  citation rule drops its pre-repo staging branch - every family member is a
+  live repo pin now.
+
 - #45 closes (the crashtest side): the legal pages (Terms + Privacy) now carry
   a family crosslink footer naming the four sibling sites that share the same
   plain-language legal form (eyestruct, monoforge, poststruct, packstruct), so
