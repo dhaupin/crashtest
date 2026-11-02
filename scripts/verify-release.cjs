@@ -35,9 +35,12 @@
 //   2. FORBIDDEN scan: the family-default prefixes (below) plus any
 //      --forbidden additions - source maps and .env* never ship. Named
 //      refusal.
-//   3. EXPECTED SET: `npm pack --dry-run --json` ON THE CALLER'S TREE is
-//      the same-algorithm authority for what publish would include - the
-//      served set must equal it EXACTLY (no stragglers, no omissions).
+//   3. EXPECTED SET: a REAL `npm pack` of the caller's tree, listed by the
+//      same tarList as the served tarball, is the same-algorithm authority
+//      for what publish would include - the served set must equal it EXACTLY
+//      (no stragglers, no omissions). We do NOT parse `--dry-run --json`:
+//      some npm builds answer it with empty stdout, which would read as a
+//      capability failure on a clean tree.
 //   4. IDENTITY: package/package.json name + version == expected version.
 //   5. CONSUMER INSTALL: a scratch tree `npm install <tgz>`, then the
 //      pack's own require probe (name@version), any --probe extras the
@@ -123,7 +126,15 @@ function releaseTargetMatches(target, commit) {
 }
 
 function sh(cmd, args, opts) {
-  return spawnSync(cmd, args, { encoding: 'utf8', ...opts })
+  // A real `npm publish` never carries npm_config_dry_run, but `npm publish
+  // --dry-run` (the phone lane's rehearsal) exports npm_config_dry_run=true
+  // into the lifecycle env; a nested `npm pack` then writes no tarball and a
+  // nested `npm install` installs nothing, so the ladder fails for a reason
+  // that has nothing to do with the tree. Strip it so the ladder's own
+  // expected-set `npm pack` and consumer `npm install` still run for real.
+  const env = { ...process.env }
+  delete env.npm_config_dry_run
+  return spawnSync(cmd, args, { encoding: 'utf8', env, ...opts })
 }
 
 function readCheckout() {
@@ -175,14 +186,23 @@ function packLadder(tgz, expectedVersion, cfg) {
   if (bad.length) fail(`FORBIDDEN contents in the tarball: ${bad.join('; ')}`)
   say(`[verify-release] PASS forbidden scan (${names.length} entries, 0 forbidden)`)
 
-  // 3. expected set from the same tree, same algorithm.
-  const packRun = sh('npm', ['pack', '--dry-run', '--json'], { cwd: REPO_ROOT })
+  // 3. expected set from the same tree, same algorithm: a REAL `npm pack` of
+  // the checkout into a scratch dir, then the same tarList the served tarball
+  // went through. We do NOT ask `npm pack --dry-run --json`: some npm builds
+  // (the phone's) return empty stdout for it even with --loglevel=error, so
+  // the parse would fail and read as a capability failure on a clean tree. A
+  // real pack writes a real tarball, and its file list IS the truth the
+  // served set is judged against.
+  const expectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-release-expect-'))
   let expected = null
   try {
-    const packJson = JSON.parse(packRun.stdout)
-    expected = (Array.isArray(packJson) ? packJson[0] : packJson).files.map((f) => f.path)
-  } catch {
-    cap(`npm pack --dry-run --json failed: ${packRun.stderr.trim()}`)
+    const packRun = sh('npm', ['pack', '--pack-destination', expectDir], { cwd: REPO_ROOT })
+    if (packRun.status !== 0) cap(`npm pack of the checkout failed: ${packRun.stderr.trim()}`)
+    const built = fs.readdirSync(expectDir).filter((f) => f.endsWith('.tgz'))
+    if (!built.length) cap('npm pack produced no tarball for the expected-set probe')
+    expected = tarList(path.join(expectDir, built[0]))
+  } finally {
+    fs.rmSync(expectDir, { recursive: true, force: true })
   }
   const gotSet = [...names].sort()
   const want = [...new Set([...expected, 'package.json'])].sort()

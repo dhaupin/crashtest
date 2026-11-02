@@ -6,6 +6,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/) - sections head `## [ver
 
 ## [Unreleased]
 
+### Fixed
+
+- **The release ladder no longer parses `npm pack --dry-run --json`.** The
+  phone's npm answers that probe with empty stdout (a config warning, no JSON)
+  even under `--loglevel=error`, so the ladder's `JSON.parse` failed and read as
+  a capability failure - exit 2 - on a clean tree. The ladder now derives the
+  expected set from a REAL `npm pack` of the checkout, listed by the same
+  `tarList` the served tarball already goes through.
+
+- **The staged publish `.npmrc` no longer writes the deprecated `always-auth`
+  line.** npm >=9 warns `Unknown project config "always-auth"` on it, and that
+  warning reaches the child processes the `prepublishOnly` gate spawns. The
+  staged file is now exactly one line (the `${NPM_TOKEN}` expansion).
+
 ### Changed
 
 - **Changelog + release-notes standardized to the family shape.** `CHANGELOG.md`
