@@ -10,7 +10,11 @@
 # This repo's docs config is the LEGACY name (docs/ssr-config.yml); freestruct
 # discovery reads it as back-compat, so nothing is renamed. crashtest dogfoods
 # itself in .github/workflows/ci.yml, so the lane's dogfood leg stays off here.
-# freestruct-version is pinned EXACT at 1.1.0 (issue #36).
+# freestruct-version is pinned EXACT at 1.2.0 (issue #36: an exact pin, never a
+# float). The bump 1.1.0 -> 1.2.0 is load-bearing here: 1.1.0's link checker
+# had no basePath strip, so the consolidated lane's default `--strict` read
+# every root-absolute `/crashtest/...` nav link as broken (1054 false misses);
+# 1.2.0 carries the basePath-aware strip (freestruct#32) and passes.
 # The docs truth gates (npm run lint:docs) run in test.yml/ci.yml, not here:
 # a workflow_call caller cannot carry extra steps, so they stay in the battery.
 name: Deploy docs
@@ -36,4 +40,4 @@ jobs:
     uses: dhaupin/freestruct/.github/workflows/docs-lane.yml@22bb7e9b2634d6cdd966963d9e25c7f892577276 # main
     with:
       ruby-version: '3.4'
-      freestruct-version: '1.1.0'
+      freestruct-version: '1.2.0'

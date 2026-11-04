@@ -11,10 +11,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/) - sections head `## [ver
 The family built docs from four topologies; the two reusable lanes had drifted (ruby 3.2 vs 3.4, pagefind `latest` scrape vs npm pin). The docs lane is now ONE canonical reusable workflow in `dhaupin/freestruct`, and this repo is a thin caller of it.
 
 - `.github/workflows/docs.yml` calls `dhaupin/freestruct/.github/workflows/docs-lane.yml@22bb7e9b2634d6cdd966963d9e25c7f892577276`, keeping only the trigger, permissions, concurrency, and this repo pins.
-- This repo's docs config is the LEGACY `docs/ssr-config.yml` (freestruct reads it as back-compat); `freestruct-version` stays pinned EXACT at `1.1.0` (issue #36 - a floating install is a random deploy). It dogfoods crashtest in `ci.yml`, so the lane's dogfood leg is off here.
+- This repo's docs config is the LEGACY `docs/ssr-config.yml` (freestruct reads it as back-compat); `freestruct-version` is pinned EXACT (issue #36 - a floating install is a random deploy). It dogfoods crashtest in `ci.yml`, so the lane's dogfood leg is off here.
 - No version bump; a workflow consolidation, not a released surface.
 
 ### Fixed
+
+- **The docs lane went red on `main` - the pin, not the links.** The consolidated lane enables `--strict` by default, and this repo was the last caller still pinning `freestruct@1.1.0`. freestruct 1.1.0's `checkLinks()` had no `basePath` parameter (the strip landed in 1.2.0, freestruct#32), so every root-absolute `/crashtest/...` nav link resolved literally and missed - 1054 "broken" links, every one a false positive (`/crashtest/` itself was reported broken). `freestruct-version` moves `1.1.0` -> `1.2.0` (the exact-pin ritual issue #36 prescribes: bump the number the day freestruct releases again). Proven both ways: 1.1.0 reports 16/16 broken on a synthetic tree carrying the real nav hrefs; 1.2.0 reports 0. The fix re-fires the lane on push (docs.yml is in the paths filter); verified after push.
 
 - **`action.yml` pins its actions and drops a duplicate key.** The composite Action that other repos add as a CI gate carried floating refs (`actions/setup-node@v6`, `actions/upload-artifact@v6`) - the exact supply-chain float the house rule bans - and `inputs.node-version` declared `default:` twice. Both actions are now pinned to 40-hex SHAs, and the duplicate key is gone (`action.yml` now parses clean; the family pin guard refused it once the guard learned to scan the manifest). The pin guard (`scripts/check-action-pins.cjs`) now scans the repo's `action.yml` alongside `.github/workflows/`, so an Action float fails in CI like any other; its battery proves the new leg bites.
 
