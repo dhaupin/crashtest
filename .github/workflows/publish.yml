@@ -107,7 +107,20 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
       - name: Install (no runtime deps - lockfile-light install)
         run: npm install --no-audit --no-fund
-      - run: npm publish --provenance
+      # Idempotent: if the registry already has this exact version -- e.g. the
+      # release was re-fired after fixing a later workflow -- skip the publish
+      # instead of failing red on "cannot publish over the previously published
+      # version". Version drift between package.json and the registry still
+      # publishes normally.
+      - name: Publish (skip if the registry already has this version)
+        run: |
+          LOCAL=$(node -p "require('./package.json').version")
+          REMOTE=$(npm view crashtest@$LOCAL version 2>/dev/null || true)
+          if [ "$REMOTE" = "$LOCAL" ]; then
+            echo "crashtest@$LOCAL already on the registry -- skipping publish"
+          else
+            npm publish --provenance
+          fi
 
   release:
     needs: publish
