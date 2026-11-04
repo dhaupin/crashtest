@@ -75,8 +75,6 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 22
-          registry-url: "https://registry.npmjs.org"
-          package-manager-cache: false
       - name: npm floor for trusted publishing (11.5.1+)
         run: npm install -g npm@^11
       - id: gate
@@ -105,8 +103,7 @@ jobs:
           echo "publish gate: $TAG passes the 0.x refusal and the tag==version gate"
           echo "version=$V" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-      - name: Install (no runtime deps - lockfile-light install)
-        run: npm install --no-audit --no-fund
+      - run: npm ci --no-fund --no-audit
       # Idempotent: if the registry already has this exact version -- e.g. the
       # release was re-fired after fixing a later workflow -- skip the publish
       # instead of failing red on "cannot publish over the previously published
