@@ -45,7 +45,7 @@ concurrency:
 
 jobs:
   build:
-    uses: dhaupin/flowforge/.github/workflows/docs-build.yml@main
+    uses: dhaupin/flowforge/.github/workflows/docs-build.yml@47aa67f43366ef47dd8d07889cdb957eca47099f # main
     with:
       ruby-version: '3.4'
       freestruct-version: '1.1.0'
@@ -63,4 +63,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
