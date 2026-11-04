@@ -267,3 +267,9 @@
 ### 2026-10-29 - the island's cross-origin reads were CSP-blocked, not CORS-blocked
 - Live family-board receipt after the CF rebuild picked up 6cd9c16: crashtest now SERVES /status.json (200, application/json, correct dialect) and eyestruct serves ACAO:* - yet BOTH islands still rendered every foreign row \"Failed to fetch\". Cause: the sites' own CSP connect-src ('self' + cloudflareinsights only) forbids fetch() to any sibling origin - the browser refuses before CORS headers matter.
 - web/public/_headers: connect-src grows the family member origins (eyestruct/poststruct/packstruct/monoforge .creadev.org), and /status.json carries its own block (ACAO:* + no-cache) so the siblings' boards can read OUR file too - the reader half of family-status@1. Receipt: dist/_headers carries the CSP line + the /status.json block; build 6/6 pages. The symmetric ask goes to eyestruct as an issue (their connect-src lacks the family origins, so THEIR island cannot light crashtest's row either).
+
+## 2026-11-03 - the pin guard goes family-wide (packstruct#69 back-port)
+
+- `scripts/check-action-pins.cjs` (the "pins, never floats" guard) was a packstruct-only artifact (it landed on packstruct's `fix/sha-pin-actions`). It is now copied byte-identical into every sibling: `crashtest`, `eyestruct`, `freestruct`, `gistory`, `govstruct`, `monoforge`, `poststruct`, `prestruct` (packstruct already had it).
+- Wired as `npm run lint:pins` inside each repo's publish gate (`check` / `gate` / `prepublishOnly`) and CI, and the guard's own battery (`check-action-pins.test.*`) rides `npm test`.
+- Each repo's workflows were already SHA-pinned, so the guard is now mechanical here too. Receipt: `ACTION PINS: PASS (10 ref(s), all SHA-pinned)`, pin battery 8/8, full battery green.

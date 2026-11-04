@@ -119,6 +119,10 @@ A manual walk/probe session is not done until nothing it found is uncommissioned
 
 Living prose never hard-wraps at commit time: paragraphs flow (see `scripts/unwrap-prose.cjs`, adopted from eyestruct@`3adda1d`). Dated history keeps its era wording.
 
+## Pins, never floats (packstruct#69)
+
+Every GitHub Action `uses:` names a 40-hex commit SHA (tag kept in the trailing comment), never `@v4`/`@v1`. `npm run lint:pins` (`scripts/check-action-pins.cjs`) refuses a floating ref, so the rule is mechanical; it rides `npm run check` (the `prepublishOnly` gate) and CI. New pins take the family canon SHA the sibling repos already carry.
+
 ## Release procedure (maintainers)
 
 Documented in [docs/publish.md](./docs/publish.md). Short version: npm Trusted Publishing (OIDC) - **no publish tokens anywhere**; release = bump version (package.json + `VERSION` in `src/cli.js`), commit, tag `vX.Y.Z`, push tag. If a tag-driven run fails and you need a retry, re-push the tag (`git push origin :refs/tags/vX.Y.Z && git push origin vX.Y.Z`) - the integration cannot re-run a failed run directly. Provenance is signed automatically (attestations verifiable in the npm UI / Sigstore log).
