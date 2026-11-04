@@ -172,7 +172,10 @@ function ship(opts = {}) {
     // ${ENV} placeholder from the child process env, so the raw token lives
     // only in memory, never on disk, never in argv. The child env always
     // carries NPM_TOKEN (even when the token arrived via --token-file) so
-    // the expansion resolves.
+    // the expansion resolves. One line only: `always-auth` is deprecated
+    // (npm >=9 warns "Unknown project config"), and that warning reaches the
+    // child processes npm spawns - on some npm builds it corrupts
+    // `npm pack --dry-run --json` output and fails an otherwise clean gate.
     fs.writeFileSync(npmrcPath, `//registry.npmjs.org/:_authToken=\${${TOKEN_ENV}}\n`)
     const publishArgs = ['publish']
     if (dryRun) publishArgs.push('--dry-run')
