@@ -72,9 +72,13 @@ for (const f of files) {
           }
           continue;
         }
-        const p = path.resolve(path.dirname(f), u.replace(/\.md$/, ''));
-        if (fs.existsSync(p + '.md') || fs.existsSync(path.join(p, 'index.md')) || fs.existsSync(p)) continue;
-        console.log('BROKEN (rel) in', rel, '->', m[1]);
+        // A page-relative link resolves against the SERVED page URL, not the
+        // source tree: on a no-trailing-slash permalink page the browser reads
+        // /crashtest/foo as a file, so '../x'/'./x' lands one level off and
+        // 404s (the gistory/poststruct discussions break, same shape). The old
+        // resolution below checked the SOURCE tree, which always has the file,
+        // so it never bit. Internal links are root-absolute (/crashtest/...).
+        console.log('BROKEN (relative - use a root-absolute /crashtest link) in', rel, '->', m[1]);
         broken++;
       }
     }

@@ -59,7 +59,7 @@ $ npx crashtest run
 
 - Exit `0` - everything REFUSED (or BOUNDED with a real owner+bound). Holds.
 - Exit `1` - a NEW ⚡ EXPLOITED finding, or a REGRESSION of something that held before. CI treats this as failure.
-- Exit `2` - config problem (say, missing config file). Fix the config. (Only exception: `run --allow-vacuous` opts a pre-handler repo into an honest vacuous-green line instead of the hard exit 2 - see [exit rules](../reference/exit-rules.md).)
+- Exit `2` - config problem (say, missing config file). Fix the config. (Only exception: `run --allow-vacuous` opts a pre-handler repo into an honest vacuous-green line instead of the hard exit 2 - see [exit rules](/crashtest/reference/exit-rules).)
 
 ## 4 / Adopt the baseline
 
