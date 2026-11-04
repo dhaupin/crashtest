@@ -3,7 +3,7 @@
  * ========================
  * Updates route-specific head tags on client-side navigation.
  *
- * SSR (the prestruct prerender pass) bakes correct tags into each route's HTML at build time --
+ * SSR (prerender.js) bakes correct tags into each route's HTML at build time --
  * bots without JS and initial page loads see those tags directly.
  * This hook keeps them in sync when the user navigates within the SPA,
  * covering JS-enabled bots (Googlebot, social crawlers) and the browser tab.
@@ -43,14 +43,26 @@
  */
 
 import { useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
+import * as rrdNS from 'react-router-dom'
+// Neither plain named imports nor a bare namespace destructure survive
+// both majors: v7 ships CJS (vite SSR rejects named imports; node interop
+// gives a namespace whose only reliable export is `default` -- the exports
+// object), while v6 is ESM with possibly no default. Destructure from
+// whichever carries the exports.
+const rrd = rrdNS.default ?? rrdNS
+const { useLocation } = rrd
 
+/** Update the SPA head tags on every route change (see the module head doc). */
 export default function usePageMeta({ title, description, path, siteUrl }) {
-  const base = siteUrl || import.meta.env?.VITE_SITE_URL || ''
+  // Trailing-slash normalization (#53): a configured base with its trailing
+  // slash would join into `https://site//about` on every navigation
+  const base = (siteUrl || import.meta.env?.VITE_SITE_URL || '').replace(/\/$/, '')
   const location = useLocation()
 
   useEffect(() => {
-    const canonical = `${base}${path === '/' ? '' : path}`
+    // Without a base URL a computed canonical would be relative ("/about"),
+    // which is not a canonical URL -- skip rather than write a wrong tag.
+    const canonical = base ? `${base}${path === '/' ? '' : path}` : ''
 
     const set = (selector, attr, value) => {
       const el = document.querySelector(selector)

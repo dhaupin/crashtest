@@ -55,25 +55,44 @@ import React    from 'react'
 // Tracks elements that have already been mounted to prevent double createRoot
 // calls when mountIslands is called again on SPA route change.
 const mounted = new WeakSet()
+// Tracks elements that already have a live IntersectionObserver. mountIslands
+// is contractually called after EVERY navigation, and a never-intersected
+// 'visible' island survives each scan as the same element: without this set,
+// a duplicate scan stacks another observer on it (each with its own callback
+// and its own disconnect lifecycle).
+const observing = new WeakSet()
+// The live observer per watched element, so mount() can disconnect exactly
+// the observer that got it here instead of leaving the one-shot entry firing.
+const observers = new WeakMap()
 
 function mount(el, Component) {
   if (mounted.has(el)) return
   mounted.add(el)
+  // Disconnect the 'visible' island's observer exactly once, at the moment
+  // of the mount it was waiting for (instead of inside its own callback,
+  // which a duplicate observer would race with).
+  const io = observers.get(el)
+  if (io) {
+    observers.delete(el)
+    observing.delete(el)
+    io.disconnect()
+  }
   el.innerHTML = ''
   ReactDOM.createRoot(el).render(React.createElement(Component))
 }
 
 function observe(el, Component) {
   if (mounted.has(el)) return
-  const io = new IntersectionObserver((entries, observer) => {
+  if (observing.has(el)) return // already waiting on one observer
+  observing.add(el)
+  const io = new IntersectionObserver((entries) => {
     for (const entry of entries) {
       if (entry.isIntersecting) {
-        observer.unobserve(el)
-        io.disconnect()  // Clean up the observer after use
-        mount(el, Component)
+        mount(el, Component) // mount() does the disconnect now
       }
     }
   }, { rootMargin: '0px', threshold: 0.1 })
+  observers.set(el, io)
   io.observe(el)
 }
 
@@ -97,11 +116,11 @@ function whenIdle(el, Component) {
  * Scans the DOM for <pre-island> elements and mounts the matching
  * React component from the registry into each one.
  *
- * registry -- object mapping island names to React components:
- *   { 'recently-viewed': RecentlyViewed, 'cart-widget': CartWidget }
- *
  * Unregistered island names are skipped with a console warning.
  * Safe to call with an empty registry -- nothing happens.
+ *
+ * @param {Record<string, Function>} [registry={}] - island name -> React component
+ * @returns {void}
  */
 export function mountIslands(registry = {}) {
   if (typeof window === 'undefined') return
