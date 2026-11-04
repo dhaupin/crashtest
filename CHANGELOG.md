@@ -6,6 +6,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/) - sections head `## [ver
 
 ## [Unreleased]
 
+### Changed
+
+- **The docs lane now calls coreforge.** `dhaupin/flowforge` was renamed `dhaupin/coreforge` (govstruct PRD 16.5). The reusable docs lane the build job calls (`.github/workflows/docs.yml`) is re-pinned from `dhaupin/flowforge/...@47aa67f` to `dhaupin/coreforge/...@c827774`, and the comment naming the lane's home follows. The lane's bytes are unchanged across the rename (a comment-only diff), so this is an owner swap, not a behavior change; the pin guard still passes.
+
 ### Security
 
 - **Pins, never floats (packstruct#69).** Every GitHub Action `uses:` in `.github/workflows/` names a 40-hex commit SHA (tag kept in the trailing comment), never a floating `@v4`/`@v1`. A new guard, `scripts/check-action-pins.cjs`, refuses any floating ref, a branch, or a `docker://` image; it runs as `npm run lint:pins` inside `npm run check` (the `prepublishOnly` gate) and CI, and its own battery (`test/check-action-pins.test.js`) proves it bites both ways.

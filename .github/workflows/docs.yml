@@ -1,7 +1,7 @@
 name: Deploy Docs
 
 # Docs deploy as a thin caller of the family's one reusable lane
-# (crashtest#38; the runbook lives in dhaupin/flowforge's docs-build.yml,
+# (crashtest#38; the runbook lives in dhaupin/coreforge's docs-build.yml,
 # promoted to workflow_call by their issue #9). The hand-copied build steps
 # that lived here (Jekyll, the hardened pagefind scrape, the search index,
 # the pinned freestruct layer, the artifact upload) are THE SAME STEPS in
@@ -45,7 +45,7 @@ concurrency:
 
 jobs:
   build:
-    uses: dhaupin/flowforge/.github/workflows/docs-build.yml@47aa67f43366ef47dd8d07889cdb957eca47099f # main
+    uses: dhaupin/coreforge/.github/workflows/docs-build.yml@c82777494812909c80d4153cce26e20d72b35ae9 # main
     with:
       ruby-version: '3.4'
       freestruct-version: '1.1.0'

@@ -273,3 +273,12 @@
 - `scripts/check-action-pins.cjs` (the "pins, never floats" guard) was a packstruct-only artifact (it landed on packstruct's `fix/sha-pin-actions`). It is now copied byte-identical into every sibling: `crashtest`, `eyestruct`, `freestruct`, `gistory`, `govstruct`, `monoforge`, `poststruct`, `prestruct` (packstruct already had it).
 - Wired as `npm run lint:pins` inside each repo's publish gate (`check` / `gate` / `prepublishOnly`) and CI, and the guard's own battery (`check-action-pins.test.*`) rides `npm test`.
 - Each repo's workflows were already SHA-pinned, so the guard is now mechanical here too. Receipt: `ACTION PINS: PASS (10 ref(s), all SHA-pinned)`, pin battery 8/8, full battery green.
+
+## 2026-11-03 - the docs lane calls coreforge (flowforge -> coreforge rename)
+
+The member `flowforge` is renamed **coreforge** (govstruct PRD 16.5). The repo rename preserves the git history, so the lane's pin SHA `47aa67f` is still reachable - but the OWNER in the `uses:` ref had to move, or the ref points at a name that only resolves by GitHub's rename redirect.
+
+- **`.github/workflows/docs.yml`** - the reusable docs lane call is re-pinned from `dhaupin/flowforge/.github/workflows/docs-build.yml@47aa67f` to `dhaupin/coreforge/.github/workflows/docs-build.yml@c827774` (coreforge's main after the rename). The comment naming the lane's home follows.
+- **Why the SHA moved too:** pinning `@47aa67f` under the new owner would work (history is preserved), but it would pin a commit that predates the rename, so the ref and the repo's own HEAD would disagree. Pinning coreforge's current main (`c827774`) keeps the two in step; the lane's bytes are a comment-only diff across the rename, so nothing behavioral changed.
+- **Receipts:** `npm run lint:pins` PASS (10 refs, 3 workflows, all SHA-pinned); the lane's reusable contract (inputs `ruby-version` 3.4, `freestruct-version` 1.1.0) is unchanged.
+- **No version bump**; a workflow-owner swap, not a released surface.
