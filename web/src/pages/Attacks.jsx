@@ -2,7 +2,7 @@ import usePageMeta from '../hooks/usePageMeta.js'
 
 const SITE_URL = 'https://crashtest.creadev.org'
 
-/** The eight shipped packs, with their real arming contract and the teeth
+/** The nine shipped packs, with their real arming contract and the teeth
  * file that grades each oracle - the shorts came out of the packs' own
  * sources (round-23 walk): nothing on this page rests on Prose lore. */
 const PACKS = [
@@ -13,6 +13,7 @@ const PACKS = [
   { name: 'qs-shapes', dir: 'qs-shapes', attacks: 2, arming: 'any route whose parser expands bracket keys', pin: 'test/qs-shapes.test.js' },
   { name: 'vite-dev-shapes', dir: 'vite-dev-shapes', attacks: 2, arming: 'any route serving vite dev-file paths', pin: 'test/vite-shapes.test.js' },
   { name: 'next-middleware-shapes', dir: 'next-middleware-shapes', attacks: 2, arming: 'middleware-gated routes', pin: 'test/next-mw-shapes.test.js' },
+  { name: 'egress-guard-shapes', dir: 'egress-guard-shapes', attacks: 2, arming: "moduleCtx['egress-guard-shapes'].guardRoute - the app's own outbound allow/deny guard", pin: 'test/egress-guard-shapes.test.js' },
   { name: 'crashtest-site', dir: 'crashtest-site', attacks: 18, arming: 'repo-bound self-check (not in the npm tarball)', pin: 'test/site-pack.test.js' },
 ]
 

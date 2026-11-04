@@ -14,27 +14,28 @@ import { pathToFileURL } from 'node:url';
 
 const PUBLIC = new URL('../packs/public/', import.meta.url);
 
-const PACK_COUNT = 8;
-const EXPECTED_ATTACKS_TOTAL = 36;
+const PACK_COUNT = 9;
+const EXPECTED_ATTACKS_TOTAL = 38;
 const EXPECTED_FIXTURES = [
   'crashtest-site', 'cve-feed', 'wp-money-shapes', 'wp-roles',
   'wp-stock-smoke', 'next-middleware-shapes', 'vite-dev-shapes', 'qs-shapes',
+  'egress-guard-shapes',
 ];
 
-// crashtest-site carries 18 of the 36; assert the SAME aggregate count the
+// crashtest-site carries 18 of the 38; assert the SAME aggregate count the
 // census transcribes so a fixture cannot shrink silently.
 const EXPECTED_ATTACKS = {
   'crashtest-site': 18, 'wp-money-shapes': 3, 'cve-feed': 2,
   'next-middleware-shapes': 2, 'vite-dev-shapes': 2, 'qs-shapes': 2,
-  'wp-roles': 3, 'wp-stock-smoke': 4,
+  'wp-roles': 3, 'wp-stock-smoke': 4, 'egress-guard-shapes': 2,
 };
 
-test('packed-shape discovery: fixtures exist for every shipped pack (8/8)', async () => {
+test('packed-shape discovery: fixtures exist for every shipped pack (9/9)', async () => {
   const dirs = (await readdir(PUBLIC, { withFileTypes: true }))
     .filter((e) => e.isDirectory())
     .map((e) => e.name)
     .sort();
-  assert.equal(dirs.length, PACK_COUNT, `8 shipped packs pinned; found ${dirs.length}: ${dirs.join(', ')}`);
+  assert.equal(dirs.length, PACK_COUNT, `9 shipped packs pinned; found ${dirs.length}: ${dirs.join(', ')}`);
   assert.deepEqual(dirs, [...EXPECTED_FIXTURES].sort(), 'shipped-pack census changed - update this pin AND the per-pack fixture in the SAME commit');
   for (const pack of EXPECTED_FIXTURES) {
     const url = new URL(`${pack}/test/fixtures/run.mjs`, PUBLIC);
@@ -55,7 +56,7 @@ for (const pack of EXPECTED_FIXTURES) {
   });
 }
 
-test('aggregate: transcribed attack inventory totals 36 across the 8 packs', () => {
+test('aggregate: transcribed attack inventory totals 38 across the 9 packs', () => {
   const total = Object.values(EXPECTED_ATTACKS).reduce((a, b) => a + b, 0);
   assert.equal(total, EXPECTED_ATTACKS_TOTAL);
   assert.equal(Object.keys(EXPECTED_ATTACKS).length, PACK_COUNT);

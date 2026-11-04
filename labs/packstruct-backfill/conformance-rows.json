@@ -46,6 +46,26 @@
       }
     },
     {
+      "name": "egress-guard-shapes",
+      "dir": "packs/public/egress-guard-shapes",
+      "sha256": "d5525977213d08cd058327d57ab90c16dbddd3a9cc7aa97e6d04e3234f0492d7",
+      "declaredKeys": [
+        "description",
+        "entry",
+        "name",
+        "schemaVersion",
+        "version"
+      ],
+      "facts": {
+        "schemaVersionIs1": true,
+        "nameEqualsDir": true,
+        "declaredEntry": "index.js",
+        "entryFileIsPresent": true,
+        "declaresArmedByKey": false,
+        "hostOwnedKeysPresent": []
+      }
+    },
+    {
       "name": "next-middleware-shapes",
       "dir": "packs/public/next-middleware-shapes",
       "sha256": "e0bafd5a4ad35fb2b9488a75b14256848ba125256e007431948f1cda21c2a4c8",

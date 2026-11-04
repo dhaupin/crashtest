@@ -48,7 +48,7 @@ function dryRunFiles() {
 const files = dryRunFiles();
 
 test('tarball ships the reusable shape packs (adoption shapes stay real)', () => {
-  for (const pack of ['wp-money-shapes', 'wp-stock-smoke', 'wp-roles', 'cve-feed', 'qs-shapes', 'vite-dev-shapes', 'next-middleware-shapes']) {
+  for (const pack of ['wp-money-shapes', 'wp-stock-smoke', 'wp-roles', 'cve-feed', 'qs-shapes', 'vite-dev-shapes', 'next-middleware-shapes', 'egress-guard-shapes']) {
     assert.ok(
       files.includes(`packs/public/${pack}/pack.json`),
       `packs/public/${pack} must ship in the npm tarball`,
@@ -63,6 +63,7 @@ test('tarball ships the reusable shape packs (adoption shapes stay real)', () =>
   assert.ok(files.includes('packs/public/qs-shapes/index.js'), 'qs-shapes ships its entry module (bracket-notation parser shapes)');
   assert.ok(files.includes('packs/public/vite-dev-shapes/index.js'), 'vite-dev-shapes ships its entry module (dev-server fs wire)');
   assert.ok(files.includes('packs/public/next-middleware-shapes/index.js'), 'next-middleware-shapes ships its entry module (middleware subrequest wire)');
+  assert.ok(files.includes('packs/public/egress-guard-shapes/index.js'), 'egress-guard-shapes ships its entry module (outbound-request guard shapes)');
 });
 
 test('tarball does NOT ship repo-bound packs (crashtest-site is self-dogfood only)', () => {
