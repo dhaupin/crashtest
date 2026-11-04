@@ -7,24 +7,11 @@ description: Attack any WordPress/PHP target in-process through WP's own hook su
 
 # WordPress (v0.3 spike) - "the subprocess harness"
 
-PHP can't be imported into a Node process, so the harness's fake transport
-crosses exactly ONE boundary as NDJSON over stdio into a PHP worker
-(`fixtures/wordpress/wp-worker.php`) that boots the target's `wp-load.php`
-**exactly once**. On the WP side every attack dispatches in-process through
-WordPress's own hook surface - `admin_post` / `admin_post_nopriv` /
-`template_redirect` - with `wp_redirect` and `wp_die()` captured as
-structured transfers.
+PHP can't be imported into a Node process, so the harness's fake transport crosses exactly ONE boundary as NDJSON over stdio into a PHP worker (`fixtures/wordpress/wp-worker.php`) that boots the target's `wp-load.php` **exactly once**. On the WP side every attack dispatches in-process through WordPress's own hook surface - `admin_post` / `admin_post_nopriv` / `template_redirect` - with `wp_redirect` and `wp_die()` captured as structured transfers.
 
-The npm tarball ships that worker (and the `stub-wp/` harness): an npm
-install resolves its own `WORKER_DEFAULT` copy, version-locked to the
-adapter, and a run root pointed at a missing or unshipped worker script
-fails loud at boot with a named error instead of folding into a cfg verdict.
-If you need to pair an npm-installed adapter with a worker from elsewhere
-(a git checkout of a newer harness, say), mount it explicitly:
-`adapters: { wordpress: { wpRoot: '/srv/wordpress', script: '/abs/path/wp-worker.php' } }`.
+The npm tarball ships that worker (and the `stub-wp/` harness): an npm install resolves its own `WORKER_DEFAULT` copy, version-locked to the adapter, and a run root pointed at a missing or unshipped worker script fails loud at boot with a named error instead of folding into a cfg verdict. If you need to pair an npm-installed adapter with a worker from elsewhere (a git checkout of a newer harness, say), mount it explicitly: `adapters: { wordpress: { wpRoot: '/srv/wordpress', script: '/abs/path/wp-worker.php' } }`.
 
-**No sockets, no live server, ever; the NDJSON stream is a wire format, not
-a transport** (PRD section 10 + section 14 still hold: the drone never dials anything).
+**No sockets, no live server, ever; the NDJSON stream is a wire format, not a transport** (PRD section 10 + section 14 still hold: the drone never dials anything).
 
 > The spike is **explicitly experimental** (PRD section 8 v0.3). It was proven on a
 > live production WordPress plugin target in October 2026: 16/16 REFUSED,
@@ -80,50 +67,25 @@ await harness.wpState({ kind: 'state', op: 'wc-order-get', id: ord.id });      /
 await harness.wpState({ kind: 'state', op: 'wc-order-delete', id: ord.id });   // teardown (rule 1)
 ```
 
-Playbook rule 1 (restore what you touch) covers orders too: seed, probe,
-`wc-order-delete` in the attack's own teardown. On a legacy (CPT-backed)
-store the order's meta ALSO lives in its own postmeta - the same values read
-back through the `post-meta` op on the order's id - which is exactly the
-cross-store surface a replaying completion hook attack has to grade
+Playbook rule 1 (restore what you touch) covers orders too: seed, probe, `wc-order-delete` in the attack's own teardown. On a legacy (CPT-backed) store the order's meta ALSO lives in its own postmeta - the same values read back through the `post-meta` op on the order's id - which is exactly the cross-store surface a replaying completion hook attack has to grade
 
-Dispatch inference: an `admin-post.php` URL maps to `admin_post` (with its
-`?action=`), everything else to `template_redirect` - both overridable via
-the `x-ct-dispatch` / `x-ct-action` headers. A PHP fatal mid-request flushes
-its envelope with `x-ct-fatal` set and the handler turns it into an honest
-500 (never a fake 200). Cost economics ride the REAL database: ops = SQL
-queries (`wp.query` @ 2), plus redirect/die/fatal counters.
+Dispatch inference: an `admin-post.php` URL maps to `admin_post` (with its `?action=`), everything else to `template_redirect` - both overridable via the `x-ct-dispatch` / `x-ct-action` headers. A PHP fatal mid-request flushes its envelope with `x-ct-fatal` set and the handler turns it into an honest 500 (never a fake 200). Cost economics ride the REAL database: ops = SQL queries (`wp.query` @ 2), plus redirect/die/fatal counters.
 
-The example pack [`packs/public/wp-money-shapes/index.js`](https://github.com/dhaupin/crashtest/blob/main/packs/public/wp-money-shapes/index.js)
-ships the three plugin-agnostic money shapes (write-volley / txn-replay /
-gate-burst). It carries NO plugin vocabulary of its own: point a run-root copy
-of it (or a rebinding wrapper in `packs/local/`) at your target and set
-`moduleCtx['wp-money-shapes']` - postType, metaPaid, metaEmail, optionKey,
-action, nonceAction, pacedHints.
+The example pack [`packs/public/wp-money-shapes/index.js`](https://github.com/dhaupin/crashtest/blob/main/packs/public/wp-money-shapes/index.js) ships the three plugin-agnostic money shapes (write-volley / txn-replay / gate-burst). It carries NO plugin vocabulary of its own: point a run-root copy of it (or a rebinding wrapper in `packs/local/`) at your target and set `moduleCtx['wp-money-shapes']` - postType, metaPaid, metaEmail, optionKey, action, nonceAction, pacedHints.
 
 ## The three rules scenarios MUST obey (cross-repo edition)
 
-1. **Restore what you touch.** Any whitelisted seed that mutates shared
-   settings must snapshot + restore in the attack's own teardown. A target's
-   regression suite WILL catch the miss (the spike's own first run proved it).
-2. **Fixtures live on attacker-namespaced identifiers** and get torn down
-   via the generic `delete-posts` op - never shared rows.
-3. **The worker is generic; packs own specifics.** CPT slugs, meta keys,
-   option rows, and seeder functions are the target pack's vocabulary,
-   declared once via `callAllow` + `allowOptions` in the run-root config.
-   The khf names in the example pack are examples, not plumbing.
+1. **Restore what you touch.** Any whitelisted seed that mutates shared settings must snapshot + restore in the attack's own teardown. A target's regression suite WILL catch the miss (the spike's own first run proved it).
+2. **Fixtures live on attacker-namespaced identifiers** and get torn down via the generic `delete-posts` op - never shared rows.
+3. **The worker is generic; packs own specifics.** CPT slugs, meta keys, option rows, and seeder functions are the target pack's vocabulary, declared once via `callAllow` + `allowOptions` in the run-root config. The khf names in the example pack are examples, not plumbing.
 
 ## What's next for the spike
 
-The registry already treats `wordpress` like any JS framework adapter, and
-the WP run is also the template for the run-root pattern - see
-[Run Roots & Recipes](/crashtest/playbooks/run-roots), which is the same
-story generalized to any target, and where the section 14 service thread lives.
+The registry already treats `wordpress` like any JS framework adapter, and the WP run is also the template for the run-root pattern - see [Run Roots & Recipes](/crashtest/playbooks/run-roots), which is the same story generalized to any target, and where the section 14 service thread lives.
 
 ## Stock-WordPress smoke (headless install recipe)
 
-You can prove the whole harness end to end against a REAL WordPress in
-~10 minutes with no target repo at all - the `wp-stock-smoke` pack does it.
-Paid-for lessons are baked into the recipe:
+You can prove the whole harness end to end against a REAL WordPress in ~10 minutes with no target repo at all - the `wp-stock-smoke` pack does it. Paid-for lessons are baked into the recipe:
 
 ```bash
 # 1. PHP + SQLite (no MySQL needed):
@@ -146,10 +108,4 @@ php -r 'require "wp-load.php"; require "wp-admin/includes/upgrade.php"; wp_insta
 sed -i "/define('WP_INSTALLING'/d" wordpress/wp-config.php
 ```
 
-Then a run root pointing `adapters: { wordpress: { wpRoot: '/path/to/wordpress', phpBin: 'php' } }`
-and `scenarioDirs` at a copy of [`packs/public/wp-stock-smoke/index.js`](https://github.com/dhaupin/crashtest/blob/main/packs/public/wp-stock-smoke/index.js)
-proves: real dispatch through admin-post hooks, whitelisted seeder (`wp_create_nonce`),
-**real-SQL cost economics** (ops ride `SAVEQUERIES`), and - the punchline attack -
-the worker's `CALL_ALLOW` whitelist refusing a destructive core call
-(`wp_delete_post`) with the post intact. First stock run: 16/16 REFUSED,
-0 false positives, ~2 op meters live from the actual database.
+Then a run root pointing `adapters: { wordpress: { wpRoot: '/path/to/wordpress', phpBin: 'php' } }` and `scenarioDirs` at a copy of [`packs/public/wp-stock-smoke/index.js`](https://github.com/dhaupin/crashtest/blob/main/packs/public/wp-stock-smoke/index.js) proves: real dispatch through admin-post hooks, whitelisted seeder (`wp_create_nonce`), **real-SQL cost economics** (ops ride `SAVEQUERIES`), and - the punchline attack - the worker's `CALL_ALLOW` whitelist refusing a destructive core call (`wp_delete_post`) with the post intact. First stock run: 16/16 REFUSED, 0 false positives, ~2 op meters live from the actual database.

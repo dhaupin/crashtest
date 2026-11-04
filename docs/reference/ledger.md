@@ -14,8 +14,7 @@ Two files carry the memory of a run:
 
 ## crashledger.json
 
-One record per (module, attack), created on the first green run and updated
-on every run after:
+One record per (module, attack), created on the first green run and updated on every run after:
 
 ```json
 {
@@ -30,34 +29,18 @@ on every run after:
 }
 ```
 
-`verdict` is one of `REFUSED` / `EXPLOITED` / `BOUNDED` / `PASSED`. Bounded
-records carry `owner` and `bound` - the named owner of a deliberate, explicit
-risk. A verdict without its owner/bound pair is a finding by definition.
-PASSED rows are positive-probe evidence (the safe path held); they ride the
-findings verbatim but never the `baseline` array (which records REFUSED ids
-for the regression gate), and they never re-alarm or fail CI on their own.
+`verdict` is one of `REFUSED` / `EXPLOITED` / `BOUNDED` / `PASSED`. Bounded records carry `owner` and `bound` - the named owner of a deliberate, explicit risk. A verdict without its owner/bound pair is a finding by definition. PASSED rows are positive-probe evidence (the safe path held); they ride the findings verbatim but never the `baseline` array (which records REFUSED ids for the regression gate), and they never re-alarm or fail CI on their own.
 
 ## hardening.md
 
-The report joins every verdict with its evidence and the run's cost
-economics (`total: 271 backend ops across 510 in-process requests ...`) plus a
-**baseline diff** - `NEW: n` and `REGRESSED: m` lines that are exactly what
-CI reads to gate.
+The report joins every verdict with its evidence and the run's cost economics (`total: 271 backend ops across 510 in-process requests ...`) plus a **baseline diff** - `NEW: n` and `REGRESSED: m` lines that are exactly what CI reads to gate.
 
 ## How CI reads the frame
 
-The gate is delta-only: `exit 1` on a NEW exploited finding, or on a
-REFUSED->EXPLOITED regression of anything previously held. Old wins can't
-quietly rot; new weakness can't slip in labeled "pre-existing."
+The gate is delta-only: `exit 1` on a NEW exploited finding, or on a REFUSED->EXPLOITED regression of anything previously held. Old wins can't quietly rot; new weakness can't slip in labeled "pre-existing."
 
 ## Reviewing by verdict, not by count
 
-A tall REFUSED column is good, but the number to care about is 0 next to
-EXPLOITED and 0 next to REGRESSED. [Exit rules](/crashtest/reference/exit-rules)
-spell out exactly how the process encodes that.
+A tall REFUSED column is good, but the number to care about is 0 next to EXPLOITED and 0 next to REGRESSED. [Exit rules](/crashtest/reference/exit-rules) spell out exactly how the process encodes that.
 
-For machine eyes, `crashtest run --json` prints the full run blob (`rows[]`,
-`tally`, `cost`) as the last stdout line, and `run --out-dir <dir>` writes that
-blob plus ledger and report copies to a directory instead. The
-[dashboard](https://crashtest.creadev.org/dashboard) renders either shape -
-the gate it shows is the exact function the CLI calls.
+For machine eyes, `crashtest run --json` prints the full run blob (`rows[]`, `tally`, `cost`) as the last stdout line, and `run --out-dir <dir>` writes that blob plus ledger and report copies to a directory instead. The [dashboard](https://crashtest.creadev.org/dashboard) renders either shape - the gate it shows is the exact function the CLI calls.

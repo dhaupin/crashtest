@@ -7,18 +7,14 @@ description: The coverage dry-run - which attack ids WOULD fire against your tar
 
 # Module plans (`run --module-plan`)
 
-A **module plan** answers one question before any request fires: which attack
-ids WOULD this target's run carry, and which of those are not actually armed
-yet. It attacks nothing, writes nothing, and always exits 0 - it is
-informational, never a gate.
+A **module plan** answers one question before any request fires: which attack ids WOULD this target's run carry, and which of those are not actually armed yet. It attacks nothing, writes nothing, and always exits 0 - it is informational, never a gate.
 
 ```bash
 npx crashtest run --module-plan              # human output
 npx crashtest run --module-plan --json       # machine plan blob (last stdout line)
 ```
 
-Plans resolve through the SAME loaders and filter semantics as a real run,
-so a plan cannot drift from what a run would actually fire.
+Plans resolve through the SAME loaders and filter semantics as a real run, so a plan cannot drift from what a run would actually fire.
 
 ## The three statuses
 
@@ -45,11 +41,7 @@ $ npx crashtest run --module-plan
 
 ## Why NEEDS-ARMING exists
 
-An un-armed pack's attacks REFUSE-skip at run time (skip-parity: never a
-false positive). The trouble is a green tally can hide those skips - six
-modules report REFUSED, but two of them never fired a request. The plan
-surfaces that BEFORE you trust the gate verdict: `NEEDS-ARMING` names the
-exact `moduleCtx` key to set, and the pack guides you from there.
+An un-armed pack's attacks REFUSE-skip at run time (skip-parity: never a false positive). The trouble is a green tally can hide those skips - six modules report REFUSED, but two of them never fired a request. The plan surfaces that BEFORE you trust the gate verdict: `NEEDS-ARMING` names the exact `moduleCtx` key to set, and the pack guides you from there.
 
 ## The plan blob (`--json`)
 
@@ -62,14 +54,11 @@ The last stdout line is a machine-plan object:
 | `packs[]` | `{ name, visibility, version, origin, attacks, armedByKey, package }` |
 | `totals` | `{ attacks, willFire, needsArming, skippedFilter }` |
 
-The dashboard (web/src/lib/ledgerModel.js) renders this shape natively -
-paste it in like a run blob or a ledger. Plans get NO gate verdict by
-design: they attack nothing, so they never pass or fail CI.
+The dashboard (web/src/lib/ledgerModel.js) renders this shape natively - paste it in like a run blob or a ledger. Plans get NO gate verdict by design: they attack nothing, so they never pass or fail CI.
 
 ## Where it fits the workflow
 
-1. Adopt a target: `crashtest run --module-plan` first - see the coverage
-   and arming gaps before spending a run
+1. Adopt a target: `crashtest run --module-plan` first - see the coverage and arming gaps before spending a run
 2. Arm what needs arming in `crashtest.config.js` (`moduleCtx`)
 3. Re-plan until every attack you want is `WILL-FIRE`
 4. Run for real: `crashtest run` (see [Quick Start](/crashtest/getting-started/quick-start))

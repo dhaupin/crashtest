@@ -230,206 +230,40 @@
 - The planned-for bump arrived: eyestruct@1.0.0 on npm at 22:38Z (packed and registry-checked here: dist-tags.latest = 1.0.0, alongside 0.9.0). Receipt re-cut from the v1.0.0 GH release tree pinned at the release commit `4b979c0ee24df1e534ee185e47d8ad1418edd464` (their publish-day receipt diffs npm tar vs `git archive` byte-identical, so the lane reads the frozen bytes the registry ships). Exact-pinned packstruct 1.0.0 passthrough: 5 packs (`eye-adapter` the schema carrier joins `eye-ci-gate`/`eye-shapes`/`eye-text-leg`/`eye-bundle`) CLEAN at shallow AND deep - 5 modules probed, 0 census ids. Their campaign ledger observed on disk: `packs/eye-ledger.json` 35 rows, verdict set `{REFUSED, PASSED, BOUNDED}` 22/11/2, 0 EXPLOITED (30 rows 21/7/2 at the 0.9.0 debut - the adapter pack grew both). docs/reference/packs.md family-lane row and the unreleased 1.2.0 changelog recut together (bump receipt + receipt, same commit). The emitter/status leg carry no eyestruct numerics (attribution only) - nothing else needed to move.
 - Queue pull-ins triaged in this session: #51 (version-truth leg, ours to add), #49 (unwrap-prose, mechanical), #50 (prestruct#68 fix not on npm wires yet - shim stays until 1.2.0 tags), #53 (staging branch CI ops).
 ### 2026-10-29 - the family pull-in round: #49 (prose flow), #51 (version truth), #53 (staging CI)
-- #51 (version-truth ruling): the census walked OUR tree first - the only
-  CAUGHT-class living surface is the README header's hand-copied
-  `/ MIT / v1.1.0` (already stale against root 1.2.0: the exact class
-  eyestruct caught by hand on release day). Dropped the number (the npm
-  package is the version truth; the README now says so). The `(v1.2.0)`
-  annotations and nav draft titles classified LAWFUL (era-pinned claims),
-  devDeps range pins LAWFUL, the site version badge is LIVE (/api/version
-  island, no number). The web rig's package.json hand-sync is now
-  ENFORCED - test/version.test.js grew the ride-the-root leg (drift
-  refused, assertion names the fix); suite floor 425 -> 426-with-PHP
-  (419 pass / 7 skips on this PHP-less host), AGENTS.md floor comment
-  moved in the same commit.
-- #49 (prose flow): eyestruct's unwrap-prose.cjs copied as-is from
-  3adda1d into scripts/ (registered on the check chain). Ran over the
-  living-surfaces belt: docs/discussions/* + index, README,
-  AGENTS, CHANGELOG, labs/TASKS, labs/PRD, docs/publish.md. Receipt the
-  HARD way - the isolation test: HEAD reflowed through the script in a
-  scratch tree diffs against the working copy by exactly the known
-  same-turn edits (the reflow is a pure paragraph joiner). No column
-  rule was ever written in this repo's keeper docs (grepped), so
-  nothing to retire; the style checker never enforced one.
-- #53 (staging branch pattern, poststruct#32): ci.yml + docs.yml triggers
-  grow the staging branch; docs.yml deploy gates
-  `if: github.ref == 'refs/heads/main'`; Pages never deploys off
-  staging even when it rides the trigger list. Staging branch created
-  from main in the same push (permanent integration branch, ff-promoted
-  rule in the issue body).
-- #50 (prestruct#68 react-router seam): CLOSED - the engine fix is pulled in
-  at commit 498ab5f (shipping in prestruct 1.2.0; npm latest is still 1.1.0, so
-  the pin is the commit). The web rig RETIRES router-interop.js: the engine's
-  interop plugin rewrites the app's named react-router imports, and the
-  interop module's namespace import no longer shares an instance with the
-  engine's registry-loaded StaticRouter (keeping it renders 0/6). `ssr.noExternal`
-  added on the vite ^6.4.5 pin (the externalized default still splits the
-  router here; the externalized path only holds on vite 7). Build 6/6.
+- #51 (version-truth ruling): the census walked OUR tree first - the only CAUGHT-class living surface is the README header's hand-copied `/ MIT / v1.1.0` (already stale against root 1.2.0: the exact class eyestruct caught by hand on release day). Dropped the number (the npm package is the version truth; the README now says so). The `(v1.2.0)` annotations and nav draft titles classified LAWFUL (era-pinned claims), devDeps range pins LAWFUL, the site version badge is LIVE (/api/version island, no number). The web rig's package.json hand-sync is now ENFORCED - test/version.test.js grew the ride-the-root leg (drift refused, assertion names the fix); suite floor 425 -> 426-with-PHP (419 pass / 7 skips on this PHP-less host), AGENTS.md floor comment moved in the same commit.
+- #49 (prose flow): eyestruct's unwrap-prose.cjs copied as-is from 3adda1d into scripts/ (registered on the check chain). Ran over the living-surfaces belt: docs/discussions/* + index, README, AGENTS, CHANGELOG, labs/TASKS, labs/PRD, docs/publish.md. Receipt the HARD way - the isolation test: HEAD reflowed through the script in a scratch tree diffs against the working copy by exactly the known same-turn edits (the reflow is a pure paragraph joiner). No column rule was ever written in this repo's keeper docs (grepped), so nothing to retire; the style checker never enforced one.
+- #53 (staging branch pattern, poststruct#32): ci.yml + docs.yml triggers grow the staging branch; docs.yml deploy gates `if: github.ref == 'refs/heads/main'`; Pages never deploys off staging even when it rides the trigger list. Staging branch created from main in the same push (permanent integration branch, ff-promoted rule in the issue body).
+- #50 (prestruct#68 react-router seam): CLOSED - the engine fix is pulled in at commit 498ab5f (shipping in prestruct 1.2.0; npm latest is still 1.1.0, so the pin is the commit). The web rig RETIRES router-interop.js: the engine's interop plugin rewrites the app's named react-router imports, and the interop module's namespace import no longer shares an instance with the engine's registry-loaded StaticRouter (keeping it renders 0/6). `ssr.noExternal` added on the vite ^6.4.5 pin (the externalized default still splits the router here; the externalized path only holds on vite 7). Build 6/6.
 ### 2026-10-29 - #48 adopted: the walk-exit rule lands in AGENTS.md
-- The walk-exit rule (a walk is not done until nothing it found is
-  uncommissioned - every finding commissioned the same session as a
-  battery leg, pack verdict row, contract bullet, or a named docket
-  row) is codified as its own AGENTS.md section, citation eyestruct@
-  `70dfbea` as the worked example. This session's own compliance
-  receipt: the family-lane receipt re-cut, the version-truth leg, the
-  prose-unwrap isolation check, and the staging-branch CI edits are all
-  commissioned (leg/test/script/workflow respectively) - nothing found
-  on today's walk remains prose-only.
+- The walk-exit rule (a walk is not done until nothing it found is uncommissioned - every finding commissioned the same session as a battery leg, pack verdict row, contract bullet, or a named docket row) is codified as its own AGENTS.md section, citation eyestruct@ `70dfbea` as the worked example. This session's own compliance receipt: the family-lane receipt re-cut, the version-truth leg, the prose-unwrap isolation check, and the staging-branch CI edits are all commissioned (leg/test/script/workflow respectively) - nothing found on today's walk remains prose-only.
 ### 2026-10-29 - #42 closed out: a Ruby-capable host now EXISTS (this sandbox), receipts below
-- The toolchain, installed as the sandbox user with NO root: the ruby/setup-ruby
-  prebuilt 3.4.10 (ruby-builder `ruby-3.4.10-ubuntu-24.04-x64.tar.gz`) unpacked
-  into ~/rubies, LD_LIBRARY_PATH + RUBYLIB stdlib wiring, binstubs shimmed
-  through the interpreter (the baked /opt/hostedtoolcache shebangs fail exactly
-  as eyestruct's recipe said). ruby -v / bundle -v / gem -v all live.
-- The FULL deploy lane ran locally, receipts-culture way: scratch copy
-  (/tmp/docs-preview), bundler path OUTSIDE the repo (37 gems, "Bundle
-  complete!" - the receipt shape the recipe predicted), jekyll build (0.5s,
-  29 pages), pagefind 1.5.2 (29 pages / 3064 words indexed), freestruct
-  1.1.0 (exact pin; sitemap/robots/404 + link check note: 868 same-
-  warning absolute /crashtest/ links reported, exit 0 - identical green
-  lane exists in CI so this is engine behavior, recorded here not "fixed").
-- FOUND AND FIXED A REAL BUG in our head, caught by the local lane before
-  any deploy: the config og.image NEVER reached any deployed page. Cause:
-  a docs/_freestruct/inject-brand.html REPLACES the engine's built-in
-  head template, and ours carried only "the layer the layout lacked"
-  (twitter + og:image + identity) - but the LAYOUT hand-wrote its own
-  og:title/description/url/type/site_name, tripping the engine's hasOg
-  missing-only gate so the template's og:image (gated behind the same
-  og block) starved. Diagnosed against the LIVE docs (5 og tags, no
-  og:image - confirming the starvation, not a local-only artifact).
-  Fix: layout drops og/canonical entirely (one owner, engine's seam) and
-  the template is upgraded to the engine's FULL default head set; title
-  moved to the engine's pipe split convention (' | ' is the ONLY split
-  extractTitle honors - the old '/ Crashtest' suffix would have doubled);
-  og.type: article + twitter.card: summary_large_image move to
-  ssr-config.yml. Verified locally: per-page og:title/canonical/og:image
+- The toolchain, installed as the sandbox user with NO root: the ruby/setup-ruby prebuilt 3.4.10 (ruby-builder `ruby-3.4.10-ubuntu-24.04-x64.tar.gz`) unpacked into ~/rubies, LD_LIBRARY_PATH + RUBYLIB stdlib wiring, binstubs shimmed through the interpreter (the baked /opt/hostedtoolcache shebangs fail exactly as eyestruct's recipe said). ruby -v / bundle -v / gem -v all live.
+- The FULL deploy lane ran locally, receipts-culture way: scratch copy (/tmp/docs-preview), bundler path OUTSIDE the repo (37 gems, "Bundle complete!" - the receipt shape the recipe predicted), jekyll build (0.5s, 29 pages), pagefind 1.5.2 (29 pages / 3064 words indexed), freestruct 1.1.0 (exact pin; sitemap/robots/404 + link check note: 868 same- warning absolute /crashtest/ links reported, exit 0 - identical green lane exists in CI so this is engine behavior, recorded here not "fixed").
+- FOUND AND FIXED A REAL BUG in our head, caught by the local lane before any deploy: the config og.image NEVER reached any deployed page. Cause: a docs/_freestruct/inject-brand.html REPLACES the engine's built-in head template, and ours carried only "the layer the layout lacked" (twitter + og:image + identity) - but the LAYOUT hand-wrote its own og:title/description/url/type/site_name, tripping the engine's hasOg missing-only gate so the template's og:image (gated behind the same og block) starved. Diagnosed against the LIVE docs (5 og tags, no og:image - confirming the starvation, not a local-only artifact). Fix: layout drops og/canonical entirely (one owner, engine's seam) and the template is upgraded to the engine's FULL default head set; title moved to the engine's pipe split convention (' | ' is the ONLY split extractTitle honors - the old '/ Crashtest' suffix would have doubled); og.type: article + twitter.card: summary_large_image move to ssr-config.yml. Verified locally: per-page og:title/canonical/og:image
   + twitter set + all 3 identity JSON-LD blocks, no doubling.
-- The family owes a heads-up: eyestruct's live docs show the same shape
-  (og set present, og:image absent) - whether omission or starvation is
-  theirs to check; the engine team gets the writeup (freestruct issue).
-- THE CAPTURES: chrome-headless-shell 156.0.8078.73 downloaded via
-  @puppeteer/browsers; 13 missing system libs provided by extracted
-  Ubuntu noble debs into ~/chrome-libs (user-local, no root), DejaVu fonts +
-  fontconfig config wired via FONTCONFIG_FILE (the first captures rendered
-  skeleton-only: no fonts in the sandbox - receipted with the byte-size
-  jump 9868B -> 142509B). Served _site under the real baseurl via
-  python http.server + symlink webroot/crashtest. eyestruct@1.0.0 `look`
-  captured BOTH themes via the localStorage launcher (key: crashtest-theme,
-  the docs switch's real key - 'eyestruct-theme' was a wrong first guess),
-  dark AND light, 6 element overlays each. The verdict-glyph tofu boxes
-  in the frames are the sandbox's missing emoji font (capture artifact,
-  not a site bug). artifacts/docs-dark.png + artifacts/docs-light.png
-  committed as receipts.
-- Honest gaps kept open: the OG of the LIVE site only changes when the
-  docs deploy ships this commit (og:image lives in a
-  post-push curl, noted below); /tmp toolchain does not survive archive
-  (the recipe in this entry is the re-run doc).
+- The family owes a heads-up: eyestruct's live docs show the same shape (og set present, og:image absent) - whether omission or starvation is theirs to check; the engine team gets the writeup (freestruct issue).
+- THE CAPTURES: chrome-headless-shell 156.0.8078.73 downloaded via @puppeteer/browsers; 13 missing system libs provided by extracted Ubuntu noble debs into ~/chrome-libs (user-local, no root), DejaVu fonts + fontconfig config wired via FONTCONFIG_FILE (the first captures rendered skeleton-only: no fonts in the sandbox - receipted with the byte-size jump 9868B -> 142509B). Served _site under the real baseurl via python http.server + symlink webroot/crashtest. eyestruct@1.0.0 `look` captured BOTH themes via the localStorage launcher (key: crashtest-theme, the docs switch's real key - 'eyestruct-theme' was a wrong first guess), dark AND light, 6 element overlays each. The verdict-glyph tofu boxes in the frames are the sandbox's missing emoji font (capture artifact, not a site bug). artifacts/docs-dark.png + artifacts/docs-light.png committed as receipts.
+- Honest gaps kept open: the OG of the LIVE site only changes when the docs deploy ships this commit (og:image lives in a post-push curl, noted below); /tmp toolchain does not survive archive (the recipe in this entry is the re-run doc).
   - Post-push live-curl step (when docs.yml next deploys): og:image present on every page, og:title per-page with pipe suffix, twitter:card summary_large_image. NOTE this is the "tokens verified only by live curl AFTER push" gap turning into a VERIFIED one, not a promise.
 ### 2026-10-29 - the rest of the route frames + the family og/image writeups
-- Route captures extended the same eyestruct@1.0.0 `look` battery over
-  pretty-URL-served routes: quick-start, reference/attacks,
-  reference/cli, reference/packs in BOTH themes (artifacts/routes/, 8
-  frames; light frames via the generalized launcher
-  ?to=<route> query trick - the `--theme` flag exists in the CLI but
-  proved a no-op against this site's own bootstrapped switch, identical
-  byte sizes receipted). Frames visually verified: all four pages render
-  full content in both palettes, anchors/table text intact.
-- The eyestruct-side og/image question settled by FACTS on their 1.0.0
-  tree (4b979c0): their live absence is deliberate (config comment:
-  "og-image.png is documented adopter homework in MANIFEST.md - an
-  og:image pointing at a 404 is worse than none"). NO bug there. But
-  their layout/template split is the exact starvation configuration, so
-  the tripwire note is filed as eyestruct#23 (informational, freeze-rule
-  respected). The engine-side writeup is freestruct#46 from the previous
-  entry.
+- Route captures extended the same eyestruct@1.0.0 `look` battery over pretty-URL-served routes: quick-start, reference/attacks, reference/cli, reference/packs in BOTH themes (artifacts/routes/, 8 frames; light frames via the generalized launcher ?to=<route> query trick - the `--theme` flag exists in the CLI but proved a no-op against this site's own bootstrapped switch, identical byte sizes receipted). Frames visually verified: all four pages render full content in both palettes, anchors/table text intact.
+- The eyestruct-side og/image question settled by FACTS on their 1.0.0 tree (4b979c0): their live absence is deliberate (config comment: "og-image.png is documented adopter homework in MANIFEST.md - an og:image pointing at a 404 is worse than none"). NO bug there. But their layout/template split is the exact starvation configuration, so the tripwire note is filed as eyestruct#23 (informational, freeze-rule respected). The engine-side writeup is freestruct#46 from the previous entry.
 ### 2026-10-29 - #54 landed (the unknown-Liquid-tag rule) + #55 answered (no fd-pin shape exists)
-- #54: scripts/check-jekyll-filters.cjs adopts poststruct e53b1e0 as-is
-  (repo-agnostic file; BOTH findings originate on this repo -
-  crashtest#23 and crashtest#54). New rule: any {% tag %} outside the
-  Jekyll 4.x core set refuses with file:line; {% raw %} regions are
-  blanked in place so line numbers stay honest. Receipts this turn: the
-  repo's docs/ gate PASSES untouched; a seeded probe ({% seo %} in prose
-  + the #23 two-arg filter) refuses BOTH with file:line and exit 1, and
-  a {% raw %}-wrapped fake tag stays clean.
-- #55 (eyestruct#9's fd-pin question): the hash-then-reopen TOCTOU shape
-  DOES NOT exist here, receipt by scan: (1) zero crypto surface - no
-  createHash/digest/sha/integrity string in src/, bin/, scripts/,
-  action.yml, docs/publish.md; (2) zero extraction/download at runtime -
-  the only remote-adjacent lane is lint-packs, which shells the LOCAL
-  exact-pinned packstruct install by policy ("never downloads",
-  src/cli.js ~340-368, PACKSTRUCT_FIX message); (3) baselines/corpus are
-  committed files read and diffed, never fetched or un-packed; (4) the
-  operator helper scripts/ship-from-download.cjs hashes nothing (manual
-  staging + shape checks + OIDC publish). The npm/GH upstreams are the
-  only artifact lanes and they are outside the in-repo install concept.
-  Determinism's trust base here is receipt-based, not presence-based:
-  exact-pin lockfile + committed baseline, the same rule eyestruct
-  carries - nothing vouches bytes it later reopens because nothing
-  vouches bytes at all.
+- #54: scripts/check-jekyll-filters.cjs adopts poststruct e53b1e0 as-is (repo-agnostic file; BOTH findings originate on this repo - crashtest#23 and crashtest#54). New rule: any {% tag %} outside the Jekyll 4.x core set refuses with file:line; {% raw %} regions are blanked in place so line numbers stay honest. Receipts this turn: the repo's docs/ gate PASSES untouched; a seeded probe ({% seo %} in prose
+  + the #23 two-arg filter) refuses BOTH with file:line and exit 1, and a {% raw %}-wrapped fake tag stays clean.
+- #55 (eyestruct#9's fd-pin question): the hash-then-reopen TOCTOU shape DOES NOT exist here, receipt by scan: (1) zero crypto surface - no createHash/digest/sha/integrity string in src/, bin/, scripts/, action.yml, docs/publish.md; (2) zero extraction/download at runtime - the only remote-adjacent lane is lint-packs, which shells the LOCAL exact-pinned packstruct install by policy ("never downloads", src/cli.js ~340-368, PACKSTRUCT_FIX message); (3) baselines/corpus are committed files read and diffed, never fetched or un-packed; (4) the operator helper scripts/ship-from-download.cjs hashes nothing (manual staging + shape checks + OIDC publish). The npm/GH upstreams are the only artifact lanes and they are outside the in-repo install concept. Determinism's trust base here is receipt-based, not presence-based: exact-pin lockfile + committed baseline, the same rule eyestruct carries - nothing vouches bytes it later reopens because nothing vouches bytes at all.
 
 ### 2026-10-29 - #39 verified LIVE; #38 swapped to the flowforge reusable lane
-- #39 (JSON-LD identity): the deployed docs render the family identity -
-  the founder Person (Creadev.org/creadev.org) inside the Organization
-  block line 198 and the maintainer Person (dhaupin, crashtest maintainer)
-  at line 210 on https://docs.creadev.org/crashtest/ (live fetch receipt).
-  The engine-edition template (both {{authorJson}} + {{searchActionJson}}
-  seams) + the ssr-config.yml identity blocks landed with the #42 docs
-  lane receipts; closing the issue with the live receipt.
-- #38 (reusable docs lane): this repo's docs.yml is now a THIN CALLER of
-  dhaupin/flowforge/.github/workflows/docs-build.yml@main - the hand-
-  copied build runbook (Jekyll, hardened pagefind scrape, search index,
-  pinned freestruct, artifact upload) lives once. Caller contract
-  honored: triggers (main+staging+paths filter), permissions, pages
-  concurrency, and the main-only deploy gate all stay HERE. Inputs:
-  ruby 3.4 (lane default 3.2 - our bundler lock is 3.4), freestruct
-  EXACT '1.1.0' (issue #36's no-floating-install lesson stays a
-  contract; the lane's ^1.1.0 range is refused here), pagefind stays
-  'latest' (the lane's hardened scrape is byte-identical to ours).
-  Reconciliation receipts verified against the published freestruct@1.1.0
-  tarball BEFORE the swap: engine/inject.js exists and bin/freestruct.mjs
-  is a thin shim forwarding to the same runInject(); config discovery
-  reads freestruct.config.yml FIRST with ssr-config.yml back-compat, so
-  our docs/ssr-config.yml stays legal with nothing renamed. This repo is
-  the proving consumer the swap contract asked for; closing #38 on a green
-  lane run.
+- #39 (JSON-LD identity): the deployed docs render the family identity - the founder Person (Creadev.org/creadev.org) inside the Organization block line 198 and the maintainer Person (dhaupin, crashtest maintainer) at line 210 on https://docs.creadev.org/crashtest/ (live fetch receipt). The engine-edition template (both {{authorJson}} + {{searchActionJson}} seams) + the ssr-config.yml identity blocks landed with the #42 docs lane receipts; closing the issue with the live receipt.
+- #38 (reusable docs lane): this repo's docs.yml is now a THIN CALLER of dhaupin/flowforge/.github/workflows/docs-build.yml@main - the hand- copied build runbook (Jekyll, hardened pagefind scrape, search index, pinned freestruct, artifact upload) lives once. Caller contract honored: triggers (main+staging+paths filter), permissions, pages concurrency, and the main-only deploy gate all stay HERE. Inputs: ruby 3.4 (lane default 3.2 - our bundler lock is 3.4), freestruct EXACT '1.1.0' (issue #36's no-floating-install lesson stays a contract; the lane's ^1.1.0 range is refused here), pagefind stays 'latest' (the lane's hardened scrape is byte-identical to ours). Reconciliation receipts verified against the published freestruct@1.1.0 tarball BEFORE the swap: engine/inject.js exists and bin/freestruct.mjs is a thin shim forwarding to the same runInject(); config discovery reads freestruct.config.yml FIRST with ssr-config.yml back-compat, so our docs/ssr-config.yml stays legal with nothing renamed. This repo is the proving consumer the swap contract asked for; closing #38 on a green lane run.
 
 ### 2026-10-29 - run 138's red was NOT the docs swap: the probe timer unref bug
-- ci failed on push 3393ef9's tree AND on b7bdbf5 (runs 137/138, Test
-  suite step, both lanes). Reproduced on node 22.21.1 via a clean runner
-  install: 6 tests in test/presets-plugins.test.js CANCELLED
-  (26-31, the whole file tail after the hung-handler probe) with
-  \"Promise resolution is still pending but the event loop has already
-  resolved\". Node 24 hides it (pass 419 / cancelled 0), which is why local
-  checks kept green.
-- Root cause: src/presets.js raceTimeout unref'd its own timer. An unref'd
-  timeout cannot hold the event loop; a hung handler as the ONLY pending
-  work leaves the probe's Promise.race unresolvable forever. The unref
-  also bought nothing - the finally clears the timer the instant the
-  answer arrives, so there is no post-answer latency to save. Node-version
-  blind spot lesson: the local host ran node 24, CI pins 22; both now in
-  the receipt (fix verified on BOTH: 419/0/0/7 exit 0 on 22 AND 24).
+- ci failed on push 3393ef9's tree AND on b7bdbf5 (runs 137/138, Test suite step, both lanes). Reproduced on node 22.21.1 via a clean runner install: 6 tests in test/presets-plugins.test.js CANCELLED (26-31, the whole file tail after the hung-handler probe) with \"Promise resolution is still pending but the event loop has already resolved\". Node 24 hides it (pass 419 / cancelled 0), which is why local checks kept green.
+- Root cause: src/presets.js raceTimeout unref'd its own timer. An unref'd timeout cannot hold the event loop; a hung handler as the ONLY pending work leaves the probe's Promise.race unresolvable forever. The unref also bought nothing - the finally clears the timer the instant the answer arrives, so there is no post-answer latency to save. Node-version blind spot lesson: the local host ran node 24, CI pins 22; both now in the receipt (fix verified on BOTH: 419/0/0/7 exit 0 on 22 AND 24).
 
 ### 2026-10-29 - status emission rides the web build (CF redeploy gap)
-- The live site's stale /status.json was not only a stale deployment: even
-  a fresh CF Pages build would have re-produce the gap, because status
-  emission lived in ci.yml's lane only. `web/package.json`'s build is now
-  "node scripts/build-status.mjs && prestruct build" - the emitter is part
-  of ANY builder's path (CF Pages, local, operator lanes), the dialect file
-  cannot be absent from a shipped dist anymore. Receipt: local build 6/6
-  pages + dist/status.json correct (schema 1, family-status@1, asOf HEAD).
+- The live site's stale /status.json was not only a stale deployment: even a fresh CF Pages build would have re-produce the gap, because status emission lived in ci.yml's lane only. `web/package.json`'s build is now "node scripts/build-status.mjs && prestruct build" - the emitter is part of ANY builder's path (CF Pages, local, operator lanes), the dialect file cannot be absent from a shipped dist anymore. Receipt: local build 6/6 pages + dist/status.json correct (schema 1, family-status@1, asOf HEAD).
 
 ### 2026-10-29 - the island's cross-origin reads were CSP-blocked, not CORS-blocked
-- Live family-board receipt after the CF rebuild picked up 6cd9c16:
-  crashtest now SERVES /status.json (200, application/json, correct
-  dialect) and eyestruct serves ACAO:* - yet BOTH islands still rendered
-  every foreign row \"Failed to fetch\". Cause: the sites' own CSP
-  connect-src ('self' + cloudflareinsights only) forbids fetch() to any
-  sibling origin - the browser refuses before CORS headers matter.
-- web/public/_headers: connect-src grows the family member origins
-  (eyestruct/poststruct/packstruct/monoforge .creadev.org), and
-  /status.json carries its own block (ACAO:* + no-cache) so the siblings'
-  boards can read OUR file too - the reader half of family-status@1.
-  Receipt: dist/_headers carries the CSP line + the /status.json block;
-  build 6/6 pages. The symmetric ask goes to eyestruct as an issue
-  (their connect-src lacks the family origins, so THEIR island cannot
-  light crashtest's row either).
+- Live family-board receipt after the CF rebuild picked up 6cd9c16: crashtest now SERVES /status.json (200, application/json, correct dialect) and eyestruct serves ACAO:* - yet BOTH islands still rendered every foreign row \"Failed to fetch\". Cause: the sites' own CSP connect-src ('self' + cloudflareinsights only) forbids fetch() to any sibling origin - the browser refuses before CORS headers matter.
+- web/public/_headers: connect-src grows the family member origins (eyestruct/poststruct/packstruct/monoforge .creadev.org), and /status.json carries its own block (ACAO:* + no-cache) so the siblings' boards can read OUR file too - the reader half of family-status@1. Receipt: dist/_headers carries the CSP line + the /status.json block; build 6/6 pages. The symmetric ask goes to eyestruct as an issue (their connect-src lacks the family origins, so THEIR island cannot light crashtest's row either).

@@ -8,11 +8,6 @@ version: 1.2.0
 
 # crashtest v1.2.0
 
-> **DRAFT - pre-publication.** v1.2.0 is on `main` and not on npm yet. The
-> release-post timing rule (no fiction by promotion) applies until the
-> `v1.2.0` tag lands. Remove this banner the moment it does, and flip the
-> index table's `live` column to the npm date.
-
 crashtest is seeded, in-process adversarial QA for agent-built app code. v1.2.0 is the second minor release, and it is also additive: new opt-in CLI surfaces, a packstruct lane that arrives at publishable shape, a grown WordPress adapter, and the honest-skip discipline carried end to end through the attack library, the runner, and the dashboard. This post ships with the v1.2.0 tag: npm has the tarball by the time you read it.
 
 ```bash

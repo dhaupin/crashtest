@@ -7,24 +7,15 @@ description: Every crashtest command, flag and exit code - verified against the 
 
 # CLI Reference
 
-Every verb, every flag, nothing else. This page is hand-kept to
-`crashtest --help` - when they disagree, run `--help` (version-suffixed
-output) and report the page. The docs fiction scan and the web docs
-consistency probe hold this page to that rule.
+Every verb, every flag, nothing else. This page is hand-kept to `crashtest --help` - when they disagree, run `--help` (version-suffixed output) and report the page. The docs fiction scan and the web docs consistency probe hold this page to that rule.
 
 ## `crashtest init [--force]`
 
-Scaffold the run root: `labs/crashledger.json` + `labs/hardening.md`
-stubs, plus `packs/public` / `packs/local` directories. First run also
-appends `packs/local/` to `.gitignore` (private packs stay on your
-machine; `packs/public/` is tracked and sharable). Re-running without
-`--force` refuses to stomp an existing baseline.
+Scaffold the run root: `labs/crashledger.json` + `labs/hardening.md` stubs, plus `packs/public` / `packs/local` directories. First run also appends `packs/local/` to `.gitignore` (private packs stay on your machine; `packs/public/` is tracked and sharable). Re-running without `--force` refuses to stomp an existing baseline.
 
 ## `crashtest run`
 
-Attack the target declared in `crashtest.config.js`. Writes
-`labs/crashledger.json` + `labs/hardening.md` on success - that is how a
-baseline is cut. Flags:
+Attack the target declared in `crashtest.config.js`. Writes `labs/crashledger.json` + `labs/hardening.md` on success - that is how a baseline is cut. Flags:
 
 | Flag | What it does |
 |---|---|
@@ -39,8 +30,7 @@ baseline is cut. Flags:
 
 ## `crashtest packs`
 
-List discovered packs (public + local), env claims shown, unmet lines
-rendered. Flags:
+List discovered packs (public + local), env claims shown, unmet lines rendered. Flags:
 
 | Flag | What it does |
 |---|---|
@@ -50,38 +40,21 @@ rendered. Flags:
 
 ### `crashtest packs add <name> [--public]`
 
-Scaffold a fresh pack. Local + gitignored by default; `--public` makes it
-tracked and sharable. A fresh pack's manifest carries the placeholder
-description `TODO: one line on what <name> attacks` - write a real one
-before shipping the pack.
+Scaffold a fresh pack. Local + gitignored by default; `--public` makes it tracked and sharable. A fresh pack's manifest carries the placeholder description `TODO: one line on what <name> attacks` - write a real one before shipping the pack.
 
 ## `crashtest lint-determinism [--config <path>] [dirs...]`
 
-Grep the DECLARED sources (config `scenarioDirs` + packs roots, or
-explicit dirs) for wall-clock / unseeded-randomness tokens (`Date.now`,
-`new Date(`, `Math.random`). Findings exit 2 naming file:line. The
-determinism law, enforced at the door: same commit -> same findings.
+Grep the DECLARED sources (config `scenarioDirs` + packs roots, or explicit dirs) for wall-clock / unseeded-randomness tokens (`Date.now`, `new Date(`, `Math.random`). Findings exit 2 naming file:line. The determinism law, enforced at the door: same commit -> same findings.
 
 ## `crashtest lint-packs [--deep] [--json] [--against <lib>] [dir]`
 
-Lint the packs root against the packstruct packs spec (`schemaVersion: 1`,
-name/dir match, entry ships, dotted version). Opt-in passthrough to the
-packstruct binary THIS REPO has installed (`node_modules/.bin`, then
-`PATH`) - never downloads one. Default dir is the packs root, NEVER
-`packs/public` (packstruct's contract root is `<dir>/` with its
-public/local children). `packstruct` not installed where the flag/verb is
-explicitly asked = exit 2 naming the fix: `npm i -D packstruct@<exact>`.
+Lint the packs root against the packstruct packs spec (`schemaVersion: 1`, name/dir match, entry ships, dotted version). Opt-in passthrough to the packstruct binary THIS REPO has installed (`node_modules/.bin`, then `PATH`) - never downloads one. Default dir is the packs root, NEVER `packs/public` (packstruct's contract root is `<dir>/` with its public/local children). `packstruct` not installed where the flag/verb is explicitly asked = exit 2 naming the fix: `npm i -D packstruct@<exact>`.
 
-The contract-root rule is canonical in the spec itself (packstruct SPEC
-section 1, "The contract root"); this page mirrors it deliberately, so a
-change lands in the spec first and this line follows. Crosslinked per
-packstruct#28.
+The contract-root rule is canonical in the spec itself (packstruct SPEC section 1, "The contract root"); this page mirrors it deliberately, so a change lands in the spec first and this line follows. Crosslinked per packstruct#28.
 
 ## `crashtest preset <name> [--root <dir>]`
 
-Generate a starter config for an agent-builder export (lovable, bolt,
-replit) from what is ACTUALLY in the repo - never a guess. Usage without
-a name prints the usage line.
+Generate a starter config for an agent-builder export (lovable, bolt, replit) from what is ACTUALLY in the repo - never a guess. Usage without a name prints the usage line.
 
 ## `crashtest --version`
 

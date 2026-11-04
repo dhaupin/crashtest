@@ -8,184 +8,39 @@ Format: [Keep a Changelog](https://keepachangelog.com/) - sections head `## [ver
 
 ### Fixed
 
-- **The release ladder no longer parses `npm pack --dry-run --json`.** The
-  phone's npm answers that probe with empty stdout (a config warning, no JSON)
-  even under `--loglevel=error`, so the ladder's `JSON.parse` failed and read as
-  a capability failure - exit 2 - on a clean tree. The ladder now derives the
-  expected set from a REAL `npm pack` of the checkout, listed by the same
-  `tarList` the served tarball already goes through.
+- **The release ladder no longer parses `npm pack --dry-run --json`.** The phone's npm answers that probe with empty stdout (a config warning, no JSON) even under `--loglevel=error`, so the ladder's `JSON.parse` failed and read as a capability failure - exit 2 - on a clean tree. The ladder now derives the expected set from a REAL `npm pack` of the checkout, listed by the same `tarList` the served tarball already goes through.
 
-- **The staged publish `.npmrc` no longer writes the deprecated `always-auth`
-  line.** npm >=9 warns `Unknown project config "always-auth"` on it, and that
-  warning reaches the child processes the `prepublishOnly` gate spawns. The
-  staged file is now exactly one line (the `${NPM_TOKEN}` expansion).
+- **The staged publish `.npmrc` no longer writes the deprecated `always-auth` line.** npm >=9 warns `Unknown project config "always-auth"` on it, and that warning reaches the child processes the `prepublishOnly` gate spawns. The staged file is now exactly one line (the `${NPM_TOKEN}` expansion).
 
 ### Changed
 
-- **Changelog + release-notes standardized to the family shape.** `CHANGELOG.md`
-  is now Keep-a-Changelog end to end (a `## [Unreleased]` block over
-  `## [version] - date` sections) and `scripts/release-notes.cjs` is the
-  family's single superset extractor: it reads the KAC heading, still reads the
-  older bare (`## 1.2.0`) and v-prefixed (`## v1.2.0`) forms, closes the
-  version token so `## [1.2.0]` never matches a `## [1.2.0-rc.1]`, and refuses
-  a version with no section by name. One extractor across the family means one
-  release-body shape everywhere.
+- **Changelog + release-notes standardized to the family shape.** `CHANGELOG.md` is now Keep-a-Changelog end to end (a `## [Unreleased]` block over `## [version] - date` sections) and `scripts/release-notes.cjs` is the family's single superset extractor: it reads the KAC heading, still reads the older bare (`## 1.2.0`) and v-prefixed (`## v1.2.0`) forms, closes the version token so `## [1.2.0]` never matches a `## [1.2.0-rc.1]`, and refuses a version with no section by name. One extractor across the family means one release-body shape everywhere.
 
 ### Fixed
 
-- **The release ladder no longer races registry propagation, nor false-flags a
-  branch-name `target_commitish`.** `scripts/verify-release.cjs` polls
-  `dist-tags.latest` **and** the version entry through npm's post-publish
-  propagation window instead of reading once, and the `release` job retries
-  `npm pack crashtest@<ver>` the same way (the 1.2.0 cut read `ETARGET: no
-  matching version` seconds after publish). The release check now accepts
-  GitHub's `target_commitish` default-branch name and treats only a 40-hex SHA
-  as a commit claim (a branch name is not drift; the tag is the identity). The
-  script also gains the family `--allowed` flag (prefix-scoped forbidden-scan
-  exemptions). Three pins hold it all.
+- **The release ladder no longer races registry propagation, nor false-flags a branch-name `target_commitish`.** `scripts/verify-release.cjs` polls `dist-tags.latest` **and** the version entry through npm's post-publish propagation window instead of reading once, and the `release` job retries `npm pack crashtest@<ver>` the same way (the 1.2.0 cut read `ETARGET: no matching version` seconds after publish). The release check now accepts GitHub's `target_commitish` default-branch name and treats only a 40-hex SHA as a commit claim (a branch name is not drift; the tag is the identity). The script also gains the family `--allowed` flag (prefix-scoped forbidden-scan exemptions). Three pins hold it all.
 
 ## [1.2.0] - 2026-11-02
 
-- the release lane is now the family 3-job ladder (`publish` -> `release` ->
-  `verify`) instead of the old `publish` + `github-release` pair. The retired
-  `github-release` job re-packed the checkout and admitted its asset was
-  **not** byte-identical to the npm tarball (tar stores mtimes); the new
-  `release` job attaches the **served** tarball (`npm pack crashtest@<version>`)
-  and the new `verify` job asserts its sha512 equals the registry integrity
-  metadata (`scripts/verify-release.cjs --gh --asset`) - the GH release and
-  the npm artifact are now the SAME bytes. `verify` also re-proves the
-  registry truth: latest == this tree's version, served sha512 == integrity,
-  provenance present, and the full pack ladder over the served tarball
-  (`--allowed packs/`, crashtest's shipped extension surface). The release
-  notes come from `scripts/release-notes.cjs` (the changelog's own `[version]`
-  section; an empty extraction refuses the cut), and a `workflow_dispatch`
-  `verify-only` mode re-runs the ladder against what is already served. The
-  workflow's `actions/checkout` + `actions/setup-node` are pinned to commit
-  SHAs (house rule: pins, never floats).
-- the v1.2.0 live cut surfaced two false negatives in the shared ladder, both
-  fixed: (1) the `release` job ran `npm pack crashtest@1.2.0` seconds after
-  publish and read `ETARGET: no matching version` - the registry read replica
-  lags a fresh publish, so the pack is now a bounded poll (24 x 5s); (2) the
-  `verify` gh ladder rejected a release whose `target_commitish` was the
-  default branch name (`main`), which is what GitHub records when a release is
-  cut from an already-pushed tag - only a 40-hex `target_commitish` is a commit
-  claim now. `test/release-verify.test.js` pins both.
-- `crashtest --version` now prints the **bare** version (`1.2.0`), matching
-  what `docs/reference/cli.md` already promised ("the single-string version")
-  and what the family release ladder's installed-bin probe asserts exactly
-  (the decorated `crashtest v1.2.0` would refuse the cut). `test/cli.test.js`
-  pins the new shape.
-- the poststruct reference row re-cuts against the live repo: gistory retired
-  its forge role 2026-11-02 (gistory#37), so the `poststruct-staging/` citation
-  in `docs/reference/packs.md` is retired. poststruct now lives at
-  `dhaupin/poststruct` with its own `test.yml` (exact family pins) and its own
-  `scripts/run-packs.mjs` (8/8 on the packstruct conformance cases). The
-  citation rule drops its pre-repo staging branch - every family member is a
-  live repo pin now.
+- the release lane is now the family 3-job ladder (`publish` -> `release` -> `verify`) instead of the old `publish` + `github-release` pair. The retired `github-release` job re-packed the checkout and admitted its asset was **not** byte-identical to the npm tarball (tar stores mtimes); the new `release` job attaches the **served** tarball (`npm pack crashtest@<version>`) and the new `verify` job asserts its sha512 equals the registry integrity metadata (`scripts/verify-release.cjs --gh --asset`) - the GH release and the npm artifact are now the SAME bytes. `verify` also re-proves the registry truth: latest == this tree's version, served sha512 == integrity, provenance present, and the full pack ladder over the served tarball (`--allowed packs/`, crashtest's shipped extension surface). The release notes come from `scripts/release-notes.cjs` (the changelog's own `[version]` section; an empty extraction refuses the cut), and a `workflow_dispatch` `verify-only` mode re-runs the ladder against what is already served. The workflow's `actions/checkout` + `actions/setup-node` are pinned to commit SHAs (house rule: pins, never floats).
+- the v1.2.0 live cut surfaced two false negatives in the shared ladder, both fixed: (1) the `release` job ran `npm pack crashtest@1.2.0` seconds after publish and read `ETARGET: no matching version` - the registry read replica lags a fresh publish, so the pack is now a bounded poll (24 x 5s); (2) the `verify` gh ladder rejected a release whose `target_commitish` was the default branch name (`main`), which is what GitHub records when a release is cut from an already-pushed tag - only a 40-hex `target_commitish` is a commit claim now. `test/release-verify.test.js` pins both.
+- `crashtest --version` now prints the **bare** version (`1.2.0`), matching what `docs/reference/cli.md` already promised ("the single-string version") and what the family release ladder's installed-bin probe asserts exactly (the decorated `crashtest v1.2.0` would refuse the cut). `test/cli.test.js` pins the new shape.
+- the poststruct reference row re-cuts against the live repo: gistory retired its forge role 2026-11-02 (gistory#37), so the `poststruct-staging/` citation in `docs/reference/packs.md` is retired. poststruct now lives at `dhaupin/poststruct` with its own `test.yml` (exact family pins) and its own `scripts/run-packs.mjs` (8/8 on the packstruct conformance cases). The citation rule drops its pre-repo staging branch - every family member is a live repo pin now.
 
-- #45 closes (the crashtest side): the legal pages (Terms + Privacy) now carry
-  a family crosslink footer naming the four sibling sites that share the same
-  plain-language legal form (eyestruct, monoforge, poststruct, packstruct), so
-  the parity is visible to a reader who arrives from any member. The landing
-  shell head comment no longer carries the literal title markup: a raw-string
-  first-match head audit must see the real `<title>` first, not the prose that
-  described it (the monoforge shell fix, applied here).
+- #45 closes (the crashtest side): the legal pages (Terms + Privacy) now carry a family crosslink footer naming the four sibling sites that share the same plain-language legal form (eyestruct, monoforge, poststruct, packstruct), so the parity is visible to a reader who arrives from any member. The landing shell head comment no longer carries the literal title markup: a raw-string first-match head audit must see the real `<title>` first, not the prose that described it (the monoforge shell fix, applied here).
 
-- #50 closes: the web rig pulls in prestruct#68 (commit `498ab5f`, shipping in
-  prestruct 1.2.0). The consumer-side `web/src/router-interop.js` shim is
-  RETIRED - app files import `react-router-dom` directly again, and the
-  engine's interop plugin rewrites the named imports. Retiring it is required,
-  not cosmetic: on 1.2.0 the interop module (a namespace import of the
-  externalized CJS singleton) no longer shares an instance with the engine's
-  registry-loaded StaticRouter, so keeping it renders 0/6 pages. On this
-  `vite ^6.4.5` pin the engine's externalized default still splits the router
-  too, so `ssr.noExternal: ['react-router-dom','react-router']` is added to
-  `web/vite.config.js` (the registry-in-process path is what holds ONE
-  instance); the externalized path only holds on vite 7, so dropping it rides a
-  future vite bump. `prestruct` is pinned at the commit
-  (`github:dhaupin/prestruct#498ab5f`; the lockfile's git URL is HTTPS so a
-  keyless CI `npm ci` resolves it) and takes the registry tag when 1.2.0 cuts.
-  Receipts: `prestruct build` ends "Done. 6/6 pages rendered"; `npm test` 427
-  (0 fail, 7 skips); `npm run check` + `npm run lint:docs` PASS.
+- #50 closes: the web rig pulls in prestruct#68 (commit `498ab5f`, shipping in prestruct 1.2.0). The consumer-side `web/src/router-interop.js` shim is RETIRED - app files import `react-router-dom` directly again, and the engine's interop plugin rewrites the named imports. Retiring it is required, not cosmetic: on 1.2.0 the interop module (a namespace import of the externalized CJS singleton) no longer shares an instance with the engine's registry-loaded StaticRouter, so keeping it renders 0/6 pages. On this `vite ^6.4.5` pin the engine's externalized default still splits the router too, so `ssr.noExternal: ['react-router-dom','react-router']` is added to `web/vite.config.js` (the registry-in-process path is what holds ONE instance); the externalized path only holds on vite 7, so dropping it rides a future vite bump. `prestruct` is pinned at the commit (`github:dhaupin/prestruct#498ab5f`; the lockfile's git URL is HTTPS so a keyless CI `npm ci` resolves it) and takes the registry tag when 1.2.0 cuts. Receipts: `prestruct build` ends "Done. 6/6 pages rendered"; `npm test` 427 (0 fail, 7 skips); `npm run check` + `npm run lint:docs` PASS.
 
-- the served `/api/health` canary joins `/api/version`: `web/functions/api/health.js`
-  returns honest JSON (`{ ok, name, service, ts }`), the same schema the
-  poststruct / monoforge / packstruct landings serve. crashtest was the one
-  member site with a Pages Function but no `health` route, so a family sweep
-  read crashtest as down. `npm run check` typechecks the new file.
+- the served `/api/health` canary joins `/api/version`: `web/functions/api/health.js` returns honest JSON (`{ ok, name, service, ts }`), the same schema the poststruct / monoforge / packstruct landings serve. crashtest was the one member site with a Pages Function but no `health` route, so a family sweep read crashtest as down. `npm run check` typechecks the new file.
 
-- the contract-root rule is now canonical in the spec (packstruct SPEC section
-  1, "The contract root") and the `lint-packs` line on the CLI reference page
-  mirrors it with a crosslink, so the spec page and this page cannot drift
-  (packstruct#28).
-- the why / what / about pages land on both surfaces: `/why`, `/what`, and
-  `/about` routes (nav + `web/ssr.config.js` + `AppLayout.jsx`), plus the
-  matching `docs/why.md`, `docs/what.md`, `docs/about/index.md` in the docs
-  nav. The family-wide gap: no member carried a supporting trio.
-- **`/packs` on crashtest: recorded as the deliberate host-not-catalog
-  exception, and `/attacks` is not its replacement.** The family `/packs`
-  surface is packstruct's *catalog* page (packstruct owns the SPEC and the
-  catalog of hosts that load it). A host's own pack lane belongs in its docs,
-  which is `docs/reference/packs.md` here. Crashtest's shipped packs are
-  already surfaced on `/attacks` - the eight public packs and their 36 pack
-  attacks ride the same ledger as the 49 library attacks. Adding a `/packs`
-  page would duplicate that pack section and create a second, drifting copy
-  of the same counts (the stale-count class the census tests exist to kill).
-  So crashtest stays the exception, matching the doctrine that a host
-  documents its pack lane rather than re-hosting the catalog. `/attacks` is
-  the catalog of *attacks* (49 library + 36 pack), which is crashtest's
-  actual subject; it is not a renamed `/packs`.
-- the family status gets its own `/status` route: the `family-status@1`
-  island (crashtest#47) moves OFF `/dashboard` onto `/status`, so every
-  struct-family member reads the same shape at the same path (packstruct /
-  poststruct / eyestruct already serve `/status`; govstruct / monoforge now
-  do too). The dashboard stays the ledger renderer. The `/status.json`
-  contract is unchanged; the page renders the same live table, `govstruct`
-  joins the sibling list, and the emitter's `site` pointer moves from
-  `/dashboard` to `/status`.
-- #56 closes: the served `/status.json` `docs` URL no longer carries a
-  trailing slash (`.../reference/status/` -> `.../reference/status`). The
-  slash form 404s on the docs host while the extensionless permalink the
-  sitemap advertises resolves 200, so a machine following the field landed
-  on a 404. The emitter's `DOCS` constant is now pinned by
-  `test/status-leg.test.js`: the test reads `docs/reference/status.md`'s
-  frontmatter `permalink` and asserts the emitted URL equals
-  `base + permalink` (verified failing on the old value).
-- #42 closes: a Ruby-capable host now exists (the sandbox, no root) and
-  the FULL docs deploy lane runs locally with receipts - prebuilt Ruby
-  3.4.10 unpacked to ~/rubies, scratch-copy bundle path outside the
-  repo (37 gems), jekyll 29 pages, pagefind 1.5.2 (3064 words),
-  freestruct 1.1.0 exact pin, and BOTH theme captures via eyestruct@1.0.0
-  `look` (chrome-headless-shell 156 + user-space libs; artifacts/
-  docs-dark.png + docs-light.png committed). The local lane caught a
-  REAL head bug pre-deploy: the config og.image never reached any
-  deployed page - the layout's hand-written og set tripped the engine's
-  hasOg missing-only gate and starved the template's og:image (verified
-  against the LIVE docs first: 5 og tags, no og:image). Fixed the
-  convergent way: the layout drops og/canonical, inject-brand.html
-  carries the engine's full default head set, the title moves to the
-  engine's pipe-split convention, and og.type/twitter.card move to
-  ssr-config.yml - one head owner, per-page og:title/canonical/og:image
-  verified locally on both themes' builds.
+- the contract-root rule is now canonical in the spec (packstruct SPEC section 1, "The contract root") and the `lint-packs` line on the CLI reference page mirrors it with a crosslink, so the spec page and this page cannot drift (packstruct#28).
+- the why / what / about pages land on both surfaces: `/why`, `/what`, and `/about` routes (nav + `web/ssr.config.js` + `AppLayout.jsx`), plus the matching `docs/why.md`, `docs/what.md`, `docs/about/index.md` in the docs nav. The family-wide gap: no member carried a supporting trio.
+- **`/packs` on crashtest: recorded as the deliberate host-not-catalog exception, and `/attacks` is not its replacement.** The family `/packs` surface is packstruct's *catalog* page (packstruct owns the SPEC and the catalog of hosts that load it). A host's own pack lane belongs in its docs, which is `docs/reference/packs.md` here. Crashtest's shipped packs are already surfaced on `/attacks` - the eight public packs and their 36 pack attacks ride the same ledger as the 49 library attacks. Adding a `/packs` page would duplicate that pack section and create a second, drifting copy of the same counts (the stale-count class the census tests exist to kill). So crashtest stays the exception, matching the doctrine that a host documents its pack lane rather than re-hosting the catalog. `/attacks` is the catalog of *attacks* (49 library + 36 pack), which is crashtest's actual subject; it is not a renamed `/packs`.
+- the family status gets its own `/status` route: the `family-status@1` island (crashtest#47) moves OFF `/dashboard` onto `/status`, so every struct-family member reads the same shape at the same path (packstruct / poststruct / eyestruct already serve `/status`; govstruct / monoforge now do too). The dashboard stays the ledger renderer. The `/status.json` contract is unchanged; the page renders the same live table, `govstruct` joins the sibling list, and the emitter's `site` pointer moves from `/dashboard` to `/status`.
+- #56 closes: the served `/status.json` `docs` URL no longer carries a trailing slash (`.../reference/status/` -> `.../reference/status`). The slash form 404s on the docs host while the extensionless permalink the sitemap advertises resolves 200, so a machine following the field landed on a 404. The emitter's `DOCS` constant is now pinned by `test/status-leg.test.js`: the test reads `docs/reference/status.md`'s frontmatter `permalink` and asserts the emitted URL equals `base + permalink` (verified failing on the old value).
+- #42 closes: a Ruby-capable host now exists (the sandbox, no root) and the FULL docs deploy lane runs locally with receipts - prebuilt Ruby 3.4.10 unpacked to ~/rubies, scratch-copy bundle path outside the repo (37 gems), jekyll 29 pages, pagefind 1.5.2 (3064 words), freestruct 1.1.0 exact pin, and BOTH theme captures via eyestruct@1.0.0 `look` (chrome-headless-shell 156 + user-space libs; artifacts/ docs-dark.png + docs-light.png committed). The local lane caught a REAL head bug pre-deploy: the config og.image never reached any deployed page - the layout's hand-written og set tripped the engine's hasOg missing-only gate and starved the template's og:image (verified against the LIVE docs first: 5 og tags, no og:image). Fixed the convergent way: the layout drops og/canonical, inject-brand.html carries the engine's full default head set, the title moves to the engine's pipe-split convention, and og.type/twitter.card move to ssr-config.yml - one head owner, per-page og:title/canonical/og:image verified locally on both themes' builds.
 
-- the family's pull-in round lands (cross-pollinated asks, receipts on
-  their issues): #49 adopts eyestruct's unwrap-prose.cjs (copied from
-  3adda1d, registered on the check chain) and unwraps the living prose
-  belt - docs/discussions/*, README, AGENTS, CHANGELOG, labs/TASKS,
-  labs/PRD, docs/publish.md - verified a pure reflow by an isolation
-  diff (HEAD reflowed in a scratch tree differs only by this turn's
-  known edits). #51 installs the version-truth ruling: the README's
-  hand-copied `/ MIT / v1.1.0` (already stale) is dropped - npm is the
-  version truth; the census-classified `(v1.2.0)` annotations and range
-  pins stay (era-pinned, not living); and the web rig's version ride is
-  ENFORCED by a new leg in test/version.test.js (suite floor 425 -> 426
-  with PHP / 419 pass + 7 skips without). #53 applies the poststruct#32
-  staging-branch pattern: ci.yml + docs.yml cover the staging branch on
-  push, and docs.yml's Pages deploy gates `if: github.ref ==
-  'refs/heads/main'` so the integration branch can build but never
-  deploy. #50 is answered, not landed: the prestruct#68 router-seam fix
-  is not on npm yet (latest still 1.1.0), the web rig keeps the working
-  shim, and the bump recipe waits on prestruct 1.2.0.
+- the family's pull-in round lands (cross-pollinated asks, receipts on their issues): #49 adopts eyestruct's unwrap-prose.cjs (copied from 3adda1d, registered on the check chain) and unwraps the living prose belt - docs/discussions/*, README, AGENTS, CHANGELOG, labs/TASKS, labs/PRD, docs/publish.md - verified a pure reflow by an isolation diff (HEAD reflowed in a scratch tree differs only by this turn's known edits). #51 installs the version-truth ruling: the README's hand-copied `/ MIT / v1.1.0` (already stale) is dropped - npm is the version truth; the census-classified `(v1.2.0)` annotations and range pins stay (era-pinned, not living); and the web rig's version ride is ENFORCED by a new leg in test/version.test.js (suite floor 425 -> 426 with PHP / 419 pass + 7 skips without). #53 applies the poststruct#32 staging-branch pattern: ci.yml + docs.yml cover the staging branch on push, and docs.yml's Pages deploy gates `if: github.ref == 'refs/heads/main'` so the integration branch can build but never deploy. #50 is answered, not landed: the prestruct#68 router-seam fix is not on npm yet (latest still 1.1.0), the web rig keeps the working shim, and the bump recipe waits on prestruct 1.2.0.
 
 - eyestruct 1.0.0 is out (the freeze release, publish-day recipes: crashtest#52) and the family-lane receipt re-cuts SAME-DAY - the planned-for bump arrived and the numbers moved with it: 4 packs 30 rows -> 5 packs 35 rows, the bump-receipt rule doing its job. Receipt source: the v1.0.0 GH release tree pinned at the release commit `4b979c0ee24df1e534ee185e47d8ad1418edd464` (their own publish-day receipt diffs the npm tar against `git archive` of that commit byte-identical, so the lane reads the frozen bytes the registry ships); the exact-pinned packstruct 1.0.0 passthrough reports 5 packs (`eye-adapter` the schema carrier joins, plus `eye-ci-gate`, `eye-shapes`, `eye-text-leg`, `eye-bundle`) lint CLEAN at shallow AND deep - 5 modules probed, 0 census ids - and their campaign ledger is observed at `packs/eye-ledger.json`: 35 rows, verdict set `{REFUSED, PASSED, BOUNDED}` (22/11/2, 0 EXPLOITED), the same PASSED-means-evidence semantics the 1.2.0 census opens.
 

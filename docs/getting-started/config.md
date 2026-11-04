@@ -7,8 +7,7 @@ description: Every knob in crashtest.config.js, with the shape and what it contr
 
 # Configuration
 
-Everything lives in one ESM default export. Config files can import your own
-modules - they are your code, loaded from your repo.
+Everything lives in one ESM default export. Config files can import your own modules - they are your code, loaded from your repo.
 
 ## Full knob map
 
@@ -70,19 +69,13 @@ export default {
 
 ## Rules the runner enforces so you don't have to
 
-- **Route names must be unique.** Registering a name twice throws at startup -
-  a silent overwrite would leak attacks to the wrong handler.
-- **`routeAliases` takes `{ route, path, method? }`.** Only the path is
-  rewritten (query string survives); bodies are passed through untouched.
-- **A `BOUNDED` verdict needs `owner` and `bound`.** Without them it demotes
-  to EXPLOITED, loudly - accepted risk has no meaning otherwise.
+- **Route names must be unique.** Registering a name twice throws at startup - a silent overwrite would leak attacks to the wrong handler.
+- **`routeAliases` takes `{ route, path, method? }`.** Only the path is rewritten (query string survives); bodies are passed through untouched.
+- **A `BOUNDED` verdict needs `owner` and `bound`.** Without them it demotes to EXPLOITED, loudly - accepted risk has no meaning otherwise.
 
 ## Where the fake env comes from
 
-`env.d1` wants real-shape tables: seed rows in `rows:` and your actual unique
-constraints in `uniques:` - attacks chain on real constraint behavior
-(`UNIQUE constraint failed: t.col`). Fake secrets under
-`env.secrets` arm the watermark probe; use obviously fake values.
+`env.d1` wants real-shape tables: seed rows in `rows:` and your actual unique constraints in `uniques:` - attacks chain on real constraint behavior (`UNIQUE constraint failed: t.col`). Fake secrets under `env.secrets` arm the watermark probe; use obviously fake values.
 
 ## Per-module context cheat sheet
 
@@ -94,6 +87,4 @@ constraints in `uniques:` - attacks chain on real constraint behavior
 | `volume` | `{ rounds: 30, payloadSize: 8192, maxOpsPerRequest: 12 }` - economics bounds |
 | `guards` | `{ route: 'burst' }` - the burst target |
 
-Every knob above matches the shipped CLI - and the [attack
-catalog](/crashtest/reference/attacks) explains what each module actually
-does with them.
+Every knob above matches the shipped CLI - and the [attack catalog](/crashtest/reference/attacks) explains what each module actually does with them.

@@ -7,10 +7,7 @@ description: Attack a repo you don't modify - cross-repo run roots, CI artifacts
 
 # Run roots & recipes
 
-A **run root** is a directory OUTSIDE the target repo that holds the config,
-scenarios, and the ledger. Nothing installs into the repo you're attacking;
-everything stays local and offline. This is the pattern the WP spike
-formalized (see the [WordPress playbook](/crashtest/playbooks/wordpress))
+A **run root** is a directory OUTSIDE the target repo that holds the config, scenarios, and the ledger. Nothing installs into the repo you're attacking; everything stays local and offline. This is the pattern the WP spike formalized (see the [WordPress playbook](/crashtest/playbooks/wordpress))
 - and it generalizes to ANY target, JS or PHP.
 
 ## 1. The cross-repo run root
@@ -22,8 +19,7 @@ formalized (see the [WordPress playbook](/crashtest/playbooks/wordpress))
 `-- labs/                 # THIS run's ledger + report land here
 ```
 
-The config that runs the whole run root (nothing installs into the target
-repo - the config lives in the run root and imports the target by path):
+The config that runs the whole run root (nothing installs into the target repo - the config lives in the run root and imports the target by path):
 
 ```js
 // crashtest.config.js - nothing installs into the target repo
@@ -44,15 +40,11 @@ npx crashtest run
 # -> exit 0 unless a NEW EXPLOITED finding or a REFUSED->EXPLOITED regression
 ```
 
-The target repo stays untouched - commit `labs/` from the run root (or a
-dedicated baseline repo) instead. Route names the scenario vocabulary needs
-(`enroll`, `burst`, ...) map onto real paths with `routeAliases` - see
-[Configuration](/crashtest/getting-started/config).
+The target repo stays untouched - commit `labs/` from the run root (or a dedicated baseline repo) instead. Route names the scenario vocabulary needs (`enroll`, `burst`, ...) map onto real paths with `routeAliases` - see [Configuration](/crashtest/getting-started/config).
 
 ## 2. Framework adapter recipe: raw-node servers (van-style)
 
-Vant-style undecorated `http.createServer` handlers mount in-process via the
-`node` adapter - no socket, no changes to the target repo:
+Vant-style undecorated `http.createServer` handlers mount in-process via the `node` adapter - no socket, no changes to the target repo:
 
 ```js
 // run-root crashtest.config.js
@@ -70,21 +62,13 @@ export default {
 };
 ```
 
-A real run of exactly this shape against the vant Server (its VAF -> QoS ->
-auth chain in-process) held 13/13 REFUSED - burst walls carried
-`Retry-After` on all 50 throttles, oversized bodies got honest 413s, and
-credential stuffing was refused 60/60. Note: `name` in the node spec is
-required (the registry's options-shape heuristic keys on it).
+A real run of exactly this shape against the vant Server (its VAF -> QoS -> auth chain in-process) held 13/13 REFUSED - burst walls carried `Retry-After` on all 50 throttles, oversized bodies got honest 413s, and credential stuffing was refused 60/60. Note: `name` in the node spec is required (the registry's options-shape heuristic keys on it).
 
-Express/hono/fastify targets swap the one adapter line - same shape as the
-[per-framework playbooks](/crashtest/playbooks/); nothing about the pack or
-the ledger changes.
+Express/hono/fastify targets swap the one adapter line - same shape as the [per-framework playbooks](/crashtest/playbooks/); nothing about the pack or the ledger changes.
 
 ## 3. CI recipe: the run blob artifact
 
-`run --json` prints the full machine run blob as the **last stdout line** -
-the exact shape the [dashboard](https://crashtest.creadev.org/dashboard)
-renders (run shape: `rows[]`, `tally`, `cost`). CI can capture it cheaply:
+`run --json` prints the full machine run blob as the **last stdout line** - the exact shape the [dashboard](https://crashtest.creadev.org/dashboard) renders (run shape: `rows[]`, `tally`, `cost`). CI can capture it cheaply:
 
 ```yaml
 # .github/workflows/ci.yml (alongside the composite gate)
@@ -99,43 +83,13 @@ renders (run shape: `rows[]`, `tally`, `cost`). CI can capture it cheaply:
       labs/crashledger.json
 ```
 
-Then paste `run.json` into the dashboard (or host it and let the dashboard
-fetch the raw URL) - the gate banner, module cards, and cost bars render
-from the same artifact CI tripped on. One artifact, one truth.
+Then paste `run.json` into the dashboard (or host it and let the dashboard fetch the raw URL) - the gate banner, module cards, and cost bars render from the same artifact CI tripped on. One artifact, one truth.
 
-For service-style targets the artifact capture is built into the runner:
-`crashtest run --out-dir <dir>` writes `run-blob.json`, `crashledger.json`,
-and `hardening.md` copies into a distinct directory (the target repo's
-`labs/` stays untouched at the repo root; the flag refuses the repo root
-itself). Same gate artifacts, no `tee`/`tail` plumbing - pick the one that
-fits the job: `--json` when stdout is the transport, `--out-dir` when a
-directory of artifacts is.
+For service-style targets the artifact capture is built into the runner: `crashtest run --out-dir <dir>` writes `run-blob.json`, `crashledger.json`, and `hardening.md` copies into a distinct directory (the target repo's `labs/` stays untouched at the repo root; the flag refuses the repo root itself). Same gate artifacts, no `tee`/`tail` plumbing - pick the one that fits the job: `--json` when stdout is the transport, `--out-dir` when a directory of artifacts is.
 
 ## 4. When your handler speaks real SQL (the node:sqlite fixture)
 
-The built-in `FakeD1` speaks a real SQL subset (v0.3) - SELECT with the
-expression grammar (CASE, arithmetic, COALESCE, comparisons, `IS NULL`,
-params-bound `IN`, `IN (SELECT ...)` subqueries at depth one, aliases),
-scalar functions (UPPER/LOWER/LENGTH/TRIM/ABS), deterministic fake-clock
-date functions (`UNIXEPOCH/DATETIME/JULIANDAY/STRFTIME` - 'now' is the
-fixed harness epoch, never a wall clock) and JSON functions
-(`JSON_EXTRACT/JSON_TYPE/JSON_QUOTE`), aggregates with whole-result-set
-and GROUP BY/HAVING scope, one-key INNER/LEFT/CROSS JOINs, CREATE TABLE
-(IF NOT EXISTS) / ALTER TABLE ADD COLUMN (the ensureSchema pattern),
-`INSERT OR IGNORE|REPLACE`, `ON CONFLICT(...) DO NOTHING|DO UPDATE` upserts
-with `excluded.*`, `INSERT..SELECT` (the seq-allocator shape), `RETURNING`,
-multi-key `ORDER BY` (aliases included), and `LIMIT ?/OFFSET ?` bound
-params - plus the behavior contracts campaigns depend on
-(`UNIQUE constraint failed: t.col`, `{meta:{changes,last_row_id}}`,
-integer autoincrement, positional binding). It was verified against real
-SQLite (node:sqlite) for the eight relay statements that motivated it.
-That is still a deliberate subset, though: a handler speaking the rest
-(window functions, `NOT`, nested subqueries, RIGHT JOIN, quoted
-identifiers, DROP/RENAME) hits the wall - and the documented fallback is
-to hand the harness a
-D1-shaped object backed by your own engine. `node:sqlite` does it in ~40
-lines (the shape gistory's run root proved first, per
-[dhaupin/gistory](https://github.com/dhaupin/gistory)):
+The built-in `FakeD1` speaks a real SQL subset (v0.3) - SELECT with the expression grammar (CASE, arithmetic, COALESCE, comparisons, `IS NULL`, params-bound `IN`, `IN (SELECT ...)` subqueries at depth one, aliases), scalar functions (UPPER/LOWER/LENGTH/TRIM/ABS), deterministic fake-clock date functions (`UNIXEPOCH/DATETIME/JULIANDAY/STRFTIME` - 'now' is the fixed harness epoch, never a wall clock) and JSON functions (`JSON_EXTRACT/JSON_TYPE/JSON_QUOTE`), aggregates with whole-result-set and GROUP BY/HAVING scope, one-key INNER/LEFT/CROSS JOINs, CREATE TABLE (IF NOT EXISTS) / ALTER TABLE ADD COLUMN (the ensureSchema pattern), `INSERT OR IGNORE|REPLACE`, `ON CONFLICT(...) DO NOTHING|DO UPDATE` upserts with `excluded.*`, `INSERT..SELECT` (the seq-allocator shape), `RETURNING`, multi-key `ORDER BY` (aliases included), and `LIMIT ?/OFFSET ?` bound params - plus the behavior contracts campaigns depend on (`UNIQUE constraint failed: t.col`, `{meta:{changes,last_row_id}}`, integer autoincrement, positional binding). It was verified against real SQLite (node:sqlite) for the eight relay statements that motivated it. That is still a deliberate subset, though: a handler speaking the rest (window functions, `NOT`, nested subqueries, RIGHT JOIN, quoted identifiers, DROP/RENAME) hits the wall - and the documented fallback is to hand the harness a D1-shaped object backed by your own engine. `node:sqlite` does it in ~40 lines (the shape gistory's run root proved first, per [dhaupin/gistory](https://github.com/dhaupin/gistory)):
 
 ```js
 // crashtest/fixture.mjs - a node:sqlite-backed D1-shape, zero dependencies
@@ -165,36 +119,17 @@ export const D1 = {
 
 Rules that keep this honest:
 
-- **One instance per run.** Handlers close over the same env object; a
-  per-attack engine resets the state your attacks depend on seeing.
-- **The `.prepare().bind().first()/all()/run()` surface is the contract**
-  FakeD1 implements too - matching it byte-for-byte keeps a pack portable
-  between the built-in subset and a custom engine.
-- **Pin the Node version in CI** (`node-version: 24`) - `node:sqlite` is
-  unflagged there; on older runners the import throws.
-- When FakeD1 covers your statements outright (v0.2 speaks the eight relay
-  shapes -
-  see
-  [`test/harness/d1-v02.test.js`](https://github.com/dhaupin/crashtest/blob/main/test/harness/d1-v02.test.js);
-  v0.3 adds the census shapes -
-  [`test/harness/d1-v03.test.js`](https://github.com/dhaupin/crashtest/blob/main/test/harness/d1-v03.test.js)),
-  this fixture gets deleted and the run root swaps back to the built-in -
-  a byte-identical ledger is the acceptance gate for that swap.
+- **One instance per run.** Handlers close over the same env object; a per-attack engine resets the state your attacks depend on seeing.
+- **The `.prepare().bind().first()/all()/run()` surface is the contract** FakeD1 implements too - matching it byte-for-byte keeps a pack portable between the built-in subset and a custom engine.
+- **Pin the Node version in CI** (`node-version: 24`) - `node:sqlite` is unflagged there; on older runners the import throws.
+- When FakeD1 covers your statements outright (v0.2 speaks the eight relay shapes - see [`test/harness/d1-v02.test.js`](https://github.com/dhaupin/crashtest/blob/main/test/harness/d1-v02.test.js); v0.3 adds the census shapes - [`test/harness/d1-v03.test.js`](https://github.com/dhaupin/crashtest/blob/main/test/harness/d1-v03.test.js)), this fixture gets deleted and the run root swaps back to the built-in - a byte-identical ledger is the acceptance gate for that swap.
 
 ## 5. Where the platform thread lives
 
-The run root + artifact contract is the seed of PRD **section 14 - crashtest as a
-CI runner** (a greptile-style review lane: hosted run roots, org dashboards,
-ledger-bound sign-off UX). The CLI stays the zero-dep drone engine; the
-service reads the artifacts, it never becomes a runtime. Read the full
-thread in [`labs/prd-crashtest.md`](https://github.com/dhaupin/crashtest/blob/main/labs/prd-crashtest.md) section 14.
+The run root + artifact contract is the seed of PRD **section 14 - crashtest as a CI runner** (a greptile-style review lane: hosted run roots, org dashboards, ledger-bound sign-off UX). The CLI stays the zero-dep drone engine; the service reads the artifacts, it never becomes a runtime. Read the full thread in [`labs/prd-crashtest.md`](https://github.com/dhaupin/crashtest/blob/main/labs/prd-crashtest.md) section 14.
 
 ## Rules that keep run roots honest
 
-- **The target repo owns its baseline.** A run root never overwrites the
-  target's `labs/` - diff against a ledger you pass in, never rewrite the
-  target's files.
-- **Restore what you touch** (the WP spike's cross-repo rule): scenario
-  fixtures and shared settings get snapshot + tear-down inside the attack.
-- **No sockets, ever** - a run root resolves local paths/imports; if it
-  needs the network, it's the wrong shape.
+- **The target repo owns its baseline.** A run root never overwrites the target's `labs/` - diff against a ledger you pass in, never rewrite the target's files.
+- **Restore what you touch** (the WP spike's cross-repo rule): scenario fixtures and shared settings get snapshot + tear-down inside the attack.
+- **No sockets, ever** - a run root resolves local paths/imports; if it needs the network, it's the wrong shape.

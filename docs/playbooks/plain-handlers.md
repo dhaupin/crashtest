@@ -43,14 +43,10 @@ That's it. Every scenario now attacks `enroll` and `device` by name.
 
 Handlers receive `{ request, env, params, data }`:
 
-- `request` - a real WHATWG `Request` (the same class the Edge runtime gives
-  you), built from the attack's method/url/headers/body
+- `request` - a real WHATWG `Request` (the same class the Edge runtime gives you), built from the attack's method/url/headers/body
 - `env` - the fake backend from `config.env`
 - `params` / `data` - whatever the attack passes in `harness.run()`
 
 ## Return contract
 
-Return a `Response` (status numbers and headers are read from it). Returning
-anything else surfaces as a finding-class fault
-(`harness: handler "x" did not return a Response`) - by design, a missing
-Response is behavior, not a test problem.
+Return a `Response` (status numbers and headers are read from it). Returning anything else surfaces as a finding-class fault (`harness: handler "x" did not return a Response`) - by design, a missing Response is behavior, not a test problem.

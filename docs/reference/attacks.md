@@ -7,10 +7,7 @@ description: Every shipped scenario module and attack, what it does, and what ve
 
 # The Attack Catalog
 
-Forty-nine attacks across fourteen modules ship in the core package. Each
-returns exactly one verdict per run: 🛡 REFUSED, ⚡ EXPLOITED, 🔒 BOUNDED, or
-✅ PASSED (BOUNDED requires an owner + bound or it demotes to EXPLOITED -
-loudly; PASSED is the safe-path positive probe and is never a finding).
+Forty-nine attacks across fourteen modules ship in the core package. Each returns exactly one verdict per run: 🛡 REFUSED, ⚡ EXPLOITED, 🔒 BOUNDED, or ✅ PASSED (BOUNDED requires an owner + bound or it demotes to EXPLOITED - loudly; PASSED is the safe-path positive probe and is never a finding).
 
 ## `auth` - identity and secrets
 
@@ -22,9 +19,7 @@ loudly; PASSED is the safe-path positive probe and is never a finding).
 
 ## `authz` - the privilege decision
 
-Where `auth` attacks who you claim to be, `authz` attacks the privilege
-DECISION itself - how a handler's admin gate gets flipped without touching
-the owner field. All three skip politely when their routes are undeclared.
+Where `auth` attacks who you claim to be, `authz` attacks the privilege DECISION itself - how a handler's admin gate gets flipped without touching the owner field. All three skip politely when their routes are undeclared.
 
 | Attack | What it does |
 |---|---|
@@ -42,11 +37,7 @@ the owner field. All three skip politely when their routes are undeclared.
 ## `governance` - order-keeping (succession, escrow, trust floors, locks)
 
 The #11 general family: grades the ORDER-KEEPING apparatus of agent systems
-- who may act, who succeeds whom, what releases what. Model-free; the
-patient is any app with grant records, approval flows, or lock/lease
-records. Vocabulary (undeclared knobs degrade to skipped-REFUSED): `moduleCtx['governance']` with `grantsRoute`, `resolveRoute`, `escrowRoute`,
-`locksRoute`, plus `ttlMode` (the lock behavior the app DOCUMENTS after a
-TTL) and `staleToken` for the fencing half.
+- who may act, who succeeds whom, what releases what. Model-free; the patient is any app with grant records, approval flows, or lock/lease records. Vocabulary (undeclared knobs degrade to skipped-REFUSED): `moduleCtx['governance']` with `grantsRoute`, `resolveRoute`, `escrowRoute`, `locksRoute`, plus `ttlMode` (the lock behavior the app DOCUMENTS after a TTL) and `staleToken` for the fencing half.
 
 | Attack | What it does |
 |---|---|
@@ -71,15 +62,7 @@ TTL) and `staleToken` for the fencing half.
 
 ## `memory` - note-store discipline (drift, hallucination, resolution)
 
-The #10 general family for agent-memory-shaped apps: the patient persists
-notes, reads them back, merges/prunes them - and the verdicts grade what
-the storage discipline DID, never what an LLM meant. Vocabulary:
-`moduleCtx['memory']` with `writeRoute` (POST `{ id, body, summary?, refs?,
-scope?, writers? }`), `readRoute` (JSON read-back), optional `deleteRoute`,
-and optional `readStyle` (`'body'` default or `'query'`). Note fields are
-read by name where present (`writers`, `revision`, scope, refs,
-tombstone markers); a missing route is a skipped-REFUSED, same law as
-every module.
+The #10 general family for agent-memory-shaped apps: the patient persists notes, reads them back, merges/prunes them - and the verdicts grade what the storage discipline DID, never what an LLM meant. Vocabulary: `moduleCtx['memory']` with `writeRoute` (POST `{ id, body, summary?, refs?, scope?, writers? }`), `readRoute` (JSON read-back), optional `deleteRoute`, and optional `readStyle` (`'body'` default or `'query'`). Note fields are read by name where present (`writers`, `revision`, scope, refs, tombstone markers); a missing route is a skipped-REFUSED, same law as every module.
 
 | Attack | What it does |
 |---|---|
@@ -117,11 +100,7 @@ every module.
 
 ## `session` - how the session behaves on the wire
 
-Where `auth` attacks who you claim to be (headers) and what you own (owner
-writes), `session` attacks the cookie itself. All three skip politely when
-their routes are undeclared; a cookie-less (bearer-token) login honestly
-skips the hygiene gradings (armed=false) - the route must mint a cookie for
-this module to assess it.
+Where `auth` attacks who you claim to be (headers) and what you own (owner writes), `session` attacks the cookie itself. All three skip politely when their routes are undeclared; a cookie-less (bearer-token) login honestly skips the hygiene gradings (armed=false) - the route must mint a cookie for this module to assess it.
 
 | Attack | What it does |
 |---|---|
@@ -132,25 +111,18 @@ this module to assess it.
 
 ## `proto-hygiene` - bare request geometry
 
-The guards extension from the PRD's cheap/low-false-positive slot: how the
-request's bare geometry is met, before any payload matters. Both attacks
-sweep every declared route (narrow with `ctx.routes`).
+The guards extension from the PRD's cheap/low-false-positive slot: how the request's bare geometry is met, before any payload matters. Both attacks sweep every declared route (narrow with `ctx.routes`).
 
 | Attack | What it does |
 |---|---|
 | `head-get-parity` | HEAD must be the cheap mirror of GET: no throw, no status drift where GET answered 2xx (only an honest 405 is excusable). HEAD body bytes are an INFO note, never a finding - wire runtimes usually strip them, so grading that in-process would false-positive correct handlers. |
 | `request-shape-flood` | The bare shapes attackers fire before payloads: duplicate query keys, malformed separators, embedded control bytes, dot-segment/double-slash path shapes, and identity headers in three casings. No 5xx, no uncaught throw, and answers must not change when only the spelling did. This probe graded a real 204-with-body bug in this repo's own demo fixture on its first dogfood run. |
 
-Scope note: header CASE is a transport invariant here (the in-process WHATWG
-`Headers` normalizes names by construction), so the case axis pins the
-invariant rather than grading handler choices - differential control, exactly
-why the PRD filed it under cheap.
+Scope note: header CASE is a transport invariant here (the in-process WHATWG `Headers` normalizes names by construction), so the case axis pins the invariant rather than grading handler choices - differential control, exactly why the PRD filed it under cheap.
 
 ## `recursion` - loops without a guard
 
-The agentic-work dimension: the two unbounded-work bugs agent-authored
-handlers write constantly - recursive JSON walkers and validation regexes
-written on the first attempt.
+The agentic-work dimension: the two unbounded-work bugs agent-authored handlers write constantly - recursive JSON walkers and validation regexes written on the first attempt.
 
 | Attack | What it does |
 |---|---|
@@ -159,12 +131,7 @@ written on the first attempt.
 
 ## `upload` - multipart shapes
 
-Upload handlers are where agent-authored storage code trusts the client the
-hardest, because the filename and content type look like ordinary strings.
-Both attacks verdict off the STORE: what the handler derives and persists is
-the wire truth. ctx: `route` (default `upload`) and `store` (default
-`UPLOADS`, a fake-KV namespace mounted at `env.<store>`); undeclared routes
-or stores skip honestly.
+Upload handlers are where agent-authored storage code trusts the client the hardest, because the filename and content type look like ordinary strings. Both attacks verdict off the STORE: what the handler derives and persists is the wire truth. ctx: `route` (default `upload`) and `store` (default `UPLOADS`, a fake-KV namespace mounted at `env.<store>`); undeclared routes or stores skip honestly.
 
 | Attack | What it does |
 |---|---|
@@ -173,10 +140,7 @@ or stores skip honestly.
 
 ## `race` - concurrency
 
-In-process synchronization comes free: handlers under one burst interleave
-at every await boundary (the fake D1/KV calls are async), which is exactly
-the read-before-write / write-after-read window the classic races live in.
-Bursts are deterministic by microtask order - same inputs, same schedule.
+In-process synchronization comes free: handlers under one burst interleave at every await boundary (the fake D1/KV calls are async), which is exactly the read-before-write / write-after-read window the classic races live in. Bursts are deterministic by microtask order - same inputs, same schedule.
 
 | Attack | What it does |
 |---|---|
@@ -185,66 +149,17 @@ Bursts are deterministic by microtask order - same inputs, same schedule.
 
 ## Shipped packs (belt with suspenders)
 
-The core package also ships eight public packs, loaded per run root with
-`packs:` and enumerated with `crashtest packs` - they ride the same
-contract, so their verdicts land in the same ledger (full schema, arming
-contract and the packstruct lint in
-[Scenario Packs](/crashtest/reference/packs)):
+The core package also ships eight public packs, loaded per run root with `packs:` and enumerated with `crashtest packs` - they ride the same contract, so their verdicts land in the same ledger (full schema, arming contract and the packstruct lint in [Scenario Packs](/crashtest/reference/packs)):
 
-- `crashtest-site` (18 attacks) - the self-check every crashtest release
-  must survive: it sweeps everything the project itself ships
-  (sitemap truth, robots.txt self-sabotage, secret leakage in HTML). It
-  is the pack that caught a real bug on its first run: a malformed
-  version payload once answered 200, and the validation floor now
-  pays for itself in CI.
-- `cve-feed` (2 attacks: `kev-banner-audit`, `kev-version-range-audit`) -
-  known-vulnerability awareness against a curated KEV/NVD snapshot of 12
-  entries, budget-capped (27 rows / 8500 bytes). Run time reads only the
-  committed `snapshot.json` - no sockets, same commit -> same findings;
-  refresh is a maintainer-side sync plus a CI-side byte-integrity join.
-  `kev-banner-audit` sweeps every declared route for disclosure culture
-  (`Server`, `X-Powered-By`, stack-tell bodies spelled like shipped
-  CVEs) - any hit is EXPLOITED; a quiet surface is REFUSED.
-  `kev-version-range-audit` reads disclosed versions from the surface
-  and refuses any that sit in an entry's vulnerable set. Match tokens
-  are word-boundary-disciplined, so `ws` never matches inside
-  `answer` - both teeth and the no-false-positive case are pinned in
-  `test/cve-feed.test.js`.
-- `qs-shapes` (2 attacks: `qs-bracket-canary`, `qs-depth-floor`) - the
-  bracket-notation parser wire (the express extended-query /
-  urlencoded lane, any qs-style parser): prototype-key canaries and a
-  parser-depth floor, endpoint-agnostic shapes graded by a
-  terminus-clamped differential oracle in
-  [`test/qs-shapes.test.js`](../../test/qs-shapes.test.js).
-- `vite-dev-shapes` (2 attacks: `vite-fs-deny-bypass`,
-  `vite-env-canary`) - the Vite dev-server file wire: fs deny/allow
-  bypass grammars (`?raw??` / `?import&raw??` / traversal encodings)
-  and deny-list value blindness; a differential terminator-blind
-  oracle in [`test/vite-shapes.test.js`](../../test/vite-shapes.test.js).
-- `next-middleware-shapes` (2 attacks: `mw-bypass-grammar`,
-  `mw-value-blindness`) - the Next.js middleware subrequest header:
-  bypass grammars and value-blindness probes swept over every declared
-  route in [`test/next-mw-shapes.test.js`](../../test/next-mw-shapes.test.js).
-- `wp-money-shapes` (3 attacks: `wp-write-volley`, `wp-txn-replay`,
-  `wp-gate-burst`) - plugin-agnostic WP money-flow shapes. ARMED pack:
-  it needs the WordPress surface (route `app` + `harness.wpState`, i.e.
-  `adapters.wordpress`) AND the
-  `moduleCtx['wp-money-shapes']` vocabulary (`postType`, `metaPaid`,
-  `metaEmail`, `optionKey`, `action`, `nonceAction`, `pacedHints`);
-  without - a polite refuse-skip, never a false positive.
-- `wp-roles` (3 attacks: `nopriv-callback-denied`,
-  `low-privilege-callback-blocked`, `capability-constants-hold`) - WP
-  role-callback discipline, experimental per PRD section 10; armed by
-  `moduleCtx['wp-roles']` on the same WordPress surface.
-- `wp-stock-smoke` (4 attacks) - stock-WordPress smoke: prove the WP
-  subprocess harness end to end on any install; it needs ONLY the
-  WordPress surface (route `app` + `harness.wpState`) - no vocabulary
-  to declare, so it is the natural first lane once `adapters.wordpress`
-  exists.
+- `crashtest-site` (18 attacks) - the self-check every crashtest release must survive: it sweeps everything the project itself ships (sitemap truth, robots.txt self-sabotage, secret leakage in HTML). It is the pack that caught a real bug on its first run: a malformed version payload once answered 200, and the validation floor now pays for itself in CI.
+- `cve-feed` (2 attacks: `kev-banner-audit`, `kev-version-range-audit`) - known-vulnerability awareness against a curated KEV/NVD snapshot of 12 entries, budget-capped (27 rows / 8500 bytes). Run time reads only the committed `snapshot.json` - no sockets, same commit -> same findings; refresh is a maintainer-side sync plus a CI-side byte-integrity join. `kev-banner-audit` sweeps every declared route for disclosure culture (`Server`, `X-Powered-By`, stack-tell bodies spelled like shipped CVEs) - any hit is EXPLOITED; a quiet surface is REFUSED. `kev-version-range-audit` reads disclosed versions from the surface and refuses any that sit in an entry's vulnerable set. Match tokens are word-boundary-disciplined, so `ws` never matches inside `answer` - both teeth and the no-false-positive case are pinned in `test/cve-feed.test.js`.
+- `qs-shapes` (2 attacks: `qs-bracket-canary`, `qs-depth-floor`) - the bracket-notation parser wire (the express extended-query / urlencoded lane, any qs-style parser): prototype-key canaries and a parser-depth floor, endpoint-agnostic shapes graded by a terminus-clamped differential oracle in [`test/qs-shapes.test.js`](../../test/qs-shapes.test.js).
+- `vite-dev-shapes` (2 attacks: `vite-fs-deny-bypass`, `vite-env-canary`) - the Vite dev-server file wire: fs deny/allow bypass grammars (`?raw??` / `?import&raw??` / traversal encodings) and deny-list value blindness; a differential terminator-blind oracle in [`test/vite-shapes.test.js`](../../test/vite-shapes.test.js).
+- `next-middleware-shapes` (2 attacks: `mw-bypass-grammar`, `mw-value-blindness`) - the Next.js middleware subrequest header: bypass grammars and value-blindness probes swept over every declared route in [`test/next-mw-shapes.test.js`](../../test/next-mw-shapes.test.js).
+- `wp-money-shapes` (3 attacks: `wp-write-volley`, `wp-txn-replay`, `wp-gate-burst`) - plugin-agnostic WP money-flow shapes. ARMED pack: it needs the WordPress surface (route `app` + `harness.wpState`, i.e. `adapters.wordpress`) AND the `moduleCtx['wp-money-shapes']` vocabulary (`postType`, `metaPaid`, `metaEmail`, `optionKey`, `action`, `nonceAction`, `pacedHints`); without - a polite refuse-skip, never a false positive.
+- `wp-roles` (3 attacks: `nopriv-callback-denied`, `low-privilege-callback-blocked`, `capability-constants-hold`) - WP role-callback discipline, experimental per PRD section 10; armed by `moduleCtx['wp-roles']` on the same WordPress surface.
+- `wp-stock-smoke` (4 attacks) - stock-WordPress smoke: prove the WP subprocess harness end to end on any install; it needs ONLY the WordPress surface (route `app` + `harness.wpState`) - no vocabulary to declare, so it is the natural first lane once `adapters.wordpress` exists.
 
 ## Writing your own
 
-Any module with the same contract loads from
-`labs/scenarios/` (or any dir via `scenarioDirs`). Full contract in
-[`src/scenarios/contract.js`](https://github.com/dhaupin/crashtest/blob/main/src/scenarios/contract.js) -
-`name`, `description`, `attacks: [{ name, run(harness, ctx) => one verdict }]`.
+Any module with the same contract loads from `labs/scenarios/` (or any dir via `scenarioDirs`). Full contract in [`src/scenarios/contract.js`](https://github.com/dhaupin/crashtest/blob/main/src/scenarios/contract.js) - `name`, `description`, `attacks: [{ name, run(harness, ctx) => one verdict }]`.

@@ -7,17 +7,13 @@ description: What crashtest is, what it needs, and which path to take first.
 
 # Getting Started
 
-Crashtest runs against **your real code** in **your own process**. The three
-prerequisites:
+Crashtest runs against **your real code** in **your own process**. The three prerequisites:
 
 1. Node 22+ (`node --version`)
 2. A `crashtest.config.js` describing your routes or app + a fake backend
 3. Two minutes
 
-Start with the [Quick Start](/crashtest/getting-started/quick-start) - `init`,
-edit, `run`. Then wire the
-[CI gate](/crashtest/playbooks/github-action) so the report becomes
-enforcement.
+Start with the [Quick Start](/crashtest/getting-started/quick-start) - `init`, edit, `run`. Then wire the [CI gate](/crashtest/playbooks/github-action) so the report becomes enforcement.
 
 ## Which path describes your app?
 
@@ -52,6 +48,4 @@ baseline: 0 new / 20 regressed / 0 accepted hits
 exit: 1  (REFUSED->EXPLOITED regressions - fix it or bound it, then re-run)
 ```
 
-Nothing about these lines is aspirational - they are the real output of this
-repo's own vulnerable fixture variant (the bench-check in the quick start).
-The full attack surface each line summarizes is in the [attack catalog](/crashtest/reference/attacks).
+Nothing about these lines is aspirational - they are the real output of this repo's own vulnerable fixture variant (the bench-check in the quick start). The full attack surface each line summarizes is in the [attack catalog](/crashtest/reference/attacks).
