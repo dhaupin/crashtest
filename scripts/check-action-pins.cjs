@@ -21,7 +21,11 @@ const path = require('node:path');
 const ROOT = path.join(__dirname, '..');
 // Optional argv[2] overrides the workflows dir so the guard's own battery can
 // drive it over temp fixtures (both ways), per the house test rule.
-const WORKFLOWS = process.argv[2] ? path.resolve(process.argv[2]) : path.join(ROOT, '.github', 'workflows');
+const OVERRIDE = Boolean(process.argv[2]);
+const WORKFLOWS = OVERRIDE ? path.resolve(process.argv[2]) : path.join(ROOT, '.github', 'workflows');
+// The repo root: this repo by default; when a fixture workflows dir is passed,
+// its parent stands in, so the action.yml leg is testable the same way.
+const REPO = OVERRIDE ? path.dirname(WORKFLOWS) : ROOT;
 const SHA_RE = /^[0-9a-f]{40}$/;
 
 const problems = [];
@@ -32,13 +36,19 @@ if (!fs.existsSync(WORKFLOWS)) {
   process.exit(1);
 }
 
-const files = fs
+// Scan the workflows AND the repo's composite Action manifest (action.yml): a
+// `uses:` float there seeds every consumer repo that adds the Action - the same
+// supply-chain surface, which the workflow scan alone never saw (crashtest's
+// action.yml floated setup-node/upload-artifact until this leg).
+const targets = fs
   .readdirSync(WORKFLOWS)
   .filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'))
-  .sort();
+  .sort()
+  .map((name) => ({ name, file: path.join(WORKFLOWS, name) }));
+const actionFile = path.join(REPO, 'action.yml');
+if (fs.existsSync(actionFile)) targets.push({ name: 'action.yml', file: actionFile });
 
-for (const name of files) {
-  const file = path.join(WORKFLOWS, name);
+for (const { name, file } of targets) {
   const lines = fs.readFileSync(file, 'utf8').split('\n');
   lines.forEach((line, i) => {
     // Match `uses: <ref>` with any indentation / list dash.
@@ -75,4 +85,6 @@ if (hard.length > 0) {
   process.exit(1);
 }
 for (const p of soft) console.log('  note: ' + p);
-console.log(`ACTION PINS: PASS (${checked} ref(s) across ${files.length} workflow(s), all SHA-pinned)`);
+const wfCount = targets.filter((t) => t.name !== 'action.yml').length;
+const extra = targets.length > wfCount ? ' + action.yml' : '';
+console.log(`ACTION PINS: PASS (${checked} ref(s) across ${wfCount} workflow(s)${extra}, all SHA-pinned)`);

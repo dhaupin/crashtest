@@ -1,66 +1,39 @@
-name: Deploy Docs
-
-# Docs deploy as a thin caller of the family's one reusable lane
-# (crashtest#38; the runbook lives in dhaupin/coreforge's docs-build.yml,
-# promoted to workflow_call by their issue #9). The hand-copied build steps
-# that lived here (Jekyll, the hardened pagefind scrape, the search index,
-# the pinned freestruct layer, the artifact upload) are THE SAME STEPS in
-# the same order - one copy now, so the seven-repo drift table in #38 stops
-# growing. The caller contract: this file owns permissions, concurrency,
-# the trigger list and the deploy job; the lane only builds + uploads.
+# crashtest docs - a THIN caller of THE one docs lane (dhaupin/freestruct).
 #
-# Inputs honored (verified against the published freestruct@1.1.0 tarball
-# before this swap, crashtest#38 receipt):
-#   - ruby-version 3.4 (the lane defaults 3.2 - this repo's bundler lock
-#     is built for 3.4, so we pass ours explicitly)
-#   - freestruct-version pinned EXACT '1.1.0', not the lane's ^1.1.0
-#     default range - the six-centuries lesson (issue #36) is a contract
-#     here: a floating install is a random deploy, bump the exact number
-#     the day freestruct ships the next release
-#   - pagefind-version stays 'latest' (the lane's hardened scrape with the
-#     GITHUB_TOKEN + version-guard receipt is the same code that lived here)
-#   - the lane runs `node node_modules/freestruct/engine/inject.js`, this
-#     repo previously ran `node node_modules/freestruct/bin/freestruct.mjs`
-#     - byte-verified equivalent: the bin is a thin shim forwarding to the
-#     same runInject(); and freestruct's config discovery accepts our
-#     docs/ssr-config.yml under its legacy name (freestruct.config.yml
-#     first, ssr-config.yml back-compat, nothing renamed)
+# The runbook (Jekyll, the hardened pagefind scrape, the pinned freestruct
+# post-build layer, the optional crashtest dogfood campaign, the Pages upload,
+# the main-gated deploy) lives ONCE in the lane. This file keeps only what is
+# per-repo: the trigger, the permissions, the concurrency group, and the input
+# pins that are this repo's. It used to be a hand-copied runbook (one of five),
+# which is the drift the consolidation removed.
+#
+# This repo's docs config is the LEGACY name (docs/ssr-config.yml); freestruct
+# discovery reads it as back-compat, so nothing is renamed. crashtest dogfoods
+# itself in .github/workflows/ci.yml, so the lane's dogfood leg stays off here.
+# freestruct-version is pinned EXACT at 1.1.0 (issue #36).
+# The docs truth gates (npm run lint:docs) run in test.yml/ci.yml, not here:
+# a workflow_call caller cannot carry extra steps, so they stay in the battery.
+name: Deploy docs
 
 on:
   push:
     branches: [main, staging]
     paths: ['docs/**', '.github/workflows/docs.yml']
   workflow_dispatch:
-
-# Permissions for GitHub Pages deployment (the deploy job consumes the
-# artifact the lane uploads)
 permissions:
   contents: read
   pages: write
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: pages
   cancel-in-progress: false
 
 jobs:
-  build:
-    uses: dhaupin/coreforge/.github/workflows/docs-build.yml@c82777494812909c80d4153cce26e20d72b35ae9 # main
+  docs:
+    # Pinned to the lane's SHA (pins, never floats): a moving @main would let
+    # the runbook change under us between runs.
+    uses: dhaupin/freestruct/.github/workflows/docs-lane.yml@22bb7e9b2634d6cdd966963d9e25c7f892577276 # main
     with:
       ruby-version: '3.4'
       freestruct-version: '1.1.0'
-
-  deploy:
-    needs: build
-    # Pages is production: only main deploys. staging riding the trigger list
-    # keeps its content covered by the BUILD job - never the deploy (the
-    # staging-branch pattern, crashtest#53, poststruct#32).
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

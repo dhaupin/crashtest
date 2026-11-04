@@ -282,3 +282,17 @@ The member `flowforge` is renamed **coreforge** (govstruct PRD 16.5). The repo r
 - **Why the SHA moved too:** pinning `@47aa67f` under the new owner would work (history is preserved), but it would pin a commit that predates the rename, so the ref and the repo's own HEAD would disagree. Pinning coreforge's current main (`c827774`) keeps the two in step; the lane's bytes are a comment-only diff across the rename, so nothing behavioral changed.
 - **Receipts:** `npm run lint:pins` PASS (10 refs, 3 workflows, all SHA-pinned); the lane's reusable contract (inputs `ruby-version` 3.4, `freestruct-version` 1.1.0) is unchanged.
 - **No version bump**; a workflow-owner swap, not a released surface.
+
+---
+
+### 2026-11-04 - session: the docs-lane consolidation (this repo now calls THE one lane)
+
+The family carried four docs topologies - freestruct's `docs-lane.yml`, coreforge's forked `docs-build.yml`, govstruct's copy of that fork, and five inline hand-copies - and the two reusable lanes had already drifted (ruby 3.2 vs 3.4, pagefind `latest` scrape vs npm pin). Owner call: consolidate to ONE lane, `dhaupin/freestruct`'s `docs-lane.yml`, no drift.
+
+- `.github/workflows/docs.yml` - now a THIN caller of `dhaupin/freestruct/.github/workflows/docs-lane.yml@22bb7e9b2634d6cdd966963d9e25c7f892577276`. The runbook (Jekyll, the hardened pagefind scrape, the pinned freestruct post-build layer, the optional crashtest dogfood campaign, the Pages upload, the main-gated deploy) lives once in the lane; this file keeps only the trigger, permissions, concurrency, and this repo's input pins.
+- This repo's docs config is the LEGACY name (`docs/ssr-config.yml`); freestruct discovery reads it as back-compat, so nothing is renamed. crashtest dogfoods itself in `.github/workflows/ci.yml`, so the lane's dogfood leg stays off here (empty ref). `freestruct-version` pinned EXACT `1.1.0` (the six-centuries lesson, issue #36).
+- **Receipts:** the caller parses; `uses:` resolves to the lane at the pinned SHA; no local `docs-build.yml` remains.
+- **No version bump**; a workflow consolidation, not a released surface.
+
+
+- **The pin guard now scans `action.yml` (2026-11-04 sweep).** The family pin guard (`scripts/check-action-pins.cjs`) scanned only `.github/workflows/`, so a floating `uses:` in a repo-root composite Action manifest went unseen. crashtest's `action.yml` (the gate other repos add) carried `actions/setup-node@v6` and `actions/upload-artifact@v6` plus a duplicated `default:` key; both are now pinned and the key is gone. The guard scans the manifest alongside the workflows, and its battery proves the new leg bites. Sweep finding; no version bump.

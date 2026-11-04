@@ -6,6 +6,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/) - sections head `## [ver
 
 ## [Unreleased]
 
+### The docs-lane consolidation (2026-11-04)
+
+The family built docs from four topologies; the two reusable lanes had drifted (ruby 3.2 vs 3.4, pagefind `latest` scrape vs npm pin). The docs lane is now ONE canonical reusable workflow in `dhaupin/freestruct`, and this repo is a thin caller of it.
+
+- `.github/workflows/docs.yml` calls `dhaupin/freestruct/.github/workflows/docs-lane.yml@22bb7e9b2634d6cdd966963d9e25c7f892577276`, keeping only the trigger, permissions, concurrency, and this repo pins.
+- This repo's docs config is the LEGACY `docs/ssr-config.yml` (freestruct reads it as back-compat); `freestruct-version` stays pinned EXACT at `1.1.0` (issue #36 - a floating install is a random deploy). It dogfoods crashtest in `ci.yml`, so the lane's dogfood leg is off here.
+- No version bump; a workflow consolidation, not a released surface.
+
+### Fixed
+
+- **`action.yml` pins its actions and drops a duplicate key.** The composite Action that other repos add as a CI gate carried floating refs (`actions/setup-node@v6`, `actions/upload-artifact@v6`) - the exact supply-chain float the house rule bans - and `inputs.node-version` declared `default:` twice. Both actions are now pinned to 40-hex SHAs, and the duplicate key is gone (`action.yml` now parses clean; the family pin guard refused it once the guard learned to scan the manifest). The pin guard (`scripts/check-action-pins.cjs`) now scans the repo's `action.yml` alongside `.github/workflows/`, so an Action float fails in CI like any other; its battery proves the new leg bites.
+
 ### Changed
 
 - **The docs lane now calls coreforge.** `dhaupin/flowforge` was renamed `dhaupin/coreforge` (govstruct PRD 16.5). The reusable docs lane the build job calls (`.github/workflows/docs.yml`) is re-pinned from `dhaupin/flowforge/...@47aa67f` to `dhaupin/coreforge/...@c827774`, and the comment naming the lane's home follows. The lane's bytes are unchanged across the rename (a comment-only diff), so this is an owner swap, not a behavior change; the pin guard still passes.

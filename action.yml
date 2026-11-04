@@ -10,7 +10,6 @@ branding:
 inputs:
   node-version:
     description: Node version to run crashtest with
-    default: '22'
     required: false
     default: '22'
   version:
@@ -30,7 +29,7 @@ runs:
   using: 'composite'
   steps:
     - name: Setup node
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
       with:
         node-version: ${{ inputs.node-version }}
         package-manager-cache: false
@@ -55,7 +54,7 @@ runs:
 
     - name: Upload hardening run
       if: always()
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
       with:
         name: hardening-report
         path: labs/hardening-run.md

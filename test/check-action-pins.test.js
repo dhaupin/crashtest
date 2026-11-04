@@ -72,3 +72,15 @@ test('the repo itself is fully SHA-pinned', () => {
   assert.equal(res.status, 0, res.stderr);
   assert.match(res.stdout, /all SHA-pinned/);
 });
+
+test('the action.yml leg scans the composite Action manifest too (a float there fails)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pins-'));
+  const wf = join(dir, 'workflows');
+  mkdirSync(wf, { recursive: true });
+  writeFileSync(join(wf, 'ci.yml'), `jobs:\n  a:\n    steps:\n      - uses: actions/checkout@${SHA} # v4\n`);
+  writeFileSync(join(dir, 'action.yml'), `runs:\n  using: 'composite'\n  steps:\n    - uses: actions/setup-node@v6\n`);
+  const res = spawnSync(process.execPath, [GUARD, wf], { encoding: 'utf8' });
+  rmSync(dir, { recursive: true, force: true });
+  assert.equal(res.status, 1);
+  assert.match(res.stderr, /action\.yml.*floating ref/);
+});
