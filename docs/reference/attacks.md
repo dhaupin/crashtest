@@ -7,7 +7,7 @@ description: Every shipped scenario module and attack, what it does, and what ve
 
 # The Attack Catalog
 
-Forty-nine attacks across fourteen modules ship in the core package. Each returns exactly one verdict per run: 🛡 REFUSED, ⚡ EXPLOITED, 🔒 BOUNDED, or ✅ PASSED (BOUNDED requires an owner + bound or it demotes to EXPLOITED - loudly; PASSED is the safe-path positive probe and is never a finding).
+Fifty-two attacks across fourteen modules ship in the core package. Each returns exactly one verdict per run: 🛡 REFUSED, ⚡ EXPLOITED, 🔒 BOUNDED, or ✅ PASSED (BOUNDED requires an owner + bound or it demotes to EXPLOITED - loudly; PASSED is the safe-path positive probe and is never a finding).
 
 ## `auth` - identity and secrets
 
@@ -16,16 +16,19 @@ Forty-nine attacks across fourteen modules ship in the core package. Each return
 | `identity-spoof-headers` | Fires 54 spoof variants - 9 identity headers (`x-is-admin`, `x-user-role`, `x-forwarded-user`, ...) each claiming 6 privilege values - at your privileged route. A spoof that flips an authorized action = EXPLOITED; all denied/ignored = REFUSED. |
 | `secret-watermark` | Plants fake secrets in the fake env, then walks error paths. A probe that echoes one back = EXPLOITED. |
 | `privilege-escalation` | Replays writes where `owner` names someone else (victim pairs: attacker->victim, attacker->admin). An accepted write = EXPLOITED. |
+| `invalid-credential-fail-open` | Fires an unsigned (alg:none), expired, and wrong-key token at your auth-check route. A grant to any = EXPLOITED - the `if (!verify())` bug where `verify()` resolves to a verdict OBJECT (`{valid:false}`, truthy). A route that answers unauthenticated (no credential decision) skips. |
+| `over-return-allowlist` | Walks each declared route's JSON response top-level keys against its allowlist (or, with no allowlist, the internal-field family - `tokenSecret`, `secret`, `_...` - and any value carrying a planted secret). An undeclared or secret-bearing key = EXPLOITED - a handler returning its own internal object. |
 
 ## `authz` - the privilege decision
 
-Where `auth` attacks who you claim to be, `authz` attacks the privilege DECISION itself - how a handler's admin gate gets flipped without touching the owner field. All three skip politely when their routes are undeclared.
+Where `auth` attacks who you claim to be, `authz` attacks the privilege DECISION itself - how a handler's admin gate gets flipped without touching the owner field. All four skip politely when their routes are undeclared.
 
 | Attack | What it does |
 |---|---|
 | `method-matrix-privileged` | The privileged route must deny ON EVERY HTTP METHOD (GET/POST/PUT/PATCH/DELETE, bare + with bodies). A gate that only trips on the method the developer tested = EXPLOITED with the winning method named. |
 | `role-body-spoof-family` | Self-declared role bodies never route: the role-word field family (`role`, `isAdmin`, `is_admin`, `scope`, `permissions`, nested `user.role`, ...) fired at the privileged route must not flip a deny. Any grant = the classic "trust the body's role field" draft. |
 | `handler-alias-confusion` | A second route performing the same privileged action (the dev/debug leftover) must deny identically to the primary - unauthenticated AND under identity-header spoofing. An alias that honors what the primary ignores is the trapdoor. |
+| `low-priv-authority-verb-deny` | Drives a declared SET of authority verbs (`ctx.authorityVerbs`) as a low-priv principal. ANY allow = EXPLOITED with the verb named. Makes the blocklist a living contract: a newly-added authority verb that silently misses the deny set fails this row. |
 
 ## `guards` - hygiene and load
 

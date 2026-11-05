@@ -14,7 +14,7 @@ export default function What() {
     path: '/what',
     title: 'What | Crashtest',
     description:
-      'A CLI that fires 49 seeded attacks across 14 modules at your real handlers in-process, returns REFUSED / EXPLOITED / BOUNDED / PASSED, and writes a committed ledger your CI gates.',
+      'A CLI that fires 52 seeded attacks across 14 modules at your real handlers in-process, returns REFUSED / EXPLOITED / BOUNDED / PASSED, and writes a committed ledger your CI gates.',
   })
   return (
     <>
@@ -59,7 +59,7 @@ export default function What() {
             evidence, never a finding).
           </p>
           <p className="lede" style={{ marginTop: 8 }}>
-            The catalog is 49 attacks across 14 modules: identity spoofing,
+            The catalog is 52 attacks across 14 modules: identity spoofing,
             privilege-decision probes, prototype pollution, session fixation and
             replay, request-shape floods, stack and backtracking probes,
             multipart uploads, same-key bursts, concurrent write races,

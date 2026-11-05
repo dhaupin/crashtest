@@ -18,10 +18,16 @@
 //     action (the dev/debug leftover) must deny identically - unauthenticated
 //     AND under identity-header spoofing. An alias that honors what the
 //     primary ignores is the trapdoor, EXPLOITED with the alias named.
+//   low-priv-authority-verb-deny : a low-priv principal must be refused on a
+//     declared SET of authority verbs - ANY allow is EXPLOITED with the verb
+//     named. Makes the blocklist a living contract: a newly-added authority
+//     verb that silently misses the deny set fails this row.
 //
 // ctx vocabulary: privilegedRoute (default 'admin'), aliasRoute
-// (default 'dev-check'). Declare them for coverage; undeclared skips are
-// REFUSED with the skipped flag (same contract as every other library).
+// (default 'dev-check'), authorityVerbs (the authority-verb set),
+// lowPrivToken / lowPrivHeaders (the low-priv principal). Declare them for
+// coverage; undeclared skips are REFUSED with the skipped flag (same
+// contract as every other library).
 
 import { refused, exploited } from '../contract.js';
 
@@ -159,6 +165,44 @@ export default {
       return refused(
         `alias "${alias}" denies identically to "${route}" - no unauthenticated grant, no identity-header trapdoor (3 spoof vectors probed)`,
         { route, alias },
+      );
+    },
+  }, {
+    name: 'low-priv-authority-verb-deny',
+    description: 'A low-priv principal must be refused on EVERY declared authority verb - ANY allow is EXPLOITED naming the verb; a newly-added verb that silently misses the blocklist is the class',
+    async run(harness, ctx = {}) {
+      const verbs = Array.isArray(ctx.authorityVerbs) ? ctx.authorityVerbs : [];
+      if (verbs.length === 0) {
+        return refused('no authority verbs declared (ctx.authorityVerbs) - the authority blocklist is unmeasured (declare the set for coverage)', { skipped: true });
+      }
+      const declared = verbs.filter((v) => harness.listRoutes().includes(v));
+      if (declared.length === 0) {
+        return refused(`none of the ${verbs.length} declared authority verb(s) are registered routes on this target - blocklist skipped (declare them for coverage)`, { skipped: true });
+      }
+      // The low-priv principal: a caller the app should never let touch an
+      // authority verb. Default = an unauthenticated request; declare
+      // lowPrivToken to drive it as an authenticated-but-unprivileged identity.
+      const headers = ctx.lowPrivToken
+        ? { authorization: `Bearer ${ctx.lowPrivToken}` }
+        : (ctx.lowPrivHeaders ?? {});
+      const method = ctx.method ?? 'POST';
+      const body = ctx.body !== undefined ? ctx.body : JSON.stringify({ action: 'probe' });
+
+      const grants = [];
+      for (const verb of declared) {
+        const rec = await harness.run(verb, { method, headers: { ...headers, 'content-type': 'application/json' }, body });
+        if (rec.threw) { grants.push(`${verb} (fault: ${String(rec.error).slice(0, 60)})`); continue; }
+        if (rec.status < 400) grants.push(`${verb} (status ${rec.status})`);
+      }
+      if (grants.length) {
+        return exploited(
+          `low-priv principal allowed on ${grants.length}/${declared.length} authority verb(s): ${grants.join(' | ')} - a verb missing from the blocklist is the escape`,
+          { verbs: declared },
+        );
+      }
+      return refused(
+        `low-priv principal refused on all ${declared.length} declared authority verb(s) - the blocklist is a living contract (adding a verb without denying it fails this row)`,
+        { verbs: declared },
       );
     },
   }],

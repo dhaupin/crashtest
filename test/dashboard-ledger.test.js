@@ -12,8 +12,8 @@ import { dogfood } from '../web/src/lib/dogfoodSnapshot.js';
 test('dogfood snapshot parses as a ledger and reports a clean gate (exit 0)', () => {
   const vm = parseArtifact(dogfood.ledger, { sourceLabel: 'test' });
   assert.equal(vm.kind, 'ledger');
-  assert.equal(vm.counts.total, 49);
-  assert.equal(vm.counts.refused, 49);
+  assert.equal(vm.counts.total, 52);
+  assert.equal(vm.counts.refused, 52);
   assert.equal(vm.counts.exploited, 0);
   assert.equal(vm.gate.status, 'pass');
   assert.equal(vm.gate.exitCode, 0);
@@ -21,12 +21,12 @@ test('dogfood snapshot parses as a ledger and reports a clean gate (exit 0)', ()
 });
 
 test('snapshot cost economics survived generation (totals + per-attack rows)', () => {
-  assert.equal(dogfood.cost.totals.ops, 842); // the 19 skipped rows add ids, not ops
+  assert.equal(dogfood.cost.totals.ops, 847); // the skipped rows add ids, not ops
   // Per-ATTACK truth (the runner fix): totals count actual requests, and the
   // old pin (1082) carried the cumulative-baseline inflation (647 truth + 435
   // triangular phantom rows across multi-attack modules).
-  assert.equal(dogfood.cost.totals.requests, 647);
-  assert.ok(dogfood.cost.perAttack.length >= 49);
+  assert.equal(dogfood.cost.totals.requests, 652);
+  assert.ok(dogfood.cost.perAttack.length >= 52);
   const amp = dogfood.cost.perAttack.find((p) => p.id === 'volume/cost-amplification');
   // 40: amplification's OWN replay count (the old 100 included the stuffing
   // attack's 60 requests because the baseline was module-level).

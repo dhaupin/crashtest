@@ -10,6 +10,12 @@
 //     never appear in any response body or header bucket.
 //   privilege-escalation   : mutating identity fields (role/owner/isAdmin) in
 //     a denied request must not flip the verdict.
+//   invalid-credential-fail-open : an invalid credential (unsigned/expired/
+//     wrong-key token) must be DENIED - a grant is the `if (!verify())` bug
+//     where verify() resolves to a verdict OBJECT (`{valid:false}`, truthy).
+//   over-return-allowlist  : a handler response must not carry undeclared
+//     top-level keys - a returned internal object (a live instance carrying
+//     its own secret field) or a planted secret echoed back is the leak.
 
 import { refused, exploited } from '../contract.js';
 
@@ -129,8 +135,99 @@ export default {
       }
       return refused(`ownership mutations rejected by "${route}" (baseline ${baseline.status})`, { route });
     },
+  }, {
+    name: 'invalid-credential-fail-open',
+    description: 'An invalid credential (unsigned / expired / wrong-key token) must be DENIED - a grant is the verify()-returns-an-object fail-open (`if (!verified)` on a `{valid:false}` object)',
+    async run(harness, ctx = {}) {
+      const route = ctx.authCheckRoute ?? ctx.route ?? 'admin';
+      if (!harness.listRoutes().includes(route)) {
+        return refused(`route "${route}" not declared on this target - invalid-credential probe skipped (declare it for coverage)`, { route, skipped: true });
+      }
+      // The baseline: a request with NO credential must already be denied. A
+      // route that answers everyone has no credential decision to flip, so a
+      // later "grant" would be meaningless.
+      const bare = await get(harness, route);
+      if (fuzzBroken(bare)) {
+        return exploited(`baseline request to "${route}" throws/5xx - ${bare.error?.name ?? bare.status}`, { route });
+      }
+      if (bare.status < 300) {
+        return refused(`"${route}" answers unauthenticated (status ${bare.status}) - no credential decision to measure here`, { route });
+      }
+      const credentials = ctx.invalidCredentials ?? DEFAULT_INVALID_CREDENTIALS;
+      for (const [label, token] of credentials) {
+        const rec = await get(harness, route, { authorization: `Bearer ${token}` });
+        if (fuzzBroken(rec)) {
+          return exploited(`"${route}" threw/5xx on an invalid credential (${label}) - ${rec.error?.name ?? rec.status}`, { route, credential: label });
+        }
+        if (rec.status < 300) {
+          return exploited(`"${route}" GRANTED an invalid credential (${label}): denied ${bare.status} without one -> ${rec.status} with it - the verify() verdict object read as truthy`, { route, credential: label, baselineStatus: bare.status });
+        }
+      }
+      return refused(`all ${credentials.length} invalid credentials denied on "${route}" - no fail-open on an unsigned/expired/wrong-key token`, { route });
+    },
+  }, {
+    name: 'over-return-allowlist',
+    description: 'A handler response must not carry undeclared top-level keys (a returned internal object, a leaked secret field) - each declared route is checked against its allowlist, or the internal-field/planted-secret family',
+    async run(harness, ctx = {}) {
+      const routes = Array.isArray(ctx.routes) ? ctx.routes : [];
+      const allowlist = ctx.allowedTopLevelKeys ?? {};
+      const hasAllowlist = Object.keys(allowlist).length > 0;
+      if (routes.length === 0 && !hasAllowlist) {
+        return refused('no routes declared (ctx.routes) and no allowedTopLevelKeys - the over-return surface is unmeasured (declare one for coverage)', { skipped: true });
+      }
+      const declared = routes.length ? routes : Object.keys(allowlist);
+      const secrets = ctx.secrets ?? [harness.env.CRASHTEST_SECRET, harness.env.STRIPE_SECRET].filter(Boolean);
+      // Keys that name an internal object even when no allowlist was given.
+      const INTERNAL_FIELD = /^(tokenSecret|secret|password|apiKey|apiKeyId|privateKey|_)/i;
+
+      const leaks = [];
+      let graded = 0;
+      let skippedRoutes = 0;
+      for (const route of declared) {
+        if (!harness.listRoutes().includes(route)) { skippedRoutes++; continue; }
+        const rec = await harness.run(route, { method: ctx.method ?? 'GET', headers: ctx.headers ?? {} });
+        if (rec.threw || !rec.response) { skippedRoutes++; continue; } // transport faults belong to the fuzz floor, not this row
+        const raw = await rec.response.clone().text();
+        let parsed;
+        try { parsed = JSON.parse(raw); } catch { skippedRoutes++; continue; } // non-JSON bodies have no key set to grade
+        if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) { skippedRoutes++; continue; }
+        graded++;
+        const allowed = allowlist[route];
+        for (const key of Object.keys(parsed)) {
+          if (Array.isArray(allowed)) {
+            if (!allowed.includes(key)) leaks.push({ route, key, why: 'not in the declared allowlist' });
+            continue;
+          }
+          if (INTERNAL_FIELD.test(key)) { leaks.push({ route, key, why: 'internal-field family name' }); continue; }
+          const value = parsed[key];
+          if (typeof value === 'string' && secrets.some((s) => value.includes(s))) {
+            leaks.push({ route, key, why: 'carries a planted secret marker' });
+          }
+        }
+      }
+      if (leaks.length) {
+        return exploited(`${leaks.length} over-return leak(s) across ${graded} route(s) - first: "${leaks[0].route}" returns "${leaks[0].key}" (${leaks[0].why})`, { leaks: leaks.slice(0, 5) });
+      }
+      if (graded === 0) {
+        return refused(`no gradable JSON route among ${declared.length} declared (${skippedRoutes} skipped: undeclared/faulting/non-JSON) - nothing to grade`, { skipped: true });
+      }
+      return refused(`${graded} declared route(s) returned only allow-listed top-level keys (${skippedRoutes} skipped) - no internal object or secret field escaped`, { graded });
+    },
   }],
 };
+
+// Deterministic invalid-credential corpus (no wall clock): an unsigned
+// (alg:none) JWT, an expired one, and a wrong-key one - the three shapes a
+// verify() most often mishandles, plus an opaque non-token.
+const b64url = (obj) => Buffer.from(JSON.stringify(obj)).toString('base64url');
+const JWT_HEADER = b64url({ alg: 'HS256', typ: 'JWT' });
+const JWT_CLAIMS = b64url({ sub: 'attacker', role: 'admin', exp: 1000000000 }); // 2001 - expired by construction
+const DEFAULT_INVALID_CREDENTIALS = [
+  ['unsigned (alg:none)', `${b64url({ alg: 'none', typ: 'JWT' })}.${JWT_CLAIMS}.`],
+  ['expired', `${JWT_HEADER}.${JWT_CLAIMS}.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA`],
+  ['wrong-key signature', `${JWT_HEADER}.${JWT_CLAIMS}.Zm9yZ2VkLXNpZ25hdHVyZS12YWx1ZQ`],
+  ['opaque non-token', 'not.a.valid.token'],
+];
 
 function fuzzBroken(record) {
   return record.threw || (record.status != null && record.status >= 500);

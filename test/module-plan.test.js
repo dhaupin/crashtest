@@ -63,6 +63,19 @@ test('buildModulePlan: filter rows mirror the runner Set(opts.modules) exactly',
   assert.deepEqual(narrowed.totals, { attacks: 3, willFire: 2, needsArming: 0, skippedFilter: 1 });
 });
 
+test('issue #83: the plan surfaces a row\'s boot declarations (needs sorted, isolated), absent otherwise', () => {
+  const scenarios = [{ origin: 'library/x.js', module: { name: 'x', attacks: [
+    { name: 'declared', needs: ['kv', 'd1'], isolated: true },
+    { name: 'plain' },
+  ] } }];
+  const plan = buildModulePlan({}, [], scenarios);
+  const [declared, plain] = plan.modules[0].attacks;
+  assert.deepEqual(declared.needs, ['d1', 'kv'], 'needs surfaces sorted');
+  assert.equal(declared.isolated, true);
+  assert.equal(plain.needs, undefined, 'an undeclared row carries no needs key (byte-stable plan)');
+  assert.equal(plain.isolated, undefined);
+});
+
 test('buildModulePlan: shape carries the packs inventory (package field passes through)', () => {
   const plan = buildModulePlan(
     {},
@@ -122,7 +135,7 @@ test('CLI: run --module-plan --json prints the plan blob as the LAST line', asyn
   const lastLine = out[out.length - 1];
   const plan = JSON.parse(lastLine);
   assert.equal(plan.schemaVersion, 1);
-  assert.equal(plan.totals.skippedFilter, 50); // 49 built-in library attacks (14 modules) + loose-attacks, all outside the filter
+  assert.equal(plan.totals.skippedFilter, 53); // 52 built-in library attacks (14 modules) + loose-attacks, all outside the filter
   const armed = plan.modules.find((m) => m.name === 'armed-pack');
   // The filter keeps the pack in the inventory, but nothing arms it - the
   // JSON view must say NEEDS-ARMING just like the human lines (test below).
