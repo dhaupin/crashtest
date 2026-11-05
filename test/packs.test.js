@@ -346,6 +346,30 @@ test('loadPacks: prerequisites attach with a check context, stay absent without 
   assert.deepEqual(checked[0].prerequisites.map(renderPrerequisite), ['d1[DB]', 'route[charge]']);
 });
 
+test('dogfood: the shipped crashtest-site pack DECLARES its env.routes (packstruct#71) and they resolve against the real run root', async () => {
+  // The live half of packstruct#71: a real shipped host pack exercises the
+  // `env` block instead of hand-probing harness.env per attack. Both
+  // directions: the declared routes are exactly what the pack drives, and
+  // the loader's claim checker resolves every one against the run root the
+  // pack is actually loaded with (no unmet prerequisites = the declaration
+  // is honest, not decoration).
+  const { buildSiteRoutes } = await import(new URL('../packs/public/crashtest-site/index.js', import.meta.url));
+  const routeNames = Object.keys(buildSiteRoutes()).sort();
+  assert.deepEqual(routeNames, [
+    'site-headers', 'site-html', 'site-manifest', 'site-robotstxt', 'site-sitemap', 'version',
+  ], 'the run root wires exactly the declared routes');
+
+  const root = await mkdtemp(join(tmpdir(), 'packs-sitedog-'));
+  const siteManifest = JSON.parse(await readFile(new URL('../packs/public/crashtest-site/pack.json', import.meta.url), 'utf8'));
+  assert.deepEqual([...(siteManifest.env?.routes ?? [])].sort(), routeNames, 'the shipped manifest declares the routes the pack drives (packstruct#71 dogfood)');
+  await mkPack(join(root, 'packs'), 'public', 'crashtest-site', siteManifest, ENTRY_OK.replace(/probe-pack/g, 'crashtest-site'));
+
+  const checked = await loadPacks([join(root, 'packs')], new Map(), { env: {}, routeNames });
+  assert.deepEqual(checked[0].prerequisites, [], 'every declared route resolves against the real run root - the claim is honest');
+  const unmet = await loadPacks([join(root, 'packs')], new Map(), { env: {}, routeNames: ['version'] });
+  assert.deepEqual(unmet[0].prerequisites.map(renderPrerequisite).sort(), ['route[site-headers]', 'route[site-html]', 'route[site-manifest]', 'route[site-robotstxt]', 'route[site-sitemap]'], 'a run root missing routes surfaces the unmet claims - the declaration bites');
+});
+
 test('applyPackSeed: kv absent-or-identical, d1 seed tables NEW only, no counter ticks', () => {
   const counter = newBackendCounter();
   const pack = (seed) => [{ manifest: { name: 'seed-pack', env: { seed } } }];

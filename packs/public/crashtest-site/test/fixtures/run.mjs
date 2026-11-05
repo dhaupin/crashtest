@@ -32,10 +32,29 @@ const EXPECTED_ATTACKS = [
   'race-asset-parity',
 ];
 
+// packstruct#71 dogfood: the pack declares its route claims in the manifest's
+// host-owned `env` block (SPEC v1.1) instead of hand-probing harness.env in
+// every attack. Pin the block so it cannot silently disappear.
+const EXPECTED_ENV_ROUTES = [
+  'version', 'site-headers', 'site-html', 'site-manifest', 'site-sitemap', 'site-robotstxt',
+];
+
 export async function audit() {
   const manifest = JSON.parse(await readFile(join(packDir, 'pack.json'), 'utf8'));
   if (manifest.schemaVersion !== 1) throw new Error(`crashtest-site: manifest schemaVersion is ${manifest.schemaVersion}, expected 1`);
   if (manifest.name !== 'crashtest-site') throw new Error(`crashtest-site: manifest name "${manifest.name}" does not match directory`);
+
+  // The `env` claims block (packstruct#71): the pack's routes are declared in
+  // the manifest, not just registered by the run root. Assert the block is
+  // present and lists exactly the routes the pack drives - so the dogfood
+  // cannot rot into a comment.
+  const claimedRoutes = manifest.env?.routes;
+  if (!Array.isArray(claimedRoutes)) throw new Error('crashtest-site: manifest env.routes is missing - the pack must declare its route claims (SPEC v1.1)');
+  const envMissing = EXPECTED_ENV_ROUTES.filter((r) => !claimedRoutes.includes(r));
+  const envExtra = claimedRoutes.filter((r) => !EXPECTED_ENV_ROUTES.includes(r));
+  if (envMissing.length || envExtra.length) {
+    throw new Error(`crashtest-site: env.routes drifted (missing: ${envMissing.join(', ') || 'none'}; unexpected: ${envExtra.join(', ') || 'none'})`);
+  }
 
   const entryPath = join(packDir, manifest.entry);
   const mod = await import(pathToFileURL(entryPath).href);
