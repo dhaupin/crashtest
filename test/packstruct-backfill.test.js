@@ -246,7 +246,7 @@ test('hit: load-level refusals - un-importable entry names the pack and wraps th
 
 // ---- 4. THE CENSUS (crashtest#19 receipt, re-verified live) -----------------
 
-test('cut: census shipped packs contribute 8 modules / 36 attack ids (44 ids total) with ZERO collisions pack-vs-pack and pack-vs-library', async () => {
+test('cut: census shipped packs contribute 9 modules / 38 attack ids (47 ids total) with ZERO collisions pack-vs-pack and pack-vs-library', async () => {
   const corpus = await readJson(join(BACKFILL, 'corpus.json'));
   const modNames = new Set();
   const attackNames = new Set();
@@ -274,10 +274,10 @@ test('cut: census shipped packs contribute 8 modules / 36 attack ids (44 ids tot
     }
   }
 
-  assert.equal(modNames.size, 8, 'count pin drifted silently: the shipped pack set changed without regenerating corpus.json - run node labs/packstruct-backfill/build.mjs, review the diff, and move this constant (and the totals above) in the SAME commit as the pack change');
+  assert.equal(modNames.size, 9, 'count pin drifted silently: the shipped pack set changed without regenerating corpus.json - run node labs/packstruct-backfill/build.mjs, review the diff, and move this constant (and the totals above) in the SAME commit as the pack change');
   assert.equal(
     packAttacks,
-    36,
-    'count pin: 44 ids total (8 pack modules + 36 pack attacks) per the #19 audit - a pack change moves this constant in the SAME commit (regenerate the corpus, re-run build + this file)',
+    38,
+    'count pin: 47 ids total (9 pack modules + 38 pack attacks) per the #19 audit - a pack change moves this constant in the SAME commit (regenerate the corpus, re-run build + this file)',
   );
 });

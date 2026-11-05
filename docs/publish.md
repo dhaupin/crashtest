@@ -48,5 +48,5 @@ Nothing to do by hand. A `workflow_dispatch` **verify-only** mode re-runs the tr
 ## Rules
 
 - Only publish from version tags, never from `main` directly.
-- The `files` field limits the tarball to `bin/` + `src/` + the seven reusable packs (`wp-money-shapes`, `wp-stock-smoke`, `wp-roles`, `cve-feed`, `qs-shapes`, `vite-dev-shapes`, `next-middleware-shapes`) - tests, labs, `web/` and the repo-bound `crashtest-site` self-dogfood pack stay out (pinned by `test/packaging.test.js`, same surfaces the verify ladder enforces on the served tarball via `--allowed packs/`).
+- The `files` field limits the tarball to `bin/` + `src/` + the eight reusable packs (`wp-money-shapes`, `wp-stock-smoke`, `wp-roles`, `cve-feed`, `qs-shapes`, `vite-dev-shapes`, `next-middleware-shapes`, `egress-guard-shapes`) - tests, labs, `web/` and the repo-bound `crashtest-site` self-dogfood pack stay out (pinned by `test/packaging.test.js`, same surfaces the verify ladder enforces on the served tarball via `--allowed packs/`).
 - Verify a release with `npm view crashtest@<version>` (or `npm pack --dry-run`).

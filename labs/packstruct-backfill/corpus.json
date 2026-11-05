@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "source": "packs/public/*/pack.json at the worktree this commit pins (transcription, never invention; regenerate via node labs/packstruct-backfill/build.mjs)",
-  "packCount": 8,
+  "packCount": 9,
   "packs": [
     {
       "name": "crashtest-site",
@@ -14,6 +14,12 @@
       "dir": "packs/public/cve-feed",
       "sha256": "ad37c6d93050c374fb8384ea8a68d30fe034833f21cc29ff6dea07d484d7004b",
       "manifestJson": "{\n  \"schemaVersion\": 1,\n  \"name\": \"cve-feed\",\n  \"description\": \"Extended sources (PRD): attacks cross-referenced against a curated, committed KEV/NVD snapshot - banner disclosure audits and vulnerable-version range checks over every declared route. Offline by design: run time reads ONLY the committed snapshot file (zero sockets, same commit -> same findings); freshness is a maintainer-side sync + CI join.\",\n  \"version\": \"0.2.0\",\n  \"entry\": \"index.js\"\n}\n"
+    },
+    {
+      "name": "egress-guard-shapes",
+      "dir": "packs/public/egress-guard-shapes",
+      "sha256": "d5525977213d08cd058327d57ab90c16dbddd3a9cc7aa97e6d04e3234f0492d7",
+      "manifestJson": "{\n  \"schemaVersion\": 1,\n  \"name\": \"egress-guard-shapes\",\n  \"description\": \"Outbound-request (SSRF) guard shapes: a hostile target corpus - the dotted v4 forms, the IPv6 wrappers that reach the same address (IPv4-mapped/compatible/NAT64, dotted and hex tails), the full internal v6 ranges, and scheme/userinfo/encoding tricks - fired at the app's OWN allow/deny guard route, with a public-control differential so a blanket-deny guard is not mistaken for a strong one. Zero dependencies, zero sockets: the guard answers in-process, the pack never dials.\",\n  \"version\": \"0.1.0\",\n  \"entry\": \"index.js\"\n}\n"
     },
     {
       "name": "next-middleware-shapes",
