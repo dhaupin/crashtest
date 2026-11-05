@@ -5,10 +5,11 @@
     {
       "name": "crashtest-site",
       "dir": "packs/public/crashtest-site",
-      "sha256": "0d4a26effa357e156fa281f33d5d5d0295742cd6946a0294fdb9f3e06b1cb17e",
+      "sha256": "af38c2719c49575a4393c787cea5efe09d9dbaf377ad328274f144e5b7ef1fd1",
       "declaredKeys": [
         "description",
         "entry",
+        "env",
         "name",
         "schemaVersion",
         "version"
@@ -19,7 +20,9 @@
         "declaredEntry": "attacks.js",
         "entryFileIsPresent": true,
         "declaresArmedByKey": false,
-        "hostOwnedKeysPresent": []
+        "hostOwnedKeysPresent": [
+          "env"
+        ]
       }
     },
     {

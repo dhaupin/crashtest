@@ -6,6 +6,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/) - sections head `## [ver
 
 ## [Unreleased]
 
+### Added
+
+- **`crashtest-site` declares its `env.routes` - the packstruct#71 dogfood.** The shipped site pack now carries the host-owned `env` block in its manifest (`routes: [version, site-headers, site-html, site-manifest, site-sitemap, site-robotstxt]`) instead of leaving the block spec'd-but-unused family-wide. The loader's claim checker resolves every declared route against the real run root (a run root missing one surfaces it as an unmet prerequisite), the pack's self-audit fixture pins the block so it cannot rot, and the backfill corpus/rows are regenerated - the "host-owned keys on ZERO shipped packs" pin now names exactly this one carrier. This is the live half of packstruct#71: a spec'd key is now exercised by a real host pack, not only by the conformance fixture.
+
 ### The docs-lane consolidation (2026-11-04)
 
 The family built docs from four topologies; the two reusable lanes had drifted (ruby 3.2 vs 3.4, pagefind `latest` scrape vs npm pin). The docs lane is now ONE canonical reusable workflow in `dhaupin/freestruct`, and this repo is a thin caller of it.
