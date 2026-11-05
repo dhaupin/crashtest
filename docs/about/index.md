@@ -14,7 +14,7 @@ Crashtest is one arm of the struct family: a set of small tools that keep a suit
 
 Crashtest is built by [Rook @ Creadev.org](https://creadev.org) and by AI agents working in the open. Every change lands through a pull request with its gates run, and the repo history keeps the receipts.
 
-The target we trust least is our own code. The repo dogfoods itself in CI: the committed ledger holds 49 `REFUSED` findings on our own hardened demo app, and that run has already paid for real bugs.
+The target we trust least is our own code. The repo dogfoods itself in CI: the committed ledger holds 52 `REFUSED` findings on our own hardened demo app, and that run has already paid for real bugs.
 
 ## The struct family
 

@@ -325,6 +325,109 @@ test('authz: EXPLOITED on the header/body-trusting gate + debug alias, REFUSED w
   assert.ok(skip.skipped === true, `undeclared routes must skip, not fail: ${skip.detail}`);
 });
 
+// ---- auth (invalid-credential fail-open / over-return allowlist) ---------
+// The vant round-7 pair: a verify() that resolves to a verdict OBJECT
+// (`{valid:false}`, truthy) fails open under `if (!verified)`; a handler that
+// returns its own internal object leaks an undeclared field (the token secret).
+function authFailRoutes({ failOpen, overReturn }) {
+  const check = async ({ request }) => {
+    const auth = request.headers.get('authorization');
+    if (!auth) return new Response('401: unauthenticated', { status: 401 }); // no credential -> deny
+    // verifyToken() RESOLVES to { valid, reason } - a verdict OBJECT.
+    const verified = await Promise.resolve({ valid: false, reason: 'bad signature' });
+    if (failOpen) {
+      // the classic bug: the invalid verdict is a truthy object, so `if (!verified)` never trips.
+      if (!verified) return new Response('401: unauthenticated', { status: 401 });
+      return Response.json({ allowed: true, role: 'admin' });
+    }
+    if (!verified.valid) return new Response('401: unauthenticated', { status: 401 });
+    return Response.json({ allowed: true });
+  };
+  return {
+    admin: check,
+    profile: overReturn
+      ? async () => Response.json({ user: 'rook', tokenSecret: 'sk_live_forged', settings: {} })
+      : async () => Response.json({ user: 'rook', settings: {} }),
+  };
+}
+
+const authFailEnv = { var: { CRASHTEST_SECRET: 'crashtest-secret-canary-9f2' } };
+
+test('auth: EXPLOITED on the verdict-object fail-open + over-returning handler, REFUSED on the checked pair', async () => {
+  const [module] = (await loadScenarios()).map(l => l.module).filter(m => m.name === 'auth');
+  assert.ok(module, 'auth library module must load');
+  const credFail = module.attacks.find(a => a.name === 'invalid-credential-fail-open');
+  const overReturn = module.attacks.find(a => a.name === 'over-return-allowlist');
+  for (const a of [credFail, overReturn]) assert.ok(a, `auth must ship ${a?.name ?? 'the row'}`);
+
+  // vulnerable: the verdict-object read as truthy grants an invalid token.
+  const vuln = buildHarness(authFailRoutes({ failOpen: true, overReturn: true }), { env: authFailEnv });
+  const r1 = await credFail.run(vuln, { authCheckRoute: 'admin' });
+  assert.equal(r1.verdict, 'EXPLOITED', `the {valid:false} object must fail open: ${r1.detail}`);
+  assert.match(r1.detail, /GRANTED an invalid credential/);
+  const r2 = await overReturn.run(vuln, { routes: ['profile'] });
+  assert.equal(r2.verdict, 'EXPLOITED', `tokenSecret in a response must leak: ${r2.detail}`);
+  assert.match(r2.detail, /tokenSecret/);
+
+  // hardened: checked verdict + allow-listed response.
+  const hard = buildHarness(authFailRoutes({ failOpen: false, overReturn: false }), { env: authFailEnv });
+  const r3 = await credFail.run(hard, { authCheckRoute: 'admin' });
+  assert.equal(r3.verdict, 'REFUSED', `a checked verdict must deny the invalid token: ${r3.detail}`);
+  const r4 = await overReturn.run(hard, { routes: ['profile'], allowedTopLevelKeys: { profile: ['user', 'settings'] } });
+  assert.equal(r4.verdict, 'REFUSED', `an allow-listed response must hold: ${r4.detail}`);
+
+  // allowlist catches a key the internal-field family would miss.
+  const r5 = await overReturn.run(vuln, { routes: ['profile'], allowedTopLevelKeys: { profile: ['user', 'settings'] } });
+  assert.equal(r5.verdict, 'EXPLOITED');
+  assert.match(r5.detail, /not in the declared allowlist/);
+
+  // Contract pin: undeclared vocabulary degrades to skipped-REFUSED.
+  const s1 = await credFail.run(buildHarness({}, { env: authFailEnv }), { authCheckRoute: 'admin' });
+  assert.equal(s1.verdict, 'REFUSED');
+  assert.ok(s1.skipped === true, `undeclared auth route must skip: ${s1.detail}`);
+  const s2 = await overReturn.run(hard, {});
+  assert.equal(s2.verdict, 'REFUSED');
+  assert.ok(s2.skipped === true, `no declared routes must skip: ${s2.detail}`);
+});
+
+// ---- authz (low-priv authority-verb blocklist) ---------------------------
+function authorityRoutes({ blocklist }) {
+  const deny = () => new Response('403: forbidden', { status: 403 });
+  const grant = () => Response.json({ ok: true });
+  return {
+    sudo_grant: deny,
+    trust_record: deny,
+    trust_setRequired: deny,
+    teams_create: deny,
+    // the newly-added verb that silently missed the blocklist
+    teams_createAdmin: blocklist ? deny : grant,
+  };
+}
+
+const authorityEnv = envSpec;
+
+test('authz: low-priv principal EXPLOITED on the verb missing from the blocklist, REFUSED when every verb denies', async () => {
+  const [module] = (await loadScenarios()).map(l => l.module).filter(m => m.name === 'authz');
+  assert.ok(module, 'authz library module must load');
+  const row = module.attacks.find(a => a.name === 'low-priv-authority-verb-deny');
+  assert.ok(row, 'authz must ship low-priv-authority-verb-deny');
+
+  const verbs = ['sudo_grant', 'trust_record', 'trust_setRequired', 'teams_create', 'teams_createAdmin'];
+  const leaky = buildHarness(authorityRoutes({ blocklist: false }), { env: authorityEnv });
+  const r1 = await row.run(leaky, { authorityVerbs: verbs });
+  assert.equal(r1.verdict, 'EXPLOITED', `the unblocklisted verb must escape: ${r1.detail}`);
+  assert.match(r1.detail, /teams_createAdmin/);
+
+  const hard = buildHarness(authorityRoutes({ blocklist: true }), { env: authorityEnv });
+  const r2 = await row.run(hard, { authorityVerbs: verbs });
+  assert.equal(r2.verdict, 'REFUSED', `the living blocklist must hold: ${r2.detail}`);
+
+  // Contract pin: no declared verbs degrades to skipped-REFUSED.
+  const s = await row.run(hard, {});
+  assert.equal(s.verdict, 'REFUSED');
+  assert.ok(s.skipped === true, `no declared verbs must skip: ${s.detail}`);
+});
+
 // ---- proto-hygiene (HEAD parity / request shape flood) -------------------
 function shapeRoutes({ safe }) {
   return {

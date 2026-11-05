@@ -43,7 +43,7 @@ made-up pack shape:
 4. **Zero sockets, zero network.** The whole corpus reads the repo's own
    files. The census test re-derives the #19 audit receipt live (8 pack
    modules / 36 pack attacks / 44 ids total, zero collisions against the
-   49-attack 14-module library, zero collisions pack-vs-pack).
+   52-attack 14-module library, zero collisions pack-vs-pack).
 
 ## The load-level rows
 

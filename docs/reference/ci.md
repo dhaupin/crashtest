@@ -12,7 +12,7 @@ Crashtest gate-crashes its own repo too. This page documents what `.github/workf
 ## The legs, in order
 
 1. **Install** - `npm install --no-audit --no-fund`. The repo carries zero runtime dependencies; the dev-side `packstruct` pin is the one registry fetch and it is EXACT (`"packstruct": "1.0.0"`, no float).
-2. **Syntax check** - `npm run check`: a `node --check` chain over every source file, every pack bank, the harness, and the script surface (including the family status emitter and the copied `scripts/ship-from-download.cjs`).
+2. **The check chain** - `npm run check`: the action-pin guard (`lint:pins`, "pins, never floats"), the prestruct-pin guard, the **catalog-sync guard** (`lint:catalog` - the shipped library rows and packs must all be catalogued in `docs/reference/attacks.md`, `docs/reference/packs.md`, and `web/src/pages/Attacks.jsx`, and every count must agree), then a `node --check` chain over every source file, every pack bank, the harness, and the script surface (including the family status emitter and the copied `scripts/ship-from-download.cjs`).
 3. **Docs gates** - `npm run lint:docs`: frontmatter, links, style, fiction signatures, and Jekyll-filter shards, five gates one command.
 4. **The packstruct pack lane** - `npx --no-install packstruct lint packs` over THIS repo's pack corpus, plus `labs/packstruct-backfill/verify-spec.mjs` re-deriving the SPEC transcript from the exact-pinned linter's own `spec/SPEC.md` - the no-clone lane: same commit -> same findings applies to the linter too.
 5. **Family status emit** - `node web/scripts/build-status.mjs` regenerates `web/public/status.json` from the committed ledgers ([the dialect page](/crashtest/reference/status)); gitignored, regenerated, never hand-edited.

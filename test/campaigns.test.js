@@ -378,3 +378,90 @@ test('campaign: per-attack REQUESTS are per-attack truth - a two-attack module n
   assert.equal(run.cost.totals.requests, 2, 'totals.requests counts actual requests, not cumulative rows');
   assert.equal(run.cost.totals.ops, 2, 'ops stay route.invoke-counted');
 });
+
+test('issue #83: declared-isolated rows race N-wide and land in original order', async () => {
+  // Three rows that each hold no cross-row state declare `isolated: true`.
+  // With concurrency 3 + a harnessFactory, they run concurrently on SEPARATE
+  // harnesses, but the output rows keep ORIGINAL order (determinism).
+  const factory = () => buildHarness({ hit: async () => new Response('ok') });
+  const live = new Set();
+  let peak = 0;
+  const mk = (name, delay) => ({
+    name,
+    isolated: true,
+    async run(hc) {
+      live.add(name);
+      peak = Math.max(peak, live.size);
+      await new Promise((r) => setTimeout(r, delay));
+      await hc.run('hit');
+      live.delete(name);
+      return { verdict: 'REFUSED', detail: 'held' };
+    },
+  });
+  const mod = { name: 'racy', description: 'd', attacks: [mk('a', 30), mk('b', 20), mk('c', 10)] };
+  const run = await runCampaign(factory(), [{ origin: 'lib', module: mod }], { concurrency: 3, harnessFactory: factory });
+  assert.deepEqual(run.rows.map((r) => r.id), ['racy/a', 'racy/b', 'racy/c'], 'original order preserved despite completion order');
+  assert.equal(peak, 3, 'all three raced at once');
+  assert.deepEqual(run.tally, { TOTAL: 3, REFUSED: 3, EXPLOITED: 0, BOUNDED: 0, PASSED: 0 });
+});
+
+test('issue #83: concurrency 1 (the default) never races - serial behavior is unchanged', async () => {
+  const factory = () => buildHarness({ hit: async () => new Response('ok') });
+  let peak = 0;
+  let live = 0;
+  const mk = (name) => ({
+    name,
+    isolated: true,
+    async run(hc) {
+      live += 1; peak = Math.max(peak, live);
+      await new Promise((r) => setTimeout(r, 10));
+      await hc.run('hit');
+      live -= 1;
+      return { verdict: 'REFUSED', detail: 'held' };
+    },
+  });
+  const mod = { name: 'serial', description: 'd', attacks: [mk('a'), mk('b')] };
+  const run = await runCampaign(factory(), [{ origin: 'lib', module: mod }], { harnessFactory: factory });
+  assert.equal(peak, 1, 'default concurrency is 1 - no row races');
+  assert.equal(run.rows.length, 2);
+});
+
+test('issue #83: a module with lifecycle hooks never races (the hook state is shared)', async () => {
+  const factory = () => buildHarness({ hit: async () => new Response('ok') });
+  let peak = 0;
+  let live = 0;
+  const mk = (name) => ({ name, isolated: true, async run(hc) { live += 1; peak = Math.max(peak, live); await new Promise((r) => setTimeout(r, 10)); await hc.run('hit'); live -= 1; return { verdict: 'REFUSED', detail: 'held' }; } });
+  const mod = { name: 'hooked', description: 'd', beforeAll: async () => {}, attacks: [mk('a'), mk('b')] };
+  const run = await runCampaign(factory(), [{ origin: 'lib', module: mod }], { concurrency: 4, harnessFactory: factory });
+  assert.equal(peak, 1, 'hooks force the serial fallback');
+  assert.equal(run.rows.length, 2);
+});
+
+test('issue #83: per-row costDelta + needs/isolation declarations land on the record', async () => {
+  const h = buildHarness({ hit: async () => new Response('ok'), miss: async () => new Response('no', { status: 403 }) });
+  const mod = { name: 'rows', description: 'd', attacks: [
+    { name: 'one', needs: ['kv', 'd1'], isolated: true, async run(hc) { await hc.run('hit'); return { verdict: 'REFUSED', detail: 'held' }; } },
+    { name: 'two', async run(hc) { await hc.run('miss'); return { verdict: 'REFUSED', detail: 'held' }; } },
+  ] };
+  const run = await runCampaign(h, [{ origin: 'lib', module: mod }]);
+  const one = run.rows.find((r) => r.attack === 'one');
+  assert.deepEqual(one.needs, ['d1', 'kv'], 'needs normalizes to a sorted list');
+  assert.equal(one.isolated, true);
+  assert.equal(one.costDelta.ops, 1, 'the row reports its own op delta');
+  assert.equal(one.costDelta['route.invoke'], 1);
+  const two = run.rows.find((r) => r.attack === 'two');
+  assert.equal(two.needs, undefined, 'a row that declares nothing carries no needs key');
+  assert.equal(two.isolated, undefined);
+  assert.equal(two.durationMs, undefined, 'wall time is off by default - a committed ledger stays byte-stable');
+});
+
+test('issue #83: opts.timing adds per-row durationMs (accounting info, never a verdict input)', async () => {
+  const h = buildHarness({ hit: async () => new Response('ok') });
+  const mod = { name: 'timed', description: 'd', attacks: [
+    { name: 'a', async run(hc) { await hc.run('hit'); return { verdict: 'REFUSED', detail: 'held' }; } },
+  ] };
+  const run = await runCampaign(h, [{ origin: 'lib', module: mod }], { timing: true });
+  assert.equal(typeof run.rows[0].durationMs, 'number', 'timing on -> the row carries a duration');
+  assert.ok(run.rows[0].durationMs >= 0);
+});
+

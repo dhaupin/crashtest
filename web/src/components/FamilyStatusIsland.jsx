@@ -24,7 +24,7 @@ const SIBLINGS = [
 ]
 
 function legSummary(legs) {
-  // One line per leg: "crashtest 49 PASS", built from the file's own
+  // One line per leg: "crashtest 52 PASS", built from the file's own
   // numbers - the island never derives a count of its own.
   return legs.map((l) => `${l.leg} ${l.cases} ${l.verdict}`)
 }

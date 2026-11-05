@@ -24,6 +24,8 @@ const MODULES = [
       ['identity-spoof-headers', 'Fires 54 spoof variants - 9 identity headers (x-is-admin, x-user-role, x-forwarded-user...) each claiming 6 privilege values - at a privileged route', 'any handler that reads identity straight from wire headers'],
       ['secret-watermark', 'Plants fake secrets in env, probes error paths - a leaked secret means some error string echoed it', 'handlers that template raw error text'],
       ['privilege-escalation', 'Replays owner-b claims over owner-a writes (writer/victim pairs)', 'routes that accept an owner field without checking the caller'],
+      ['invalid-credential-fail-open', 'Fires an unsigned (alg:none), expired, and wrong-key token at the auth-check route - a grant to any is the verify()-returns-an-object fail-open (an invalid verdict object read as truthy)', 'handlers that gate on if (!verify()) where verify() resolves to {valid:false}'],
+      ['over-return-allowlist', 'Walks each declared route\'s response top-level keys against its allowlist (or the internal-field/secret family) - an undeclared or secret-bearing key means a handler returned its own internal object', 'handlers that return a live internal object instead of a projected view'],
     ],
   },
   {
@@ -32,6 +34,7 @@ const MODULES = [
       ['method-matrix-privileged', 'Fires the privileged route on every HTTP method (GET/POST/PUT/PATCH/DELETE, bare and with bodies) - the gate must deny method-blind; a gate that trips only on the tested method is a finding', 'gates keyed to one request method'],
       ['role-body-spoof-family', 'The role-word field family (role, isAdmin, is_admin, admin, scope, permissions, nested user.role) fired in bodies at the privileged route must never flip a deny - identity lives in what the server derives, not in what the attacker declares', 'handlers that trust body-declared roles'],
       ['handler-alias-confusion', 'A second route performing the same privileged action (the dev/debug leftover) must deny identically - unauthenticated AND under identity-header spoofing; an alias that honors what the primary ignores is the trapdoor', 'leftover debug/alias routes with weaker gates'],
+      ['low-priv-authority-verb-deny', 'Drives a declared SET of authority verbs (ctx.authorityVerbs) as a low-priv principal - ANY allow is a finding naming the verb; makes the blocklist a living contract so a newly-added verb that silently misses it fails', 'authority blocklists that stop covering every verb as the app grows'],
     ],
   },
   {
@@ -171,12 +174,12 @@ export default function Attacks() {
         </div>
         <h3 style={{ marginTop: 40 }}>Shipped packs ride the same ledger</h3>
         <p className="sub">
-          Beyond the 49 library attacks above, <strong>eight public packs ship - 36 pack
-          attacks total</strong>. Seven of them ride the npm package under{' '}
-          <code>packs/public/</code>; the eighth, <code>crashtest-site</code>, stays
+          Beyond the 52 library attacks above, <strong>nine public packs ship - 38 pack
+          attacks total</strong>. Eight of them ride the npm package under{' '}
+          <code>packs/public/</code>; the ninth, <code>crashtest-site</code>, stays
           repo-bound. Every pack also carries a self-audit fixture
           (<code>packs/public/&lt;pack&gt;/test/fixtures/run.mjs</code>) that
-          pins each pack's documented shape - discovered and run 8/8 by{' '}
+          pins each pack's documented shape - discovered and run 9/9 by{' '}
           <a href="https://github.com/dhaupin/crashtest/blob/main/test/pack-fixtures.test.js" target="_blank" rel="noreferrer">test/pack-fixtures.test.js</a>.
           Same verdicts, same ledger, still zero sockets.
         </p>
@@ -222,7 +225,7 @@ export default function Attacks() {
           <summary>Field report: the target we trust least is our own code</summary>
           <p className="field-report">
             This repo dogfoods itself in CI: the committed ledger holds{' '}
-            <span className="ok">49 REFUSED findings</span> on our own hardened demo
+            <span className="ok">52 REFUSED findings</span> on our own hardened demo
             app. The self-site run paid for one real bug: the shipped version
             endpoint once answered a malformed registry payload with{' '}
             <span className="bad">200 and no version key</span> - found, fixed, and pinned by the

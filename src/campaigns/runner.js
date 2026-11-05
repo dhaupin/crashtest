@@ -50,6 +50,21 @@ export async function runCampaign(harness, scenarios, opts = {}) {
     );
   }
   const startedAt = new Date().toISOString();
+  // Row-level concurrency (issue #83): the measured wall is the library
+  // phase, at ~4.6s/row strictly serial, and the isolation boundary (chains
+  // reset between rows) already exists. A row that DECLARES `isolated: true`
+  // holds no cross-row state, so a run root may race it N-wide. This is
+  // opt-in (concurrency default 1 = today's serial behavior) and needs a
+  // harnessFactory (a fresh, equivalently-seeded harness per racer - the
+  // shared harness cannot be raced without clobbering its fake backend).
+  // Output rows are pushed in ORIGINAL order regardless of completion order,
+  // so the run blob + ledger stay deterministic.
+  const concurrency = Math.max(1, Math.floor(opts.concurrency ?? 1));
+  const harnessFactory = typeof opts.harnessFactory === 'function' ? opts.harnessFactory : null;
+  // Per-row wall timing (issue #83): opt-in only. A duration in a committed
+  // ledger would break the determinism law (same commit -> same bytes), so the
+  // runner reads the clock only when the caller asks (`run --per-row`).
+  const timing = opts.timing === true;
   const rows = [];
   // Cross-row state (issue #15): a campaign-scoped vars registry (JSON-
   // deterministic values, re-writes conflict loudly) and objects() accessors
@@ -91,89 +106,32 @@ export async function runCampaign(harness, scenarios, opts = {}) {
     // here). A throw inside either hook fails the campaign loudly at cause
     // (rule 3) - never a half-run with a silently skipped module.
     const hookCtx = { ...(opts.moduleCtx?.[module.name] ?? {}), config: moduleCtx, seed: campaignSeed };
+    const hasHooks = typeof module.beforeAll === 'function' || typeof module.afterAll === 'function';
     if (typeof module.beforeAll === 'function') await module.beforeAll(hookCtx);
-    for (const attack of module.attacks) {
-      const id = `${module.name}/${attack.name}`;
-      // Per-ATTACK baseline: requests are per-attack truth, not cumulative-
-      // from-module-start. The old shape skewed when a module carries two
-      // attacks: attack #2's `requests` field counted attack #1's requests
-      // too, so `cost.totals.requests` (the ledger's economic line) INFLATED
-      // by triangular arithmetic with the per-attack rows.
-      const beforeAttack = { rowsBefore: harness.log().length };
-      const costBefore = harness.costTotals();
-      let findResult;
-      try {
-        const ctx = {
-          ...(opts.moduleCtx?.[module.name] ?? {}),
-          ...(opts.attackCtx?.[id] ?? {}),
-          // The pack-module arming contract (the init/packs-add scaffolds and
-          // the shipped wp-money-shapes pack teach ctx.config[<name>]): the
-          // earlier runner shape never carried it, so packs written per the
-          // docs could NEVER arm - the honest-skip law then graded every row
-          // "not armed" and the misfire hid behind a legitimate skip. The
-          // namespaced bag rides alongside the flattened vocabulary now, and
-          // both read paths arm the same values.
-          config: moduleCtx,
-          seed: campaignSeed,
-          vars,
-          objects,
-        };
-        findResult = attack.steps !== undefined
-          ? await runChainAttack(attack, harness, ctx)
-          : await attack.run(harness, ctx);
-        if (findResult?.verdict === 'BOUNDED' && (!findResult.owner || !findResult.bound)) {
-          // An accepted risk without a bound is a finding (principle 6).
-          findResult = { ...findResult, verdict: 'EXPLOITED', detail: `${findResult.detail || 'BOUNDED'} - owner/bound missing (finding per PRD principle 6)` };
-        }
-      } catch (err) {
-        findResult = { verdict: 'EXPLOITED', detail: `attack itself threw - harness-wide fault: ${err?.name}: ${err?.message}` };
-      }
 
-      // The honest-skip contract (PRD section 7 / issue #37): `skipped` is
-      // the no-coverage marker for REFUSED rows only. A skipped EXPLOITED or
-      // BOUNDED record is a module contract violation, not a finding - it
-      // would ride the exit rules as a fake finding while claiming nothing
-      // was graded. Found as the one violating shape in the tree on the
-      // wp-roles vocabulary-miswire branch (walk round 20; that branch now
-      // skips honestly). Fail loud at cause: the MODULE is broken, not the
-      // target (rule 3), and this check sits OUTSIDE the attack try/catch
-      // above so the fault cannot masquerade as an "attack itself threw"
-      // EXPLOITED row in its own right.
-      if (findResult?.skipped === true && findResult?.verdict !== 'REFUSED') {
-        throw new Error(`runner: attack "${module.name}/${attack.name}" returned verdict ${findResult.verdict} carrying skipped: true - the honest-skip contract allows skipped on REFUSED rows only; return refused(..., { skipped: true }) for a no-coverage verdict`);
-      }
+    // Concurrency is refused for a module with lifecycle hooks: the hook's
+    // state lives on the ONE shared harness, and a raced row rides a fresh
+    // harness that never saw it - a silent correctness gap. Falls back to
+    // serial (never a wrong verdict), and the fallback is honest: it is
+    // exactly today's behavior.
+    const canRace = concurrency > 1 && harnessFactory && !hasHooks;
 
-      // Unknown verdicts refuse louLY (same vacuous-green class as the zero-row
-      // filter guard, rule 3): an exotic verdict ("REJECTED", "OK") would
-      // count in TOTAL but land in no bucket and no exit rule - a row that
-      // reads as covered while it grades nothing. PASSED is the safe-path
-      // positive probe; anything else naming itself a verdict is a MODULE
-      // contract error, fail at cause.
-      if (!VERDICTS.includes(findResult?.verdict)) {
-        throw new Error(`runner: attack "${module.name}/${attack.name}" returned an unknown verdict ${JSON.stringify(findResult?.verdict)} - allowed: ${VERDICTS.join(' / ')}`);
+    let index = 0;
+    while (index < module.attacks.length) {
+      const attack = module.attacks[index];
+      // A maximal run of consecutive declared-isolated rows is raced together;
+      // anything else runs on the shared harness, serially, in order.
+      if (canRace && attack.isolated === true) {
+        let end = index;
+        while (end < module.attacks.length && module.attacks[end].isolated === true) end++;
+        const batch = module.attacks.slice(index, end);
+        const results = await runBatch(batch, module, opts, { campaignSeed, moduleCtx, vars, objects, harnessFactory, concurrency, timing });
+        for (const record of results) rows.push(record);
+        index = end;
+        continue;
       }
-
-      const record = {
-        id,
-        module: module.name,
-        attack: attack.name,
-        verdict: findResult.verdict,
-        detail: findResult.detail ?? '',
-        owner: findResult.owner,
-        bound: findResult.bound,
-        // The honest-skip flag the modules return (skipped: true) must SURVIVE
-        // the runner boundary: every library row sets it, nothing downstream
-        // could read it, and a skipped-REFUSED row was indistinguishable from
-        // a plain hold in the ledger - the exact vacuous-green veil the law
-        // (PRD section 7 / issue #37) forbids. undefined drops out of JSON,
-        // so committed artifacts only change for rows that actually skip.
-        skipped: findResult.skipped === true || undefined,
-        evidence: findResult.evidence ?? findResult.violations ?? findResult.counts ?? undefined,
-        ...(attack.group !== undefined ? { group: attack.group } : {}),
-        costDelta: delta(harness.costTotals(), costBefore),
-        requests: harness.log().length - beforeAttack.rowsBefore,
-      };
-      rows.push(record);
+      rows.push(await runOne(attack, module, opts, { harness, campaignSeed, moduleCtx, vars, objects, timing }));
+      index++;
     }
     if (typeof module.afterAll === 'function') await module.afterAll(hookCtx);
   }
@@ -220,6 +178,138 @@ export async function runCampaign(harness, scenarios, opts = {}) {
     cost: summarizeCost(rows),
     startedAt, finishedAt,
   };
+}
+
+// ---------- per-row driving + accounting (issue #83) ----------
+
+/** Normalize a row's `needs` declaration to a sorted list (or undefined). */
+function normalizeNeeds(needs) {
+  if (needs === undefined) return undefined;
+  const arr = Array.isArray(needs) ? needs : [needs];
+  return arr.length ? [...arr].sort() : undefined;
+}
+
+/**
+ * Drive ONE row against a harness and return its run record. Extracted from
+ * the serial loop so a racer (issue #83) runs the exact same body. Per-row
+ * requests/ops/arms are anchored before the row, so they stay per-ATTACK
+ * truth whether the row ran on the shared harness or a fresh racer.
+ */
+async function runOne(attack, module, opts, { harness, campaignSeed, moduleCtx, vars, objects, timing }) {
+  const id = `${module.name}/${attack.name}`;
+  const rowsBefore = harness.log().length;
+  const costBefore = harness.costTotals();
+  const startedAt = timing ? performance.now() : 0;
+  let findResult;
+  try {
+    const ctx = {
+      ...(opts.moduleCtx?.[module.name] ?? {}),
+      ...(opts.attackCtx?.[id] ?? {}),
+      // The pack-module arming contract (the init/packs-add scaffolds and
+      // the shipped wp-money-shapes pack teach ctx.config[<name>]): the
+      // earlier runner shape never carried it, so packs written per the
+      // docs could NEVER arm - the honest-skip law then graded every row
+      // "not armed" and the misfire hid behind a legitimate skip. The
+      // namespaced bag rides alongside the flattened vocabulary now, and
+      // both read paths arm the same values.
+      config: moduleCtx,
+      seed: campaignSeed,
+      vars,
+      objects,
+    };
+    findResult = attack.steps !== undefined
+      ? await runChainAttack(attack, harness, ctx)
+      : await attack.run(harness, ctx);
+    if (findResult?.verdict === 'BOUNDED' && (!findResult.owner || !findResult.bound)) {
+      // An accepted risk without a bound is a finding (principle 6).
+      findResult = { ...findResult, verdict: 'EXPLOITED', detail: `${findResult.detail || 'BOUNDED'} - owner/bound missing (finding per PRD principle 6)` };
+    }
+  } catch (err) {
+    findResult = { verdict: 'EXPLOITED', detail: `attack itself threw - harness-wide fault: ${err?.name}: ${err?.message}` };
+  }
+
+  // The honest-skip contract (PRD section 7 / issue #37): `skipped` is
+  // the no-coverage marker for REFUSED rows only. A skipped EXPLOITED or
+  // BOUNDED record is a module contract violation, not a finding - it
+  // would ride the exit rules as a fake finding while claiming nothing
+  // was graded. Found as the one violating shape in the tree on the
+  // wp-roles vocabulary-miswire branch (walk round 20; that branch now
+  // skips honestly). Fail loud at cause: the MODULE is broken, not the
+  // target (rule 3), and this check sits OUTSIDE the attack try/catch
+  // above so the fault cannot masquerade as an "attack itself threw"
+  // EXPLOITED row in its own right.
+  if (findResult?.skipped === true && findResult?.verdict !== 'REFUSED') {
+    throw new Error(`runner: attack "${id}" returned verdict ${findResult.verdict} carrying skipped: true - the honest-skip contract allows skipped on REFUSED rows only; return refused(..., { skipped: true }) for a no-coverage verdict`);
+  }
+
+  // Unknown verdicts refuse loudly (same vacuous-green class as the zero-row
+  // filter guard, rule 3): an exotic verdict ("REJECTED", "OK") would
+  // count in TOTAL but land in no bucket and no exit rule - a row that
+  // reads as covered while it grades nothing. PASSED is the safe-path
+  // positive probe; anything else naming itself a verdict is a MODULE
+  // contract error, fail at cause.
+  if (!VERDICTS.includes(findResult?.verdict)) {
+    throw new Error(`runner: attack "${id}" returned an unknown verdict ${JSON.stringify(findResult?.verdict)} - allowed: ${VERDICTS.join(' / ')}`);
+  }
+
+  return {
+    id,
+    module: module.name,
+    attack: attack.name,
+    verdict: findResult.verdict,
+    detail: findResult.detail ?? '',
+    owner: findResult.owner,
+    bound: findResult.bound,
+    // The honest-skip flag the modules return (skipped: true) must SURVIVE
+    // the runner boundary: every library row sets it, nothing downstream
+    // could read it, and a skipped-REFUSED row was indistinguishable from
+    // a plain hold in the ledger - the exact vacuous-green veil the law
+    // (PRD section 7 / issue #37) forbids. undefined drops out of JSON,
+    // so committed artifacts only change for rows that actually skip.
+    skipped: findResult.skipped === true || undefined,
+    evidence: findResult.evidence ?? findResult.violations ?? findResult.counts ?? undefined,
+    ...(attack.group !== undefined ? { group: attack.group } : {}),
+    // Per-row accounting (issue #83): costDelta carries the op-counter deltas
+    // this row's requests actually moved (deterministic - same tree, same
+    // arms), so a run root can see where its wall went without
+    // hand-instrumenting the driver. It drops from JSON when a row moved
+    // nothing.
+    costDelta: delta(harness.costTotals(), costBefore),
+    requests: harness.log().length - rowsBefore,
+    // Boot declarations (issue #83): `needs` (what state the row touches) and
+    // `isolated` (safe to race). Both drop from JSON when absent, so rows that
+    // declare nothing keep byte-stable records.
+    needs: normalizeNeeds(attack.needs),
+    isolated: attack.isolated === true || undefined,
+    // Wall time is OFF by default: a duration in a committed ledger would break
+    // the determinism law (same commit -> same bytes). `run --per-row` opts in
+    // (opts.timing), where it is accounting info, never a verdict input.
+    ...(timing ? { durationMs: Math.round(performance.now() - startedAt) } : {}),
+  };
+}
+
+/**
+ * Race a maximal batch of declared-isolated rows (issue #83). Each racer takes
+ * the next index off a shared cursor and drives it on its OWN fresh harness
+ * (harnessFactory), so the fake backend is never shared across racers. Results
+ * land at their ORIGINAL index, so the campaign output order is unchanged
+ * regardless of completion order (determinism). A batch of isolated rows that
+ * share campaign vars/objects is the module's own contract violation - an
+ * isolated row declares it holds no cross-row state.
+ */
+async function runBatch(batch, module, opts, { campaignSeed, moduleCtx, vars, objects, harnessFactory, concurrency, timing }) {
+  const results = new Array(batch.length);
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(concurrency, batch.length) }, async () => {
+    for (;;) {
+      const i = cursor++;
+      if (i >= batch.length) return;
+      const harness = await harnessFactory(module.name, batch[i]);
+      results[i] = await runOne(batch[i], module, opts, { harness, campaignSeed, moduleCtx, vars, objects, timing });
+    }
+  });
+  await Promise.all(workers);
+  return results;
 }
 
 // ---------- campaign state primitives (issue #15) ----------

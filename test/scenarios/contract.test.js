@@ -34,6 +34,17 @@ test('validateScenario: bad names, no attacks, dupes all fail loudly', () => {
   }), /needs run/);
 });
 
+test('issue #83: row boot declarations validate (needs kebab-case, isolated boolean)', () => {
+  const withRow = (extra) => ({ ...validScenario, attacks: [{ name: 'probe', async run() { return refused('ok'); }, ...extra }] });
+  assert.equal(validateScenario(withRow({ needs: 'd1' })).attacks[0].needs, 'd1', 'a single needs name is lawful');
+  assert.equal(validateScenario(withRow({ needs: ['kv', 'd1'] })).attacks[0].needs.length, 2);
+  assert.equal(validateScenario(withRow({ isolated: true })).attacks[0].isolated, true);
+  assert.throws(() => validateScenario(withRow({ needs: ['D1'] })), /needs.*kebab-case/);
+  assert.throws(() => validateScenario(withRow({ needs: [7] })), /needs.*kebab-case/);
+  assert.throws(() => validateScenario(withRow({ isolated: 'yes' })), /isolated.*boolean/);
+});
+
+
 test('bounded refuses ownerless risks (principle 6)', () => {
   assert.throws(() => bounded('', 'some bound', 'detail'), /owner \+ bound/);
   const b = bounded('dhaupin', 'retry window closed', 'why');

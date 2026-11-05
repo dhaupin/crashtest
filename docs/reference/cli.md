@@ -25,6 +25,8 @@ Attack the target declared in `crashtest.config.js`. Writes `labs/crashledger.js
 | `--module-plan` | Dry-run: which attack ids WOULD fire (exit 0 always). NEEDS-ARMING rows mean a pack wants `moduleCtx['<key>']` in your config; at run time they refuse-skip, never false-positive. |
 | `--expect-baseline <path>` | Diff against a given ledger WITHOUT touching `labs/` (read-only CI/hosted mode; exit rules unchanged). |
 | `--out-dir <dir>` | ALSO write run-blob.json + crashledger.json + hardening.md copies into dir (artifact fan-out; the repo's `labs/` rules are untouched). |
+| `--concurrency <n>` | Race rows that declare `isolated: true`, up to n at once (default 1 = serial). Each racer gets its own fresh harness; rows land in original order, so the ledger stays deterministic. A module with `beforeAll`/`afterAll` never races (its hook state is shared). |
+| `--per-row` | Print a per-row accounting table (requests, ops, arms) plus the run-level wall roll-up (total row wall + the slowest row), so a run root can see where its wall went without hand-instrumenting. The wall durations print here only; the committed ledger stays duration-free. |
 | `--lint-determinism` | The determinism grep INSTEAD of the campaign (same lane as the `lint-determinism` verb). |
 | `--lint-packs` | The packstruct lint INSTEAD of the campaign (same lane as the `lint-packs` verb). |
 

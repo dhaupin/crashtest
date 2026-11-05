@@ -70,6 +70,11 @@ export function buildModulePlan(target, packs = [], scenarios = []) {
         id: `${module.name}/${a.name}`,
         status: decided.status,
         reason: decided.reason,
+        // Boot declarations (issue #83): what state the row touches and
+        // whether it may race. Dropped from the plan when a row declares
+        // neither, so plans for undeclared libraries stay byte-stable.
+        ...(a.needs !== undefined ? { needs: Array.isArray(a.needs) ? [...a.needs].sort() : [a.needs] } : {}),
+        ...(a.isolated === true ? { isolated: true } : {}),
       })),
     };
   });

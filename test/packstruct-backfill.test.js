@@ -13,7 +13,7 @@
 //      its specKey: null placeholder (filling one later is a deliberate,
 //      reviewed act - the assert names the rule).
 //   4. THE CENSUS - the 44-ids / zero-collisions receipt from dhaupin/crashtest#19
-//      re-verified LIVE against the library (49 attacks / 14 modules), so the
+//      re-verified LIVE against the library (52 attacks / 14 modules), so the
 //      corpus receipt cannot go stale without failing here.
 //
 // Zero sockets, zero network: everything reads the repo's own files.

@@ -1,9 +1,9 @@
 ---
-version: 1.2.0
+version: 1.3.0
 permalink: what
 layout: default
 title: What Crashtest is
-description: A CLI that fires 49 seeded attacks across 14 modules at your real handlers in-process, returns REFUSED / EXPLOITED / BOUNDED / PASSED, and writes a committed ledger your CI gates.
+description: A CLI that fires 52 seeded attacks across 14 modules at your real handlers in-process, returns REFUSED / EXPLOITED / BOUNDED / PASSED, and writes a committed ledger your CI gates.
 ---
 
 # What Crashtest is
