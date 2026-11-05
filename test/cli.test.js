@@ -132,6 +132,29 @@ test('run --json appends the machine run blob as the LAST stdout line (PRD secti
 
 // --- thread A2: `run --out-dir <dir>` (PRD section 14/section 15 artifact fan-out) -------
 
+test('run --per-row prints the accounting table + the run-level wall roll-up (issue #83)', async () => {
+  await inRepo('per-row', async () => {
+    await writeFile('crashtest.config.js',
+      "export default { routes: { burst: async () => new Response('accepted', { headers: { 'cache-control': 'no-store' } }) }, seed: 7 };\n");
+    const out = [];
+    const orig = console.log;
+    console.log = (...a) => out.push(a.join(' '));
+    try {
+      await main(['run', '--per-row']);
+    } finally {
+      console.log = orig;
+    }
+    const text = out.join('\n');
+    assert.match(text, /per-row accounting \(id \| durationMs \| requests \| ops \| arms\):/);
+    assert.match(text, /total row wall: \d+ms across \d+ row\(s\); slowest: /);
+    // The wall rides the printed table only - the committed ledger stays
+    // duration-free (same commit -> same bytes).
+    const ledger = JSON.parse(await readFile(LEDGER_PATH, 'utf8'));
+    assert.ok(!JSON.stringify(ledger).includes('durationMs'));
+    process.exitCode = 0;
+  });
+});
+
 test('run --out-dir writes run-blob/ledger/report copies into a distinct dir without touching labs/ rules', async () => {
   await inRepo('outdir', async (dir) => {
     await writeFile('crashtest.config.js',

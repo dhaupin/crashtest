@@ -17,6 +17,17 @@
       "detail": "ownership mutations rejected by \"device\" (baseline 403)"
     },
     {
+      "id": "auth/invalid-credential-fail-open",
+      "verdict": "REFUSED",
+      "detail": "all 4 invalid credentials denied on \"admin\" - no fail-open on an unsigned/expired/wrong-key token"
+    },
+    {
+      "id": "auth/over-return-allowlist",
+      "verdict": "REFUSED",
+      "detail": "no routes declared (ctx.routes) and no allowedTopLevelKeys - the over-return surface is unmeasured (declare one for coverage)",
+      "skipped": true
+    },
+    {
       "id": "authz/method-matrix-privileged",
       "verdict": "REFUSED",
       "detail": "5 methods (bare + bodies where the method carries one) all denied on \"admin\" - the gate is method-blind"
@@ -30,6 +41,12 @@
       "id": "authz/handler-alias-confusion",
       "verdict": "REFUSED",
       "detail": "alias \"dev-check\" denies identically to \"admin\" - no unauthenticated grant, no identity-header trapdoor (3 spoof vectors probed)"
+    },
+    {
+      "id": "authz/low-priv-authority-verb-deny",
+      "verdict": "REFUSED",
+      "detail": "no authority verbs declared (ctx.authorityVerbs) - the authority blocklist is unmeasured (declare the set for coverage)",
+      "skipped": true
     },
     {
       "id": "governance/succession-trust-floor",
@@ -273,9 +290,12 @@
     "auth/identity-spoof-headers",
     "auth/secret-watermark",
     "auth/privilege-escalation",
+    "auth/invalid-credential-fail-open",
+    "auth/over-return-allowlist",
     "authz/method-matrix-privileged",
     "authz/role-body-spoof-family",
     "authz/handler-alias-confusion",
+    "authz/low-priv-authority-verb-deny",
     "governance/succession-trust-floor",
     "governance/succession-single-heir",
     "governance/succession-revocation-carry",

@@ -47,7 +47,7 @@ export default function About() {
           </p>
           <p className="lede" style={{ marginTop: 8 }}>
             The target we trust least is our own code. The repo dogfoods itself
-            in CI: the committed ledger holds 49 REFUSED findings on our own
+            in CI: the committed ledger holds 52 REFUSED findings on our own
             hardened demo app, and that run has already paid for real bugs.
           </p>
         </div>

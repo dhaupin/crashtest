@@ -51,6 +51,7 @@ The last stdout line is a machine-plan object:
 |---|---|
 | `schemaVersion` | `1` |
 | `modules[]` | `{ name, origin, source, version, armedKey, status, reason, attacks[] }` |
+| `modules[].attacks[]` | `{ id, status, reason }` plus, when a row declares them, `needs` (sorted list) and `isolated: true` - the boot declarations from [the scenario contract](/crashtest/reference/scenario-contract#boot-declarations-needs--isolated-issue-83) |
 | `packs[]` | `{ name, visibility, version, origin, attacks, armedByKey, package }` |
 | `totals` | `{ attacks, willFire, needsArming, skippedFilter }` |
 

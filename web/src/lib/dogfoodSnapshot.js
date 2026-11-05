@@ -7,7 +7,7 @@
  * Re-run the generator after a dogfood run changes labs/, then commit.
  *
  * The dashboard renders this snapshot as its default, honest view:
- * a real ledger cut v1.2.0 - not demo data hand-typed for the page.
+ * a real ledger cut v1.3.0 - not demo data hand-typed for the page.
  */
 
 export const dogfood = {
@@ -30,6 +30,17 @@ export const dogfood = {
         "detail": "ownership mutations rejected by \"device\" (baseline 403)"
       },
       {
+        "id": "auth/invalid-credential-fail-open",
+        "verdict": "REFUSED",
+        "detail": "all 4 invalid credentials denied on \"admin\" - no fail-open on an unsigned/expired/wrong-key token"
+      },
+      {
+        "id": "auth/over-return-allowlist",
+        "verdict": "REFUSED",
+        "detail": "no routes declared (ctx.routes) and no allowedTopLevelKeys - the over-return surface is unmeasured (declare one for coverage)",
+        "skipped": true
+      },
+      {
         "id": "authz/method-matrix-privileged",
         "verdict": "REFUSED",
         "detail": "5 methods (bare + bodies where the method carries one) all denied on \"admin\" - the gate is method-blind"
@@ -43,6 +54,12 @@ export const dogfood = {
         "id": "authz/handler-alias-confusion",
         "verdict": "REFUSED",
         "detail": "alias \"dev-check\" denies identically to \"admin\" - no unauthenticated grant, no identity-header trapdoor (3 spoof vectors probed)"
+      },
+      {
+        "id": "authz/low-priv-authority-verb-deny",
+        "verdict": "REFUSED",
+        "detail": "no authority verbs declared (ctx.authorityVerbs) - the authority blocklist is unmeasured (declare the set for coverage)",
+        "skipped": true
       },
       {
         "id": "governance/succession-trust-floor",
@@ -286,9 +303,12 @@ export const dogfood = {
       "auth/identity-spoof-headers",
       "auth/secret-watermark",
       "auth/privilege-escalation",
+      "auth/invalid-credential-fail-open",
+      "auth/over-return-allowlist",
       "authz/method-matrix-privileged",
       "authz/role-body-spoof-family",
       "authz/handler-alias-confusion",
+      "authz/low-priv-authority-verb-deny",
       "governance/succession-trust-floor",
       "governance/succession-single-heir",
       "governance/succession-revocation-carry",
@@ -336,9 +356,9 @@ export const dogfood = {
   },
   "cost": {
     "totals": {
-      "ops": 842,
-      "requests": 647,
-      "distinctAttacks": 49
+      "ops": 847,
+      "requests": 652,
+      "distinctAttacks": 52
     },
     "perAttack": [
       {
@@ -357,6 +377,16 @@ export const dogfood = {
         "requests": 4
       },
       {
+        "id": "auth/invalid-credential-fail-open",
+        "ops": 5,
+        "requests": 5
+      },
+      {
+        "id": "auth/over-return-allowlist",
+        "ops": 0,
+        "requests": 0
+      },
+      {
         "id": "authz/method-matrix-privileged",
         "ops": 9,
         "requests": 9
@@ -370,6 +400,11 @@ export const dogfood = {
         "id": "authz/handler-alias-confusion",
         "ops": 8,
         "requests": 8
+      },
+      {
+        "id": "authz/low-priv-authority-verb-deny",
+        "ops": 0,
+        "requests": 0
       },
       {
         "id": "governance/succession-trust-floor",
@@ -589,8 +624,8 @@ export const dogfood = {
     ]
   },
   "meta": {
-    "version": "1.2.0",
-    "startedAt": "2026-10-27T01:04:46.796Z",
+    "version": "1.3.0",
+    "startedAt": "2026-11-05T19:25:30.643Z",
     "seed": 12648430
   }
 };

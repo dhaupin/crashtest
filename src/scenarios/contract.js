@@ -54,9 +54,11 @@ export function validateScenario(mod, origin = 'unknown') {
       if (a.group !== undefined && (typeof a.group !== 'string' || !/^[a-z][a-z0-9-]*$/.test(a.group))) {
         fail(`attack "${a.name}": "group" wants a kebab-case name`);
       }
+      validateRowAttributes(a, fail);
       continue;
     }
     validateSteps(a, fail);
+    validateRowAttributes(a, fail);
   }
   for (const key of ['beforeAll', 'afterAll']) {
     if (mod[key] !== undefined && typeof mod[key] !== 'function') {
@@ -67,6 +69,32 @@ export function validateScenario(mod, origin = 'unknown') {
     }
   }
   return mod;
+}
+
+/**
+ * Validate the per-row boot-declaration attributes (issue #83):
+ *   - `needs`: the env bindings / KV / D1 arms / doors a row touches, so a run
+ *     root can arm state lazily instead of paying boot cost for state the row
+ *     never reads. A list of kebab-case names, or a single name.
+ *   - `isolated`: the row declares it holds no cross-row state (the run root
+ *     resets chains between rows already), so a run root MAY race it N-wide.
+ *     Default false - a row is assumed order-dependent unless it says so.
+ * Both are declarative metadata: the runner records them per row and surfaces
+ * them in the plan, but the serial default is unchanged (the determinism law
+ * holds until a run root opts into concurrency).
+ */
+function validateRowAttributes(a, fail) {
+  if (a.needs !== undefined) {
+    const needs = Array.isArray(a.needs) ? a.needs : [a.needs];
+    for (const n of needs) {
+      if (typeof n !== 'string' || !/^[a-z][a-z0-9-]*$/.test(n)) {
+        fail(`attack "${a.name}": "needs" entries want kebab-case names, got ${JSON.stringify(n)}`);
+      }
+    }
+  }
+  if (a.isolated !== undefined && typeof a.isolated !== 'boolean') {
+    fail(`attack "${a.name}": "isolated" wants a boolean`);
+  }
 }
 
 /**

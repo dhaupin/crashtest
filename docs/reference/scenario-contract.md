@@ -124,6 +124,15 @@ Laws pinned in the runner: values are **JSON round-trippable and prototype-safe*
 
 An attack may declare `group: 'svc-healthy'`; the report bundles those rows' ids under one named group whose verdict is the aggregate (worst) of its member rows - each row keeps its individual record and verdict. This is how a feature graded across five shards reads as ONE finding instead of five unrelated rows, without smearing them into a mega attack.
 
+### Boot declarations (`needs` / `isolated`, issue #83)
+
+Two optional fields let a row declare what it costs to run, so a run root can skip boot work a row never uses and race the rows that are safe to race:
+
+- **`needs: ['kv', 'd1']`** - the env bindings, KV stores, D1 tables, or routes the row touches. A run root arms state lazily instead of paying boot cost for state the row never reads. The plan (`--module-plan`) surfaces each row's `needs` so the requirement is visible before any request fires.
+- **`isolated: true`** - the row holds no cross-row state, so `crashtest run --concurrency <n>` MAY race it N-wide. The default is false: a row is assumed order-dependent unless it says so. A module carrying `beforeAll`/`afterAll` never races (its hook state lives on the one shared harness). Rows always land in original order regardless of completion order, so the ledger stays byte-stable per commit.
+
+Both are declarative: the serial default is unchanged, and a row that declares neither keeps a byte-identical record.
+
 ## 4. The harness (the one dispatch surface)
 
 ```js

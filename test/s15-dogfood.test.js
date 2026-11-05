@@ -46,16 +46,16 @@ test('dogfood: hardened fixture - all attacks REFUSED, exit 0, artifacts written
   assert.equal(runCli(dir), 0);
   const ledger = JSON.parse(readFileSync(join(dir, 'labs/crashledger.json'), 'utf8'));
   assert.equal(ledger.schemaVersion, 1);
-  // 30 attacks through the v1.0.0 census, then + 9 memory + 10 governance = 49
-  // across 14 modules (the #10/#11 general families - skipped-REFUSED on the
+  // 30 attacks through the v1.0.0 census, + 9 memory + 10 governance = 49,
+  // plus 3 more (v1.3.0 auth/authz rows) = 52 across 14 modules - skipped-REFUSED on the
   // demo target, which arms neither note-store nor grant vocabulary).
-  assert.equal(ledger.findings.length, 49, 'every seed attack ran');
+  assert.equal(ledger.findings.length, 52, 'every seed attack ran');
   const bad = ledger.findings.filter(f => f.verdict !== 'REFUSED');
   assert.deepEqual(bad, [], bad.map(f => `${f.id}: ${f.detail}`).join(' | '));
-  assert.equal(ledger.baseline.length, 49);
+  assert.equal(ledger.baseline.length, 52);
   const report = readFileSync(join(dir, 'labs/hardening.md'), 'utf8');
   assert.match(report, /# Hardening report/);
-  assert.match(report, /REFUSED \(49\)/);
+  assert.match(report, /REFUSED \(52\)/);
   assert.match(report, /EXPLOITED \(0\)/);
 });
 

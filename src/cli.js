@@ -19,7 +19,7 @@ import { buildModulePlan } from './plans.js';
 import { listPresets, scaffoldPreset, probeHandler } from './presets.js';
 import { collectSourceFiles, lintDeterminism } from './lint.js';
 
-const VERSION = '1.2.0';
+const VERSION = '1.3.0';
 const LEDGER_PATH = 'labs/crashledger.json';
 const META_BASENAME = 'run-meta.json';
 const META_PATH = `labs/${META_BASENAME}`;
@@ -64,6 +64,14 @@ COMMANDS
     --out-dir <dir>           ALSO write run-blob.json + crashledger.json +
                               hardening.md copies into dir (artifact fan-out;
                               the repo's labs/ rules are untouched)
+    --concurrency <n>         Race rows that declare 'isolated: true', up to n
+                              at once (default 1 = serial). Each racer gets its
+                              own fresh harness; rows land in original order,
+                              so the ledger stays deterministic (issue #83)
+    --per-row                 Print a per-row accounting table (duration, ops,
+                              requests, arms) plus the run-level wall roll-up
+                              (total + slowest row) so a run root can see where
+                              its wall went without hand-instrumenting (issue #83)
     --lint-packs              Preflight: run the packstruct lint over the
                               packs root INSTEAD of the campaign (no requests,
                               no artifacts; issue #32 - same lane as the
@@ -110,7 +118,7 @@ EXIT CODES (the CI contract)
 
 MODULES  auth, authz, governance, guards, input, memory,
          proto-hygiene, race, recursion, session, state, taxonomy,
-         upload, volume - 14 shipped modules, 49 attacks (plus your own
+         upload, volume - 14 shipped modules, 52 attacks (plus your own
          via packs/, labs/scenarios/, or config plugins:
          [npm-package-or-path]). Every attack
 returns one verdict:
@@ -530,6 +538,16 @@ async function cmdRun(opts = {}) {
       attackCtx: target.attackCtx,
       moduleCtx: target.moduleCtx,
       seed: target.seed,
+      // Issue #83: opt-in row-level concurrency. Rows declaring `isolated: true`
+      // race up to N-wide, each on its OWN fresh harness (a shared harness
+      // cannot be raced without clobbering its fake backend). Default 1 keeps
+      // today's serial behavior byte-for-byte.
+      concurrency: opts.concurrency ?? 1,
+      harnessFactory: opts.concurrency > 1 ? () => buildTargetHarness(target) : null,
+      // Per-row wall timing rides the same opt-in as the accounting table:
+      // --per-row is where a run root reads where its wall went, and the
+      // committed ledger/report never carry a duration.
+      timing: opts.perRow === true,
     });
   } finally {
     // The WP adapter's worker is a REAL subprocess per run - the run is done,
@@ -617,6 +635,25 @@ async function cmdRun(opts = {}) {
     console.log(`${mark} ${row.id}: ${row.detail}`);
   }
   console.log(`\ntally: ${JSON.stringify(run.tally)} / cost: ${run.cost.totals.ops} ops / ${run.cost.totals.requests} requests`);
+  // Per-row accounting (issue #83): where the wall and the ops went, row by
+  // row, without hand-instrumenting the driver. Wall durations are printed
+  // only under this flag (the committed ledger/report stay duration-free, so
+  // same commit -> same bytes still holds).
+  if (opts.perRow) {
+    console.log('\nper-row accounting (id | durationMs | requests | ops | arms):');
+    let totalMs = 0;
+    for (const row of run.rows) {
+      totalMs += row.durationMs ?? 0;
+      const arms = row.costDelta
+        ? Object.entries(row.costDelta).filter(([k, v]) => k !== 'ops' && v).map(([k, v]) => `${k}=${v}`).join(' ')
+        : '';
+      console.log(`  ${row.id} | ${row.durationMs ?? '-'} | ${row.requests} | ${row.costDelta?.ops ?? 0} | ${arms || '-'}`);
+    }
+    // The run-level roll-up (issue #83 ask 1): where the wall actually went,
+    // in one line, so a run root never has to hand-instrument the driver.
+    const slowest = run.rows.reduce((a, b) => ((b.durationMs ?? 0) > (a.durationMs ?? 0) ? b : a), run.rows[0]);
+    console.log(`  total row wall: ${totalMs}ms across ${run.rows.length} row(s); slowest: ${slowest?.id ?? '-'} (${slowest?.durationMs ?? 0}ms)`);
+  }
   if (opts.expectBaseline) {
     console.log(`target: ${opts.expectBaseline} (read-only diff - no ledger/report written)`);
   } else {
@@ -896,16 +933,23 @@ export async function main(argv) {
     const confIdx2 = argv.indexOf('--config');
     const confVal = confIdx2 > -1 ? argv[confIdx2 + 1] : undefined;
     if (rejectUnknownFlags(verb, argv.slice(1), confVal !== undefined
-      ? ['--config', confVal, '--json', '--module-plan', '--expect-baseline', '--out-dir', '--lint-determinism', '--lint-packs', '--allow-vacuous']
-      : ['--config', '--json', '--module-plan', '--expect-baseline', '--out-dir', '--lint-determinism', '--lint-packs', '--allow-vacuous'])) return;
+      ? ['--config', confVal, '--json', '--module-plan', '--expect-baseline', '--out-dir', '--concurrency', '--per-row', '--lint-determinism', '--lint-packs', '--allow-vacuous']
+      : ['--config', '--json', '--module-plan', '--expect-baseline', '--out-dir', '--concurrency', '--per-row', '--lint-determinism', '--lint-packs', '--allow-vacuous'])) return;
     const json = argv.includes('--json');
     const modulePlan = argv.includes('--module-plan');
     const baseIdx = argv.indexOf('--expect-baseline');
     const expectBaseline = baseIdx > -1 ? argv[baseIdx + 1] : undefined;
     const outIdx = argv.indexOf('--out-dir');
     const outDir = outIdx > -1 ? argv[outIdx + 1] : undefined;
+    const concIdx = argv.indexOf('--concurrency');
+    const concurrency = concIdx > -1 ? Number(argv[concIdx + 1]) : 1;
+    if (concIdx > -1 && (!Number.isInteger(concurrency) || concurrency < 1)) {
+      console.error(`crashtest run: --concurrency wants a positive integer (got ${JSON.stringify(argv[concIdx + 1])})`);
+      process.exitCode = 2;
+      return;
+    }
     const lintIdx = argv.indexOf('--lint-determinism');
-    return cmdRun({ config: confVal, json, modulePlan, expectBaseline, outDir, lintDeterminism: lintIdx > -1, lintPacks: argv.includes('--lint-packs'), allowVacuous: argv.includes('--allow-vacuous') });
+    return cmdRun({ config: confVal, json, modulePlan, expectBaseline, outDir, concurrency, perRow: argv.includes('--per-row'), lintDeterminism: lintIdx > -1, lintPacks: argv.includes('--lint-packs'), allowVacuous: argv.includes('--allow-vacuous') });
   }
   console.error(`crashtest: unknown command "${verb}" (try --help)`);
   process.exitCode = 1;

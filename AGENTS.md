@@ -82,17 +82,18 @@ export default {
 ```
 BOUNDED requires `owner` + `bound` or it is demoted to EXPLOITED. Drop modules into `labs/scenarios/` (or any dir via config `scenarioDirs`) and they load. Full semantics: `src/scenarios/contract.js` + tests in `test/scenarios/`.
 
-Library state at 1.1.0: **49 attacks across 14 modules** (auth, authz, governance, guards, input, memory, proto-hygiene, recursion, upload, race, state, volume, taxonomy, session). Adding/renaming any attack means updating, in the SAME commit: the attacks doc + web catalog, the count pins (catalog=49, per-module census), and the changelog. The suite will find you otherwise; that is the pin wall doing its job.
+Library state at 1.3.0: **52 attacks across 14 modules** (auth, authz, governance, guards, input, memory, proto-hygiene, recursion, upload, race, state, volume, taxonomy, session). Adding/renaming any attack means updating, in the SAME commit: the attacks doc + web catalog, the count pins (catalog=52, per-module census), and the changelog. The suite will find you otherwise; that is the pin wall doing its job.
 
-Shipped packs (`packs/public/`, latest first): `next-middleware-shapes` (2, Next.js middleware subrequest wire), `vite-dev-shapes` (2, vite dev-file wire), `qs-shapes` (2, express-qs bracket-notation parser shapes), `cve-feed` (2, offline KEV/NVD snapshot), `crashtest-site` (18, the release self-check), `wp-money-shapes` (3, armedByKey), `wp-roles` (3, experimental), `wp-stock-smoke` (4). Pack manifests carry their own semver - never bump those for CLI-level releases.
+Shipped packs (`packs/public/`, latest first): `egress-guard-shapes` (2, outbound-request/SSRF shapes), `next-middleware-shapes` (2, Next.js middleware subrequest wire), `vite-dev-shapes` (2, vite dev-file wire), `qs-shapes` (2, express-qs bracket-notation parser shapes), `cve-feed` (2, offline KEV/NVD snapshot), `crashtest-site` (18, the release self-check), `wp-money-shapes` (3, armedByKey), `wp-roles` (3, experimental), `wp-stock-smoke` (4) - 9 packs / 38 pack attacks. Pack manifests carry their own semver - never bump those for CLI-level releases.
 
 ## Common commands
 
-```bashnpm test             # full suite (node --test); 317 pass was the 1.1.0 floor,
-                     # 414 was the 1.1.1 tree, 426 is the 1.2.0 tree
-                     # with PHP (the 7 armed WP e2e rows skip on PHP-less
-                     # hosts, where the same tree reads 419 pass / 7 skips)
-npm run check        # syntax check across every source/test file
+```bash
+npm test             # full suite (node --test); 317 pass was the 1.1.0 floor,
+                     # 426 was the 1.2.0 tree, 474 is the 1.3.0 tree
+                     # (the 7 armed WP e2e rows skip on PHP-less hosts)
+npm run check        # syntax check across every source/test file + lint:pins,
+                     # lint:prestruct-pins, lint:catalog (the prepublishOnly gate)
 npm run lint:docs    # docs links + style + fiction-signature scan
 npx crashtest init
 npx crashtest run    # dogfoods fixtures/demo against the committed ledger
