@@ -59,6 +59,20 @@ export async function runCampaign(harness, scenarios, opts = {}) {
   // shared harness cannot be raced without clobbering its fake backend).
   // Output rows are pushed in ORIGINAL order regardless of completion order,
   // so the run blob + ledger stay deterministic.
+  // The CLI screens --concurrency, but the library API does not go through
+  // the CLI: a non-integer or sub-1 value (NaN from "abc"/null, a float, 0)
+  // normalizes to a non-finite worker count, and `Math.min(NaN, n)` is NaN -
+  // Array.from({length: NaN}) makes ZERO workers, so every row silently never
+  // runs and the campaign reports a clean zero-row pass. Refuse it by name
+  // here so the misfire dies at the library boundary too, not only in the CLI.
+  if (opts.concurrency !== undefined
+    && (!Number.isInteger(opts.concurrency) || opts.concurrency < 1)) {
+    throw new Error(
+      `concurrency wants a positive integer (got ${JSON.stringify(opts.concurrency)})`
+      + ' - a non-integer or sub-1 value yields a non-finite worker count (zero workers),'
+      + ' which silently runs no rows and reads as a clean pass; fix the value or drop it',
+    );
+  }
   const concurrency = Math.max(1, Math.floor(opts.concurrency ?? 1));
   const harnessFactory = typeof opts.harnessFactory === 'function' ? opts.harnessFactory : null;
   // Per-row wall timing (issue #83): opt-in only. A duration in a committed
