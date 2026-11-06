@@ -6,11 +6,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/) - sections head `## [ver
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-03
+
 ### Fixed
 
 - **A non-integer or sub-1 `concurrency` refuses at the library boundary, not only in the CLI.** `runCampaign` is a public entry (the package `main`), and the CLI's `--concurrency` screen does not cover a direct caller. Left unguarded, a `"abc"`/`null` value parses to `NaN`, `Math.min(NaN, n)` is `NaN`, and `Array.from({ length: NaN })` makes ZERO pool workers - so every declared-isolated row silently never ran and the campaign reported a clean zero-row pass (the same zero-worker misfire class the CLI screen closes). `runCampaign` now throws when `opts.concurrency` is present and not a positive integer, naming the value; the default (absent) and a valid positive integer are unchanged. `test/campaigns.test.js` pins the refusal (`"abc"`/`null`/`0`/`-1`/`1.5`/`NaN`) and the valid path.
-
-## [1.3.0] - 2026-11-03
 
 ### Added
 
