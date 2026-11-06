@@ -190,3 +190,15 @@ test('the pack ladder survives a phone npm whose --dry-run --json probe is empty
   assert.ok(!out.includes('npm pack --dry-run --json failed'), 'an empty --json probe must not be read as a pack failure')
   fs.rmSync(work, { recursive: true, force: true })
 })
+
+test('the verify job waits for release (the ladder dependency that closes the cut race)', () => {
+  const wf = fs.readFileSync(path.join(ROOT, '.github/workflows/publish.yml'), 'utf8');
+  // verify judges what the registry AND GitHub serve, so it must wait for
+  // release to cut the object and attach the tarball. A bare `needs: publish`
+  // let verify race release and red-flag a cut that landed (the packstruct
+  // 1.1.0 first run: verify read the registry before it settled and the release
+  // before the asset attached).
+  const verifyJob = wf.slice(wf.indexOf('\n  verify:'));
+  assert.match(verifyJob, /needs: \[publish, release\]/, 'verify must wait for release');
+  assert.match(verifyJob, /verify-only/, 'verify still stands alone in verify-only mode');
+});
