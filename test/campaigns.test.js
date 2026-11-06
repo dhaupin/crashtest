@@ -426,6 +426,27 @@ test('issue #83: concurrency 1 (the default) never races - serial behavior is un
   assert.equal(run.rows.length, 2);
 });
 
+test('issue #83: a non-integer or sub-1 concurrency refuses at the library boundary (zero-worker hole)', async () => {
+  // The CLI screens --concurrency, but runCampaign is a public library entry
+  // (package `main`), so a caller can pass "abc"/null/1.5/0 directly. Left
+  // unguarded, `Math.min(NaN, n)` is NaN -> Array.from({length: NaN}) -> ZERO
+  // workers -> every isolated row silently never runs and the campaign reads
+  // as a clean zero-row pass. Refuse it by name instead.
+  const factory = () => buildHarness({ hit: async () => new Response('ok') });
+  const mk = (name) => ({ name, isolated: true, async run(hc) { await hc.run('hit'); return { verdict: 'REFUSED', detail: 'held' }; } });
+  const mod = { name: 'guard', description: 'd', attacks: [mk('a'), mk('b')] };
+  for (const bad of ['abc', null, 0, -1, 1.5, NaN]) {
+    await assert.rejects(
+      () => runCampaign(factory(), [{ origin: 'lib', module: mod }], { concurrency: bad, harnessFactory: factory }),
+      /concurrency wants a positive integer/,
+      `concurrency ${JSON.stringify(bad)} must refuse, not run zero workers`,
+    );
+  }
+  // The valid default and an explicit positive integer still run.
+  const ok = await runCampaign(factory(), [{ origin: 'lib', module: mod }], { concurrency: 2, harnessFactory: factory });
+  assert.equal(ok.rows.length, 2, 'a valid concurrency still runs every row');
+});
+
 test('issue #83: a module with lifecycle hooks never races (the hook state is shared)', async () => {
   const factory = () => buildHarness({ hit: async () => new Response('ok') });
   let peak = 0;
