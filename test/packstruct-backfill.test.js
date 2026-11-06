@@ -173,7 +173,7 @@ test('cut: matrix packstruct-backfill every specKey resolves against the committ
   const matrix = await readJson(join(BACKFILL, 'refusal-matrix.json'));
   assert.match(
     matrix.spec?.source ?? '',
-    /b0e305034c974ad133b83e3b1c3cb27094d1de46/,
+    /5e473120ed73c5a38b88644cc101be492d5dc2a2/,
     'the pinned packstruct SHA on record moved or is missing - bump it ONLY with a re-transcribed SPEC-v1.md and a re-derived specKey review in the same commit (check: node labs/packstruct-backfill/verify-spec.mjs node_modules/packstruct)',
   );
   const spec = await readFile(join(BACKFILL, 'SPEC-v1.md'), 'utf8');

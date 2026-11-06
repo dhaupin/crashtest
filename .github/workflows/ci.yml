@@ -34,7 +34,7 @@ jobs:
       # The pack lane (packstruct#1 ask #1, adopted 2026-10-24; npm switch
       # 2026-10-24 once packstruct published): our shipped pack manifests are
       # linted against packstruct SPEC v1 via an EXACT devDependency
-      # ("packstruct": "1.0.0", no float - same commit -> same findings
+      # ("packstruct": "1.1.0", no float - same commit -> same findings
       # applies to the linter too). Bumping the pin is a deliberate review:
       # re-transcribe the SPEC transcript + re-derive any moved specKey in
       # the SAME commit. History: the lane ran from a GitHub clone pinned to

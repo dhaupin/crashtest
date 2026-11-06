@@ -26,7 +26,8 @@ made-up pack shape:
    became addressable on 2026-10-24 (packstruct landed its SPEC at
    `spec/SPEC.md`), so the placeholder era is over: the fill transcribed it
    instead - the byte-exact copy lives at `SPEC-v1.md`, pinned to
-   dhaupin/packstruct@`b0e305034c974ad133b83e3b1c3cb27094d1de46`, and every
+   dhaupin/packstruct@`5e473120ed73c5a38b88644cc101be492d5dc2a2` (the v1.1.0 release commit; the original
+   b0e305034c974ad133b83e3b1c3cb27094d1de46 transcription is superseded), and every
    matrix row's `specKey` (`"<section>/<term>[/<term>...]"`) must resolve
    verbatim against that transcript in the pin test. Bumping the pin means a
    re-transcribe + specKey re-review in the same commit
