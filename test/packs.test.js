@@ -129,6 +129,24 @@ test('loadPacks: the DEFAULT stays strict - profile-minimal entry refuses so the
   await assert.rejects(() => loadPacks([pk]), /invalid scenario module .*needs a one-line description/);
 });
 
+test('loadPacks: the ROOT-SCAN path forwards validateProfile too - a root-shaped load honors the host profile (issue #33 follow-up)', async () => {
+  // The one-pack-dir path forwarded validateProfile, but the packs-ROOT scan
+  // (the shape packstruct's audit-conformance materializes: a bundle dir
+  // carrying public/<name>/) dropped it, so a root-shaped
+  // loadPacks([root], ..., { validateProfile: false }) still applied the
+  // strict scenario contract and refused the profile-minimal clean fixture.
+  // Pin BOTH directions over the root shape so the call site can't regress.
+  const root = await mkdtemp(join(tmpdir(), 'packs-root-profile-'));
+  await mkPack(root, 'public', 'clean-pack', { ...GOOD_MANIFEST, name: 'clean-pack' }, "export default { name: 'clean-pack' };\n");
+  const packs = await loadPacks([root], new Map(), null, { validateProfile: false });
+  assert.equal(packs.length, 1);
+  assert.equal(packs[0].manifest.name, 'clean-pack', 'the manifest contract stays fully enforced through the ROOT scan');
+  assert.equal(packs[0].module.name, 'clean-pack', 'the host-owned entry shape surfaces as-is through the ROOT scan too');
+  // and the strict default still bites on the same root shape
+  await assert.rejects(() => loadPacks([root]), /invalid scenario module .*needs a one-line description/);
+});
+
+
 // --- the packs-root/visibility-dir footgun guard (packstruct#13's family shape) ------------
 
 test('loadPacks: a declared ROOT named public/ or local/ refuses LOUDLY naming the packs-root fix (the silent zero-pack typo is closed)', async () => {
