@@ -162,24 +162,26 @@ jobs:
           # durable when publish returns, not yet visible on every edge. The
           # crashtest 1.2.0 cut failed on exactly that - a single `npm pack`
           # right after publish read `ETARGET: no matching version`.
-          for i in $(seq 1 24); do
+          for i in $(seq 1 60); do
             if npm pack "crashtest@$BLOCK_VERSION" --pack-destination "$RUNNER_TEMP" > /dev/null 2>&1; then
               break
             fi
-            if [ "$i" = "24" ]; then
-              echo "the registry never served crashtest@$BLOCK_VERSION for the pack (24 attempts)"; exit 1
+            if [ "$i" = "60" ]; then
+              echo "the registry never served crashtest@$BLOCK_VERSION for the pack (60 attempts)"; exit 1
             fi
-            echo "waiting for crashtest@$BLOCK_VERSION on the registry (attempt $i/24)"
+            echo "waiting for crashtest@$BLOCK_VERSION on the registry (attempt $i/60)"
             sleep 5
           done
           gh release upload "$BLOCK_TAG" "$RUNNER_TEMP/crashtest-$BLOCK_VERSION.tgz" --clobber
 
-  # No `needs` on release here by design under the if: the verify leg runs
-  # after release on a real cut, but ALSO stands alone in verify-only mode
+  # The verify leg judges what the registry and GitHub actually serve, so it
+  # must wait for release to cut the object and attach the tarball - a bare
+  # `needs: publish` let verify race release and red-flag a cut that landed
+  # (the packstruct 1.1.0 first run). It ALSO stands alone in verify-only mode
   # (publish skipped, release skipped, the ladder judged against what is
   # already served and released).
   verify:
-    needs: publish
+    needs: [publish, release]
     if: >-
       always() &&
       (needs.publish.result == 'success' ||
