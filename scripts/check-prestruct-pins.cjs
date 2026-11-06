@@ -24,9 +24,10 @@ const ROOT = path.join(__dirname, '..');
 const OVERRIDE = Boolean(process.argv[2]);
 const REPO = OVERRIDE ? path.resolve(process.argv[2]) : ROOT;
 
-// The family prestruct floor: prestruct >= 1.2.0 - the release that closes the
-// 404 head (#33/#42) and the react-router-7 prerender seam (#68).
-const FLOOR = { major: 1, minor: 2 };
+// The family prestruct floor: prestruct >= 1.3.0 - the release that closes the
+// 404 head (#33/#42), the react-router-7 prerender seam (#68), and the SSRF
+// guard on the opt-in external audit lane.
+const FLOOR = { major: 1, minor: 3 };
 const FLOOR_LABEL = `^${FLOOR.major}.${FLOOR.minor}.0`;
 
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', '.prestruct', '.bundle', 'vendor']);
@@ -88,7 +89,7 @@ for (const pkgPath of walk(REPO)) {
   const minor = Number(m[3]);
   if (major < FLOOR.major || (major === FLOOR.major && minor < FLOOR.minor)) {
     problems.push(
-      `${rel}: prestruct "${spec}" is below the family floor ${FLOOR_LABEL} (the fixes it needs landed in 1.2.0)`,
+      `${rel}: prestruct "${spec}" is below the family floor ${FLOOR_LABEL} (the fixes it needs landed in 1.3.0)`,
     );
   }
 

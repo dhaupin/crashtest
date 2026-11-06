@@ -8,6 +8,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/) - sections head `## [ver
 
 ### Changed
 
+- **The family prestruct floor moves to `^1.3.0`.** `scripts/check-prestruct-pins.cjs` now refuses any declaration below 1.3.0 (the SSRF-guard security round), so every `prestruct` declaration and web lockfile moved with it; the guard's own battery gains the inverse case - the old `^1.2.0` floor now fails.
 - **The packstruct pin advances to 1.1.0, and the SPEC v1 transcript re-cuts with it.** The exact devDependency moves `1.0.0 -> 1.1.0` and `labs/packstruct-backfill/SPEC-v1.md` is re-transcribed byte-exact from the v1.1.0 release commit `5e473120ed73c5a38b88644cc101be492d5dc2a2` (the npm package's own `spec/SPEC.md`; the original `b0e305034c974ad133b83e3b1c3cb27094d1de46` transcription is superseded). The v1.1.0 SPEC adds the additive rows, the walk-exit rule, the onboarding section, and the MIGRATION-NOTE convention (§8-§11); every existing `specKey` stays `§2/...` and resolves verbatim against the new text, so no matrix row moved. `refusal-matrix.json`'s provenance SHA, the backfill README, the README pin line, the CI comment, and the pin test's SHA assert all move in the same commit; `verify-spec.mjs` confirms the transcript is byte-equal to the installed `spec/SPEC.md`.
 
 ## [1.3.0] - 2026-11-03
