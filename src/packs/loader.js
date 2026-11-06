@@ -377,7 +377,7 @@ export async function loadPacks(packsRoots = [], seen = new Map(), check = null,
       }
       const visibility = basename(dir);
       for (const ent of entries.filter((e) => e.isDirectory())) {
-        await loadPackDir(join(dir, ent.name), ent.name, visibility, seen, out, check);
+        await loadPackDir(join(dir, ent.name), ent.name, visibility, seen, out, check, validateProfile);
       }
     }
   }
