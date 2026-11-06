@@ -6,6 +6,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/) - sections head `## [ver
 
 ## [Unreleased]
 
+### Fixed
+
+- **The packs-ROOT scan now forwards `validateProfile`, so a root-shaped host load honors the profile (issue #33 follow-up).** `loadPacks(roots, seen, check, { validateProfile: false })` deferred the scenario-shape check on the one-pack-dir path but the packs-ROOT scan (`<root>/public/<name>/`) still called `loadPackDir` without the flag, so a root-shaped load - the exact shape packstruct's `audit-conformance` materializes into scratch roots - fell back to the strict scenario contract and refused a profile-minimal (manifest-conformant, entry-importable) fixture. The two call sites now agree; the manifest contract stays fully enforced on both paths, and the strict default is unchanged. `test/packs.test.js` pins both directions over the root shape (deferred load accepts the SPEC section 7 clean fixture; the default still refuses it). vant's `audit-host-loader.js` enumerates pack dirs only as a workaround for this gap - the pass that consumes this cut can call the root shape directly.
+
 ### Changed
 
 - **The family prestruct floor moves to `^1.3.0`.** `scripts/check-prestruct-pins.cjs` now refuses any declaration below 1.3.0 (the SSRF-guard security round), so every `prestruct` declaration and web lockfile moved with it; the guard's own battery gains the inverse case - the old `^1.2.0` floor now fails.
