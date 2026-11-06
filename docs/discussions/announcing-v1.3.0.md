@@ -30,6 +30,8 @@ npm i -g crashtest
 
 The docs lane folded into the family's one reusable workflow (this repo is a thin caller of it), the docs-lane pin moved `freestruct@1.1.0` -> `1.2.0` to clear the basePath false positives, `action.yml` pinned its actions and dropped a duplicate key, and every GitHub Action ref is a 40-hex commit SHA (pins, never floats).
 
+**The release ladder's `verify` job now waits for `release`.** `verify` declares `needs: [publish, release]`, closing a race where a bare `needs: publish` ran it CONCURRENTLY with `release`: on a fresh cut the registry read replicas had not settled and the tarball was not yet attached, so a publish that in fact succeeded failed red and needed a manual re-run (first seen on the packstruct 1.1.0 cut). The release-attach poll widened 120s -> 300s and the registry poll 120s -> 360s, and `test/release-verify.test.js` pins the dependency so a regression fails by name.
+
 ## Links
 
 - Repo and docs: https://github.com/dhaupin/crashtest / https://docs.creadev.org/crashtest
