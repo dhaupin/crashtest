@@ -35,7 +35,7 @@
     "node": ">=18.17"
   },
   "devDependencies": {
-    "packstruct": "1.0.0"
+    "packstruct": "1.1.0"
   },
   "scripts": {
     "prepublishOnly": "npm test && npm run check",
