@@ -12,6 +12,7 @@ import { buildHarness } from './harness/harness.js';
 import { registerAdapters } from './adapters/index.js';
 import { loadScenarios } from './scenarios/loader.js';
 import { loadPacks, applyPackSeed, renderEnvClaims, renderPrerequisite } from './packs/loader.js';
+import { normalizeTokens, parsePackignore } from './packs/relevance.js';
 import { loadPlugins, configDir } from './plugins/loader.js';
 import { runCampaign } from './campaigns/runner.js';
 import { buildLedger, diffAgainstBaseline, exitCode, renderMarkdown } from './report.js';
@@ -157,6 +158,22 @@ function repoRoot() {
 
 async function exists(path) {
   try { await access(path); return true; } catch { return false; }
+}
+
+/**
+ * Resolve the ignore mechanism for a target: what the target PROVIDES (config
+ * `provides`) and what to IGNORE (config `ignore`, plus any `.packignore` file
+ * in the run root). Returns { provides, ignore, skipped } - `skipped` is the
+ * array loadPacks fills with the honest per-pack skip records.
+ */
+async function packRelevance(target, root) {
+  const provides = normalizeTokens(target?.provides, 'provides');
+  const ignore = [...normalizeTokens(target?.ignore, 'ignore')];
+  const ignoreFile = join(root, '.packignore');
+  if (await exists(ignoreFile)) {
+    ignore.push(...parsePackignore(await readFile(ignoreFile, 'utf8')));
+  }
+  return { provides, ignore, skipped: [] };
 }
 
 const EMPTY_LEDGER = () => ({
@@ -460,11 +477,19 @@ async function cmdRun(opts = {}) {
   const packsOpt = target.packs ?? true;
   let packScenarios = [];
   let loadedPacks = [];
+  let packSkips = [];
   if (packsOpt !== false) {
     const packRoots = Array.isArray(packsOpt) ? packsOpt : [join(root, 'packs')];
     // env claims (issue #12): packs load with the built harness surface, so
     // every pack carries its UNMET prerequisites (empty = all satisfied).
-    loadedPacks = await loadPacks(packRoots, new Map(), { env: harness.env, routeNames: harness.listRoutes() });
+    // Ignore mechanism: packs whose `requires` the target does not provide, or
+    // that are named in `ignore`/`.packignore`, are skipped before import.
+    const rel = await packRelevance(target, root);
+    loadedPacks = await loadPacks(packRoots, new Map(), { env: harness.env, routeNames: harness.listRoutes() }, rel);
+    packSkips = rel.skipped;
+    for (const s of packSkips) {
+      console.log(`packs: skipped ${s.manifest.name} (${s.skipped.reason}) - ${s.skipped.detail}`);
+    }
     packScenarios = loadedPacks.map((p) => ({ origin: p.origin, module: p.module }));
     // Bundled plugin imports (pack.json "plugins"): the unified surface - a
     // pack ships BOTH its own entry module and imported scenario modules,
@@ -511,11 +536,14 @@ async function cmdRun(opts = {}) {
   // filters, same arming rules as the real run; NO harness, NO requests,
   // nothing written. Exit 0 always (informational, not a gate).
   if (opts.modulePlan) {
-    const plan = buildModulePlan(target, loadedPacks, allScenarios);
+    const plan = buildModulePlan(target, loadedPacks, allScenarios, packSkips);
     for (const m of plan.modules) {
       const mark = { 'WILL-FIRE': '▶', 'NEEDS-ARMING': '⚑', 'SKIPPED-FILTER': '-' }[m.status] ?? '?';
       console.log(`${mark} ${m.name} [${m.source}${m.version ? ` @${m.version}` : ''}] ${m.attacks.length} attack(s) - ${m.status}${m.reason ? `: ${m.reason}` : ''}`);
       for (const a of m.attacks) console.log(`    ${a.id} - ${a.status}`);
+    }
+    for (const s of plan.skipped ?? []) {
+      console.log(`- ${s.name} [${s.origin}] SKIPPED (${s.reason}) - ${s.detail}`);
     }
     for (const p of plan.packs) {
       if (p.prerequisites?.length) {
@@ -771,13 +799,21 @@ async function cmdPacks(opts = {}) {
   // exactly like a run would build it (no requests fire) - so `packs`
   // shows the same satisfied/unmet verdicts the attack will see.
   let check = null;
+  let rel = { provides: [], ignore: [], skipped: [] };
   if (target) {
     const harness = await buildTargetHarness(target);
     check = { env: harness.env, routeNames: harness.listRoutes() };
+    rel = await packRelevance(target, root);
   }
-  const packs = await loadPacks(roots, new Map(), check);
+  const packs = await loadPacks(roots, new Map(), check, rel);
+  for (const s of rel.skipped) {
+    console.log(`skipped - ${s.manifest.name}: ${s.skipped.reason} (${s.skipped.detail})`);
+  }
   if (!packs.length) {
-    console.log('packs: none found - `crashtest init` scaffolds packs/public/ (tracked) + packs/local/ (gitignored)');
+    if (!rel.skipped.length) {
+      console.log('packs: none found - `crashtest init` scaffolds packs/public/ (tracked) + packs/local/ (gitignored)');
+    }
+    if (opts.json) console.log(JSON.stringify({ packs: [], skipped: rel.skipped.map((s) => ({ name: s.manifest.name, origin: s.origin, reason: s.skipped.reason, detail: s.skipped.detail })) }));
     return;
   }
   for (const p of packs) {
@@ -805,9 +841,11 @@ async function cmdPacks(opts = {}) {
         attacks: p.module.attacks.length,
         armedByKey: p.manifest.armedByKey ?? null,
         env: p.manifest.env ?? null,
+        requires: p.manifest.requires ?? null,
         prerequisites: p.prerequisites ?? null,
         description: p.manifest.description,
       })),
+      skipped: rel.skipped.map((s) => ({ name: s.manifest.name, origin: s.origin, reason: s.skipped.reason, detail: s.skipped.detail })),
     }));
   }
 }

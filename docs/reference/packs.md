@@ -30,11 +30,45 @@ A **pack** is a bundle you author once and reuse across run roots: scenario modu
   "description": "one line - what it attacks and how honest its oracles are",
   "version": "0.1.0",
   "entry": "index.js",
-  "plugins": ["./bundled-canary.js", "some-npm-shape-pack"]
+  "plugins": ["./bundled-canary.js", "some-npm-shape-pack"],
+  "requires": ["wordpress"]
 }
 ```
 
 `entry` points at an ESM file under the pack directory whose default export is a scenario module (`{ name, description, attacks: [{ name, run }] }`). The scenario shape is crashtest's own profile and `loadPacks()` enforces it by default. Host faces that carry OTHER entry profiles (the packstruct SPEC section 7 clean case - a manifest-conformant, entry-importable minimal pack of any profile) can defer just the shape check with `loadPacks(roots, seen, check, { validateProfile: false })`: the manifest contract (schemaVersion/name/description/entry) stays fully enforced, only the scenario-shape validation moves to the host's own run-time check. The CLI's `run` and `packs` surfaces keep the strict default - byte-identical behavior, never silently weaker.
+
+### `requires` - the ignore mechanism (relevance, not a deny-list)
+
+A pack that only makes sense against a particular kind of target (a WordPress install, a Next.js app, a Vite dev server) can declare that as **capability tokens**:
+
+```json
+{ "name": "wp-roles", "requires": ["wordpress"] }
+```
+
+A run root declares what its target **provides**:
+
+```js
+// crashtest.config.js
+export default { provides: ['node', 'cloudflare-pages'], /* ... */ };
+```
+
+The loader then skips any pack whose `requires` the target does not provide - **before import**, so the pack costs the run nothing. This is the honest inverse of a deny-list: a deny-list fails *open* (a newly-shipped pack runs everywhere until someone remembers to deny it), while `requires` fails *closed* (a pack that names a capability the target lacks skips itself, forever, with no per-app upkeep). Requires-filtering engages only once the run root declares a non-empty `provides`; a run root that declares nothing is unchanged. Every shipped target-specific pack already carries its token: `wp-*` needs `wordpress`, `next-middleware-shapes` needs `next`, `vite-dev-shapes` needs `vite`, `qs-shapes` needs `qs`.
+
+### The escape hatch - `ignore` and `.packignore`
+
+Relevance answers "can this target serve it?" The escape hatch answers the rarer "my target *could*, but I do not want it here" (dev noise, a slow hobbyist run):
+
+```js
+// crashtest.config.js - inline
+export default { ignore: ['wp-*', 'next-middleware-shapes'], /* ... */ };
+```
+
+```text
+# .packignore (run root) - one token per line, # comments, * globs
+wp-*
+next-middleware-shapes
+```
+Tokens match a pack's name or its origin (`public/<name>` / `local/<name>`), with `*` as the only metacharacter. `ignore` wins over relevance: an explicit "not here" is never overridden by "the target could serve it". A skipped pack is always named (`packs: skipped wp-roles (unmet-requires) - requires wordpress - target provides node`) and rides `packs --json` and `run --module-plan` as a `skipped` row - a skip is never a silent green.
 
 ## Spec lint (`crashtest lint-packs`)
 
@@ -165,6 +199,12 @@ export default {
   // packs: false,   // opt out entirely (the dogfood does: shipped packs
   //                 //   which need their own worker must not join the demo)
   // packs: ['/abs/path', 'node_modules/@you/crashtest-pack'],
+
+  // The ignore mechanism (relevance + escape hatch):
+  provides: ['node', 'cloudflare-pages'],  // what THIS target is; packs whose
+  //                                        //   `requires` is unmet skip
+  ignore: ['wp-*'],                        // explicit "not here" (wins over
+  //                                        //   relevance); also a .packignore file
 };
 ```
 

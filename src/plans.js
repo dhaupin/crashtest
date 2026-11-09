@@ -38,7 +38,7 @@ function statusFor({ name, armedKey }, { filter, moduleCtx }) {
  * @param {Array<{ origin, visibility, manifest: object, module: object }>} packs loadPacks() output
  * @param {Array<{ origin, module }>} scenarios the merged, sorted scenario list cmdRun attacks
  */
-export function buildModulePlan(target, packs = [], scenarios = []) {
+export function buildModulePlan(target, packs = [], scenarios = [], skipped = []) {
   const filter = Array.isArray(target?.modules) ? new Set(target.modules) : null;
   const moduleCtx = (typeof target?.moduleCtx === 'object' && target.moduleCtx !== null) ? target.moduleCtx : {};
   // Pack resolution: keyed by PACK ORIGIN first (a pack-loaded scenario's
@@ -99,6 +99,15 @@ export function buildModulePlan(target, packs = [], scenarios = []) {
       // Issue #12: unmet env claims ride the plan (empty = satisfied or no
       // claims). Display only - attack-level skip verdicts stay ground truth.
       prerequisites: p.prerequisites ?? [],
+    })),
+    // Ignore mechanism: packs relevance skipped (unmet `requires` or `ignore`)
+    // ride the plan so a dry-run shows what a real run would NOT carry.
+    skipped: skipped.map((s) => ({
+      name: s.manifest.name,
+      origin: s.origin,
+      visibility: s.visibility,
+      reason: s.skipped.reason,
+      detail: s.skipped.detail,
     })),
     totals: {
       attacks: attackRows.length,
