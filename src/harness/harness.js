@@ -147,6 +147,17 @@ export class Harness {
     return [...this._log];
   }
 
+  /**
+   * Count of served requests, without copying the log. The runner reads this
+   * twice per row for its `requests` accounting; `log().length` copies the
+   * WHOLE log each time, so a campaign of R rows against a harness that served
+   * Q requests paid O(R x Q) allocations - the quadratic that turns thousands
+   * of checks into a bogged CI. Same number, O(1).
+   */
+  logCount() {
+    return this._log.length;
+  }
+
   /** Absolute cost totals across the whole run (campaign-level accounting). */
   costTotals() {
     return this._counter.snapshot();

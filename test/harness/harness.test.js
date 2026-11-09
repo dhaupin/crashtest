@@ -243,3 +243,19 @@ test('env: a name declared as BOTH var and secret is a config bug, not a silent 
     /one name, one owner/,
   );
 });
+
+test('log: logCount() equals log().length without copying the log (the O(1) scaling accessor)', async () => {
+  const h = buildHarness(makeRoutes(), { env: envSpec });
+  assert.equal(h.logCount(), 0, 'fresh harness served nothing');
+  await h.run('whoami', { url: '/whoami?key=seed' });
+  await h.run('whoami', { url: '/whoami?key=seed' });
+  const served = h.log().length;
+  assert.equal(h.logCount(), served, 'logCount tracks log().length');
+  // The point: log() returns a COPY (a row that mutated it must not corrupt
+  // the harness), while logCount() is a plain length read - so the runner's
+  // twice-per-row request accounting stays O(1) instead of O(rows x log).
+  const copy = h.log();
+  copy.push({ fake: true });
+  assert.equal(h.log().length, served, 'log() hands back a copy, not the live array');
+  assert.equal(h.logCount(), served, 'logCount is unaffected by a mutated copy');
+});
