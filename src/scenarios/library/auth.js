@@ -73,9 +73,15 @@ export default {
     },
   }, {
     name: 'secret-watermark',
+    fanout: true,
     description: 'Fake secrets planted in env must never surface in any response (errors included)',
     async run(harness, ctx = {}) {
-      const routes = ctx.routes ?? harness.listRoutes();
+      let routes = ctx.routes ?? harness.listRoutes();
+      // Sharded run (issue #99): sweep only the routes this shard owns, so N
+      // processes together probe every route exactly once.
+      if (ctx.shard && ctx.shard.count > 1) {
+        routes = routes.filter((_, i) => i % ctx.shard.count === ctx.shard.index);
+      }
       const watermarks = ctx.watermarks ?? [
         harness.env.CRASHTEST_SECRET,
         harness.env.STRIPE_SECRET,
