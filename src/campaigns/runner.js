@@ -313,7 +313,7 @@ function normalizeNeeds(needs) {
  */
 async function runOne(attack, module, opts, { harness, campaignSeed, moduleCtx, vars, objects, timing, shard, position }) {
   const id = `${module.name}/${attack.name}`;
-  const rowsBefore = harness.log().length;
+  const rowsBefore = harness.logCount();
   const costBefore = harness.costTotals();
   const startedAt = timing ? performance.now() : 0;
   let findResult;
@@ -401,7 +401,7 @@ async function runOne(attack, module, opts, { harness, campaignSeed, moduleCtx, 
     // hand-instrumenting the driver. It drops from JSON when a row moved
     // nothing.
     costDelta: delta(harness.costTotals(), costBefore),
-    requests: harness.log().length - rowsBefore,
+    requests: harness.logCount() - rowsBefore,
     // Boot declarations (issue #83): `needs` (what state the row touches) and
     // `isolated` (safe to race). Both drop from JSON when absent, so rows that
     // declare nothing keep byte-stable records.
