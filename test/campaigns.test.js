@@ -486,3 +486,201 @@ test('issue #83: opts.timing adds per-row durationMs (accounting info, never a v
   assert.ok(run.rows[0].durationMs >= 0);
 });
 
+// ---------- issue #99: deterministic row sharding ----------
+
+/** A module of N trivial rows, each carrying its own id in the detail. */
+function shardModule(name, n) {
+  return {
+    name,
+    description: 'd',
+    attacks: Array.from({ length: n }, (_, i) => ({
+      name: `row-${i}`,
+      async run(hc) { await hc.run('hit'); return { verdict: 'REFUSED', detail: `held-${i}` }; },
+    })),
+  };
+}
+
+test('issue #99: N shards partition the rows exactly once, in original order', async () => {
+  const factory = () => buildHarness({ hit: async () => new Response('ok') });
+  const mod = shardModule('sharded', 11); // 11 rows / 4 shards -> uneven, still exact
+  const whole = await runCampaign(factory(), [{ origin: 'lib', module: mod }]);
+  const union = [];
+  for (let i = 0; i < 4; i++) {
+    const run = await runCampaign(factory(), [{ origin: 'lib', module: mod }], { shard: { index: i, count: 4 } });
+    union.push(...run.rows.map((r) => r.id));
+  }
+  const wholeIds = whole.rows.map((r) => r.id);
+  assert.equal(union.length, wholeIds.length, 'the shards carry exactly the whole run\'s rows');
+  assert.deepEqual(union.slice().sort(), wholeIds.slice().sort(), 'every row lands in exactly one shard');
+  // Position % count == index: shard i owns positions i, i+count, ... - and
+  // each shard preserves original row order among the rows it owns.
+  for (let i = 0; i < 4; i++) {
+    const run = await runCampaign(factory(), [{ origin: 'lib', module: mod }], { shard: { index: i, count: 4 } });
+    const expected = wholeIds.filter((_, pos) => pos % 4 === i);
+    assert.deepEqual(run.rows.map((r) => r.id), expected, `shard ${i}/4 carries its positional slice`);
+  }
+});
+
+test('issue #99: a sharded run yields the SAME verdicts as the whole run (union is the run)', async () => {
+  const factory = () => buildHarness({ hit: async () => new Response('ok'), miss: async () => new Response('no', { status: 403 }) });
+  const mod = {
+    name: 'mixed',
+    description: 'd',
+    attacks: Array.from({ length: 7 }, (_, i) => ({
+      name: `row-${i}`,
+      async run(hc) { await hc.run(i % 2 ? 'miss' : 'hit'); return { verdict: i === 3 ? 'EXPLOITED' : 'REFUSED', detail: 'x' }; },
+    })),
+  };
+  const whole = new Map((await runCampaign(factory(), [{ origin: 'lib', module: mod }])).rows.map((r) => [r.id, r.verdict]));
+  const union = new Map();
+  for (let i = 0; i < 3; i++) {
+    for (const r of (await runCampaign(factory(), [{ origin: 'lib', module: mod }], { shard: { index: i, count: 3 } })).rows) union.set(r.id, r.verdict);
+  }
+  assert.deepEqual([...union.entries()].sort(), [...whole.entries()].sort(), 'per-row verdicts are identical across shards');
+});
+
+test('issue #99: shard 0/1 (count 1) is the whole run - byte-identical to no shard', async () => {
+  const factory = () => buildHarness({ hit: async () => new Response('ok') });
+  const mod = shardModule('one', 5);
+  const plain = await runCampaign(factory(), [{ origin: 'lib', module: mod }]);
+  const shard1 = await runCampaign(factory(), [{ origin: 'lib', module: mod }], { shard: { index: 0, count: 1 } });
+  assert.deepEqual(shard1.rows.map((r) => r.id), plain.rows.map((r) => r.id));
+  assert.deepEqual(shard1.tally, plain.tally);
+});
+
+test('issue #99: a malformed shard descriptor refuses at the library boundary', async () => {
+  // Same misfire class as the concurrency guard: a float count, a sub-1
+  // count, or an out-of-range index silently runs a wrong/empty row subset
+  // and reads as a clean pass. runCampaign is a public entry - refuse by name.
+  const factory = () => buildHarness({ hit: async () => new Response('ok') });
+  const mod = shardModule('guard', 4);
+  for (const bad of [
+    { index: 0, count: 0 }, { index: 0, count: -1 }, { index: 0, count: 1.5 },
+    { index: 4, count: 4 }, { index: -1, count: 4 }, { index: 0.5, count: 4 },
+    { index: 0, count: 'abc' }, { index: 0 },
+  ]) {
+    await assert.rejects(
+      () => runCampaign(factory(), [{ origin: 'lib', module: mod }], { shard: bad }),
+      /shard/,
+      `shard ${JSON.stringify(bad)} must refuse, not run a wrong/empty subset`,
+    );
+  }
+  // A valid shard still runs.
+  const ok = await runCampaign(factory(), [{ origin: 'lib', module: mod }], { shard: { index: 1, count: 2 } });
+  assert.equal(ok.rows.length, 2, 'a valid shard runs its slice');
+});
+
+test('issue #99: a sharded run refuses a module with lifecycle hooks (cross-row state)', async () => {
+  const factory = () => buildHarness({ hit: async () => new Response('ok') });
+  const mod = { name: 'hooked', description: 'd', beforeAll: async () => {}, attacks: shardModule('hooked', 3).attacks };
+  await assert.rejects(
+    () => runCampaign(factory(), [{ origin: 'lib', module: mod }], { shard: { index: 0, count: 2 } }),
+    /lifecycle hook/,
+  );
+  // Unsharded, the same module runs fine (today's behavior).
+  const run = await runCampaign(factory(), [{ origin: 'lib', module: mod }]);
+  assert.equal(run.rows.length, 3);
+});
+
+test('issue #99: a sharded run refuses a row that touches campaign vars/objects', async () => {
+  const factory = () => buildHarness({ hit: async () => new Response('ok') });
+  const mod = { name: 'stateful', description: 'd', attacks: [
+    { name: 'writes', async run(hc, ctx) { ctx.vars.set('k', 1, 'writes'); await hc.run('hit'); return { verdict: 'REFUSED', detail: 'held' }; } },
+    { name: 'reads', async run(hc, ctx) { await hc.run('hit'); return { verdict: 'REFUSED', detail: String(ctx.vars.get('k') ?? '') }; } },
+  ] };
+  await assert.rejects(
+    () => runCampaign(factory(), [{ origin: 'lib', module: mod }], { shard: { index: 0, count: 2 } }),
+    /vars\/objects/,
+  );
+  // Unsharded, the vars hand-off works (cross-row state intact).
+  const run = await runCampaign(factory(), [{ origin: 'lib', module: mod }]);
+  assert.equal(run.rows.find((r) => r.attack === 'reads').detail, '1');
+});
+
+test('issue #99: ctx.shard is exposed to a fanout row only when sharded', async () => {
+  const factory = () => buildHarness({ hit: async () => new Response('ok') });
+  const seen = [];
+  const mod = { name: 'probe', description: 'd', attacks: [
+    { name: 'row', fanout: true, async run(hc, ctx) { seen.push(ctx.shard); await hc.run('hit'); return { verdict: 'REFUSED', detail: 'held' }; } },
+  ] };
+  await runCampaign(factory(), [{ origin: 'lib', module: mod }]);
+  await runCampaign(factory(), [{ origin: 'lib', module: mod }], { shard: { index: 0, count: 3 } });
+  assert.equal(seen[0], undefined, 'an unsharded run exposes no ctx.shard');
+  assert.deepEqual(seen[1], { index: 0, count: 3 }, 'a sharded run exposes the descriptor');
+});
+
+test('issue #99: a NON-fanout row never sees ctx.shard (no silent coverage loss)', async () => {
+  // A normal row runs in exactly one shard, so handing it a ctx.shard would
+  // invite it to narrow its work to one slice - silent coverage loss. Only a
+  // row that declares `fanout: true` (its work IS a partitionable sweep) sees
+  // the descriptor.
+  const factory = () => buildHarness({ hit: async () => new Response('ok') });
+  const seen = [];
+  const mod = { name: 'probe', description: 'd', attacks: [
+    { name: 'row', async run(hc, ctx) { seen.push(ctx.shard); await hc.run('hit'); return { verdict: 'REFUSED', detail: 'held' }; } },
+  ] };
+  await runCampaign(factory(), [{ origin: 'lib', module: mod }], { shard: { index: 0, count: 1 } });
+  assert.equal(seen[0], undefined, 'a non-fanout row sees no ctx.shard even when sharded');
+});
+
+test('issue #99: a fanout sweep row runs in EVERY shard and keeps full coverage', async () => {
+  // The flood row sweeps every declared route. As a fanout row it runs in
+  // every shard, each sweeping its own slice, so the union of slices is the
+  // whole route set (no coverage loss) while the wall divides by N.
+  const factory = () => buildHarness({ hit: async () => new Response('ok') });
+  const seenScopes = [];
+  const mod = { name: 'sweep', description: 'd', attacks: [
+    { name: 'row', fanout: true, async run(hc, ctx) {
+      const all = hc.listRoutes();
+      const scope = ctx.shard ? all.filter((_, i) => i % ctx.shard.count === ctx.shard.index) : all;
+      seenScopes.push(scope);
+      await hc.run('hit');
+      return { verdict: 'REFUSED', detail: `swept ${scope.length}` };
+    } },
+  ] };
+  const routes = Object.fromEntries(Array.from({ length: 6 }, (_, i) => [`r${i}`, async () => new Response('ok')]));
+  const whole = await runCampaign(buildHarness(routes), [{ origin: 'lib', module: mod }]);
+  assert.equal(seenScopes[0].length, 6, 'unsharded: the fanout row sweeps all 6 routes');
+  seenScopes.length = 0;
+  const union = [];
+  for (let i = 0; i < 3; i++) {
+    await runCampaign(buildHarness(routes), [{ origin: 'lib', module: mod }], { shard: { index: i, count: 3 } });
+    union.push(...seenScopes.at(-1));
+  }
+  assert.deepEqual(union.slice().sort(), ['r0', 'r1', 'r2', 'r3', 'r4', 'r5'], 'the shards together sweep every route exactly once');
+  assert.equal(whole.rows.length, 1);
+});
+
+test('issue #99: a fanout row is EXPLOITED if ANY shard slice faults (merge by worst verdict)', async () => {
+  // Each shard returns a partial verdict; the union must be EXPLOITED if any
+  // slice found a fault, exactly as the unsharded row would. This is the
+  // merge rule a caller applies: worst verdict per position.
+  const routes = Object.fromEntries(Array.from({ length: 4 }, (_, i) => [`r${i}`, async () => new Response('ok')]));
+  // r2 faults: a handler that throws, so the flood-style row grades EXPLOITED
+  // only in the shard that owns r2.
+  routes.r2 = async () => { throw new Error('boom'); };
+  const factory = () => buildHarness(routes);
+  const mod = { name: 'sweep', description: 'd', attacks: [
+    { name: 'row', fanout: true, async run(hc, ctx) {
+      const all = hc.listRoutes();
+      const scope = ctx.shard ? all.filter((_, i) => i % ctx.shard.count === ctx.shard.index) : all;
+      for (const r of scope) {
+        const rec = await hc.run(r);
+        if (rec.threw) return { verdict: 'EXPLOITED', detail: `fault on ${r}` };
+      }
+      return { verdict: 'REFUSED', detail: `held ${scope.length}` };
+    } },
+  ] };
+  const whole = await runCampaign(factory(), [{ origin: 'lib', module: mod }]);
+  assert.equal(whole.rows[0].verdict, 'EXPLOITED', 'unsharded: the fault is found');
+  const shardVerdicts = [];
+  for (let i = 0; i < 4; i++) {
+    const run = await runCampaign(factory(), [{ origin: 'lib', module: mod }], { shard: { index: i, count: 4 } });
+    shardVerdicts.push(run.rows[0].verdict);
+  }
+  assert.ok(shardVerdicts.includes('EXPLOITED'), 'the slice owning the fault grades EXPLOITED');
+  assert.ok(shardVerdicts.includes('REFUSED'), 'a clean slice grades REFUSED (its record is partial)');
+  // Worst-verdict merge == the unsharded verdict.
+  assert.equal(shardVerdicts.includes('EXPLOITED') ? 'EXPLOITED' : 'REFUSED', whole.rows[0].verdict);
+});
+

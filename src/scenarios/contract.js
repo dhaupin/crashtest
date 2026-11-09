@@ -72,16 +72,22 @@ export function validateScenario(mod, origin = 'unknown') {
 }
 
 /**
- * Validate the per-row boot-declaration attributes (issue #83):
+ * Validate the per-row boot-declaration attributes (issue #83) and the shard
+ * attribute (issue #99):
  *   - `needs`: the env bindings / KV / D1 arms / doors a row touches, so a run
  *     root can arm state lazily instead of paying boot cost for state the row
  *     never reads. A list of kebab-case names, or a single name.
  *   - `isolated`: the row declares it holds no cross-row state (the run root
  *     resets chains between rows already), so a run root MAY race it N-wide.
  *     Default false - a row is assumed order-dependent unless it says so.
- * Both are declarative metadata: the runner records them per row and surfaces
- * them in the plan, but the serial default is unchanged (the determinism law
- * holds until a run root opts into concurrency).
+ *   - `fanout`: the row's work is a partitionable ROUTE SWEEP, so a sharded run
+ *     (`--shard i/N`) may run it in EVERY shard, each sweeping its own slice,
+ *     and merge the slices by worst verdict. Distinct from `isolated` (that
+ *     races rows WITHIN one process; fanout splits one row ACROSS processes).
+ *     Default false - a row is assumed unpartitionable unless it says so.
+ * All three are declarative metadata: the runner records them per row and
+ * surfaces them in the plan, but the serial default is unchanged (the
+ * determinism law holds until a run root opts into concurrency or sharding).
  */
 function validateRowAttributes(a, fail) {
   if (a.needs !== undefined) {
@@ -94,6 +100,9 @@ function validateRowAttributes(a, fail) {
   }
   if (a.isolated !== undefined && typeof a.isolated !== 'boolean') {
     fail(`attack "${a.name}": "isolated" wants a boolean`);
+  }
+  if (a.fanout !== undefined && typeof a.fanout !== 'boolean') {
+    fail(`attack "${a.name}": "fanout" wants a boolean`);
   }
 }
 

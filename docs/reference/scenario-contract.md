@@ -130,8 +130,50 @@ Two optional fields let a row declare what it costs to run, so a run root can sk
 
 - **`needs: ['kv', 'd1']`** - the env bindings, KV stores, D1 tables, or routes the row touches. A run root arms state lazily instead of paying boot cost for state the row never reads. The plan (`--module-plan`) surfaces each row's `needs` so the requirement is visible before any request fires.
 - **`isolated: true`** - the row holds no cross-row state, so `crashtest run --concurrency <n>` MAY race it N-wide. The default is false: a row is assumed order-dependent unless it says so. A module carrying `beforeAll`/`afterAll` never races (its hook state lives on the one shared harness). Rows always land in original order regardless of completion order, so the ledger stays byte-stable per commit.
+- **`fanout: true`** - the row's work is a partitionable ROUTE SWEEP (it walks `harness.listRoutes()`), so a sharded run (`--shard i/N`) runs it in EVERY shard, each sweeping its own slice, and the slices merge by worst verdict. Distinct from `isolated` (that races rows WITHIN one process; `fanout` splits one row ACROSS processes). The default is false: a row is assumed unpartitionable unless it says so.
 
-Both are declarative: the serial default is unchanged, and a row that declares neither keeps a byte-identical record.
+All three are declarative: the serial default is unchanged, and a row that declares none keeps a byte-identical record.
+
+### Sharding the serial phase (`--shard i/N`, issue #99)
+
+`--concurrency` only races rows that declare `isolated: true`. When the wall is a serial phase (rows that share a harness and cannot race), the lever is `--shard i/N`: run only the rows whose global position `i` satisfies `position % N == index`. A CI matrix of N processes covers the whole run, so the serial wall divides by N with no coverage loss - every row lands in exactly one shard, in the same order, with the same verdict the unsharded run would give.
+
+The 14 shipped library modules declare no `isolated` rows - their wall is serial by construction (each row drives the one shared harness, in order), so `--concurrency` is a no-op for the library phase and `--shard` is the lever. A pack or plugin row that genuinely holds no cross-row state may declare `isolated: true` to opt into `--concurrency`; the library rows do not, and saying so is the point (a consumer should reach for `--shard`, not a `--concurrency` that silently does nothing).
+
+```bash
+# N-wide CI matrix - the union is the whole run
+crashtest run --shard 0/4 --json   # ... 1/4, 2/4, 3/4
+```
+
+A shard holds a PARTIAL row set, so it is **read-only against `labs/`** - it must never write the committed ledger (a partial write would clobber the baseline). Diff read-only with `--expect-baseline`, or fan artifacts out with `--out-dir`; union the shards in the caller. Sharding **refuses loudly** when a module holds cross-row state - a `beforeAll`/`afterAll` hook, or a row touching `ctx.vars`/`ctx.objects` - because that state cannot be split across processes. A malformed or out-of-range `i/N` is a loud config error too, never a silently-empty shard that greens.
+
+A row that declares **`fanout: true`** - one whose work is a partitionable route sweep - runs in EVERY shard, each on its own slice, so a single expensive sweep row divides by N as well (this is the row vant's ~113s flood needs). A fanout row's per-slice record is PARTIAL: merge fanout rows by **worst verdict per `position`** (each shard record carries `position` and `shardIndex` when sharded), and the merged result equals the unsharded verdict. The row reads **`ctx.shard`** (`{ index, count }`, present only when sharded AND `fanout: true`) to learn its slice; this is a distinct key from the overloaded `ctx.routes`, so `ctx.shard` narrows a sweep and is never a grade-set. The shipped `proto-hygiene` sweeps and `auth/secret-watermark` declare `fanout: true`.
+
+### Row-level concurrency (`harnessFactory`, issue #83/#99)
+
+`crashtest run --concurrency <n>` races maximal runs of `isolated: true` rows N-wide. Each racer needs its OWN fresh harness (the shared one cannot be raced without clobbering its fake backend), supplied by a `harnessFactory`. The CLI builds one from the target config, and for a run root that drives the library API directly, `buildTargetHarness(target)` is exported from the package root, so the same builder can be reused:
+
+```js
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
+import path from 'node:path';
+// buildTargetHarness is on the package root (package.json "exports" -> src/cli.js).
+import { buildTargetHarness } from 'crashtest';
+
+// The exports map exposes ./package.json but not the internal subpaths, so a
+// run root resolves the package dir first, then the runner (the loader path).
+const require = createRequire(import.meta.url);
+const dir = path.dirname(require.resolve('crashtest/package.json'));
+const { runCampaign } = await import(pathToFileURL(path.join(dir, 'src', 'campaigns', 'runner.js')).href);
+const target = (await import('./crashtest.config.js')).default;
+
+const run = await runCampaign(await buildTargetHarness(target), scenarios, {
+  concurrency: 4,
+  harnessFactory: (moduleName, attack) => buildTargetHarness(target),
+});
+```
+
+`harnessFactory(moduleName, attack)` is called once per raced row and must return a Promise of a harness that is equivalently seeded/armed to the shared one - build it from the same target config so a racer sees the same routes, env, and aliases. A module with `beforeAll`/`afterAll` never races (its hook state lives on the one shared harness); the serial fallback is honest, never a wrong verdict.
 
 ## 4. The harness (the one dispatch surface)
 

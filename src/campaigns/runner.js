@@ -13,6 +13,18 @@ import { attackIds, VERDICTS } from '../scenarios/contract.js';
  * @param {object} [opts.attackCtx]      per-attack ctx overrides: { 'module/attack': {...} }
  * @param {object} [opts.moduleCtx]      module-level ctx defaults: { module: {...} }
  * @param {number} [opts.seed]           campaign seed (0xC0FFEE by default)
+ * @param {object} [opts.shard]          { index, count } - deterministic row
+ *   partition across N processes (issue #99). Each shard runs the same rows
+ *   the unsharded run would, in the same order, and only the rows whose
+ *   position `i` satisfies `i % count === index`. Rows the unsharded run
+ *   would carry are partitioned EXACTLY ONCE, so N shards' ledgers combine
+ *   into the whole (same rows, same verdicts). Intended for the serial
+ *   library phase, which cannot race (`--concurrency` only races rows that
+ *   declare `isolated: true`); a CI job fans N shards across processes and
+ *   unions the findings. A campaign-scoped row (one touching ctx.vars /
+ *   ctx.objects / module hooks) CANNOT be sharded safely - its cross-row
+ *   state is split across processes - so sharding refuses loudly when it
+ *   finds one, naming the row.
  */
 export async function runCampaign(harness, scenarios, opts = {}) {
   const campaignSeed = opts.seed ?? 0xC0FFEE;
@@ -75,11 +87,28 @@ export async function runCampaign(harness, scenarios, opts = {}) {
   }
   const concurrency = Math.max(1, Math.floor(opts.concurrency ?? 1));
   const harnessFactory = typeof opts.harnessFactory === 'function' ? opts.harnessFactory : null;
+  // Deterministic row sharding (issue #99). Same refuse-loudly law as the
+  // concurrency guard above: a bad {index, count} (a float, count < 1, an
+  // out-of-range index) would silently run a wrong or empty row subset and
+  // read as a clean pass. Normalize, then refuse the misfire by name.
+  const shard = normalizeShard(opts.shard);
+  // A shard partitions the serial rows across PROCESSES, so any row whose
+  // verdict depends on another row's side effect (campaign vars/objects, or
+  // a module hook) would be graded against state that lives in a sibling
+  // process. Refuse loudly, naming the row - never a split campaign graded
+  // green. Modules WITHOUT hooks and rows that touch no vars/objects are
+  // shard-safe: their state is per-row by construction (the isolation
+  // boundary the concurrency path already relies on).
+  if (shard.count > 1) assertShardSafe(scenarios, moduleFilter);
   // Per-row wall timing (issue #83): opt-in only. A duration in a committed
   // ledger would break the determinism law (same commit -> same bytes), so the
   // runner reads the clock only when the caller asks (`run --per-row`).
   const timing = opts.timing === true;
   const rows = [];
+  // Global row position: the index this row would occupy in an UNSHARDED run
+  // (modules sorted + filtered, attacks in order). Sharding partitions on it,
+  // so N shards together carry every row exactly once (issue #99).
+  let rowPosition = 0;
   // Cross-row state (issue #15): a campaign-scoped vars registry (JSON-
   // deterministic values, re-writes conflict loudly) and objects() accessors
   // for the wordier fixture handles. Both are per-campaign by construction:
@@ -130,6 +159,19 @@ export async function runCampaign(harness, scenarios, opts = {}) {
     // exactly today's behavior.
     const canRace = concurrency > 1 && harnessFactory && !hasHooks;
 
+    // Row ownership (issue #99). Every row in the UNSHARDED run consumes one
+    // global position (modules sorted + filtered, attacks in order). A NORMAL
+    // row is owned by exactly one shard: `position % count === index`. A
+    // FANOUT row - one whose work is a partitionable route sweep - runs in
+    // EVERY shard, each sweeping only its slice; the shard ledgers merge by
+    // worst verdict per id (a fault in any slice makes the row EXPLOITED), so
+    // the union is exactly the unsharded verdict. Precomputed so the raced and
+    // serial paths share one mapping.
+    const positions = module.attacks.map(() => rowPosition++);
+    const ownsRow = (k) => shard.count === 1
+      || module.attacks[k].fanout === true
+      || positions[k] % shard.count === shard.index;
+
     let index = 0;
     while (index < module.attacks.length) {
       const attack = module.attacks[index];
@@ -138,13 +180,20 @@ export async function runCampaign(harness, scenarios, opts = {}) {
       if (canRace && attack.isolated === true) {
         let end = index;
         while (end < module.attacks.length && module.attacks[end].isolated === true) end++;
-        const batch = module.attacks.slice(index, end);
-        const results = await runBatch(batch, module, opts, { campaignSeed, moduleCtx, vars, objects, harnessFactory, concurrency, timing });
-        for (const record of results) rows.push(record);
+        const batch = [];
+        for (let k = index; k < end; k++) {
+          if (ownsRow(k)) batch.push({ attack: module.attacks[k], position: positions[k] });
+        }
+        if (batch.length) {
+          const results = await runBatch(batch, module, opts, { campaignSeed, moduleCtx, vars, objects, harnessFactory, concurrency, timing, shard });
+          for (const record of results) rows.push(record);
+        }
         index = end;
         continue;
       }
-      rows.push(await runOne(attack, module, opts, { harness, campaignSeed, moduleCtx, vars, objects, timing }));
+      if (ownsRow(index)) {
+        rows.push(await runOne(attack, module, opts, { harness, campaignSeed, moduleCtx, vars, objects, timing, shard, position: positions[index] }));
+      }
       index++;
     }
     if (typeof module.afterAll === 'function') await module.afterAll(hookCtx);
@@ -196,6 +245,59 @@ export async function runCampaign(harness, scenarios, opts = {}) {
 
 // ---------- per-row driving + accounting (issue #83) ----------
 
+/**
+ * Normalize an `opts.shard` descriptor to { index, count } (issue #99).
+ * Absent -> { 0, 1 } (the whole run, today's behavior). A malformed value
+ * refuses loudly: a float, a count < 1, or an out-of-range index would
+ * silently run a wrong or EMPTY row subset and read as a clean pass - the
+ * same zero-worker misfire class the concurrency guard kills.
+ */
+function normalizeShard(shard) {
+  if (shard === undefined || shard === null) return { index: 0, count: 1 };
+  if (typeof shard !== 'object' || Array.isArray(shard)) {
+    throw new TypeError(`shard wants { index, count } (got ${JSON.stringify(shard)}) - a wrong shape silently runs a wrong row subset`);
+  }
+  const { index, count } = shard;
+  if (!Number.isInteger(count) || count < 1) {
+    throw new TypeError(`shard.count wants a positive integer (got ${JSON.stringify(count)}) - a non-integer or sub-1 count yields an empty or wrong partition that reads as a clean pass`);
+  }
+  if (!Number.isInteger(index) || index < 0 || index >= count) {
+    throw new TypeError(`shard.index wants an integer in [0, ${count}) (got ${JSON.stringify(index)}) - an out-of-range index runs zero rows and reads as a clean pass`);
+  }
+  return { index, count };
+}
+
+/**
+ * Refuse a sharded campaign that carries a cross-row state dependency
+ * (issue #99): a shard splits rows across PROCESSES, so a module hook (state
+ * armed on the shared harness) or a row touching campaign vars/objects would
+ * be graded against state that lives in a sibling process - a silent
+ * correctness gap. Fail loud at cause, naming the module (and the kind of
+ * dependency). Modules/rows with none are shard-safe: their state is per-row
+ * by construction (the isolation boundary the concurrency path already
+ * relies on). Scans only modules the filter would actually run.
+ */
+function assertShardSafe(scenarios, moduleFilter) {
+  for (const { module } of scenarios) {
+    if (moduleFilter && !moduleFilter.has(module.name)) continue;
+    if (typeof module.beforeAll === 'function' || typeof module.afterAll === 'function') {
+      throw new Error(`shard: module "${module.name}" declares a lifecycle hook (beforeAll/afterAll) - its state lives on the shared harness and cannot be split across shard processes; drop the hook or run this module unsharded`);
+    }
+    for (const attack of module.attacks) {
+      const src = attack.run?.toString?.() ?? '';
+      const stepsSrc = Array.isArray(attack.steps) ? attack.steps.map((s) => `${s.init ?? ''}${s.guard ?? ''}`).join('') : '';
+      // A textual scan is the honest cheap check: it catches the declared
+      // cross-row surfaces (ctx.vars / ctx.objects) without running the row.
+      // A row that reaches cross-row state through an indirection is the
+      // module's own contract violation, and the concurrency path carries the
+      // same caveat - documented, not silently trusted.
+      if (/\bctx\.vars\b|\bctx\.objects\b|\bc\.vars\b|\bc\.objects\b/.test(src + stepsSrc)) {
+        throw new Error(`shard: attack "${module.name}/${attack.name}" touches campaign vars/objects - cross-row state cannot be split across shard processes; run this module unsharded`);
+      }
+    }
+  }
+}
+
 /** Normalize a row's `needs` declaration to a sorted list (or undefined). */
 function normalizeNeeds(needs) {
   if (needs === undefined) return undefined;
@@ -209,7 +311,7 @@ function normalizeNeeds(needs) {
  * requests/ops/arms are anchored before the row, so they stay per-ATTACK
  * truth whether the row ran on the shared harness or a fresh racer.
  */
-async function runOne(attack, module, opts, { harness, campaignSeed, moduleCtx, vars, objects, timing }) {
+async function runOne(attack, module, opts, { harness, campaignSeed, moduleCtx, vars, objects, timing, shard, position }) {
   const id = `${module.name}/${attack.name}`;
   const rowsBefore = harness.log().length;
   const costBefore = harness.costTotals();
@@ -230,6 +332,16 @@ async function runOne(attack, module, opts, { harness, campaignSeed, moduleCtx, 
       seed: campaignSeed,
       vars,
       objects,
+      // Shard descriptor (issue #99): handed ONLY to a `fanout: true` row - a
+      // row whose work is a partitionable route sweep - so it can narrow its
+      // sweep to the slice THIS shard owns (i % count === index) and the N
+      // shards together sweep every route exactly once. A normal row never
+      // sees it (a single-position row runs in one shard; narrowing its sweep
+      // would drop coverage). Distinct from the overloaded ctx.routes key
+      // (issue #99 ask 3): ctx.shard narrows a sweep, it is never a grade-set.
+      // Undefined on an unsharded run, so rows that ignore it stay
+      // byte-identical.
+      shard: (attack.fanout === true && shard.count > 1) ? { index: shard.index, count: shard.count } : undefined,
     };
     findResult = attack.steps !== undefined
       ? await runChainAttack(attack, harness, ctx)
@@ -295,6 +407,16 @@ async function runOne(attack, module, opts, { harness, campaignSeed, moduleCtx, 
     // declare nothing keep byte-stable records.
     needs: normalizeNeeds(attack.needs),
     isolated: attack.isolated === true || undefined,
+    // A fanout row (issue #99) runs in EVERY shard; a merge tool groups shard
+    // records by `position` and takes the worst verdict. Dropped from JSON
+    // when absent, so an ordinary row stays byte-identical.
+    fanout: attack.fanout === true || undefined,
+    // Shard merge keys (issue #99): only present on a SHARDED run. `position`
+    // is the row's global index (the same in every shard), so a fanout row's
+    // N slice-records merge by position; `shardIndex` names the slice. A
+    // fanout row's per-slice record is a partial verdict - merge fanout rows
+    // by WORST verdict per position before trusting the union.
+    ...(shard.count > 1 ? { position, shardIndex: shard.index } : {}),
     // Wall time is OFF by default: a duration in a committed ledger would break
     // the determinism law (same commit -> same bytes). `run --per-row` opts in
     // (opts.timing), where it is accounting info, never a verdict input.
@@ -311,15 +433,16 @@ async function runOne(attack, module, opts, { harness, campaignSeed, moduleCtx, 
  * share campaign vars/objects is the module's own contract violation - an
  * isolated row declares it holds no cross-row state.
  */
-async function runBatch(batch, module, opts, { campaignSeed, moduleCtx, vars, objects, harnessFactory, concurrency, timing }) {
+async function runBatch(batch, module, opts, { campaignSeed, moduleCtx, vars, objects, harnessFactory, concurrency, timing, shard }) {
   const results = new Array(batch.length);
   let cursor = 0;
   const workers = Array.from({ length: Math.min(concurrency, batch.length) }, async () => {
     for (;;) {
       const i = cursor++;
       if (i >= batch.length) return;
-      const harness = await harnessFactory(module.name, batch[i]);
-      results[i] = await runOne(batch[i], module, opts, { harness, campaignSeed, moduleCtx, vars, objects, timing });
+      const { attack, position } = batch[i];
+      const harness = await harnessFactory(module.name, attack);
+      results[i] = await runOne(attack, module, opts, { harness, campaignSeed, moduleCtx, vars, objects, timing, shard, position });
     }
   });
   await Promise.all(workers);

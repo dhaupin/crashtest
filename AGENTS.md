@@ -28,7 +28,7 @@ fixtures/demo/app.js    the self-dogfood target (hardened + vulnerable variants)
 fixtures/wordpress/     wp-worker.php + stub-wp/ (the generic subprocess worker
                         + the deterministic stub WP core the WP packs' teeth run on)
 fixtures/site/          second site shape the pack tests exercise
-test/   426 tests; count pins live here - the guarantee -> pin
+test/   498 tests; count pins live here - the guarantee -> pin
                         map is in the project brain's pins.md (see Project memory)
 web/                    the shipped site (prestruct-prerendered): Home, attack
                         catalog, dashboard (renders any ledger), FAQ, the
@@ -90,7 +90,8 @@ Shipped packs (`packs/public/`, latest first): `egress-guard-shapes` (2, outboun
 
 ```bash
 npm test             # full suite (node --test); 317 pass was the 1.1.0 floor,
-                     # 426 was the 1.2.0 tree, 474 is the 1.3.0 tree
+                     # 426 was the 1.2.0 tree, 474 was the 1.3.0 tree,
+                     # 498 is the current tree
                      # (the 7 armed WP e2e rows skip on PHP-less hosts)
 npm run check        # syntax check across every source/test file + lint:pins,
                      # lint:prestruct-pins, lint:catalog (the prepublishOnly gate)

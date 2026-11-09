@@ -56,6 +56,7 @@ export default {
 
   attacks: [{
     name: 'head-get-parity',
+    fanout: true,
     description: 'HEAD must be the cheap mirror of GET: no throw, no 5xx where GET answered 2xx, and GET-2xx routes may answer HEAD only 2xx or an honest 405 - HEAD body bytes are an INFO note (wire runtimes strip them), never a finding',
     async run(harness, ctx = {}) {
       const scope = sweepRoutes(harness, ctx);
@@ -88,6 +89,7 @@ export default {
     },
   }, {
     name: 'request-shape-flood',
+    fanout: true,
     description: 'The bare shapes attackers fire before payloads - duplicate query keys, malformed separators, embedded control bytes, dot-segment/path shapes, and identity headers in three casings - must never crash a handler or change its answer by spelling alone',
     async run(harness, ctx = {}) {
       const scope = sweepRoutes(harness, ctx);
@@ -136,9 +138,22 @@ export default {
   }],
 };
 
-/** Sweep scope: ctx.routes (array) narrows; default = every declared route. */
+/**
+ * Sweep scope: ctx.routes (array) narrows; default = every declared route.
+ * A sharded run (issue #99) narrows FURTHER to the routes this shard owns
+ * (position % count === index), so N shard processes together sweep every
+ * route exactly once - the coverage-reducing alternative (splitting the sweep
+ * and unioning faults) stays exact because each shard grades its own slice
+ * against the same rules. ctx.shard is a distinct key from ctx.routes: it
+ * narrows a sweep, never a grade-set.
+ */
 function sweepRoutes(harness, ctx = {}) {
   const declared = harness.listRoutes();
-  if (!Array.isArray(ctx.routes) || !ctx.routes.length) return declared;
-  return ctx.routes.filter(r => declared.includes(r));
+  let scope = Array.isArray(ctx.routes) && ctx.routes.length
+    ? ctx.routes.filter(r => declared.includes(r))
+    : declared;
+  if (ctx.shard && ctx.shard.count > 1) {
+    scope = scope.filter((_, i) => i % ctx.shard.count === ctx.shard.index);
+  }
+  return scope;
 }
