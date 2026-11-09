@@ -68,11 +68,12 @@
     {
       "name": "next-middleware-shapes",
       "dir": "packs/public/next-middleware-shapes",
-      "sha256": "e0bafd5a4ad35fb2b9488a75b14256848ba125256e007431948f1cda21c2a4c8",
+      "sha256": "604fbc2ea0394dd4c2a3ade18c9c8ae7742d0a539e9cb6b624e96f8f7b61f76c",
       "declaredKeys": [
         "description",
         "entry",
         "name",
+        "requires",
         "schemaVersion",
         "version"
       ],
@@ -82,17 +83,20 @@
         "declaredEntry": "index.js",
         "entryFileIsPresent": true,
         "declaresArmedByKey": false,
-        "hostOwnedKeysPresent": []
+        "hostOwnedKeysPresent": [
+          "requires"
+        ]
       }
     },
     {
       "name": "qs-shapes",
       "dir": "packs/public/qs-shapes",
-      "sha256": "599b5739bee92c66737d6e84f02bf56a25a6aeed014916182a8291efe074e9c9",
+      "sha256": "68a8b808da3ec53f030dbef98f1da818d8c29e400d22ab6c7d55a7369882d40b",
       "declaredKeys": [
         "description",
         "entry",
         "name",
+        "requires",
         "schemaVersion",
         "version"
       ],
@@ -102,17 +106,20 @@
         "declaredEntry": "index.js",
         "entryFileIsPresent": true,
         "declaresArmedByKey": false,
-        "hostOwnedKeysPresent": []
+        "hostOwnedKeysPresent": [
+          "requires"
+        ]
       }
     },
     {
       "name": "vite-dev-shapes",
       "dir": "packs/public/vite-dev-shapes",
-      "sha256": "d234b66d2dc203329cd4681e55a1460230e777ede15f4e5081bb7bd2b152485f",
+      "sha256": "20a34d38eeee2d92bbcbb15d8350fe00373c82a673f367b33a94c8fff2bb76e5",
       "declaredKeys": [
         "description",
         "entry",
         "name",
+        "requires",
         "schemaVersion",
         "version"
       ],
@@ -122,18 +129,21 @@
         "declaredEntry": "index.js",
         "entryFileIsPresent": true,
         "declaresArmedByKey": false,
-        "hostOwnedKeysPresent": []
+        "hostOwnedKeysPresent": [
+          "requires"
+        ]
       }
     },
     {
       "name": "wp-money-shapes",
       "dir": "packs/public/wp-money-shapes",
-      "sha256": "fd954d9a4415f94f22a94400ef611475c18a07f70f1682ac5f847b4a3e355aeb",
+      "sha256": "5f43a2a4f92b6c9ffbaa937f0a56579b58e238e001bd551c72e76e60b49544d7",
       "declaredKeys": [
         "armedByKey",
         "description",
         "entry",
         "name",
+        "requires",
         "schemaVersion",
         "version"
       ],
@@ -143,17 +153,20 @@
         "declaredEntry": "index.js",
         "entryFileIsPresent": true,
         "declaresArmedByKey": true,
-        "hostOwnedKeysPresent": []
+        "hostOwnedKeysPresent": [
+          "requires"
+        ]
       }
     },
     {
       "name": "wp-roles",
       "dir": "packs/public/wp-roles",
-      "sha256": "4d6b7c9b4a3ebf244f5705cde59838afe413a3aba74cdd3ea10c99b621409c1d",
+      "sha256": "b71c1c71b3b6ae6f54aecbef5e5100af584a2b1d07ed1adb6be51fd6d9dedbfd",
       "declaredKeys": [
         "description",
         "entry",
         "name",
+        "requires",
         "schemaVersion",
         "version"
       ],
@@ -163,17 +176,20 @@
         "declaredEntry": "index.js",
         "entryFileIsPresent": true,
         "declaresArmedByKey": false,
-        "hostOwnedKeysPresent": []
+        "hostOwnedKeysPresent": [
+          "requires"
+        ]
       }
     },
     {
       "name": "wp-stock-smoke",
       "dir": "packs/public/wp-stock-smoke",
-      "sha256": "3c09715c186d0c532b7ccd55d25fc7017833ce91958a2575b153b4ebfc899bc4",
+      "sha256": "29799c32b184ac19a3300f361d51e537c817a407bbe85fc4bea23f4b7274edb4",
       "declaredKeys": [
         "description",
         "entry",
         "name",
+        "requires",
         "schemaVersion",
         "version"
       ],
@@ -183,7 +199,9 @@
         "declaredEntry": "index.js",
         "entryFileIsPresent": true,
         "declaresArmedByKey": false,
-        "hostOwnedKeysPresent": []
+        "hostOwnedKeysPresent": [
+          "requires"
+        ]
       }
     }
   ]

@@ -55,6 +55,7 @@ import { pathToFileURL } from 'node:url';
 import { validateScenario } from '../scenarios/contract.js';
 import { FakeD1 } from '../harness/d1.js';
 import { FakeKV } from '../harness/kv.js';
+import { validateRequires, relevanceSkip, normalizeTokens } from './relevance.js';
 
 const REQUIRED_KEYS = ['schemaVersion', 'name', 'description'];
 const ENTRY_DEFAULT = 'index.js';
@@ -98,7 +99,8 @@ export function validatePackManifest(manifest, origin) {
     throw new Error(`pack manifest at ${origin}: name "${manifest.name}" is not kebab-case`);
   }
   const env = validateEnvClaims(manifest.env, origin);
-  return { ...manifest, entry: manifest.entry ?? ENTRY_DEFAULT, env: manifest.env === undefined ? undefined : env };
+  const requires = validateRequires(manifest.requires, origin);
+  return { ...manifest, entry: manifest.entry ?? ENTRY_DEFAULT, env: manifest.env === undefined ? undefined : env, ...(requires !== undefined ? { requires } : {}) };
 }
 
 /**
@@ -336,6 +338,17 @@ export async function loadPacks(packsRoots = [], seen = new Map(), check = null,
   // (schemaVersion/name/entry) stays fully enforced - only the scenario-
   // shape check is deferred to the host's own run-time validation.
   const validateProfile = opts.validateProfile !== false;
+  // The ignore mechanism: `provides` is what the target IS (config), `ignore`
+  // is the explicit deny-list (config or .packignore). A pack whose `requires`
+  // the target does not provide - or that is named in `ignore` - is SKIPPED
+  // and never imported. Default (no provides, no ignore) is today's behavior.
+  const relevance = {
+    provides: normalizeTokens(opts.provides, 'provides'),
+    ignore: normalizeTokens(opts.ignore, 'ignore'),
+  };
+  // Caller may pass `opts.skipped` (an array) to receive the honest skip
+  // records (pack named + why) for the packs relevance filtered out.
+  const skipped = Array.isArray(opts.skipped) ? opts.skipped : null;
   if (typeof packsRoots === 'string') packsRoots = [packsRoots];
   const out = [];
   for (const root of packsRoots) {
@@ -354,7 +367,7 @@ export async function loadPacks(packsRoots = [], seen = new Map(), check = null,
       const inPublic = root.includes('/public/');
       const inLocal = root.includes('/local/');
       const visibility = inPublic ? 'public' : inLocal ? 'local' : 'inline';
-      await loadPackDir(root, basename(root), visibility, seen, out, check, validateProfile);
+      await loadPackDir(root, basename(root), visibility, seen, out, check, validateProfile, relevance, skipped);
       continue;
     }
     // Otherwise: a packs ROOT - scan its public/ + local/ visibility dirs.
@@ -377,7 +390,7 @@ export async function loadPacks(packsRoots = [], seen = new Map(), check = null,
       }
       const visibility = basename(dir);
       for (const ent of entries.filter((e) => e.isDirectory())) {
-        await loadPackDir(join(dir, ent.name), ent.name, visibility, seen, out, check, validateProfile);
+        await loadPackDir(join(dir, ent.name), ent.name, visibility, seen, out, check, validateProfile, relevance, skipped);
       }
     }
   }
@@ -390,7 +403,7 @@ export async function loadPacks(packsRoots = [], seen = new Map(), check = null,
  * pack.json skips quietly - that is the local/ contract). Shared `seen`
  * keeps one name one origin across every load shape.
  */
-async function loadPackDir(packDir, name, visibility, seen, out, check, validateProfile = true) {
+async function loadPackDir(packDir, name, visibility, seen, out, check, validateProfile = true, relevance = { provides: [], ignore: [] }, skipped = null) {
   const origin = `${visibility}/${name}`;
   // dir without pack.json = not a pack (local dirs may carry loose WIP) - skip quietly
   let manifest;
@@ -406,6 +419,17 @@ async function loadPackDir(packDir, name, visibility, seen, out, check, validate
     throw new Error(`pack name collision: "${spec.name}" loaded from both ${seenOrigin} and ${origin}`);
   }
   seen.set(spec.name, origin);
+  // Ignore mechanism (relevance, not a deny-list): a pack whose `requires` the
+  // target does not provide - or one named in `ignore` - is SKIPPED and never
+  // imported, so it costs the run nothing. The manifest is still validated
+  // (a broken pack stays a loud config error, rule 3); only the import and the
+  // campaign are skipped. The skip record is HONEST: it names the pack and why,
+  // so a skip is never a silent green (same law as the REFUSED-row honest-skip).
+  const skip = relevanceSkip({ name: spec.name, origin, manifest: spec }, relevance);
+  if (skip) {
+    if (skipped) skipped.push({ origin, manifest: spec, visibility, skipped: skip });
+    return;
+  }
   const modPath = join(packDir, spec.entry);
   let mod;
   try {

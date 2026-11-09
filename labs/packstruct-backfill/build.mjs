@@ -33,7 +33,7 @@ const OUT_DIR = fileURLToPath(new URL('.', import.meta.url));
 // The host-owned optional manifest keys (packs/loader.js + crashtest#19 /
 // packstruct#20 ack): the engine shape-validates them, the spec acknowledges
 // them by name. Listed so the conformance rows name what they saw on disk.
-const HOST_OWNED_OPTIONAL = ['env', 'plugins', 'package'];
+const HOST_OWNED_OPTIONAL = ['env', 'plugins', 'package', 'requires'];
 
 async function main() {
   const dirs = (await readdir(PACKS_PUBLIC, { withFileTypes: true }))
