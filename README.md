@@ -72,6 +72,33 @@ adapters: {
 
 Fails on a NEW EXPLOITED finding or a REFUSED->EXPLOITED regression - never on accepted risks. (A moving `v0` major tag is planned; pin the version for now.)
 
+## Programmatic use (drive the library API)
+
+A run root that already builds its own `Harness` can drive the campaign directly instead of shelling out to `crashtest run`. The CLI flags map onto `opts`:
+
+```js
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
+import path from 'node:path';
+import { buildTargetHarness } from 'crashtest';        // package root -> src/cli.js
+
+// Resolve the runner from the installed package dir (the exports map exposes
+// ./package.json but not the internal subpaths, so locate the dir first).
+const require = createRequire(import.meta.url);
+const dir = path.dirname(require.resolve('crashtest/package.json'));
+const { runCampaign } = await import(pathToFileURL(path.join(dir, 'src', 'campaigns', 'runner.js')).href);
+
+const target = (await import('./crashtest.config.js')).default;
+const run = await runCampaign(await buildTargetHarness(target), scenarios, {
+  timing: true,        // == --per-row (per-row durationMs; off by default so ledgers stay byte-stable)
+  concurrency: 4,      // == --concurrency (races rows that declare isolated: true)
+  shard: { index: 0, count: 4 },   // == --shard 0/4 (serial-phase partition; see below)
+  harnessFactory: (moduleName, attack) => buildTargetHarness(target),  // fresh harness per racer
+});
+```
+
+`harnessFactory(moduleName, attack)` is called once per raced row and must return a Promise of an equivalently-seeded harness - build it from the same target config. `shard: { index, count }` partitions the serial rows (`position % count === index`); a row declaring `fanout: true` runs in every shard on its own slice, so merge fanout rows by worst verdict per `position`. The full contracts live in [reference/scenario-contract.md](./docs/reference/scenario-contract.md).
+
 ## This repo dogfoods itself
 
 `npx crashtest run` attacks [`fixtures/demo/`](./fixtures/demo/app.js) (hardened + the deliberately-broken draft), gated in CI against the committed [`labs/crashledger.json`](./labs/crashledger.json). The committed [`labs/hardening.md`](./labs/hardening.md) is the live report; provenance on every npm release traces package -> commit (verify the badge on npm).

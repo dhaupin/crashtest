@@ -71,10 +71,12 @@ export function buildModulePlan(target, packs = [], scenarios = []) {
         status: decided.status,
         reason: decided.reason,
         // Boot declarations (issue #83): what state the row touches and
-        // whether it may race. Dropped from the plan when a row declares
-        // neither, so plans for undeclared libraries stay byte-stable.
+        // whether it may race. Shard declaration (issue #99): whether a sharded
+        // run fans this row's sweep across shards. Dropped from the plan when a
+        // row declares none, so plans for undeclared libraries stay byte-stable.
         ...(a.needs !== undefined ? { needs: Array.isArray(a.needs) ? [...a.needs].sort() : [a.needs] } : {}),
         ...(a.isolated === true ? { isolated: true } : {}),
+        ...(a.fanout === true ? { fanout: true } : {}),
       })),
     };
   });

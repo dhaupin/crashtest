@@ -155,6 +155,75 @@ test('run --per-row prints the accounting table + the run-level wall roll-up (is
   });
 });
 
+test('run --shard i/N runs the shard slice and stays read-only against labs/ (issue #99)', async () => {
+  await inRepo('shard', async () => {
+    await writeFile('crashtest.config.js',
+      "export default { routes: { burst: async () => new Response('accepted', { headers: { 'cache-control': 'no-store' } }) }, seed: 7 };\n");
+    // A whole run first, to learn the row ids + write the baseline.
+    const wholeOut = [];
+    const orig = console.log;
+    console.log = (...a) => wholeOut.push(a.join(' '));
+    let wholeBlob;
+    try {
+      await main(['run', '--json']);
+      wholeBlob = JSON.parse(wholeOut.at(-1));
+      // Now a shard: capture its blob + assert labs/ was NOT rewritten.
+      const before = await readFile(LEDGER_PATH, 'utf8');
+      const shardOut = [];
+      console.log = (...a) => shardOut.push(a.join(' '));
+      await main(['run', '--shard', '0/2', '--json']);
+      console.log = orig;
+      const shardBlob = JSON.parse(shardOut.at(-1));
+      const after = await readFile(LEDGER_PATH, 'utf8');
+      assert.equal(before, after, 'a shard must not rewrite the committed ledger (partial rows would clobber it)');
+      assert.ok(shardOut.some((l) => l.includes('read-only against labs/')));
+      // Merge the shards: a normal row appears in exactly one shard; a fanout
+      // row (fanout: true) appears in EVERY shard, so take the worst verdict
+      // per position. The merged union == the whole run, ids + verdicts.
+      const sev = { REFUSED: 0, PASSED: 1, BOUNDED: 2, EXPLOITED: 3 };
+      const byPos = new Map();
+      const s1Out = [];
+      console.log = (...a) => s1Out.push(a.join(' '));
+      await main(['run', '--shard', '1/2', '--json']);
+      console.log = orig;
+      const s1 = JSON.parse(s1Out.at(-1));
+      for (const r of [...shardBlob.rows, ...s1.rows]) {
+        const prev = byPos.get(r.position);
+        if (!prev || sev[r.verdict] > sev[prev.verdict]) byPos.set(r.position, r);
+      }
+      const merged = [...byPos.values()].sort((a, b) => a.id.localeCompare(b.id));
+      const whole = [...wholeBlob.rows].sort((a, b) => a.id.localeCompare(b.id));
+      assert.deepEqual(merged.map((r) => [r.id, r.verdict]), whole.map((r) => [r.id, r.verdict]), 'merged shards union to exactly the whole run');
+      assert.ok(shardBlob.rows.some((r) => r.fanout === true), 'a sharded run carries fanout rows (which appear in every shard)');
+    } finally {
+      console.log = orig;
+    }
+    process.exitCode = 0;
+  });
+});
+
+test('run --shard rejects a malformed or out-of-range spec (exit 2, never a silent empty shard)', async () => {
+  await inRepo('shard-bad', async () => {
+    await writeFile('crashtest.config.js',
+      "export default { routes: { burst: async () => new Response('accepted') }, seed: 7 };\n");
+    const out = [];
+    const orig = console.error;
+    console.error = (...a) => out.push(a.join(' '));
+    try {
+      for (const bad of ['abc', '1', '0/0', '4/4', '0/-1']) {
+        out.length = 0;
+        process.exitCode = 0;
+        await main(['run', '--shard', bad]);
+        assert.equal(process.exitCode, 2, `--shard ${bad} must exit 2`);
+        assert.ok(out.some((l) => l.includes('--shard')), `--shard ${bad} must name the flag`);
+      }
+    } finally {
+      console.error = orig;
+    }
+    process.exitCode = 0;
+  });
+});
+
 test('run --out-dir writes run-blob/ledger/report copies into a distinct dir without touching labs/ rules', async () => {
   await inRepo('outdir', async (dir) => {
     await writeFile('crashtest.config.js',

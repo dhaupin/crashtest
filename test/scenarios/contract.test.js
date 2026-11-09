@@ -42,6 +42,9 @@ test('issue #83: row boot declarations validate (needs kebab-case, isolated bool
   assert.throws(() => validateScenario(withRow({ needs: ['D1'] })), /needs.*kebab-case/);
   assert.throws(() => validateScenario(withRow({ needs: [7] })), /needs.*kebab-case/);
   assert.throws(() => validateScenario(withRow({ isolated: 'yes' })), /isolated.*boolean/);
+  // issue #99: fanout is the shard-split sibling of isolated - a boolean.
+  assert.equal(validateScenario(withRow({ fanout: true })).attacks[0].fanout, true);
+  assert.throws(() => validateScenario(withRow({ fanout: 'yes' })), /fanout.*boolean/);
 });
 
 

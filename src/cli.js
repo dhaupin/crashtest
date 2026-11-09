@@ -68,6 +68,14 @@ COMMANDS
                               at once (default 1 = serial). Each racer gets its
                               own fresh harness; rows land in original order,
                               so the ledger stays deterministic (issue #83)
+    --shard i/N               Run only the 1/N of rows this shard owns
+                              (deterministic: row position % N == i), so a CI
+                              matrix of N processes covers the whole run. A
+                              row declaring 'fanout: true' (a partitionable
+                              route sweep) runs in EVERY shard on its slice
+                              instead; merge fanout rows by worst verdict per
+                              position. Read-only against labs/. Refuses loudly
+                              if a module holds cross-row state (issue #99)
     --per-row                 Print a per-row accounting table (duration, ops,
                               requests, arms) plus the run-level wall roll-up
                               (total + slowest row) so a run root can see where
@@ -544,6 +552,10 @@ async function cmdRun(opts = {}) {
       // today's serial behavior byte-for-byte.
       concurrency: opts.concurrency ?? 1,
       harnessFactory: opts.concurrency > 1 ? () => buildTargetHarness(target) : null,
+      // Issue #99: deterministic row sharding. `--shard i/N` fans the serial
+      // library phase across N processes (a CI matrix); the runner runs only
+      // the rows this shard owns and refuses loudly on cross-row state.
+      shard: opts.shard,
       // Per-row wall timing rides the same opt-in as the accounting table:
       // --per-row is where a run root reads where its wall went, and the
       // committed ledger/report never carry a duration.
@@ -590,9 +602,18 @@ async function cmdRun(opts = {}) {
   const ledger = buildLedger(run, prior);
   const diff = diffAgainstBaseline(run, prior);
 
+  // A shard carries only 1/N of the rows, so it cannot write the committed
+  // ledger/report - doing so would clobber the whole baseline with a partial
+  // one (the exact silent-corruption class this tool exists to kill). A
+  // sharded run is read-only against labs/: it diffs (read-only) and prints
+  // its slice; the union happens in the caller (CI matrix) or via --out-dir.
+  const sharded = opts.shard !== undefined && opts.shard.count > 1;
+
   if (opts.expectBaseline) {
     // Read-only: no labs/ writes at all - the caller owns the baseline.
     console.log(`baseline: read-only diff against ${opts.expectBaseline} / labs/ untouched`);
+  } else if (sharded) {
+    console.log(`shard ${opts.shard.index}/${opts.shard.count}: read-only against labs/ (a shard holds 1/${opts.shard.count} of the rows - it must not write the committed ledger; union the shards, or pass --expect-baseline / --out-dir)`);
   } else {
     await mkdir(join(root, 'labs'), { recursive: true });
     const cut = cutStamp(target.seed);
@@ -933,8 +954,8 @@ export async function main(argv) {
     const confIdx2 = argv.indexOf('--config');
     const confVal = confIdx2 > -1 ? argv[confIdx2 + 1] : undefined;
     if (rejectUnknownFlags(verb, argv.slice(1), confVal !== undefined
-      ? ['--config', confVal, '--json', '--module-plan', '--expect-baseline', '--out-dir', '--concurrency', '--per-row', '--lint-determinism', '--lint-packs', '--allow-vacuous']
-      : ['--config', '--json', '--module-plan', '--expect-baseline', '--out-dir', '--concurrency', '--per-row', '--lint-determinism', '--lint-packs', '--allow-vacuous'])) return;
+      ? ['--config', confVal, '--json', '--module-plan', '--expect-baseline', '--out-dir', '--concurrency', '--shard', '--per-row', '--lint-determinism', '--lint-packs', '--allow-vacuous']
+      : ['--config', '--json', '--module-plan', '--expect-baseline', '--out-dir', '--concurrency', '--shard', '--per-row', '--lint-determinism', '--lint-packs', '--allow-vacuous'])) return;
     const json = argv.includes('--json');
     const modulePlan = argv.includes('--module-plan');
     const baseIdx = argv.indexOf('--expect-baseline');
@@ -948,8 +969,26 @@ export async function main(argv) {
       process.exitCode = 2;
       return;
     }
+    // --shard i/N (issue #99): deterministic row partition across N processes.
+    // Parse "i/N" here; a malformed spec is a config error (exit 2), never a
+    // silently-empty shard that greens. runCampaign re-checks the range so the
+    // library boundary is safe too.
+    const shardIdx = argv.indexOf('--shard');
+    let shard;
+    if (shardIdx > -1) {
+      const raw = argv[shardIdx + 1];
+      const m = /^(\d+)\/(\d+)$/.exec(String(raw ?? ''));
+      const index = m ? Number(m[1]) : NaN;
+      const count = m ? Number(m[2]) : NaN;
+      if (!m || count < 1 || index >= count) {
+        console.error(`crashtest run: --shard wants i/N with 0 <= i < N (e.g. 0/4) (got ${JSON.stringify(raw)}) - an out-of-range shard runs zero rows and reads as a clean pass`);
+        process.exitCode = 2;
+        return;
+      }
+      shard = { index, count };
+    }
     const lintIdx = argv.indexOf('--lint-determinism');
-    return cmdRun({ config: confVal, json, modulePlan, expectBaseline, outDir, concurrency, perRow: argv.includes('--per-row'), lintDeterminism: lintIdx > -1, lintPacks: argv.includes('--lint-packs'), allowVacuous: argv.includes('--allow-vacuous') });
+    return cmdRun({ config: confVal, json, modulePlan, expectBaseline, outDir, concurrency, shard, perRow: argv.includes('--per-row'), lintDeterminism: lintIdx > -1, lintPacks: argv.includes('--lint-packs'), allowVacuous: argv.includes('--allow-vacuous') });
   }
   console.error(`crashtest: unknown command "${verb}" (try --help)`);
   process.exitCode = 1;
@@ -980,5 +1019,9 @@ function rejectUnknownFlags(verb, rest, known) {
   return false;
 }
 
-// Exposed for tests.
-export { LEDGER_PATH, REPORT_PATH, META_PATH, VERSION, EMPTY_LEDGER, REPORT_STUB, cliDir };
+// Exposed for tests, and for run roots (issue #99 ask 2): a consumer that
+// drives the library API directly needs buildTargetHarness to supply an
+// equivalently-seeded harness per racer for --concurrency, and to arm its own
+// target outside the CLI. Exporting it is what makes the harnessFactory seam
+// adoptable without forking the CLI.
+export { LEDGER_PATH, REPORT_PATH, META_PATH, VERSION, EMPTY_LEDGER, REPORT_STUB, cliDir, buildTargetHarness };
