@@ -33,7 +33,7 @@ Attack the target declared in `crashtest.config.js`. Writes `labs/crashledger.js
 
 ## `crashtest packs`
 
-List discovered packs (public + local), env claims shown, unmet lines rendered. Flags:
+List discovered packs (public + local), env claims shown, unmet lines rendered. Packs filtered by the ignore mechanism (unmet `requires`, or named in `ignore` / `.packignore`) are listed as `skipped` rows, never silently dropped. Flags:
 
 | Flag | What it does |
 |---|---|

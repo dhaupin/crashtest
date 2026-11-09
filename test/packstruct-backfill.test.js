@@ -69,7 +69,7 @@ test('cut: dataset packstruct-backfill corpus.json transcribes the shipped pack 
 test('cut: dataset packstruct-backfill conformance rows re-derive true against the live corpus bytes', async () => {
   const corpus = await readJson(join(BACKFILL, 'corpus.json'));
   const rows = (await readJson(join(BACKFILL, 'conformance-rows.json'))).rows;
-  const HOST_OWNED = ['env', 'plugins', 'package'];
+  const HOST_OWNED = ['env', 'plugins', 'package', 'requires'];
   const derived = [];
   for (const pack of corpus.packs) {
     const manifest = JSON.parse(pack.manifestJson);
@@ -103,15 +103,18 @@ test('cut: dataset packstruct-backfill conformance rows re-derive true against t
     assert.equal(r.facts.entryFileIsPresent, true, `mine: "${r.name}" declared entry must exist on disk`);
   }
   // The audit-fresh column (crashtest#19 / #20 receipts): armedByKey on ONE
-  // pack; host-owned keys on exactly ONE shipped pack now - crashtest-site
-  // declares its `env.routes` (packstruct#71 dogfood: the block is spec'd, so
-  // a shipped host pack exercises it). The pin flips to 1 deliberately and
-  // names the pack, so the dogfood cannot silently disappear.
+  // pack; `env` on exactly ONE shipped pack (crashtest-site declares its
+  // `env.routes` - the packstruct#71 dogfood: the block is spec'd, so a
+  // shipped host pack exercises it). `requires` (the ignore mechanism) rides
+  // the six target-specific packs - named here so neither the dogfood nor the
+  // requires surface can silently disappear.
   assert.equal(rows.filter((r) => r.facts.declaresArmedByKey).length, 1);
-  const envCarriers = rows.filter((r) => r.facts.hostOwnedKeysPresent.length > 0);
-  assert.equal(envCarriers.length, 1, 'exactly one shipped pack carries a host-owned key (the packstruct#71 env dogfood)');
+  const envCarriers = rows.filter((r) => r.facts.hostOwnedKeysPresent.includes('env'));
+  assert.equal(envCarriers.length, 1, 'exactly one shipped pack carries the env block (the packstruct#71 dogfood)');
   assert.equal(envCarriers[0].name, 'crashtest-site');
-  assert.deepEqual(envCarriers[0].facts.hostOwnedKeysPresent, ['env']);
+  const requiresCarriers = rows.filter((r) => r.facts.hostOwnedKeysPresent.includes('requires')).map((r) => r.name).sort();
+  assert.deepEqual(requiresCarriers, ['next-middleware-shapes', 'qs-shapes', 'vite-dev-shapes', 'wp-money-shapes', 'wp-roles', 'wp-stock-smoke'],
+    'the ignore mechanism requires-keys ride exactly the six target-specific shipped packs');
 });
 
 // ---- 3. THE MATRIX --------------------------------------------------------

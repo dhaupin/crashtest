@@ -3,5 +3,8 @@
   "name": "wp-stock-smoke",
   "description": "Stock-WordPress smoke: prove the WP subprocess harness end to end on any install (dispatch, real-SQL metering, call/option gates).",
   "version": "0.1.0",
-  "entry": "index.js"
+  "entry": "index.js",
+  "requires": [
+    "wordpress"
+  ]
 }
