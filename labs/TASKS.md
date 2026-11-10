@@ -314,3 +314,6 @@ The family carried four docs topologies - freestruct's `docs-lane.yml`, coreforg
 ## 2026-11-06 - the vant handoff (crashtest#99 adoption)
 
 - Posted the adoptable surface for `--shard` / `opts.shard` on **vant#356** (the CI-speed issue that was parked on crashtest#99, "Rook is on it"). Answers its five asks: the `--shard i/N` CLI + `opts.shard = { index, count }` library seam; the **`fanout: true`** row attribute that lets the ~113s `proto-hygiene/request-shape-flood` (the 62% long pole) run in EVERY shard on its own route slice via the new `ctx.shard` key; the worst-verdict-per-`position` merge rule; `buildTargetHarness` export; and the `ctx.shard` vs `ctx.routes` distinction (ask #3). Noted the adoption trigger: npm serves `1.3.0` pre-#99, so bump the pin to `^1.4.0` when cut (or point `CRASHTEST_DIR` at the tree).
+
+
+- **The .gitignore docs block carries the in-tree Jekyll + pagefind products (2026-11-10 sweep, coreforge#48).** Propagated from the coreforge adopter sweep (dhaupin/coreforge#52): a local `npm run docs` / `bundle exec jekyll build` + pagefind run drops its products beside the source, and the belt-and-suspenders block named only some of them. It now carries `docs/.jekyll-cache/`, `docs/.jekyll-metadata`, `docs/pagefind/`, and `docs/pagefind*`, so a local build leaves no untracked noise. No version bump.
