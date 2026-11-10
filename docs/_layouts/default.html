@@ -9,7 +9,7 @@
 # icon and before the menu, per the packstruct-side request.
 ---
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -23,7 +23,7 @@
          never landed on ANY page, live or local. The engine's injection is
          per-page (og:title/description/url off the page), plus og:image/
          canonical/JSON-LD - one owner, no hand-synced second head. (#42) -->
-    <meta name="color-scheme" content="dark light">
+    <meta name="color-scheme" content="light dark">
     <style>
         :root {
             --paper: #16130f; --surface: #100d0a; --raised: #201912;
@@ -180,13 +180,12 @@
         }
     </style>
     <script>
-        // Theme bootstrap (before first paint): the default tokens are dark,
-        // so only a persisted light theme needs flipping. Keep the key and
+        // Theme bootstrap (before first paint): the default tokens are light,
+        // so only a persisted dark theme needs flipping. Keep the key and
         // the palette in sync with the toggle handler below.
         try {
-            if (localStorage.getItem('crashtest-theme') === 'light') {
-                document.documentElement.dataset.theme = 'light';
-            }
+            document.documentElement.dataset.theme =
+                localStorage.getItem('crashtest-theme') === 'dark' ? 'dark' : 'light';
         } catch (e) {}
     </script>
 </head>

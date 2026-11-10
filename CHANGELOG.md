@@ -6,6 +6,25 @@ Format: [Keep a Changelog](https://keepachangelog.com/) - sections head `## [ver
 
 ## [Unreleased]
 
+### 2026-11-10 - light mode by default (web + docs)
+
+Owner directive: the family defaults to light. The product sites and docs sites shipped dark-first (a persisted `light` was the opt-in); now light is the first paint and a persisted `dark` theme is the opt-in. Shape: `<html>` pins `data-theme="light"`, the pre-paint bootstrap applies only a persisted `dark`, and the `theme-color` meta flips to the light paper. The CSS token blocks are untouched (the light block is already the second half of one set), so no palette, toggle handler, or gate changed.
+
+- `web/index.html` - `<html data-theme="light">`; bootstrap applies a persisted `dark`; `theme-color` light (`#f4f0e9`).
+- `docs/_layouts/default.html` - `<html data-theme="light">`; bootstrap inverted; `color-scheme` `light dark`.
+- `web/public/site.webmanifest` - PWA `theme_color`/`background_color` -> light (`#f4f0e9`).
+- Receipts: `npm test` 504/504 (7 PHP-less skips); `npm run check` green; docs-lint clean.
+
+### 2026-11-03 - breadcrumbs on (engine + this site)
+
+Google Search Console showed the family's properties under a breadcrumbs enhancement with 0 results. Recon split the fleet: the docs sites run freestruct (auto BreadcrumbList since 1.1.0); the product sites run prestruct, whose `buildJsonLd()` is site-wide by contract and could never emit a per-route trail. prestruct gained engine-level `breadcrumb: true` (injectMeta owns the route path), and this repo turned the discovery surface on in its configs.
+
+- `docs/ssr-config.yml` (the legacy-named freestruct config) - `breadcrumb: true`.
+- `web/ssr.config.js` - `breadcrumb: true` (active once the prestruct engine feature ships).
+- Receipts: docs config validates against the pinned engine; docs sync:check PASS where generated.
+- No version bump; a discovery-surface opt-in.
+
+
 ### Added
 
 - **The ignore mechanism: pack relevance (`requires` / `provides`) + the escape hatch (`ignore` / `.packignore`).** A pack can declare the target capabilities it needs (`"requires": ["wordpress"]`); a run root declares what its target IS (`provides: ['node', 'cloudflare-pages']`). The loader then skips any pack whose `requires` the target does not provide - **before import**, so a WordPress-only pack costs a Cloudflare Pages run nothing. This is the honest inverse of a deny-list: a `.packignore`-style deny-list fails *open* (a newly-shipped pack runs everywhere until someone remembers to deny it there), while `requires` fails *closed* (a pack that names an unmet capability skips itself, forever, with no per-app upkeep), travels *with* the pack (a manifest field, so packstruct can lint it), and reports the skip *honestly* (named + tallied, never a silent green). Requires-filtering engages only once a run root declares a non-empty `provides`, so a run root that declares nothing is byte-identical to before. The escape hatch stays for the case relevance cannot express - "my target *could* serve this, but I do not want it here" (dev noise, a slow hobbyist run): config `ignore: ['wp-*']` or a run-root `.packignore` file (one token per line, `#` comments, `*` globs; matches pack name or origin). `ignore` wins over relevance. Every shipped target-specific pack carries its token - `wp-money-shapes`/`wp-roles`/`wp-stock-smoke` need `wordpress`, `next-middleware-shapes` needs `next`, `vite-dev-shapes` needs `vite`, `qs-shapes` needs `qs` - so the WP packs stop riding every non-WP run. New module `src/packs/relevance.js` (`relevanceSkip`, `validateRequires`, `globMatch`, `parsePackignore`); the skip rides `crashtest packs` (a `skipped - <name>: <reason>` line + the `--json` `skipped` array), `crashtest packs --json` (`requires` + `skipped`), and `run --module-plan` (a `SKIPPED` row per filtered pack). `test/pack-relevance.test.js` pins the pure helpers, the skip-before-import (a broken entry under an unmet `requires` cannot fail the run), the honest-skip record, the ignore-wins rule, and the unchanged default; the backfill corpus + its pin now carry `requires` on exactly the six target-specific packs.

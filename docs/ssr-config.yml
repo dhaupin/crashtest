@@ -57,6 +57,11 @@ og:
 # Card shape the docs always shipped (the old hand-written head); now
 # config-owned under the engine's head seam. twitter.username is NOT set -
 # the engine strips site/creator metas when no handle is configured.
+# Auto BreadcrumbList per page: a trail from the URL tree (site root -> path
+# segments -> the page title). The home page ships none. Carried since
+# freestruct 1.1.0, so every pinned version in the family has it.
+breadcrumb: true
+
 twitter:
   card: summary_large_image
 

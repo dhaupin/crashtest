@@ -6,6 +6,7 @@
 export default {
   siteUrl:  'https://crashtest.creadev.org',
   siteName: 'Crashtest',
+  breadcrumb: true,
   author:   'dhaupin',
   tagline:  'Adversarial QA your agent-built app survives, not passes.',
   ogImage:  'https://crashtest.creadev.org/og-image.png',
