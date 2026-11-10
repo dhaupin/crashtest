@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -38,18 +38,17 @@
   <link rel="icon" type="image/png" href="/favicon-32.png" sizes="32x32" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
-  <meta name="theme-color" content="#100d0a" />
+  <meta name="theme-color" content="#f4f0e9" />
 
   <script>
-    // Theme bootstrap: apply a persisted light theme before the stylesheet
-    // paints (the default tokens are dark). Non-critical: wrapped in try in
-    // case storage is unavailable (private mode). Keep in sync with
+    // Theme bootstrap: the default tokens are light; apply a persisted dark
+    // theme before the stylesheet paints. Non-critical: wrapped in try in case
+    // storage is unavailable (private mode). Keep in sync with
     // src/components/ThemeSwitch.jsx (the key name and the meta color values).
     try {
-      if (localStorage.getItem('crashtest-theme') === 'light') {
-        document.documentElement.dataset.theme = 'light'
-        document.currentScript.previousElementSibling.setAttribute('content', '#f4f0e9')
-      }
+      var dark = localStorage.getItem('crashtest-theme') === 'dark'
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+      document.currentScript.previousElementSibling.setAttribute('content', dark ? '#100d0a' : '#f4f0e9')
     } catch (e) {}
   </script>
 
