@@ -253,6 +253,13 @@ table.attacks td .why { color: var(--ink-soft); font-size: 12.5px; }
   /* Mobile: collapse inline links into the burger; the sidebar carries them. */
   .nav-burger { display: flex; }
   .nav-links { display: none; }
+  /* The header must fit the viewport: the badge (decorative) goes first, then
+     the gaps tighten, and the wordmark may shrink - so the burger, the only
+     menu control below 640px, can never land off-screen (the 431px overflow). */
+  .brand-badge { display: none; }
+  .brand { min-width: 0; overflow: hidden; white-space: nowrap; }
+  .nav-inner { gap: 8px; }
+  .nav-right { gap: 4px; }
 }
 
 /* Desktop keeps inline links PLUS the burger (consistent menu trigger in
