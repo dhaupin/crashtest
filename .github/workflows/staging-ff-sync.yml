@@ -1,0 +1,44 @@
+# staging-ff-sync - after a promotion to main, fast-forward the permanent
+# staging integration branch to main (monoforge#20, the family staging flow).
+#
+# A merge-commit promotion puts a commit on main that staging lacks, so the
+# two drift by one on every promotion even when the flow is followed exactly.
+# This job is the required sync step: staging is a mirror of the integration
+# state, never a second line of history, so a fast-forward is the only move -
+# never a merge, never a force-push.
+#
+# Non-destructive by construction: `git push origin origin/main:staging` with
+# a fast-forward-only refspec. If staging has moved ahead of main the push is
+# refused and this job fails loudly, which is the signal that a commit landed
+# on staging that main does not have.
+
+name: Sync staging to main
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: staging-ff-sync
+  cancel-in-progress: false
+
+jobs:
+  ff-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fast-forward staging to main
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git init -q .
+          git remote add origin "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git fetch -q origin main staging
+          # Fast-forward only: the refspec requires staging to be an ancestor
+          # of main. `git push` refuses a non-fast-forward update, so a
+          # divergence fails the job instead of rewriting history.
+          git push origin origin/main:refs/heads/staging

@@ -6,6 +6,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/) - sections head `## [ver
 
 ## [Unreleased]
 
+### 2026-11-12 - the staging fast-forward sync (family plumbing)
+
+`staging` is a permanent mirror of `main`, so a merge-commit promotion drifts the two by one every time. This repo carried no sync job, so each promotion needed a manual fast-forward. `.github/workflows/staging-ff-sync.yml` now closes that gap: on every push to `main` it runs `git push origin origin/main:refs/heads/staging` - a fast-forward-only refspec, never a merge, never a force-push, and it fails loudly if `staging` ever moves ahead of `main`. The same canon ships in every family repo (and the coreforge site template). No version bump.
+
 ### 2026-11-11 - the mobile nav fits the viewport
 
 Owner report (mobile-first): the header overflowed the phone screen and the burger - the only menu control below 640px - sat off-screen. Measured at 390px (headless probe): `document.scrollWidth` 431 vs `clientWidth` 375, the burger at x=397..431. The right cluster (GitHub icon + paint-scheme select + theme switch + burger) needs ~200px against ~144px free after the wordmark, so the row could not shrink.
