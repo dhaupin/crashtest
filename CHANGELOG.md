@@ -6,6 +6,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/) - sections head `## [ver
 
 ## [Unreleased]
 
+### 2026-11-12 - the island sees the whole family (interop)
+
+The `/status` family island hand-types its sibling set (`web/src/components/FamilyStatusIsland.jsx`), and the set had drifted: this site listed five members, missing `gamestruct` and `memstruct` - both of which already serve `/status.json` on the family-status@1 dialect. So this page could not render them at all. The island now lists every other family member, and `web/public/_headers` `connect-src` gains the two origins (the reader half: CSP governs `fetch()` before CORS, so an origin the island fetches but the CSP omits is a dark row). The reader-clause guard stays green - it pins the island's `origin:` rows to the served CSP so the two cannot drift silently again.
+
+Found in the family release-readiness pass; the full session (the CSP sweep, the vuln/pack pass, and the railyard ledger drifts) is receipted in the parent (`dhaupin/railyard`, `CHANGELOG.md` + `labs/TASKS.md`). No version bump.
+
+
 ### 2026-11-12 - the staging fast-forward sync (family plumbing)
 
 `staging` is a permanent mirror of `main`, so a merge-commit promotion drifts the two by one every time. This repo carried no sync job, so each promotion needed a manual fast-forward. `.github/workflows/staging-ff-sync.yml` now closes that gap: on every push to `main` it runs `git push origin origin/main:refs/heads/staging` - a fast-forward-only refspec, never a merge, never a force-push, and it fails loudly if `staging` ever moves ahead of `main`. The same canon ships in every family repo (and the coreforge site template). No version bump.
