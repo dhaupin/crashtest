@@ -339,3 +339,14 @@ Owner directive: the family defaults to light. The product sites and docs sites 
 - `docs/_layouts/default.html` - `<html data-theme="light">`; bootstrap inverted; `color-scheme` `light dark`.
 - `web/public/site.webmanifest` - PWA `theme_color`/`background_color` -> light (`#f4f0e9`).
 - Receipts: `npm test` 504/504 (7 PHP-less skips); `npm run check` green; docs-lint clean.
+
+---
+
+### 2026-11-12 - session: the staging fast-forward sync (family plumbing)
+
+Owner directive: "make sure all the fam has a ff-sync workflow, including the coreforge template."
+
+- **The gap (measured).** `staging` is a permanent integration branch and a mirror of `main`, but a merge-commit promotion puts a commit on `main` that `staging` lacks, so the two drift by one on every promotion even when the flow is followed exactly. This repo carried no sync job, so the drift was closed by hand each time.
+- **The fix (`.github/workflows/staging-ff-sync.yml`).** On every push to `main` (and on `workflow_dispatch`), the job runs `git push origin origin/main:refs/heads/staging` - a fast-forward-only refspec. `git push` refuses a non-fast-forward update, so a divergence fails the job loudly instead of rewriting history; never a merge, never a force-push.
+- **The canon.** Byte-identical to coreforge's copy (`staging-ff-sync.yml`, the monoforge#20 shape), so the family's plumbing is one file. The coreforge site template already ships it (`templates/site/.github/workflows/staging-ff-sync.yml`), so a stamped repo inherits it from birth.
+- **No version bump** - CI plumbing, no product surface.
