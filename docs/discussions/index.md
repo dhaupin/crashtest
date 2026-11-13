@@ -28,5 +28,6 @@ Prose on these pages flows - paragraphs keep their natural length, and nothing i
 | [Announcing crashtest v1.1.0](/crashtest/discussions/announcing-v1.1.0) | 1.1.0 | 2026-10-25 on npm |
 | [Announcing crashtest v1.3.0](/crashtest/discussions/announcing-v1.3.0) | 1.3.0 | staged for the v1.3.0 tag |
 | [Announcing crashtest v1.2.0](/crashtest/discussions/announcing-v1.2.0) | 1.2.0 | 2026-11-02 on npm |
+| [Announcing crashtest v1.4.0](/crashtest/discussions/announcing-v1.4.0) | 1.4.0 | staged for the v1.4.0 tag |
 
 History: prestruct pioneered the format ([v1.0.0](https://github.com/dhaupin/prestruct/blob/main/docs/discussions/announcing-v1.0.0.md), [v1.1.0](https://github.com/dhaupin/prestruct/blob/main/docs/discussions/announcing-v1.1.0.md)); crashtest adopts the same shape so approaches to the community discussion stay uniform across the creadev family.

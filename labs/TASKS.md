@@ -368,3 +368,12 @@ The family release-readiness pass (owner-driven) swept all eight island sites. O
 - **Shape (receipt).** `dhaupin/creadev` PR #38 (`fca49c6`); the family-wide rollout is tracked on `dhaupin/railyard#31`.
 - **Guard.** railyard's `scripts/check-dependabot.cjs` (the shape) + `scripts/check-dependabot.test.cjs` (it bites), wired into railyard CI.
 - **No version bump.**
+
+### 2026-11-12 - session: the v1.4.0 cut
+
+The family release-readiness pass (owner-driven). This repo's cut:
+
+- **Version.** `1.3.0 -> 1.4.0` (package.json + the hand-copied `VERSION` in `src/cli.js`, kept equal by `test/version.test.js`). A minor: the `[Unreleased]` block carries additive features (pack relevance, `--shard`/fanout, the exported `buildTargetHarness`).
+- **Changelog.** `## [Unreleased]` cut to `## [1.4.0] - 2026-11-12`; the entries stay verbatim (the family leaves a "No version bump" line inside the section it belongs to, per precedent in the released 1.3.0/1.2.0 sections).
+- **Announcement.** `docs/discussions/announcing-v1.4.0.md` + the index row + `docs/_data/nav.yml`.
+- **Release.** Branch -> PR -> `staging` -> PR -> `main`, then the `v1.4.0` tag drives the OIDC ladder (npm publish + GH release + the served-tarball asset + verify).
