@@ -37,7 +37,7 @@ jobs:
   docs:
     # Pinned to the lane's SHA (pins, never floats): a moving @main would let
     # the runbook change under us between runs.
-    uses: dhaupin/freestruct/.github/workflows/docs-lane.yml@22bb7e9b2634d6cdd966963d9e25c7f892577276 # main
+    uses: dhaupin/freestruct/.github/workflows/docs-lane.yml@446c8a69e34eaf15dc20639b1f6083374de4e024 # main
     with:
       ruby-version: '3.4'
       freestruct-version: '1.2.0'
