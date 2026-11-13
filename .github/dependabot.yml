@@ -1,0 +1,64 @@
+# Dependabot keeps the dev toolchain current as upstream releases land. The
+# struct family ships tools whose output is often committed as canon
+# (eyestruct pixel baselines, crashtest ledgers, packstruct manifests), so a
+# tool bump can be a real event, not a cosmetic one: a "minor" release can
+# change the canon it produces. Every update therefore arrives as a pull
+# request that runs the full CI suite, which is how a version-coupled break
+# shows up in review instead of on a silent build.
+#
+# Grouped and weekly on purpose. Minor and patch updates ride together, so the
+# volume stays reviewable instead of a PR per package. Majors come alone,
+# because a major is where a break like the eyestruct 1.1.0 overlay change
+# lives, and it deserves its own review. Shape: the creadev flow (PR #38,
+# fca49c6); the family-wide rollout is railyard#31.
+#
+# npm directories are the packages that carry dependencies (fixtures and
+# templates are excluded - their package.json files are test data, not
+# toolchains). The github-actions ecosystem moves the SHA-pinned refs
+# (packstruct#69) without a hand-edit.
+
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+    groups:
+      npm-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+    groups:
+      npm-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: "ci"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
