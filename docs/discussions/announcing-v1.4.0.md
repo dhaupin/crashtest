@@ -1,5 +1,5 @@
 ---
-permalink: discussions/announcing-v1.4.0
+permalink: discussions/announcing-v1.4.0/
 layout: default
 title: Announcing crashtest v1.4.0
 description: The crashtest v1.4.0 release post - the file IS the announcement; copy the raw markdown from GitHub into Discussions. Technical, changelog-style.
