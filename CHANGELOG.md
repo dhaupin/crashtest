@@ -6,6 +6,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/) - sections head `## [ver
 
 ## [Unreleased]
 
+### 2026-11-14 - the npm package link joins every surface (parity pass)
+
+The package was on npm but the docs footer and nav never linked it. Both now carry the npm link (the footer line reads "installs from npm", mirroring eyestruct/freestruct), alongside GitHub. A new `test/npm-parity.test.mjs` proves the docs and landing surfaces link the published `package.json` name, so a rename or a dropped surface reds instead of shipping a package nobody can find. No version bump.
+
 ### 2026-11-13 - the /web family matrix (React 19 + Vite 8, prestruct ^1.5.0)
 
 The landing site moves onto the matrix prestruct 1.5.0 published: `react`/`react-dom` `^18.3.1 -> ^19.3.1`, `vite` `^6.4.5 -> ^8.3.7`, `@vitejs/plugin-react` `^4.7.0 -> ^6.3.0`, `prestruct` `^1.3.0 -> ^1.5.0`. The site bakes 10/10 pages with a clean audit on the new matrix.
