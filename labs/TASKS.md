@@ -388,3 +388,14 @@ Unblocked by prestruct 1.5.0 (it widened its peer ceilings `react`/`react-dom` `
 - **web/vite.config.js.** `manualChunks` is a FUNCTION (the object form vite <=7 accepted is rejected by rolldown); `minify: 'esbuild'` dropped (esbuild unbundled, oxc default).
 - **Proof.** The site bakes 10/10 pages, audit 0 failures, on the new matrix; the repo's own battery + `check` stay green.
 - **No version bump** (the repo's own landing site, not the shipped surface; the crashtest `deps: web toolchain` precedent).
+
+---
+
+### 2026-11-13 (cont.) - session: the release posts were invisible to the sitemap (the permalink-shape bug, family sweep)
+
+Found in eyestruct, fixed there first, swept across the family. Same cause, same one-line fix.
+
+- **The cause.** Every `announcing-vX.Y.Z.md` carried a dotted, slashless permalink. Jekyll reads the `.0` as a file extension and emits the page extensionless; freestruct's scanner only matches `.html`/`.htm`, so the post was invisible to the whole SEO pipeline (no sitemap `<loc>`, no og/canonical) though it served 200. All five crashtest posts were missing from the live sitemap.
+- **The fix.** Trailing-slash the permalinks (`discussions/announcing-vX.Y.Z/`) so Jekyll emits `<slug>/index.html`. The index's stale "staged for the tag" markers on 1.3.0 and 1.4.0 (both on npm: 2026-11-06, 2026-11-13) are corrected, and the rows are ordered newest first.
+- **The test that bites.** `test/docs-post-permalinks.test.js`: every post permalink must end with the slash, and the index must list exactly the post files. Bite proven by reverting one permalink.
+- **Gates.** `npm run lint:docs` green (37 pages).

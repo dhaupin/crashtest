@@ -14,7 +14,7 @@ Prose on these pages flows - paragraphs keep their natural length, and nothing i
 ## The conventions
 
 - **One file per release, named after it.** `announcing-vX.Y.Z.md`, matching the npm version on the day the post is drafted. Never reuse a filename; if a release gets a retry, fold the delta into the same post instead.
-- **Frontmatter contract.** Same four required fields every docs page gates on (`permalink`, `layout`, `title`, `description`) plus `version`. The permalink is `discussions/announcing-vX.Y.Z`.
+- **Frontmatter contract.** Same four required fields every docs page gates on (`permalink`, `layout`, `title`, `description`) plus `version`. The permalink is `discussions/announcing-vX.Y.Z/` - the trailing slash matters: a dotted, slashless slug makes Jekyll emit an extensionless file that freestruct's scanner never sees, so the page drops out of the sitemap and the whole head seam. Every post carries the slash.
 - **The file IS the post.** No wrapper prose, no nested copy block: below the frontmatter the file carries the announcement body itself, so the source of the doc is the source of the post. To publish, copy the raw markdown from GitHub (view source on the file) into the Discussions announcement, stripping ONLY the frontmatter block at the top (routing metadata the docs build needs, not forum content). The posting mechanics live in this index, not in the posts themselves - the post body should stand alone in a forum.
 - Voice and facts. Same rules as everywhere else in the docs: the dry hyphen voice ([about/style](/crashtest/about/style)), no marketing language, no cliches, and every number and claim verified against the CLI, the committed pins, or the npm registry before it lands. Rule 7: if you cannot run it, do not write it.
 - **Timing.** Draft the post against the released version, not the dev tree: cite what shipped in the npm tarball, and keep in-tree-only work (unreleased changelog rows) out of it. A post describing a version that is not on npm yet is fiction by promotion.
@@ -24,10 +24,10 @@ Prose on these pages flows - paragraphs keep their natural length, and nothing i
 
 | post | version | live |
 | --- | --- | --- |
-| [Announcing crashtest v1.0.0](/crashtest/discussions/announcing-v1.0.0) | 1.0.0 | 2026-10-21 on npm |
-| [Announcing crashtest v1.1.0](/crashtest/discussions/announcing-v1.1.0) | 1.1.0 | 2026-10-25 on npm |
-| [Announcing crashtest v1.3.0](/crashtest/discussions/announcing-v1.3.0) | 1.3.0 | staged for the v1.3.0 tag |
-| [Announcing crashtest v1.2.0](/crashtest/discussions/announcing-v1.2.0) | 1.2.0 | 2026-11-02 on npm |
-| [Announcing crashtest v1.4.0](/crashtest/discussions/announcing-v1.4.0) | 1.4.0 | staged for the v1.4.0 tag |
+| [Announcing crashtest v1.4.0](/crashtest/discussions/announcing-v1.4.0/) | 1.4.0 | 2026-11-13 on npm |
+| [Announcing crashtest v1.3.0](/crashtest/discussions/announcing-v1.3.0/) | 1.3.0 | 2026-11-06 on npm |
+| [Announcing crashtest v1.2.0](/crashtest/discussions/announcing-v1.2.0/) | 1.2.0 | 2026-11-02 on npm |
+| [Announcing crashtest v1.1.0](/crashtest/discussions/announcing-v1.1.0/) | 1.1.0 | 2026-10-25 on npm |
+| [Announcing crashtest v1.0.0](/crashtest/discussions/announcing-v1.0.0/) | 1.0.0 | 2026-10-21 on npm |
 
 History: prestruct pioneered the format ([v1.0.0](https://github.com/dhaupin/prestruct/blob/main/docs/discussions/announcing-v1.0.0.md), [v1.1.0](https://github.com/dhaupin/prestruct/blob/main/docs/discussions/announcing-v1.1.0.md)); crashtest adopts the same shape so approaches to the community discussion stay uniform across the creadev family.
