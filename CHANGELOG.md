@@ -16,6 +16,10 @@ The landing site moves onto the matrix prestruct 1.5.0 published: `react`/`react
 No version bump; the repo's own landing site, not the shipped surface.
 
 
+### 2026-11-13 - the release posts were invisible to the SEO pipeline (permalink shape)
+
+Every `docs/discussions/announcing-vX.Y.Z.md` carried a dotted, slashless permalink (`permalink: discussions/announcing-v1.4.0`). Jekyll reads the `.0` as a file extension, so it emitted the page EXTENSIONLESS on disk; freestruct's page scanner matches only `.html`/`.htm`, so the post was invisible to the entire post-build layer - no sitemap `<loc>`, no og/canonical/JSON-LD - even though it served 200. None of the five posts was in the live sitemap. The trailing-slash form (`permalink: discussions/announcing-v1.4.0/`) emits `<slug>/index.html` and is seen. All five posts now carry the slash, and the index's stale "staged for the tag" markers on 1.3.0 and 1.4.0 (both on npm) are corrected to their publish dates. Two biting tests in `test/docs-post-permalinks.test.js`: every post permalink must end with the slash, and the index must list exactly the post files. Ported from eyestruct (the same bug, fixed there first).
+
 ## [1.4.0] - 2026-11-12
 
 ### 2026-11-12 - the Dependabot flow lands (railyard#31)
