@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.3.0",
-    "prestruct": "^1.5.0",
+    "prestruct": "^1.5.1",
     "vite": "^8.3.7"
   }
 }
