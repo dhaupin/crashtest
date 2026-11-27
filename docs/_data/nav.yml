@@ -86,3 +86,7 @@
     url: https://crashtest.creadev.org/terms
   - title: Site Privacy
     url: https://crashtest.creadev.org/privacy
+  - title: npm
+    url: https://www.npmjs.com/package/crashtest
+  - title: GitHub
+    url: https://github.com/dhaupin/crashtest

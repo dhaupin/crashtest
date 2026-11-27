@@ -6,6 +6,30 @@ Format: [Keep a Changelog](https://keepachangelog.com/) - sections head `## [ver
 
 ## [Unreleased]
 
+### Fixed: the npm parity gate had no teeth (it passed with the link deleted)
+
+The gate claimed to prove every surface advertises the package on npm, but it
+asked only whether *any* of several surfaces carried a link
+(`hits.length > 0`). A footer rewrite or a rebrand sweep that drops the link
+from the docs layout left the test green, because a nav file still had one.
+Measured, not assumed: deleting the npm link from `docs/_layouts/default.html`
+and rerunning the old gate gave 3 pass, 0 fail.
+
+The gate is now one predicate over an explicit `REQUIRED` list, so each named
+surface is checked on its own, and it resolves all three lawful link shapes to
+their real source of truth: the literal URL, `{ site.npm_url }` against
+`docs/_config.yml`, and `{ site.title }` against the docs title. A templated
+link is only accepted while the value it interpolates names the package.
+Two mutation tests prove it bites: a stripped surface is refused, and a link
+naming another package is refused.
+
+Measured after the change: clean tree 6 pass / 0 fail, and the same deleted-link
+fixture now gives 2 fail.
+
+### 2026-11-14 - the npm package link joins every surface (parity pass)
+
+The package was on npm but the docs footer and nav never linked it. Both now carry the npm link (the footer line reads "installs from npm", mirroring eyestruct/freestruct), alongside GitHub. A new `test/npm-parity.test.mjs` proves the docs and landing surfaces link the published `package.json` name, so a rename or a dropped surface reds instead of shipping a package nobody can find. No version bump.
+
 ### 2026-11-13 - the /web family matrix (React 19 + Vite 8, prestruct ^1.5.0)
 
 The landing site moves onto the matrix prestruct 1.5.0 published: `react`/`react-dom` `^18.3.1 -> ^19.3.1`, `vite` `^6.4.5 -> ^8.3.7`, `@vitejs/plugin-react` `^4.7.0 -> ^6.3.0`, `prestruct` `^1.3.0 -> ^1.5.0`. The site bakes 10/10 pages with a clean audit on the new matrix.
